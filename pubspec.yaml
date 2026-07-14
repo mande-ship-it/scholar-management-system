@@ -1,0 +1,31 @@
+name: scholar_management_system
+description: "scholar management system for age africa"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  windows:
+    generate: true
+    image_path: "assets/images/age-logo.png"
+    icon_size: 256
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/age-logo.png
