@@ -299,7 +299,6 @@ class StatisticsComponent extends StatelessWidget {
       {"label": "Tuition Fees", "percent": 55, "color": brandOlive},
       {"label": "Allowances", "percent": 25, "color": brandOrange},
       {"label": "Learning Materials", "percent": 15, "color": brandGold},
-      {"label": "Admin Support", "percent": 5, "color": brandBrown},
     ];
 
     return Column(

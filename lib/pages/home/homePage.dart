@@ -11,23 +11,17 @@ import '../scholarPages/registerScholar.dart';
 import '../scholarPages/viewScholars.dart';
 import '../scholarPages/ScholarProfile.dart';
 import '../scholarPages/uploadDocuments.dart';
-import '../scholarPages/scholarAttendance.dart';
-import '../scholarPages/scholarPerfomance.dart';
+import '../attendancePages/scholarAttendance.dart';
 import '../scholarPages/deleteScholar.dart';
 
 // Schools
 import '../schoolPages/registerSchool.dart';
 import '../schoolPages/viewSchools.dart';
-import '../schoolPages/editSchool.dart';
-import '../schoolPages/schoolProfile.dart';
-import '../schoolPages/deleteSchool.dart';
 
 // Sponsors
 import '../sponsorPages/registerSponsor.dart';
 import '../sponsorPages/viewSponsors.dart';
-import '../sponsorPages/editSponsor.dart';
 import '../sponsorPages/sponsorshipHistory.dart';
-import '../sponsorPages/deleteSponsor.dart';
 
 // Academics
 import '../academicPages/addSubjects.dart';
@@ -37,10 +31,8 @@ import '../academicPages/reportCards.dart';
 import '../academicPages/performanceAnalysis.dart';
 
 // Attendance
-import '../attendancePages/takeAttendance.dart';
 import '../attendancePages/attendanceHistory.dart';
 import '../attendancePages/attendanceReports.dart';
-import '../attendancePages/attendanceSummary.dart';
 
 // Finance
 import '../financePages/scholarshipPayments.dart';
@@ -53,7 +45,6 @@ import '../financePages/financialReports.dart';
 import '../reportPages/scholarReports.dart';
 import '../reportPages/schoolReports.dart';
 import '../reportPages/sponsorReports.dart';
-import '../reportPages/attendanceReports.dart';
 import '../reportPages/financeReports.dart';
 import '../reportPages/exportPDF.dart';
 import '../reportPages/exportExcel.dart';
@@ -113,7 +104,6 @@ class _HomePageState extends State<HomePage> {
       icon: Icons.dashboard,
       subItems: [
         SidebarSubItem(title: "Overview", page: DashboardPage(), icon: Icons.view_quilt),
-        SidebarSubItem(title: "Statistics", page: StatisticsPage(), icon: Icons.bar_chart),
         SidebarSubItem(title: "Recent Activities", page: RecentActivitiesPage(), icon: Icons.history),
         SidebarSubItem(title: "Notifications", page: NotificationsPage(), icon: Icons.notifications_active),
       ],
@@ -124,8 +114,6 @@ class _HomePageState extends State<HomePage> {
       subItems: [
         SidebarSubItem(title: "Register Scholar", page: RegisterScholarPage(), icon: Icons.person_add),
         SidebarSubItem(title: "View Scholars", page: ViewScholarsPage(), icon: Icons.people),
-        SidebarSubItem(title: "Scholar Attendance", page: ScholarAttendancePage(), icon: Icons.how_to_reg),
-        SidebarSubItem(title: "Scholar Performance", page: ScholarPerformancePage(), icon: Icons.trending_up),
       ],
     ),
     SidebarCategory(
@@ -142,9 +130,7 @@ class _HomePageState extends State<HomePage> {
       subItems: [
         SidebarSubItem(title: "Register Sponsor", page: RegisterSponsorPage(), icon: Icons.add_moderator),
         SidebarSubItem(title: "View Sponsors", page: ViewSponsorsPage(), icon: Icons.supervisor_account),
-        SidebarSubItem(title: "Edit Sponsor", page: EditSponsorPage(), icon: Icons.edit),
         SidebarSubItem(title: "Sponsorship History", page: SponsorshipHistoryPage(), icon: Icons.history_edu),
-        SidebarSubItem(title: "Delete Sponsor", page: DeleteSponsorPage(), icon: Icons.delete_sweep),
       ],
     ),
     SidebarCategory(
@@ -161,10 +147,9 @@ class _HomePageState extends State<HomePage> {
       title: "Attendance",
       icon: Icons.event_available,
       subItems: [
-        SidebarSubItem(title: "Take Attendance", page: TakeAttendancePage(), icon: Icons.fact_check),
+        SidebarSubItem(title: "Scholar Attendance", page: ScholarAttendancePage(), icon: Icons.how_to_reg),
         SidebarSubItem(title: "Attendance History", page: AttendanceHistoryPage(), icon: Icons.calendar_month),
         SidebarSubItem(title: "Attendance Reports", page: AttendanceModuleReportsPage(), icon: Icons.summarize),
-        SidebarSubItem(title: "Attendance Summary", page: AttendanceSummaryPage(), icon: Icons.view_list),
       ],
     ),
     SidebarCategory(
@@ -185,7 +170,6 @@ class _HomePageState extends State<HomePage> {
         SidebarSubItem(title: "Scholar Reports", page: ScholarReportsPage(), icon: Icons.description),
         SidebarSubItem(title: "School Reports", page: SchoolReportsPage(), icon: Icons.domain_verification),
         SidebarSubItem(title: "Sponsor Reports", page: SponsorReportsPage(), icon: Icons.admin_panel_settings),
-        SidebarSubItem(title: "Attendance Reports", page: ReportAttendanceReportsPage(), icon: Icons.checklist),
         SidebarSubItem(title: "Finance Reports", page: FinanceReportsPage(), icon: Icons.monetization_on),
         SidebarSubItem(title: "Export PDF", page: ExportPDFPage(), icon: Icons.picture_as_pdf),
         SidebarSubItem(title: "Export Excel", page: ExportExcelPage(), icon: Icons.table_view),

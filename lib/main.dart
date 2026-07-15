@@ -12,19 +12,14 @@ import 'pages/dashboardPages/notifications.dart';
 // Scholar Pages
 import 'pages/scholarPages/registerScholar.dart';
 import 'pages/scholarPages/viewScholars.dart';
-import 'pages/scholarPages/editScholar.dart';
 import 'pages/scholarPages/ScholarProfile.dart';
 import 'pages/scholarPages/uploadDocuments.dart';
-import 'pages/scholarPages/scholarAttendance.dart';
-import 'pages/scholarPages/scholarPerfomance.dart';
-import 'pages/scholarPages/deleteScholar.dart';
+import 'pages/attendancePages/scholarAttendance.dart';
 
 // School Pages
 import 'pages/schoolPages/registerSchool.dart';
 import 'pages/schoolPages/viewSchools.dart';
-import 'pages/schoolPages/editSchool.dart';
 import 'pages/schoolPages/schoolProfile.dart';
-import 'pages/schoolPages/deleteSchool.dart';
 
 // Sponsor Pages
 import 'pages/sponsorPages/registerSponsor.dart';
@@ -41,10 +36,8 @@ import 'pages/academicPages/reportCards.dart';
 import 'pages/academicPages/performanceAnalysis.dart';
 
 // Attendance Pages
-import 'pages/attendancePages/takeAttendance.dart';
 import 'pages/attendancePages/attendanceHistory.dart';
 import 'pages/attendancePages/attendanceReports.dart';
-import 'pages/attendancePages/attendanceSummary.dart';
 
 // Finance Pages
 import 'pages/financePages/scholarshipPayments.dart';
@@ -57,7 +50,6 @@ import 'pages/financePages/financialReports.dart';
 import 'pages/reportPages/scholarReports.dart';
 import 'pages/reportPages/schoolReports.dart';
 import 'pages/reportPages/sponsorReports.dart';
-import 'pages/reportPages/attendanceReports.dart';
 import 'pages/reportPages/financeReports.dart';
 import 'pages/reportPages/exportPDF.dart';
 import 'pages/reportPages/exportExcel.dart';
@@ -106,19 +98,16 @@ class MyApp extends StatelessWidget {
         // Scholars
         '/registerScholar': (context) => const RegisterScholarPage(),
         '/viewScholars': (context) => const ViewScholarsPage(),
-        '/editScholar': (context) => const EditScholarPage(),
         '/scholarProfile': (context) => const ScholarProfilePage(),
         '/uploadDocuments': (context) => const UploadDocumentsPage(),
         '/scholarAttendance': (context) => const ScholarAttendancePage(),
-        '/scholarPerformance': (context) => const ScholarPerformancePage(),
-        '/deleteScholar': (context) => const DeleteScholarPage(),
+
 
         // Schools
         '/schools/register': (context) => const RegisterSchoolPage(),
         '/schools/view': (context) => const ViewSchoolsPage(),
-        '/schools/edit': (context) => const EditSchoolPage(),
         '/schools/profile': (context) => const SchoolProfilePage(),
-        '/schools/delete': (context) => const DeleteSchoolPage(),
+
 
         // Sponsors
         '/sponsors/register': (context) => const RegisterSponsorPage(),
@@ -135,10 +124,8 @@ class MyApp extends StatelessWidget {
         '/academics/performanceAnalysis': (context) => const PerformanceAnalysisPage(),
 
         // Attendance
-        '/attendance/takeAttendance': (context) => const TakeAttendancePage(),
         '/attendance/attendanceHistory': (context) => const AttendanceHistoryPage(),
         '/attendance/attendanceReports': (context) => const AttendanceModuleReportsPage(),
-        '/attendance/attendanceSummary': (context) => const AttendanceSummaryPage(),
 
         // Finance
         '/finance/scholarshipPayments': (context) => const ScholarshipPaymentsPage(),
@@ -151,7 +138,6 @@ class MyApp extends StatelessWidget {
         '/reports/scholar': (context) => const ScholarReportsPage(),
         '/reports/school': (context) => const SchoolReportsPage(),
         '/reports/sponsor': (context) => const SponsorReportsPage(),
-        '/reports/attendance': (context) => const ReportAttendanceReportsPage(),
         '/reports/finance': (context) => const FinanceReportsPage(),
         '/reports/exportPDF': (context) => const ExportPDFPage(),
         '/reports/exportExcel': (context) => const ExportExcelPage(),
