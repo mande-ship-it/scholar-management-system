@@ -45,35 +45,37 @@ class NotificationsComponent extends StatelessWidget {
       }
     ];
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth > 950) {
-          // Side-by-side layout
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 2,
-                child: _buildActivityCard(activities, brandBrown, brandOrange),
-              ),
-              const SizedBox(width: 24),
-              Expanded(
-                flex: 1,
-                child: _buildQuickActionsCard(brandBrown, brandOlive, brandOrange, brandCream),
-              ),
-            ],
-          );
-        } else {
-          // Stacked layout
-          return Column(
-            children: [
-              _buildActivityCard(activities, brandBrown, brandOrange),
-              const SizedBox(height: 24),
-              _buildQuickActionsCard(brandBrown, brandOlive, brandOrange, brandCream),
-            ],
-          );
-        }
-      },
+    return SingleChildScrollView(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth > 950) {
+            // Side-by-side layout
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: _buildActivityCard(activities, brandBrown, brandOrange),
+                ),
+                const SizedBox(width: 24),
+                Expanded(
+                  flex: 1,
+                  child: _buildQuickActionsCard(brandBrown, brandOlive, brandOrange, brandCream),
+                ),
+              ],
+            );
+          } else {
+            // Stacked layout
+            return Column(
+              children: [
+                _buildActivityCard(activities, brandBrown, brandOrange),
+                const SizedBox(height: 24),
+                _buildQuickActionsCard(brandBrown, brandOlive, brandOrange, brandCream),
+              ],
+            );
+          }
+        },
+      ),
     );
   }
 

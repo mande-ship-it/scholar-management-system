@@ -1,5 +1,12 @@
-// account_settings.dart
 import 'package:flutter/material.dart';
+
+// ============================================================
+// Shared Brand Color Palette
+// ============================================================
+const Color kBrandBrown = Color(0xFF4C3C32);
+const Color kBrandCream = Color(0xFFFAF2DB);
+const Color kBrandOlive = Color(0xFF9AB334);
+const Color kBrandOrange = Color(0xFFE05B1C);
 
 class AccountSettingsComponent extends StatefulWidget {
   const AccountSettingsComponent({super.key});
@@ -14,9 +21,6 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
   final _emailController = TextEditingController(text: "jane.doe@example.com");
   final _phoneController = TextEditingController(text: "+265 999 123 456");
 
-  bool _emailNotifications = true;
-  bool _pushNotifications = false;
-  bool _darkMode = false;
   bool _isSaving = false;
 
   @override
@@ -31,13 +35,14 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSaving = true);
-    await Future.delayed(const Duration(milliseconds: 900)); // simulate API call
+    await Future.delayed(const Duration(milliseconds: 900));
     setState(() => _isSaving = false);
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text("Settings saved successfully"),
+        content: Text("Account settings updated successfully."),
+        backgroundColor: kBrandOlive,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -45,276 +50,180 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ---------------- Gradient Header ----------------
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(24, 20, 20, 20),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [kBrandBrown, kBrandOlive]),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+                    child: const Icon(Icons.manage_accounts_rounded, color: Colors.white, size: 28),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Account Settings', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+                        SizedBox(height: 3),
+                        Text('Manage your personal profile and security credentials.',
+                            style: TextStyle(fontSize: 12, color: Colors.white70)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
-    return Form(
-      key: _formKey,
-      child: ListView(
-        shrinkWrap: true,
-        children: [
-          Text(
-            "Account Settings",
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-            ) ??
-                const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            "Manage your profile, preferences, and security.",
-            style: TextStyle(color: Colors.grey.shade600),
-          ),
-          const SizedBox(height: 20),
-          _buildProfileHeader(),
-          const SizedBox(height: 20),
-          _buildStatsRow(),
-          const SizedBox(height: 16),
-          _sectionCard(
-            title: "Personal Information",
-            child: Column(
-              children: [
-                _buildTextField(
-                  controller: _nameController,
-                  label: "Full Name",
-                  icon: Icons.person_outline,
-                  validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? "Name is required" : null,
-                ),
-                const SizedBox(height: 14),
-                _buildTextField(
-                  controller: _emailController,
-                  label: "Email Address",
-                  icon: Icons.email_outlined,
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return "Email is required";
-                    if (!v.contains("@")) return "Enter a valid email";
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 14),
-                _buildTextField(
-                  controller: _phoneController,
-                  label: "Phone Number",
-                  icon: Icons.phone_outlined,
-                  keyboardType: TextInputType.phone,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          _sectionCard(
-            title: "Preferences",
-            child: Column(
-              children: [
-                _buildSwitchTile(
-                  title: "Email Notifications",
-                  subtitle: "Receive updates and alerts via email",
-                  icon: Icons.mark_email_unread_outlined,
-                  value: _emailNotifications,
-                  onChanged: (v) => setState(() => _emailNotifications = v),
-                ),
-                const Divider(height: 24),
-                _buildSwitchTile(
-                  title: "Push Notifications",
-                  subtitle: "Get real-time alerts on this device",
-                  icon: Icons.notifications_none,
-                  value: _pushNotifications,
-                  onChanged: (v) => setState(() => _pushNotifications = v),
-                ),
-                const Divider(height: 24),
-                _buildSwitchTile(
-                  title: "Dark Mode",
-                  subtitle: "Use a darker color theme",
-                  icon: Icons.dark_mode_outlined,
-                  value: _darkMode,
-                  onChanged: (v) => setState(() => _darkMode = v),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          _sectionCard(
-            title: "Security",
-            child: Column(
-              children: [
-                _buildActionTile(
-                  icon: Icons.lock_outline,
-                  label: "Change Password",
-                  onTap: () {},
-                ),
-                const Divider(height: 1),
-                _buildActionTile(
-                  icon: Icons.shield_outlined,
-                  label: "Two-Factor Authentication",
-                  onTap: () {},
-                ),
-                const Divider(height: 1),
-                _buildActionTile(
-                  icon: Icons.delete_outline,
-                  label: "Delete Account",
-                  labelColor: Colors.red,
-                  iconColor: Colors.red,
-                  onTap: () => _confirmDelete(context),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 28),
-          SizedBox(
-            height: 52,
-            child: ElevatedButton(
-              onPressed: _isSaving ? null : _saveSettings,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: theme.colorScheme.primary,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+            Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildAccountPreview(),
+                    const SizedBox(height: 32),
+
+                    const Text("Personal Information", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: _nameController,
+                      label: "Full Name",
+                      icon: Icons.person_outline_rounded,
+                      validator: (v) => (v == null || v.trim().isEmpty) ? "Name is required" : null,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: _emailController,
+                      label: "Email Address",
+                      icon: Icons.email_outlined,
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (v) => (v == null || !v.contains('@')) ? "Valid email required" : null,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: _phoneController,
+                      label: "Phone Number",
+                      icon: Icons.phone_outlined,
+                      keyboardType: TextInputType.phone,
+                    ),
+
+                    const SizedBox(height: 32),
+                    const Text("Security & Authentication", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                    const SizedBox(height: 16),
+                    _buildActionTile(
+                      icon: Icons.lock_outline_rounded,
+                      title: "Change Password",
+                      subtitle: "Update your account password regularly",
+                      onTap: () {},
+                    ),
+                    const SizedBox(height: 12),
+                    _buildActionTile(
+                      icon: Icons.shield_outlined,
+                      title: "Two-Factor Authentication",
+                      subtitle: "Add an extra layer of security",
+                      onTap: () {},
+                    ),
+                    const SizedBox(height: 12),
+                    _buildActionTile(
+                      icon: Icons.delete_outline_rounded,
+                      title: "Close Account",
+                      subtitle: "Permanently delete your profile and data",
+                      color: Colors.red,
+                      onTap: () => _confirmDelete(context),
+                    ),
+
+                    const SizedBox(height: 40),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _isSaving ? null : _saveSettings,
+                        icon: _isSaving 
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Icon(Icons.save_rounded),
+                        label: Text(_isSaving ? "Saving..." : "Save Account Changes", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          backgroundColor: kBrandOlive,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              child: _isSaving
-                  ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2.5,
-                ),
-              )
-                  : const Text("Save Changes", style: TextStyle(fontSize: 16)),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  // ---------- Sub-widgets ----------
-
-  Widget _buildProfileHeader() {
-    return Row(
-      children: [
-        CircleAvatar(
-          radius: 34,
-          backgroundColor: Colors.deepPurple.shade100,
-          child: const Text(
-            "JD",
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Colors.deepPurple,
-            ),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildAccountPreview() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: kBrandCream.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kBrandCream),
+      ),
+      child: Row(
+        children: [
+          Stack(
             children: [
-              Text(
-                _nameController.text.isEmpty ? "Your Name" : _nameController.text,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              const CircleAvatar(
+                radius: 40,
+                backgroundColor: kBrandOlive,
+                child: Text("JD", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
               ),
-              const SizedBox(height: 4),
-              Text(
-                _emailController.text,
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(color: kBrandOrange, shape: BoxShape.circle),
+                  child: const Icon(Icons.camera_alt, size: 14, color: Colors.white),
+                ),
               ),
             ],
           ),
-        ),
-        IconButton(
-          onPressed: () {},
-          icon: const Icon(Icons.camera_alt_outlined),
-          tooltip: "Change photo",
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatsRow() {
-    return Row(
-      children: [
-        Expanded(
-          child: _statCard(
-            label: "Active Count",
-            value: "124",
-            color: Colors.green.shade50,
-            valueColor: Colors.green.shade800,
-            icon: Icons.check_circle_outline,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _statCard(
-            label: "Pending Items",
-            value: "12",
-            color: Colors.orange.shade50,
-            valueColor: Colors.orange.shade800,
-            icon: Icons.hourglass_bottom,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _statCard({
-    required String label,
-    required String value,
-    required Color color,
-    required Color valueColor,
-    required IconData icon,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: valueColor, size: 20),
-          const SizedBox(height: 10),
-          Text(label, style: TextStyle(color: Colors.grey.shade700, fontSize: 12)),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: valueColor,
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_nameController.text, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                const SizedBox(height: 4),
+                Text(_emailController.text, style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(color: kBrandBrown.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+                  child: const Text("System Administrator", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _sectionCard({required String title, required Widget child}) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 16),
-          child,
         ],
       ),
     );
@@ -333,69 +242,48 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
       validator: validator,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, size: 20),
+        prefixIcon: Icon(icon, size: 20, color: kBrandBrown),
         filled: true,
-        fillColor: const Color(0xFFF6F7F9),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide.none,
-        ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+        fillColor: Colors.grey.shade50,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kBrandOlive, width: 2)),
       ),
-    );
-  }
-
-  Widget _buildSwitchTile({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return Row(
-      children: [
-        Icon(icon, color: Colors.grey.shade600, size: 22),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-              ),
-            ],
-          ),
-        ),
-        Switch(value: value, onChanged: onChanged),
-      ],
     );
   }
 
   Widget _buildActionTile({
     required IconData icon,
-    required String label,
+    required String title,
+    required String subtitle,
     required VoidCallback onTap,
-    Color? labelColor,
-    Color? iconColor,
+    Color? color,
   }) {
+    final activeColor = color ?? kBrandBrown;
     return InkWell(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
         child: Row(
           children: [
-            Icon(icon, size: 20, color: iconColor ?? Colors.grey.shade700),
-            const SizedBox(width: 14),
+            Icon(icon, color: activeColor),
+            const SizedBox(width: 16),
             Expanded(
-              child: Text(
-                label,
-                style: TextStyle(color: labelColor ?? Colors.black87),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: activeColor, fontSize: 14)),
+                  Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                ],
               ),
             ),
-            Icon(Icons.chevron_right, color: Colors.grey.shade400),
+            Icon(Icons.chevron_right_rounded, color: activeColor.withValues(alpha: 0.5)),
           ],
         ),
       ),
@@ -407,18 +295,13 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("Delete Account"),
-        content: const Text(
-          "This action is permanent and cannot be undone. Are you sure you want to continue?",
-        ),
+        content: const Text("Are you sure you want to permanently delete your account? This action cannot be undone."),
         actions: [
-          TextButton(
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          ElevatedButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text("Delete"),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text("Delete Account"),
           ),
         ],
       ),

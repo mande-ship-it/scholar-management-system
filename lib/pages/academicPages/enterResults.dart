@@ -9,7 +9,7 @@ class EnterResultsPage extends StatelessWidget {
     return const Scaffold(
       body: Padding(
         padding: EdgeInsets.all(20),
-        child: EnterResultsComponent(),
+        child: AcademicsManagementComponent(),
       ),
     );
   }

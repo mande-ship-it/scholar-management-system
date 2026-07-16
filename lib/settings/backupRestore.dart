@@ -1,19 +1,25 @@
-// backup_restore.dart
 import 'package:flutter/material.dart';
+
+// ============================================================
+// Shared Brand Color Palette
+// ============================================================
+const Color kBrandBrown = Color(0xFF4C3C32);
+const Color kBrandCream = Color(0xFFFAF2DB);
+const Color kBrandOlive = Color(0xFF9AB334);
+const Color kBrandOrange = Color(0xFFE05B1C);
+
+class _BackupItem {
+  final String label;
+  final String date;
+  final String size;
+  _BackupItem({required this.label, required this.date, required this.size});
+}
 
 class BackupRestoreComponent extends StatefulWidget {
   const BackupRestoreComponent({super.key});
 
   @override
   State<BackupRestoreComponent> createState() => _BackupRestoreComponentState();
-}
-
-class _BackupItem {
-  final String label;
-  final String date;
-  final String size;
-
-  _BackupItem({required this.label, required this.date, required this.size});
 }
 
 class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
@@ -30,9 +36,9 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
   final List<String> _frequencies = ["Hourly", "Daily", "Weekly", "Monthly"];
 
   final List<_BackupItem> _history = [
-    _BackupItem(label: "Full Backup", date: "Today, 06:12 AM", size: "84 MB"),
-    _BackupItem(label: "Full Backup", date: "Yesterday, 06:10 AM", size: "82 MB"),
-    _BackupItem(label: "Full Backup", date: "Jul 12, 06:08 AM", size: "79 MB"),
+    _BackupItem(label: "Cloud Backup", date: "Today, 06:12 AM", size: "84 MB"),
+    _BackupItem(label: "Cloud Backup", date: "Yesterday, 06:10 AM", size: "82 MB"),
+    _BackupItem(label: "Local Backup", date: "Jul 12, 06:08 AM", size: "79 MB"),
   ];
 
   Future<void> _runBackup() async {
@@ -42,7 +48,7 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
     });
 
     for (int i = 1; i <= 10; i++) {
-      await Future.delayed(const Duration(milliseconds: 150));
+      await Future.delayed(const Duration(milliseconds: 200));
       if (!mounted) return;
       setState(() => _progress = i / 10);
     }
@@ -50,18 +56,12 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
     setState(() {
       _isBackingUp = false;
       _lastBackupTime = DateTime.now();
-      _history.insert(
-        0,
-        _BackupItem(label: "Full Backup", date: "Just now", size: "85 MB"),
-      );
+      _history.insert(0, _BackupItem(label: "Manual Backup", date: "Just now", size: "85 MB"));
     });
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Backup completed successfully"),
-        behavior: SnackBarBehavior.floating,
-      ),
+      const SnackBar(content: Text("Cloud backup completed successfully."), backgroundColor: kBrandOlive),
     );
   }
 
@@ -69,19 +69,14 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Restore Backup"),
-        content: Text(
-          "Restore data from \"${item.date}\"? Current data will be replaced.",
-        ),
+        title: const Text("Confirm Restore"),
+        content: Text("Restore all data from \"${item.date}\"? Current session data will be overwritten."),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text("Cancel"),
-          ),
-          TextButton(
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
+          ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text("Restore"),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text("Start Restore"),
           ),
         ],
       ),
@@ -95,7 +90,7 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
     });
 
     for (int i = 1; i <= 10; i++) {
-      await Future.delayed(const Duration(milliseconds: 150));
+      await Future.delayed(const Duration(milliseconds: 200));
       if (!mounted) return;
       setState(() => _progress = i / 10);
     }
@@ -104,10 +99,7 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Restore completed successfully"),
-        behavior: SnackBarBehavior.floating,
-      ),
+      const SnackBar(content: Text("System data restored successfully."), backgroundColor: kBrandOlive),
     );
   }
 
@@ -122,270 +114,156 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final busy = _isBackingUp || _isRestoring;
 
-    return ListView(
-      shrinkWrap: true,
-      children: [
-        Text(
-          "Backup & Restore",
-          style: theme.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-          ) ??
-              const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          "Protect your data with backups and restore when needed.",
-          style: TextStyle(color: Colors.grey.shade600),
-        ),
-        const SizedBox(height: 20),
-        _buildStatsRow(),
-        const SizedBox(height: 16),
-
-        // ---- Status / progress ----
-        _sectionCard(
-          title: "Backup Status",
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ---------------- Header ----------------
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(24, 20, 20, 20),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [kBrandBrown, kBrandOlive]),
+              ),
+              child: Row(
                 children: [
-                  Icon(Icons.cloud_done_outlined, color: Colors.green.shade600, size: 22),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+                    child: const Icon(Icons.cloud_sync_rounded, color: Colors.white, size: 28),
+                  ),
                   const SizedBox(width: 14),
-                  Expanded(
+                  const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text("Last Backup", style: TextStyle(fontWeight: FontWeight.w500)),
-                        const SizedBox(height: 2),
-                        Text(
-                          _formatLastBackup(),
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                        ),
+                        Text('Backup & Restore', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+                        SizedBox(height: 3),
+                        Text('Secure your program data with automated cloud backups.',
+                            style: TextStyle(fontSize: 12, color: Colors.white70)),
                       ],
                     ),
                   ),
                 ],
               ),
-              if (busy) ...[
-                const SizedBox(height: 16),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: LinearProgressIndicator(
-                    value: _progress,
-                    minHeight: 8,
-                    backgroundColor: Colors.grey.shade200,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  _isBackingUp
-                      ? "Backing up... ${(_progress * 100).toInt()}%"
-                      : "Restoring... ${(_progress * 100).toInt()}%",
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                ),
-              ],
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: busy ? null : _runBackup,
-                      icon: const Icon(Icons.backup_outlined, size: 18),
-                      label: const Text("Back Up Now"),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: (busy || _history.isEmpty) ? null : () => _runRestore(_history.first),
-                      icon: const Icon(Icons.restore, size: 18),
-                      label: const Text("Restore Latest"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: theme.colorScheme.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
+            ),
 
-        // ---- Auto backup settings ----
-        _sectionCard(
-          title: "Automatic Backup",
-          child: Column(
-            children: [
-              _buildSwitchTile(
-                title: "Auto Backup",
-                subtitle: "Automatically back up your data",
-                icon: Icons.autorenew,
-                value: _autoBackupEnabled,
-                onChanged: (v) => setState(() => _autoBackupEnabled = v),
-              ),
-              if (_autoBackupEnabled) ...[
-                const Divider(height: 24),
-                Row(
-                  children: [
-                    Icon(Icons.schedule, color: Colors.grey.shade600, size: 22),
-                    const SizedBox(width: 14),
-                    const Expanded(
-                      child: Text("Frequency", style: TextStyle(fontWeight: FontWeight.w500)),
-                    ),
-                    DropdownButton<String>(
+            Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Status Row
+                  _buildStatusCard(busy),
+                  const SizedBox(height: 32),
+
+                  const Text("Automatic Backup Settings", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                  const SizedBox(height: 16),
+                  
+                  _buildSwitchTile(
+                    title: "Cloud Sync",
+                    subtitle: "Automatically sync data to secure cloud storage",
+                    icon: Icons.sync_rounded,
+                    value: _autoBackupEnabled,
+                    onChanged: (v) => setState(() => _autoBackupEnabled = v),
+                  ),
+                  if (_autoBackupEnabled) ...[
+                    const SizedBox(height: 12),
+                    _buildDropdownTile(
+                      title: "Frequency",
                       value: _backupFrequency,
-                      underline: const SizedBox(),
-                      items: _frequencies
-                          .map((f) => DropdownMenuItem(value: f, child: Text(f)))
-                          .toList(),
+                      icon: Icons.schedule_rounded,
+                      options: _frequencies,
                       onChanged: (v) => setState(() => _backupFrequency = v!),
                     ),
+                    const SizedBox(height: 12),
+                    _buildSwitchTile(
+                      title: "Wi-Fi Only",
+                      subtitle: "Only upload data over Wi-Fi networks",
+                      icon: Icons.wifi_rounded,
+                      value: _wifiOnly,
+                      onChanged: (v) => setState(() => _wifiOnly = v),
+                    ),
                   ],
-                ),
-                const Divider(height: 24),
-                _buildSwitchTile(
-                  title: "Wi-Fi Only",
-                  subtitle: "Only back up when connected to Wi-Fi",
-                  icon: Icons.wifi,
-                  value: _wifiOnly,
-                  onChanged: (v) => setState(() => _wifiOnly = v),
-                ),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
 
-        // ---- History ----
-        _sectionCard(
-          title: "Backup History",
-          child: _history.isEmpty
-              ? Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20),
-            child: Center(
-              child: Text(
-                "No backups yet",
-                style: TextStyle(color: Colors.grey.shade500),
+                  const SizedBox(height: 32),
+                  const Text("Backup History", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                  const SizedBox(height: 16),
+                  
+                  Container(
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
+                    child: Column(
+                      children: _history.map((item) => _buildHistoryItem(item, busy)).toList(),
+                    ),
+                  ),
+                ],
               ),
             ),
-          )
-              : Column(
-            children: List.generate(_history.length, (index) {
-              final item = _history[index];
-              return Column(
-                children: [
-                  _buildHistoryTile(item, busy),
-                  if (index != _history.length - 1) const Divider(height: 1),
-                ],
-              );
-            }),
-          ),
+          ],
         ),
-        const SizedBox(height: 12),
-      ],
-    );
-  }
-
-  // ---------- Sub-widgets ----------
-
-  Widget _buildStatsRow() {
-    return Row(
-      children: [
-        Expanded(
-          child: _statCard(
-            label: "Total Backups",
-            value: "${_history.length}",
-            color: Colors.green.shade50,
-            valueColor: Colors.green.shade800,
-            icon: Icons.check_circle_outline,
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: _statCard(
-            label: "Storage Used",
-            value: "246 MB",
-            color: Colors.orange.shade50,
-            valueColor: Colors.orange.shade800,
-            icon: Icons.sd_storage_outlined,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _statCard({
-    required String label,
-    required String value,
-    required Color color,
-    required Color valueColor,
-    required IconData icon,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: valueColor, size: 20),
-          const SizedBox(height: 10),
-          Text(label, style: TextStyle(color: Colors.grey.shade700, fontSize: 12)),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: valueColor,
-            ),
-          ),
-        ],
       ),
     );
   }
 
-  Widget _sectionCard({required String title, required Widget child}) {
+  Widget _buildStatusCard(bool busy) {
     return Container(
-      width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: kBrandCream.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kBrandCream),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: kBrandOlive.withValues(alpha: 0.1), shape: BoxShape.circle),
+                child: const Icon(Icons.cloud_done_rounded, color: kBrandOlive, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Last successful backup", style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+                    Text(_formatLastBackup(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                  ],
+                ),
+              ),
+              if (!busy)
+                ElevatedButton.icon(
+                  onPressed: _runBackup,
+                  icon: const Icon(Icons.backup_outlined),
+                  label: const Text("Sync Now"),
+                  style: ElevatedButton.styleFrom(backgroundColor: kBrandOlive, foregroundColor: Colors.white),
+                ),
+            ],
           ),
-          const SizedBox(height: 16),
-          child,
+          if (busy) ...[
+            const SizedBox(height: 20),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(value: _progress, minHeight: 8, backgroundColor: Colors.white, color: kBrandOlive),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _isBackingUp ? "Uploading data to secure storage... ${(_progress * 100).toInt()}%" : "Restoring system data... ${(_progress * 100).toInt()}%",
+              style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: kBrandBrown),
+            ),
+          ],
         ],
       ),
     );
@@ -398,60 +276,64 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
-    return Row(
-      children: [
-        Icon(icon, color: Colors.grey.shade600, size: 22),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-              ),
-            ],
-          ),
-        ),
-        Switch(value: value, onChanged: onChanged),
-      ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: SwitchListTile(
+        contentPadding: EdgeInsets.zero,
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: 14)),
+        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        secondary: Icon(icon, color: kBrandBrown, size: 22),
+        value: value,
+        activeColor: kBrandOlive.withValues(alpha: 0.8),
+        activeTrackColor: kBrandOlive.withValues(alpha: 0.3),
+        onChanged: onChanged,
+      ),
     );
   }
 
-  Widget _buildHistoryTile(_BackupItem item, bool busy) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+  Widget _buildDropdownTile({
+    required String title,
+    required String value,
+    required IconData icon,
+    required List<String> options,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(Icons.history, size: 18, color: Colors.blue.shade700),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(item.label, style: const TextStyle(fontWeight: FontWeight.w500)),
-                const SizedBox(height: 2),
-                Text(
-                  "${item.date} · ${item.size}",
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                ),
-              ],
-            ),
-          ),
-          TextButton(
-            onPressed: busy ? null : () => _runRestore(item),
-            child: const Text("Restore"),
+          Icon(icon, color: kBrandBrown, size: 20),
+          const SizedBox(width: 12),
+          Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: 14))),
+          DropdownButton<String>(
+            value: value,
+            underline: const SizedBox(),
+            items: options.map((o) => DropdownMenuItem(value: o, child: Text(o, style: const TextStyle(fontSize: 13)))).toList(),
+            onChanged: onChanged,
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryItem(_BackupItem item, bool busy) {
+    return ListTile(
+      leading: const Icon(Icons.history_rounded, color: Colors.grey, size: 20),
+      title: Text(item.label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+      subtitle: Text("${item.date} • ${item.size}", style: const TextStyle(fontSize: 12)),
+      trailing: TextButton(
+        onPressed: busy ? null : () => _runRestore(item),
+        child: const Text("Restore", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandOlive)),
       ),
     );
   }

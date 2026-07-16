@@ -33,7 +33,16 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
   final TextEditingController _yearController = TextEditingController();
   final TextEditingController _homeVillageController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _dobController = TextEditingController();
+
+  // Validation patterns
+  // Accepts local Malawi numbers starting with 0 (e.g. 0888123456)
+  // or international format starting with +265 (e.g. +265888123456).
+  // Both forms require exactly 9 digits after the prefix.
+  static final RegExp _malawiPhoneRegex = RegExp(r'^(?:\+265|0)[0-9]{9}$');
+  static final RegExp _emailRegex =
+  RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[\w\-]{2,4}$');
 
   // Data lists
   final List<String> _districts = [
@@ -83,6 +92,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
     _yearController.addListener(_updatePreview);
     _homeVillageController.addListener(_updatePreview);
     _phoneController.addListener(_updatePreview);
+    _emailController.addListener(_updatePreview);
     _dobController.addListener(_updatePreview);
   }
 
@@ -96,8 +106,33 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
     _yearController.dispose();
     _homeVillageController.dispose();
     _phoneController.dispose();
+    _emailController.dispose();
     _dobController.dispose();
     super.dispose();
+  }
+
+  // Returns null when valid (or empty, since phone is required elsewhere
+  // and email is optional so emptiness is handled by the caller).
+  String? _validateMalawiPhone(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return "Please enter the phone number";
+    }
+    final cleaned = value.trim().replaceAll(RegExp(r'[\s\-]'), '');
+    if (!_malawiPhoneRegex.hasMatch(cleaned)) {
+      return "Enter a valid Malawi number (e.g. 0888123456 or +265888123456)";
+    }
+    return null;
+  }
+
+  String? _validateOptionalEmail(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      // Email is optional - empty is fine.
+      return null;
+    }
+    if (!_emailRegex.hasMatch(value.trim())) {
+      return "Please enter a valid email address";
+    }
+    return null;
   }
 
   Future<void> _selectDateOfBirth(BuildContext context) async {
@@ -136,7 +171,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
           backgroundColor: brandOlive,
         ),
       );
-      
+
       // Reset form
       _formKey.currentState!.reset();
       setState(() {
@@ -153,6 +188,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
         _yearController.clear();
         _homeVillageController.clear();
         _phoneController.clear();
+        _emailController.clear();
         _dobController.clear();
       });
     }
@@ -165,6 +201,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
   }
 
   int _getTotalFieldsCount() {
+    // Email is optional, so it is not counted toward the required total.
     return _selectedSchoolType == 'University' ? 13 : 12;
   }
 
@@ -361,13 +398,19 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
       decoration: _getInputDecoration(
         labelText: "Phone Number",
         prefixIcon: Icons.phone_outlined,
+        helperText: "e.g. 0888123456 or +265888123456",
       ),
-      validator: (value) {
-        if (value == null || value.trim().isEmpty) {
-          return "Please enter the phone number";
-        }
-        return null;
-      },
+      validator: _validateMalawiPhone,
+    );
+
+    final Widget emailField = TextFormField(
+      controller: _emailController,
+      keyboardType: TextInputType.emailAddress,
+      decoration: _getInputDecoration(
+        labelText: "Email Address (optional)",
+        prefixIcon: Icons.email_outlined,
+      ),
+      validator: _validateOptionalEmail,
     );
 
     final Widget sexField = DropdownButtonFormField<String>(
@@ -388,7 +431,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
         });
       },
       validator: (value) =>
-          value == null ? "Please select the scholar's sex" : null,
+      value == null ? "Please select the scholar's sex" : null,
     );
 
     final Widget dobField = TextFormField(
@@ -447,15 +490,25 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
               const SizedBox(height: 16),
               Row(
                 children: [
-                  Expanded(child: sexField),
+                  Expanded(child: emailField),
                   const SizedBox(width: 16),
+                  Expanded(child: sexField),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
                   Expanded(child: dobField),
+                  const SizedBox(width: 16),
+                  const Expanded(child: SizedBox()),
                 ],
               ),
             ] else ...[
               nameField,
               const SizedBox(height: 16),
               phoneField,
+              const SizedBox(height: 16),
+              emailField,
               const SizedBox(height: 16),
               sexField,
               const SizedBox(height: 16),
@@ -488,7 +541,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
         });
       },
       validator: (value) =>
-          value == null ? "Please select start year" : null,
+      value == null ? "Please select start year" : null,
     );
 
     final Widget endYearField = DropdownButtonFormField<String>(
@@ -543,7 +596,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
         });
       },
       validator: (value) =>
-          value == null ? "Please select a school type" : null,
+      value == null ? "Please select a school type" : null,
     );
 
     final Widget schoolField = DropdownButtonFormField<String>(
@@ -553,30 +606,30 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
         labelText: _selectedSchoolType == null
             ? "School (Select School Type first)"
             : (_selectedSchoolType == "University"
-                ? "Public University"
-                : "Secondary School"),
+            ? "Public University"
+            : "Secondary School"),
         prefixIcon: Icons.school_outlined,
       ),
       items: _selectedSchoolType == null
           ? []
           : (_selectedSchoolType == 'Secondary'
-                  ? _secondarySchools
-                  : _publicUniversities)
-              .map((school) {
-              return DropdownMenuItem<String>(
-                value: school,
-                child: Text(school),
-              );
-            }).toList(),
+          ? _secondarySchools
+          : _publicUniversities)
+          .map((school) {
+        return DropdownMenuItem<String>(
+          value: school,
+          child: Text(school),
+        );
+      }).toList(),
       onChanged: _selectedSchoolType == null
           ? null
           : (value) {
-              setState(() {
-                _selectedSchool = value;
-              });
-            },
+        setState(() {
+          _selectedSchool = value;
+        });
+      },
       validator: (value) =>
-          value == null ? "Please select a school" : null,
+      value == null ? "Please select a school" : null,
     );
 
     final Widget yearField = TextFormField(
@@ -612,7 +665,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
         });
       },
       validator: (value) =>
-          value == null ? "Please select a program type" : null,
+      value == null ? "Please select a program type" : null,
     );
 
     return Card(
@@ -714,7 +767,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
         });
       },
       validator: (value) =>
-          value == null ? "Please select a district" : null,
+      value == null ? "Please select a district" : null,
     );
 
     final Widget villageField = TextFormField(
@@ -749,7 +802,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
         });
       },
       validator: (value) =>
-          value == null ? "Please select a donor" : null,
+      value == null ? "Please select a donor" : null,
     );
 
     return Card(
@@ -956,86 +1009,95 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
 
                 // Grid of Details
                 LayoutBuilder(
-                  builder: (context, gridConstraints) {
-                    return Wrap(
-                      spacing: 16,
-                      runSpacing: 16,
-                      children: [
-                        SizedBox(
-                          width: (gridConstraints.maxWidth - 16) / 2,
-                          child: _buildPreviewDetailItem(
-                            Icons.wc,
-                            "Sex",
-                            _selectedSex ?? "",
-                            brandOlive,
+                    builder: (context, gridConstraints) {
+                      return Wrap(
+                        spacing: 16,
+                        runSpacing: 16,
+                        children: [
+                          SizedBox(
+                            width: (gridConstraints.maxWidth - 16) / 2,
+                            child: _buildPreviewDetailItem(
+                              Icons.wc,
+                              "Sex",
+                              _selectedSex ?? "",
+                              brandOlive,
+                            ),
                           ),
-                        ),
-                        SizedBox(
-                          width: (gridConstraints.maxWidth - 16) / 2,
-                          child: _buildPreviewDetailItem(
-                            Icons.cake_outlined,
-                            "Date of Birth",
-                            _dobController.text,
-                            brandOrange,
+                          SizedBox(
+                            width: (gridConstraints.maxWidth - 16) / 2,
+                            child: _buildPreviewDetailItem(
+                              Icons.cake_outlined,
+                              "Date of Birth",
+                              _dobController.text,
+                              brandOrange,
+                            ),
                           ),
-                        ),
-                        SizedBox(
-                          width: (gridConstraints.maxWidth - 16) / 2,
-                          child: _buildPreviewDetailItem(
-                            Icons.phone_outlined,
-                            "Phone",
-                            _phoneController.text.trim(),
-                            brandBrown,
+                          SizedBox(
+                            width: (gridConstraints.maxWidth - 16) / 2,
+                            child: _buildPreviewDetailItem(
+                              Icons.phone_outlined,
+                              "Phone",
+                              _phoneController.text.trim(),
+                              brandBrown,
+                            ),
                           ),
-                        ),
-                        SizedBox(
-                          width: (gridConstraints.maxWidth - 16) / 2,
-                          child: _buildPreviewDetailItem(
-                            Icons.map_outlined,
-                            "District",
-                            _selectedDistrict ?? "",
-                            brandOlive,
+                          SizedBox(
+                            width: (gridConstraints.maxWidth - 16) / 2,
+                            child: _buildPreviewDetailItem(
+                              Icons.email_outlined,
+                              "Email",
+                              _emailController.text.trim(),
+                              brandOlive,
+                            ),
                           ),
-                        ),
-                        SizedBox(
-                          width: (gridConstraints.maxWidth - 16) / 2,
-                          child: _buildPreviewDetailItem(
-                            Icons.home_outlined,
-                            "Home Village",
-                            _homeVillageController.text.trim(),
-                            brandOrange,
+                          SizedBox(
+                            width: (gridConstraints.maxWidth - 16) / 2,
+                            child: _buildPreviewDetailItem(
+                              Icons.map_outlined,
+                              "District",
+                              _selectedDistrict ?? "",
+                              brandOlive,
+                            ),
                           ),
-                        ),
-                        SizedBox(
-                          width: (gridConstraints.maxWidth - 16) / 2,
-                          child: _buildPreviewDetailItem(
-                            Icons.monetization_on_outlined,
-                            "Donor",
-                            _selectedDonor ?? "",
-                            brandBrown,
+                          SizedBox(
+                            width: (gridConstraints.maxWidth - 16) / 2,
+                            child: _buildPreviewDetailItem(
+                              Icons.home_outlined,
+                              "Home Village",
+                              _homeVillageController.text.trim(),
+                              brandOrange,
+                            ),
                           ),
-                        ),
-                        SizedBox(
-                          width: (gridConstraints.maxWidth - 16) / 2,
-                          child: _buildPreviewDetailItem(
-                            Icons.calendar_today_outlined,
-                            _selectedSchoolType == 'University' ? "Start Year" : "Session Start",
-                            _selectedStartYear ?? "",
-                            brandOlive,
+                          SizedBox(
+                            width: (gridConstraints.maxWidth - 16) / 2,
+                            child: _buildPreviewDetailItem(
+                              Icons.monetization_on_outlined,
+                              "Donor",
+                              _selectedDonor ?? "",
+                              brandBrown,
+                            ),
                           ),
-                        ),
-                        SizedBox(
-                          width: (gridConstraints.maxWidth - 16) / 2,
-                          child: _buildPreviewDetailItem(
-                            Icons.calendar_today_outlined,
-                            _selectedSchoolType == 'University' ? "End Year" : "Session End",
-                            _selectedEndYear ?? "",
-                            brandOrange,
+                          SizedBox(
+                            width: (gridConstraints.maxWidth - 16) / 2,
+                            child: _buildPreviewDetailItem(
+                              Icons.calendar_today_outlined,
+                              _selectedSchoolType == 'University' ? "Start Year" : "Session Start",
+                              _selectedStartYear ?? "",
+                              brandOlive,
+                            ),
                           ),
-                        ),
-                      ],
-                    );
-                  }
+                          SizedBox(
+                            width: (gridConstraints.maxWidth - 16) / 2,
+                            child: _buildPreviewDetailItem(
+                              Icons.calendar_today_outlined,
+                              _selectedSchoolType == 'University' ? "End Year" : "Session End",
+                              _selectedEndYear ?? "",
+                              brandOrange,
+                            ),
+                          ),
+                        ],
+                      );
+                    }
                 ),
 
                 const Divider(height: 32),

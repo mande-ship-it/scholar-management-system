@@ -1,7 +1,25 @@
 import 'package:flutter/material.dart';
 
 // ============================================================
-// VIEW SCHOOLS COMPONENT (list + entry point for the pop-ups)
+// Shared Brand Color Palette
+// ------------------------------------------------------------
+// NOTE: these are the exact same constants used on the
+// View Scholars page. If both files live in the same Flutter
+// project/package, move this block into its own file (e.g.
+// `lib/theme/brand_colors.dart`) and import it from both
+// view_schools.dart and view_scholars.dart instead of declaring
+// it twice — Dart will throw a duplicate-definition error if two
+// libraries in the same import scope both declare top-level
+// consts with the same name.
+// ============================================================
+const Color kBrandBrown = Color(0xFF4C3C32);
+const Color kBrandCream = Color(0xFFFAF2DB);
+const Color kBrandCreamDark = Color(0xFFF3E7C4);
+const Color kBrandOlive = Color(0xFF9AB334);
+const Color kBrandOrange = Color(0xFFE05B1C);
+
+// ============================================================
+// VIEW SCHOOLS COMPONENT (registry table + profile pop-up)
 // ============================================================
 
 class ViewSchoolsComponent extends StatefulWidget {
@@ -158,39 +176,104 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
     });
   }
 
+  String _initialsOf(String name) {
+    return name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .map((e) => e.isNotEmpty ? e[0] : '')
+        .take(2)
+        .join()
+        .toUpperCase();
+  }
+
+  // ---------------------------------------------------------------------
+  // Activate / Deactivate a school
+  // ---------------------------------------------------------------------
+  void _toggleSchoolStatus(Map<String, String> school) {
+    final bool wasActive = school['status'] == 'Active';
+    setState(() {
+      school['status'] = wasActive ? 'Inactive' : 'Active';
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          wasActive
+              ? "${school['name']} has been deactivated."
+              : "${school['name']} has been activated.",
+        ),
+        backgroundColor: wasActive ? kBrandOrange : kBrandOlive,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
   // Opens the professional profile pop-up for a given school.
   // From there the user can launch the Edit pop-up, and any saved
   // changes are written back into _allSchools.
   void _openSchoolProfile(Map<String, String> school) {
-    showDialog(
+    showGeneralDialog(
       context: context,
       barrierDismissible: true,
-      builder: (dialogContext) {
-        return SchoolProfileDialog(
-          school: school,
-          onEdit: () async {
-            Navigator.pop(dialogContext); // close profile pop-up first
+      barrierLabel: "School Profile",
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      transitionDuration: const Duration(milliseconds: 220),
+      pageBuilder: (ctx, anim1, anim2) => const SizedBox.shrink(),
+      transitionBuilder: (ctx, anim, secondaryAnim, child) {
+        final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
+        return Opacity(
+          opacity: anim.value,
+          child: Transform.scale(
+            scale: 0.94 + (0.06 * curved.value),
+            child: SchoolProfileDialog(
+              school: school,
+              onToggleStatus: () => _toggleSchoolStatus(school),
+              onEdit: () async {
+                Navigator.pop(ctx); // close profile pop-up first
 
-            final updatedSchool = await showDialog<Map<String, String>>(
-              context: context,
-              barrierDismissible: false,
-              builder: (editContext) => EditSchoolDialog(school: school),
-            );
+                final updatedSchool = await showDialog<Map<String, String>>(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (editContext) => EditSchoolDialog(school: school),
+                );
 
-            if (updatedSchool != null) {
-              setState(() {
-                final idx = _allSchools
-                    .indexWhere((s) => s['code'] == school['code']);
-                if (idx != -1) {
-                  _allSchools[idx] = updatedSchool;
+                if (updatedSchool != null) {
+                  setState(() {
+                    final idx = _allSchools
+                        .indexWhere((s) => s['code'] == school['code']);
+                    if (idx != -1) {
+                      _allSchools[idx] = updatedSchool;
+                    }
+                  });
+                  // Re-open the profile pop-up with the freshly saved details.
+                  _openSchoolProfile(updatedSchool);
                 }
-              });
-              // Re-open the profile pop-up with the freshly saved details.
-              _openSchoolProfile(updatedSchool);
-            }
-          },
+              },
+            ),
+          ),
         );
       },
+    );
+  }
+
+  Widget _miniStat(IconData icon, String label, Color accent) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: accent),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: Colors.white),
+          ),
+        ],
+      ),
     );
   }
 
@@ -208,219 +291,424 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
       return matchesSearch && matchesLevel && matchesRegion;
     }).toList();
 
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Row(
+    final activeCount = _allSchools.where((s) => s['status'] == 'Active').length;
+    final tertiaryCount = _allSchools.where((s) => s['level'] == 'Tertiary / University').length;
+
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      color: const Color(0xFFF4F6F5),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 1. Gradient Header (compact) — matches Scholars Registry header
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [kBrandBrown, kBrandOlive],
+              ),
+            ),
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "View Schools",
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      "View and manage partner educational institutions (${filteredSchools.length} listed)",
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    TextButton.icon(
-                      onPressed: _resetFilters,
-                      icon: const Icon(Icons.filter_list_off),
-                      label: const Text("Reset Filters"),
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.green.shade700,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/schools/register');
-                      },
-                      icon: const Icon(Icons.add_business),
-                      label: const Text("Register School"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const Divider(height: 32),
-
-            // Search & Filter Bar
-            Row(
-              children: [
-                // Search Bar
                 Expanded(
-                  flex: 3,
-                  child: TextField(
-                    decoration: const InputDecoration(
-                      labelText: "Search schools by name, code or district",
-                      prefixIcon: Icon(Icons.search),
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                    onChanged: (val) {
-                      setState(() {
-                        _searchQuery = val;
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
-                // Level Filter
-                Expanded(
-                  flex: 2,
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _selectedLevel,
-                    decoration: const InputDecoration(
-                      labelText: "Education Level",
-                      prefixIcon: Icon(Icons.layers),
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                    items: _schoolLevels.map((l) {
-                      return DropdownMenuItem(value: l, child: Text(l));
-                    }).toList(),
-                    onChanged: (val) {
-                      setState(() {
-                        _selectedLevel = val ?? 'All';
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
-                // Region Filter
-                Expanded(
-                  flex: 2,
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _selectedRegion,
-                    decoration: const InputDecoration(
-                      labelText: "Region",
-                      prefixIcon: Icon(Icons.map),
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                    items: _regions.map((r) {
-                      return DropdownMenuItem(value: r, child: Text(r));
-                    }).toList(),
-                    onChanged: (val) {
-                      setState(() {
-                        _selectedRegion = val ?? 'All';
-                      });
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            // School Data Table / List
-            Expanded(
-              child: filteredSchools.isEmpty
-                  ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.search_off, size: 48, color: Colors.grey.shade400),
-                    const SizedBox(height: 12),
-                    Text(
-                      "No schools match the search/filter criteria.",
-                      style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
-                    ),
-                  ],
-                ),
-              )
-                  : Scrollbar(
-                child: ListView.separated(
-                  itemCount: filteredSchools.length,
-                  separatorBuilder: (context, index) => const Divider(height: 1),
-                  itemBuilder: (context, index) {
-                    final school = filteredSchools[index];
-                    final isActive = school['status'] == 'Active';
-
-                    return ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      leading: CircleAvatar(
-                        backgroundColor: Colors.green.shade50,
-                        radius: 24,
-                        child: Icon(
-                          school['level'] == 'Tertiary / University'
-                              ? Icons.account_balance
-                              : Icons.school,
-                          color: Colors.green.shade700,
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
                         ),
+                        child: const Icon(Icons.account_balance_rounded, color: Colors.white, size: 16),
                       ),
-                      title: Text(
-                        school['name']!,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                      subtitle: Padding(
-                        padding: const EdgeInsets.only(top: 4.0),
-                        child: Row(
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text("Code: ${school['code']!}"),
-                            const SizedBox(width: 12),
-                            const Icon(Icons.circle, size: 4, color: Colors.grey),
-                            const SizedBox(width: 12),
-                            Text(school['level']!),
-                            const SizedBox(width: 12),
-                            const Icon(Icons.circle, size: 4, color: Colors.grey),
-                            const SizedBox(width: 12),
-                            Text(school['district']!),
+                            const Text(
+                              "Schools Registry",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              "${filteredSchools.length} of ${_allSchools.length} schools",
+                              style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 11),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
                           ],
                         ),
                       ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    _miniStat(Icons.check_circle_rounded, "$activeCount active", kBrandCream),
+                    _miniStat(Icons.account_balance_rounded, "$tertiaryCount tertiary", kBrandCream),
+                  ],
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.refresh, color: Colors.white, size: 18),
+                    padding: const EdgeInsets.all(6),
+                    constraints: const BoxConstraints(),
+                    onPressed: _resetFilters,
+                    tooltip: "Reset Filters",
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: IconButton(
+                    icon: const Icon(Icons.add_business, color: kBrandBrown, size: 18),
+                    padding: const EdgeInsets.all(6),
+                    constraints: const BoxConstraints(),
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/schools/register');
+                    },
+                    tooltip: "Register School",
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // 2. Search & Filter Bar — matches Scholars filter card
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 14, 24, 12),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.grey.shade200),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  SizedBox(
+                    width: 280,
+                    child: TextField(
+                      decoration: InputDecoration(
+                        isDense: true,
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                        labelText: "Search by name, code or district",
+                        hintText: "Enter search text...",
+                        prefixIcon: const Icon(Icons.search, size: 20),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.grey.shade200),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: kBrandOlive, width: 2),
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      onChanged: (val) {
+                        setState(() {
+                          _searchQuery = val;
+                        });
+                      },
+                    ),
+                  ),
+                  SizedBox(
+                    width: 220,
+                    child: DropdownButtonFormField<String>(
+                      isDense: true,
+                      isExpanded: true,
+                      initialValue: _selectedLevel,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                        labelText: "Education Level",
+                        prefixIcon: const Icon(Icons.layers, size: 18),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.grey.shade200),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: kBrandOlive, width: 2),
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      items: _schoolLevels.map((l) {
+                        return DropdownMenuItem(value: l, child: Text(l, overflow: TextOverflow.ellipsis));
+                      }).toList(),
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedLevel = val ?? 'All';
+                        });
+                      },
+                    ),
+                  ),
+                  SizedBox(
+                    width: 200,
+                    child: DropdownButtonFormField<String>(
+                      isDense: true,
+                      isExpanded: true,
+                      initialValue: _selectedRegion,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                        labelText: "Region",
+                        prefixIcon: const Icon(Icons.map, size: 18),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(color: Colors.grey.shade200),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: kBrandOlive, width: 2),
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      items: _regions.map((r) {
+                        return DropdownMenuItem(value: r, child: Text(r, overflow: TextOverflow.ellipsis));
+                      }).toList(),
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedRegion = val ?? 'All';
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // 3. School List Card
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: Colors.grey.shade200),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: filteredSchools.isEmpty
+                    ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade50,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.search_off_rounded, size: 48, color: Colors.grey.shade400),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          "No Schools Found",
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "Try loosening your filters or clearing search text.",
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+                    : Scrollbar(
+                  child: ListView.separated(
+                    itemCount: filteredSchools.length,
+                    separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey.shade200),
+                    itemBuilder: (context, index) {
+                      final school = filteredSchools[index];
+                      final isActive = school['status'] == 'Active';
+                      final isTertiary = school['level'] == 'Tertiary / University';
+
+                      return Container(
+                        color: index.isEven ? Colors.white : Colors.grey.shade50.withValues(alpha: 0.6),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                          leading: Container(
+                            width: 44,
+                            height: 44,
+                            alignment: Alignment.center,
                             decoration: BoxDecoration(
-                              color: isActive ? Colors.green.shade50 : Colors.red.shade50,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: isActive ? Colors.green.shade200 : Colors.red.shade200,
-                              ),
+                              color: isTertiary
+                                  ? kBrandBrown.withValues(alpha: 0.10)
+                                  : kBrandOlive.withValues(alpha: 0.15),
+                              shape: BoxShape.circle,
                             ),
-                            child: Text(
-                              school['status']!,
-                              style: TextStyle(
-                                color: isActive ? Colors.green.shade900 : Colors.red.shade900,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            child: Icon(
+                              isTertiary ? Icons.account_balance : Icons.school,
+                              color: isTertiary ? kBrandBrown : kBrandOlive,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          const Icon(Icons.chevron_right, color: Colors.grey),
-                        ],
-                      ),
-                      // Opens the professional profile as a pop-up instead
-                      // of navigating to a separate page/route.
-                      onTap: () => _openSchoolProfile(school),
-                    );
-                  },
+                          title: Text(
+                            school['name']!,
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15.5, color: Colors.black87),
+                          ),
+                          subtitle: Padding(
+                            padding: const EdgeInsets.only(top: 4.0),
+                            child: Wrap(
+                              spacing: 10,
+                              runSpacing: 4,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                Text("Code: ${school['code']!}", style: TextStyle(color: Colors.grey.shade600, fontSize: 12.5)),
+                                Icon(Icons.circle, size: 4, color: Colors.grey.shade400),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: isTertiary
+                                        ? kBrandBrown.withValues(alpha: 0.08)
+                                        : kBrandOrange.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    school['level']!,
+                                    style: TextStyle(
+                                      color: isTertiary ? kBrandBrown : kBrandOrange,
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                                Icon(Icons.circle, size: 4, color: Colors.grey.shade400),
+                                Text(school['district']!, style: TextStyle(color: Colors.grey.shade600, fontSize: 12.5)),
+                              ],
+                            ),
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: isActive ? kBrandOlive.withValues(alpha: 0.12) : Colors.red.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isActive ? kBrandOlive.withValues(alpha: 0.4) : Colors.red.shade200,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: BoxDecoration(
+                                        color: isActive ? kBrandOlive : Colors.red.shade600,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      school['status']!,
+                                      style: TextStyle(
+                                        color: isActive ? kBrandOlive : Colors.red.shade900,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              IconButton(
+                                icon: Icon(
+                                  isActive ? Icons.toggle_on_rounded : Icons.toggle_off_rounded,
+                                  color: isActive ? kBrandOlive : Colors.grey.shade500,
+                                  size: 26,
+                                ),
+                                onPressed: () => _toggleSchoolStatus(school),
+                                tooltip: isActive ? "Deactivate" : "Activate",
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.edit_note, color: kBrandBrown),
+                                onPressed: () async {
+                                  final updatedSchool = await showDialog<Map<String, String>>(
+                                    context: context,
+                                    barrierDismissible: false,
+                                    builder: (editContext) => EditSchoolDialog(school: school),
+                                  );
+                                  if (updatedSchool != null) {
+                                    setState(() {
+                                      final idx = _allSchools.indexWhere((s) => s['code'] == school['code']);
+                                      if (idx != -1) {
+                                        _allSchools[idx] = updatedSchool;
+                                      }
+                                    });
+                                  }
+                                },
+                                tooltip: "Edit School",
+                              ),
+                              const SizedBox(width: 2),
+                              Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                            ],
+                          ),
+                          onTap: () => _openSchoolProfile(school),
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -432,88 +720,101 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
 // ============================================================
 
 /// A professional, read-only pop-up dialog that displays full details
-/// for a single school. Triggered by tapping a school in ViewSchoolsComponent.
-class SchoolProfileDialog extends StatelessWidget {
+/// for a single school, styled to match the Scholar profile dialog.
+/// Triggered by tapping a school in ViewSchoolsComponent.
+class SchoolProfileDialog extends StatefulWidget {
   final Map<String, String> school;
   final VoidCallback onEdit;
+  final VoidCallback onToggleStatus;
 
   const SchoolProfileDialog({
     super.key,
     required this.school,
     required this.onEdit,
+    required this.onToggleStatus,
   });
 
-  Widget _infoRow(IconData icon, String label, String value) {
-    if (value.trim().isEmpty) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 18, color: Colors.grey.shade600),
-          const SizedBox(width: 10),
-          SizedBox(
-            width: 120,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade600,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontSize: 13.5),
-            ),
-          ),
-        ],
+  @override
+  State<SchoolProfileDialog> createState() => _SchoolProfileDialogState();
+}
+
+class _SchoolProfileDialogState extends State<SchoolProfileDialog> {
+  String _initialsOf(String name) {
+    return name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .map((e) => e.isNotEmpty ? e[0] : '')
+        .take(2)
+        .join()
+        .toUpperCase();
+  }
+
+  Widget _sectionTitle(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.bold,
+        letterSpacing: 0.4,
+        color: kBrandBrown,
       ),
     );
   }
 
-  Widget _sectionCard({
-    required String title,
-    required IconData icon,
-    required List<Widget> children,
-  }) {
-    // Skip rendering entirely if every row would be empty
-    final visibleChildren = children.where((w) => w is! SizedBox).toList();
-    if (visibleChildren.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 18, color: Colors.green.shade700),
-              const SizedBox(width: 8),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green.shade900,
-                  letterSpacing: 0.4,
+  Widget _infoGrid(List<_SchoolInfoItem> items) {
+    final visible = items.where((i) => i.value.trim().isNotEmpty).toList();
+    if (visible.isEmpty) return const SizedBox.shrink();
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth > 380 ? 2 : 1;
+        final itemWidth = columns == 2 ? (constraints.maxWidth - 12) / 2 : constraints.maxWidth;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: visible.map((item) {
+            return SizedBox(
+              width: itemWidth,
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: kBrandOrange.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(item.icon, size: 16, color: kBrandOrange),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(item.label, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                          const SizedBox(height: 2),
+                          Text(
+                            item.value,
+                            style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: Colors.black87),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-          const Divider(height: 18),
-          ...children,
-        ],
-      ),
+            );
+          }).toList(),
+        );
+      },
     );
   }
 
@@ -522,22 +823,18 @@ class SchoolProfileDialog extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.green.shade50,
+        color: kBrandCream,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.green.shade200),
+        border: Border.all(color: kBrandOlive.withValues(alpha: 0.4)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: Colors.green.shade700),
+          Icon(icon, size: 14, color: kBrandBrown),
           const SizedBox(width: 6),
           Text(
             text,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.green.shade900,
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(fontSize: 12, color: kBrandBrown, fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -546,238 +843,261 @@ class SchoolProfileDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final school = widget.school;
     final isActive = school['status'] == 'Active';
     final isTertiary = school['level'] == 'Tertiary / University';
-    final screenWidth = MediaQuery.of(context).size.width;
-    final dialogWidth = screenWidth < 760 ? screenWidth * 0.94 : 720.0;
+    final initials = _initialsOf(school['name'] ?? '');
 
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: dialogWidth, maxHeight: 720),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Header banner
-            Container(
-              padding: const EdgeInsets.fromLTRB(24, 22, 12, 22),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.green.shade700, Colors.green.shade500],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+        constraints: const BoxConstraints(maxWidth: 480, maxHeight: 720),
+        child: Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          clipBehavior: Clip.antiAlias,
+          elevation: 12,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // ---------------- Header ----------------
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(24, 28, 20, 24),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [kBrandBrown, kBrandOlive],
+                  ),
                 ),
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(16),
-                ),
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 26,
-                    backgroundColor: Colors.white,
-                    child: Icon(
-                      isTertiary ? Icons.account_balance : Icons.school,
-                      color: Colors.green.shade700,
-                      size: 26,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          school['name'] ?? '',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Text(
-                              school['code'] ?? '',
-                              style: TextStyle(
-                                color: Colors.green.shade50,
-                                fontSize: 12.5,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: isActive
-                                    ? Colors.white.withOpacity(0.22)
-                                    : Colors.red.shade100,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                school['status'] ?? '',
-                                style: TextStyle(
-                                  color: isActive
-                                      ? Colors.white
-                                      : Colors.red.shade900,
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, color: Colors.white),
-                    tooltip: 'Close',
-                  ),
-                ],
-              ),
-            ),
-
-            // Body
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: [
-                        _badge(Icons.layers, school['level'] ?? ''),
-                        _badge(Icons.account_balance, school['type'] ?? ''),
-                        _badge(Icons.wc, school['genderPolicy'] ?? ''),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-
-                    if ((school['description'] ?? '').isNotEmpty) ...[
-                      Text(
-                        school['description']!,
-                        style: TextStyle(
-                          fontSize: 14,
-                          height: 1.5,
-                          color: Colors.grey.shade800,
-                        ),
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
                       ),
-                      const SizedBox(height: 20),
-                    ],
-
-                    _sectionCard(
-                      title: "LOCATION",
-                      icon: Icons.location_on,
-                      children: [
-                        _infoRow(Icons.map, "Region", school['region'] ?? ''),
-                        _infoRow(
-                            Icons.my_location, "District", school['district'] ?? ''),
-                        _infoRow(Icons.home, "Address", school['address'] ?? ''),
-                        _infoRow(Icons.local_post_office, "Postal",
-                            school['postal'] ?? ''),
-                      ],
+                      alignment: Alignment.center,
+                      child: initials.isNotEmpty
+                          ? Text(
+                        initials,
+                        style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                      )
+                          : Icon(
+                        isTertiary ? Icons.account_balance : Icons.school,
+                        color: Colors.white,
+                        size: 26,
+                      ),
                     ),
-
-                    _sectionCard(
-                      title: "SCHOOL CONTACTS",
-                      icon: Icons.contact_phone,
-                      children: [
-                        _infoRow(Icons.phone, "Phone", school['phone'] ?? ''),
-                        _infoRow(Icons.phone_android, "Alt. Phone",
-                            school['altPhone'] ?? ''),
-                        _infoRow(Icons.email, "Email", school['email'] ?? ''),
-                        _infoRow(
-                            Icons.language, "Website", school['website'] ?? ''),
-                      ],
-                    ),
-
-                    _sectionCard(
-                      title: "ADMINISTRATOR",
-                      icon: Icons.person,
-                      children: [
-                        _infoRow(Icons.badge, "Name", school['adminName'] ?? ''),
-                        _infoRow(Icons.work, "Role", school['adminRole'] ?? ''),
-                        _infoRow(Icons.contact_phone, "Phone",
-                            school['adminPhone'] ?? ''),
-                        _infoRow(Icons.contact_mail, "Email",
-                            school['adminEmail'] ?? ''),
-                      ],
-                    ),
-
-                    if ((school['notes'] ?? '').isNotEmpty)
-                      _sectionCard(
-                        title: "NOTES",
-                        icon: Icons.info,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            school['notes']!,
-                            style: TextStyle(
-                              fontSize: 13.5,
-                              color: Colors.grey.shade800,
-                              height: 1.4,
+                            school['name'] ?? '',
+                            style: const TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.bold),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            school['code'] ?? '',
+                            style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 13),
+                          ),
+                          const SizedBox(height: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isActive ? Colors.white : Colors.red.shade100,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              school['status'] ?? '',
+                              style: TextStyle(
+                                color: isActive ? kBrandOlive : Colors.red.shade900,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
                       ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      style: IconButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: 0.15)),
+                    ),
                   ],
                 ),
               ),
-            ),
 
-            // Footer actions
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: Colors.grey.shade200)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                    label: const Text("Close"),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.grey.shade700,
-                      side: BorderSide(color: Colors.grey.shade400),
-                      padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      shape:
-                      RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
+              // ---------------- Body ----------------
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          _badge(Icons.layers, school['level'] ?? ''),
+                          _badge(Icons.account_balance, school['type'] ?? ''),
+                          _badge(Icons.wc, school['genderPolicy'] ?? ''),
+                        ],
+                      ),
+                      if ((school['description'] ?? '').isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        Text(
+                          school['description']!,
+                          style: TextStyle(fontSize: 14, height: 1.5, color: Colors.grey.shade800),
+                        ),
+                      ],
+                      const SizedBox(height: 24),
+
+                      _sectionTitle("Location"),
+                      const SizedBox(height: 12),
+                      _infoGrid([
+                        _SchoolInfoItem(Icons.map, "Region", school['region'] ?? ''),
+                        _SchoolInfoItem(Icons.my_location, "District", school['district'] ?? ''),
+                        _SchoolInfoItem(Icons.home, "Address", school['address'] ?? ''),
+                        _SchoolInfoItem(Icons.local_post_office, "Postal", school['postal'] ?? ''),
+                      ]),
+                      const SizedBox(height: 24),
+
+                      _sectionTitle("School Contacts"),
+                      const SizedBox(height: 12),
+                      _infoGrid([
+                        _SchoolInfoItem(Icons.phone, "Phone", school['phone'] ?? ''),
+                        _SchoolInfoItem(Icons.phone_android, "Alt. Phone", school['altPhone'] ?? ''),
+                        _SchoolInfoItem(Icons.email, "Email", school['email'] ?? ''),
+                        _SchoolInfoItem(Icons.language, "Website", school['website'] ?? ''),
+                      ]),
+                      const SizedBox(height: 24),
+
+                      _sectionTitle("Administrator"),
+                      const SizedBox(height: 12),
+                      _infoGrid([
+                        _SchoolInfoItem(Icons.badge, "Name", school['adminName'] ?? ''),
+                        _SchoolInfoItem(Icons.work, "Role", school['adminRole'] ?? ''),
+                        _SchoolInfoItem(Icons.contact_phone, "Phone", school['adminPhone'] ?? ''),
+                        _SchoolInfoItem(Icons.contact_mail, "Email", school['adminEmail'] ?? ''),
+                      ]),
+
+                      if ((school['notes'] ?? '').isNotEmpty) ...[
+                        const SizedBox(height: 24),
+                        _sectionTitle("Notes"),
+                        const SizedBox(height: 12),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: Text(
+                            school['notes']!,
+                            style: TextStyle(fontSize: 13.5, color: Colors.grey.shade800, height: 1.4),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 12),
+                    ],
                   ),
-                  const SizedBox(width: 12),
-                  ElevatedButton.icon(
-                    onPressed: onEdit,
-                    icon: const Icon(Icons.edit),
-                    label: const Text("Edit School"),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green.shade700,
-                      foregroundColor: Colors.white,
-                      padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      shape:
-                      RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
+
+              // ---------------- Footer Actions ----------------
+              Container(
+                padding: const EdgeInsets.fromLTRB(24, 14, 24, 20),
+                decoration: BoxDecoration(
+                  border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                ),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          widget.onToggleStatus();
+                          setState(() {}); // reflect new status immediately in this dialog
+                        },
+                        icon: Icon(
+                          isActive ? Icons.toggle_off_outlined : Icons.toggle_on_outlined,
+                          size: 20,
+                          color: isActive ? kBrandOrange : kBrandOlive,
+                        ),
+                        label: Text(
+                          isActive ? "Deactivate School" : "Activate School",
+                          style: TextStyle(fontWeight: FontWeight.bold, color: isActive ? kBrandOrange : kBrandOlive),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          side: BorderSide(color: (isActive ? kBrandOrange : kBrandOlive).withValues(alpha: 0.5)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => Navigator.of(context).pop(),
+                            icon: const Icon(Icons.close, size: 18),
+                            label: const Text("Close"),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              foregroundColor: Colors.grey.shade700,
+                              side: BorderSide(color: Colors.grey.shade300),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: widget.onEdit,
+                            icon: const Icon(Icons.edit_outlined, size: 18),
+                            label: const Text("Edit School"),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              backgroundColor: kBrandOlive,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+class _SchoolInfoItem {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  _SchoolInfoItem(this.icon, this.label, this.value);
 }
 
 
@@ -785,7 +1105,8 @@ class SchoolProfileDialog extends StatelessWidget {
 // EDIT SCHOOL POP-UP
 // ============================================================
 
-/// A professional pop-up (modal) version of the Edit School form.
+/// A professional pop-up (modal) version of the Edit School form,
+/// restyled with the shared brand palette.
 /// Pass in the school's current data; on save it pops with the
 /// updated Map<String, String> so the caller can update its state.
 class EditSchoolDialog extends StatefulWidget {
@@ -820,6 +1141,7 @@ class _EditSchoolDialogState extends State<EditSchoolDialog> {
   String? _selectedGenderType;
   String? _selectedRegion;
   String? _selectedDistrict;
+  String? _selectedStatus;
 
   final List<String> _schoolLevels = [
     'Primary School',
@@ -848,6 +1170,8 @@ class _EditSchoolDialogState extends State<EditSchoolDialog> {
     'Central Region',
     'Southern Region',
   ];
+
+  final List<String> _statuses = ['Active', 'Inactive'];
 
   final Map<String, List<String>> _regionDistricts = {
     'Northern Region': [
@@ -903,8 +1227,7 @@ class _EditSchoolDialogState extends State<EditSchoolDialog> {
     _adminRoleController = TextEditingController(text: args['adminRole'] ?? '');
     _adminPhoneController = TextEditingController(text: args['adminPhone'] ?? '');
     _adminEmailController = TextEditingController(text: args['adminEmail'] ?? '');
-    _descriptionController =
-        TextEditingController(text: args['description'] ?? '');
+    _descriptionController = TextEditingController(text: args['description'] ?? '');
     _notesController = TextEditingController(text: args['notes'] ?? '');
 
     _selectedLevel = args['level'];
@@ -918,8 +1241,7 @@ class _EditSchoolDialogState extends State<EditSchoolDialog> {
     }
 
     _selectedGenderType = args['genderPolicy'];
-    if (_selectedGenderType != null &&
-        !_genderTypes.contains(_selectedGenderType)) {
+    if (_selectedGenderType != null && !_genderTypes.contains(_selectedGenderType)) {
       _selectedGenderType = null;
     }
 
@@ -934,6 +1256,11 @@ class _EditSchoolDialogState extends State<EditSchoolDialog> {
       if (!dists.contains(_selectedDistrict)) {
         _selectedDistrict = null;
       }
+    }
+
+    _selectedStatus = args['status'];
+    if (_selectedStatus != null && !_statuses.contains(_selectedStatus)) {
+      _selectedStatus = 'Active';
     }
   }
 
@@ -984,13 +1311,15 @@ class _EditSchoolDialogState extends State<EditSchoolDialog> {
         'adminEmail': _adminEmailController.text.trim(),
         'description': _descriptionController.text.trim(),
         'notes': _notesController.text.trim(),
+        'status': _selectedStatus ?? widget.school['status'] ?? 'Active',
       };
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-              "Changes to '${updatedSchool['name']}' (${updatedSchool['code']}) successfully saved!"),
-          backgroundColor: Colors.green.shade800,
+          content: Text("Changes to '${updatedSchool['name']}' (${updatedSchool['code']}) successfully saved!"),
+          backgroundColor: kBrandOlive,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           duration: const Duration(seconds: 4),
         ),
       );
@@ -998,12 +1327,44 @@ class _EditSchoolDialogState extends State<EditSchoolDialog> {
       Navigator.pop(context, updatedSchool);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please correct the errors in the form."),
-          backgroundColor: Colors.redAccent,
+        SnackBar(
+          content: const Text("Please correct the errors in the form."),
+          backgroundColor: kBrandOrange,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
     }
+  }
+
+  InputDecoration _fieldDecoration({
+    required String label,
+    required IconData icon,
+    Widget? suffixIcon,
+    bool enabled = true,
+  }) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, size: 20),
+      suffixIcon: suffixIcon,
+      enabled: enabled,
+      isDense: true,
+      filled: true,
+      fillColor: enabled ? Colors.grey.shade50 : Colors.grey.shade100,
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: Colors.grey.shade200),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: kBrandOlive, width: 1.4),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: Colors.red.shade300),
+      ),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+    );
   }
 
   Widget _buildSectionHeader(String title, IconData icon) {
@@ -1013,15 +1374,11 @@ class _EditSchoolDialogState extends State<EditSchoolDialog> {
         const SizedBox(height: 12),
         Row(
           children: [
-            Icon(icon, color: Colors.green.shade700, size: 20),
+            Icon(icon, color: kBrandOlive, size: 20),
             const SizedBox(width: 8),
             Text(
               title,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: Colors.green.shade900,
-              ),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: kBrandBrown),
             ),
           ],
         ),
@@ -1048,13 +1405,13 @@ class _EditSchoolDialogState extends State<EditSchoolDialog> {
             // Header
             Container(
               padding: const EdgeInsets.fromLTRB(24, 20, 12, 20),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [Colors.green.shade700, Colors.green.shade500],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
+                  colors: [kBrandBrown, kBrandOlive],
                 ),
-                borderRadius: const BorderRadius.only(
+                borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(16),
                   topRight: Radius.circular(16),
                 ),
@@ -1069,20 +1426,13 @@ class _EditSchoolDialogState extends State<EditSchoolDialog> {
                       children: [
                         const Text(
                           "Edit School Details",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                         Text(
                           "Update details for ${widget.school['name'] ?? 'this school'}",
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: Colors.green.shade50,
-                            fontSize: 12.5,
-                          ),
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12.5),
                         ),
                       ],
                     ),
@@ -1113,34 +1463,16 @@ class _EditSchoolDialogState extends State<EditSchoolDialog> {
                             flex: 2,
                             child: TextFormField(
                               controller: _nameController,
-                              decoration: const InputDecoration(
-                                labelText: "School Name / Title *",
-                                prefixIcon: Icon(Icons.edit),
-                                border: OutlineInputBorder(),
-                              ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return "Enter school name";
-                                }
-                                return null;
-                              },
+                              decoration: _fieldDecoration(label: "School Name / Title *", icon: Icons.edit),
+                              validator: (value) => (value == null || value.trim().isEmpty) ? "Enter school name" : null,
                             ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
                             child: TextFormField(
                               controller: _codeController,
-                              decoration: const InputDecoration(
-                                labelText: "School Code / ID *",
-                                prefixIcon: Icon(Icons.pin),
-                                border: OutlineInputBorder(),
-                              ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return "Enter code";
-                                }
-                                return null;
-                              },
+                              decoration: _fieldDecoration(label: "School Code / ID *", icon: Icons.pin),
+                              validator: (value) => (value == null || value.trim().isEmpty) ? "Enter code" : null,
                             ),
                           ),
                         ],
@@ -1151,19 +1483,9 @@ class _EditSchoolDialogState extends State<EditSchoolDialog> {
                           Expanded(
                             child: DropdownButtonFormField<String>(
                               initialValue: _selectedLevel,
-                              decoration: const InputDecoration(
-                                labelText: "Education Level *",
-                                prefixIcon: Icon(Icons.layers),
-                                border: OutlineInputBorder(),
-                              ),
-                              items: _schoolLevels.map((level) {
-                                return DropdownMenuItem(
-                                  value: level,
-                                  child: Text(level),
-                                );
-                              }).toList(),
-                              onChanged: (val) =>
-                                  setState(() => _selectedLevel = val),
+                              decoration: _fieldDecoration(label: "Education Level *", icon: Icons.layers),
+                              items: _schoolLevels.map((level) => DropdownMenuItem(value: level, child: Text(level))).toList(),
+                              onChanged: (val) => setState(() => _selectedLevel = val),
                               validator: (val) => val == null ? "Select level" : null,
                             ),
                           ),
@@ -1171,41 +1493,59 @@ class _EditSchoolDialogState extends State<EditSchoolDialog> {
                           Expanded(
                             child: DropdownButtonFormField<String>(
                               initialValue: _selectedType,
-                              decoration: const InputDecoration(
-                                labelText: "School Type / Agency *",
-                                prefixIcon: Icon(Icons.account_balance),
-                                border: OutlineInputBorder(),
-                              ),
-                              items: _schoolTypes.map((type) {
-                                return DropdownMenuItem(
-                                  value: type,
-                                  child: Text(type),
-                                );
-                              }).toList(),
-                              onChanged: (val) =>
-                                  setState(() => _selectedType = val),
+                              decoration: _fieldDecoration(label: "School Type / Agency *", icon: Icons.account_balance),
+                              items: _schoolTypes.map((type) => DropdownMenuItem(value: type, child: Text(type))).toList(),
+                              onChanged: (val) => setState(() => _selectedType = val),
                               validator: (val) => val == null ? "Select type" : null,
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
-                      DropdownButtonFormField<String>(
-                        initialValue: _selectedGenderType,
-                        decoration: const InputDecoration(
-                          labelText: "Gender Policy *",
-                          prefixIcon: Icon(Icons.wc),
-                          border: OutlineInputBorder(),
-                        ),
-                        items: _genderTypes.map((g) {
-                          return DropdownMenuItem(
-                            value: g,
-                            child: Text(g),
-                          );
-                        }).toList(),
-                        onChanged: (val) =>
-                            setState(() => _selectedGenderType = val),
-                        validator: (val) => val == null ? "Select policy" : null,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              initialValue: _selectedGenderType,
+                              decoration: _fieldDecoration(label: "Gender Policy *", icon: Icons.wc),
+                              items: _genderTypes.map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
+                              onChanged: (val) => setState(() => _selectedGenderType = val),
+                              validator: (val) => val == null ? "Select policy" : null,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              initialValue: _selectedStatus,
+                              decoration: _fieldDecoration(
+                                label: "Status *",
+                                icon: Icons.toggle_on_outlined,
+                              ),
+                              items: _statuses.map((s) {
+                                return DropdownMenuItem(
+                                  value: s,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 8,
+                                        height: 8,
+                                        margin: const EdgeInsets.only(right: 8),
+                                        decoration: BoxDecoration(
+                                          color: s == 'Active' ? kBrandOlive : Colors.red.shade400,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      Text(s),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (val) => setState(() => _selectedStatus = val),
+                              validator: (val) => val == null ? "Select status" : null,
+                            ),
+                          ),
+                        ],
                       ),
 
                       const SizedBox(height: 16),
@@ -1217,17 +1557,8 @@ class _EditSchoolDialogState extends State<EditSchoolDialog> {
                           Expanded(
                             child: DropdownButtonFormField<String>(
                               initialValue: _selectedRegion,
-                              decoration: const InputDecoration(
-                                labelText: "Region *",
-                                prefixIcon: Icon(Icons.map),
-                                border: OutlineInputBorder(),
-                              ),
-                              items: _regions.map((region) {
-                                return DropdownMenuItem(
-                                  value: region,
-                                  child: Text(region),
-                                );
-                              }).toList(),
+                              decoration: _fieldDecoration(label: "Region *", icon: Icons.map),
+                              items: _regions.map((region) => DropdownMenuItem(value: region, child: Text(region))).toList(),
                               onChanged: (val) {
                                 setState(() {
                                   _selectedRegion = val;
@@ -1242,23 +1573,14 @@ class _EditSchoolDialogState extends State<EditSchoolDialog> {
                             child: DropdownButtonFormField<String>(
                               key: ValueKey(_selectedRegion),
                               initialValue: _selectedDistrict,
-                              decoration: InputDecoration(
-                                labelText: "District *",
-                                prefixIcon: const Icon(Icons.my_location),
-                                border: const OutlineInputBorder(),
+                              decoration: _fieldDecoration(
+                                label: "District *",
+                                icon: Icons.my_location,
                                 enabled: _selectedRegion != null,
                               ),
-                              items: _activeDistricts.map((district) {
-                                return DropdownMenuItem(
-                                  value: district,
-                                  child: Text(district),
-                                );
-                              }).toList(),
-                              onChanged: _selectedRegion == null
-                                  ? null
-                                  : (val) => setState(() => _selectedDistrict = val),
-                              validator: (val) =>
-                              val == null ? "Select district" : null,
+                              items: _activeDistricts.map((district) => DropdownMenuItem(value: district, child: Text(district))).toList(),
+                              onChanged: _selectedRegion == null ? null : (val) => setState(() => _selectedDistrict = val),
+                              validator: (val) => val == null ? "Select district" : null,
                             ),
                           ),
                         ],
@@ -1267,20 +1589,12 @@ class _EditSchoolDialogState extends State<EditSchoolDialog> {
                       TextFormField(
                         controller: _addressController,
                         maxLines: 2,
-                        decoration: const InputDecoration(
-                          labelText: "Physical Address / Landmarks",
-                          prefixIcon: Icon(Icons.home),
-                          border: OutlineInputBorder(),
-                        ),
+                        decoration: _fieldDecoration(label: "Physical Address / Landmarks", icon: Icons.home),
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _postalController,
-                        decoration: const InputDecoration(
-                          labelText: "Postal Address",
-                          prefixIcon: Icon(Icons.local_post_office),
-                          border: OutlineInputBorder(),
-                        ),
+                        decoration: _fieldDecoration(label: "Postal Address", icon: Icons.local_post_office),
                       ),
 
                       const SizedBox(height: 16),
@@ -1293,17 +1607,8 @@ class _EditSchoolDialogState extends State<EditSchoolDialog> {
                             child: TextFormField(
                               controller: _phoneController,
                               keyboardType: TextInputType.phone,
-                              decoration: const InputDecoration(
-                                labelText: "Primary Phone *",
-                                prefixIcon: Icon(Icons.phone),
-                                border: OutlineInputBorder(),
-                              ),
-                              validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return "Enter primary phone";
-                                }
-                                return null;
-                              },
+                              decoration: _fieldDecoration(label: "Primary Phone *", icon: Icons.phone),
+                              validator: (value) => (value == null || value.trim().isEmpty) ? "Enter primary phone" : null,
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -1311,11 +1616,7 @@ class _EditSchoolDialogState extends State<EditSchoolDialog> {
                             child: TextFormField(
                               controller: _altPhoneController,
                               keyboardType: TextInputType.phone,
-                              decoration: const InputDecoration(
-                                labelText: "Alternative Phone",
-                                prefixIcon: Icon(Icons.phone_android),
-                                border: OutlineInputBorder(),
-                              ),
+                              decoration: _fieldDecoration(label: "Alternative Phone", icon: Icons.phone_android),
                             ),
                           ),
                         ],
@@ -1327,19 +1628,11 @@ class _EditSchoolDialogState extends State<EditSchoolDialog> {
                             child: TextFormField(
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
-                              decoration: const InputDecoration(
-                                labelText: "School Email *",
-                                prefixIcon: Icon(Icons.email),
-                                border: OutlineInputBorder(),
-                              ),
+                              decoration: _fieldDecoration(label: "School Email *", icon: Icons.email),
                               validator: (value) {
-                                if (value == null || value.trim().isEmpty) {
-                                  return "Enter email";
-                                }
+                                if (value == null || value.trim().isEmpty) return "Enter email";
                                 final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
-                                if (!emailRegex.hasMatch(value.trim())) {
-                                  return "Enter valid email";
-                                }
+                                if (!emailRegex.hasMatch(value.trim())) return "Enter valid email";
                                 return null;
                               },
                             ),
@@ -1349,11 +1642,7 @@ class _EditSchoolDialogState extends State<EditSchoolDialog> {
                             child: TextFormField(
                               controller: _websiteController,
                               keyboardType: TextInputType.url,
-                              decoration: const InputDecoration(
-                                labelText: "Website URL (e.g. www.school.com)",
-                                prefixIcon: Icon(Icons.language),
-                                border: OutlineInputBorder(),
-                              ),
+                              decoration: _fieldDecoration(label: "Website URL (e.g. www.school.com)", icon: Icons.language),
                             ),
                           ),
                         ],
@@ -1362,30 +1651,21 @@ class _EditSchoolDialogState extends State<EditSchoolDialog> {
                       const SizedBox(height: 16),
 
                       // SECTION 4: Headteacher / Administrator Contact
-                      _buildSectionHeader(
-                          "Contact Person / Headteacher", Icons.person),
+                      _buildSectionHeader("Contact Person / Headteacher", Icons.person),
                       Row(
                         children: [
                           Expanded(
                             flex: 2,
                             child: TextFormField(
                               controller: _adminNameController,
-                              decoration: const InputDecoration(
-                                labelText: "Contact Full Name",
-                                prefixIcon: Icon(Icons.badge),
-                                border: OutlineInputBorder(),
-                              ),
+                              decoration: _fieldDecoration(label: "Contact Full Name", icon: Icons.badge),
                             ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
                             child: TextFormField(
                               controller: _adminRoleController,
-                              decoration: const InputDecoration(
-                                labelText: "Designation (e.g. Principal)",
-                                prefixIcon: Icon(Icons.work),
-                                border: OutlineInputBorder(),
-                              ),
+                              decoration: _fieldDecoration(label: "Designation (e.g. Principal)", icon: Icons.work),
                             ),
                           ),
                         ],
@@ -1397,11 +1677,7 @@ class _EditSchoolDialogState extends State<EditSchoolDialog> {
                             child: TextFormField(
                               controller: _adminPhoneController,
                               keyboardType: TextInputType.phone,
-                              decoration: const InputDecoration(
-                                labelText: "Contact Phone",
-                                prefixIcon: Icon(Icons.contact_phone),
-                                border: OutlineInputBorder(),
-                              ),
+                              decoration: _fieldDecoration(label: "Contact Phone", icon: Icons.contact_phone),
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -1409,18 +1685,11 @@ class _EditSchoolDialogState extends State<EditSchoolDialog> {
                             child: TextFormField(
                               controller: _adminEmailController,
                               keyboardType: TextInputType.emailAddress,
-                              decoration: const InputDecoration(
-                                labelText: "Contact Email",
-                                prefixIcon: Icon(Icons.contact_mail),
-                                border: OutlineInputBorder(),
-                              ),
+                              decoration: _fieldDecoration(label: "Contact Email", icon: Icons.contact_mail),
                               validator: (value) {
                                 if (value != null && value.trim().isNotEmpty) {
-                                  final emailRegex =
-                                  RegExp(r'^[^@]+@[^@]+\.[^@]+');
-                                  if (!emailRegex.hasMatch(value.trim())) {
-                                    return "Enter valid email";
-                                  }
+                                  final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
+                                  if (!emailRegex.hasMatch(value.trim())) return "Enter valid email";
                                 }
                                 return null;
                               },
@@ -1432,26 +1701,17 @@ class _EditSchoolDialogState extends State<EditSchoolDialog> {
                       const SizedBox(height: 16),
 
                       // SECTION 5: Additional Info & Description
-                      _buildSectionHeader(
-                          "Additional Information", Icons.info_outline),
+                      _buildSectionHeader("Additional Information", Icons.info_outline),
                       TextFormField(
                         controller: _descriptionController,
                         maxLines: 3,
-                        decoration: const InputDecoration(
-                          labelText: "Details / Description",
-                          prefixIcon: Icon(Icons.description),
-                          border: OutlineInputBorder(),
-                        ),
+                        decoration: _fieldDecoration(label: "Details / Description", icon: Icons.description),
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _notesController,
                         maxLines: 2,
-                        decoration: const InputDecoration(
-                          labelText: "Additional Notes",
-                          prefixIcon: Icon(Icons.info),
-                          border: OutlineInputBorder(),
-                        ),
+                        decoration: _fieldDecoration(label: "Additional Notes", icon: Icons.info),
                       ),
                     ],
                   ),
@@ -1475,27 +1735,21 @@ class _EditSchoolDialogState extends State<EditSchoolDialog> {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.grey.shade700,
                       side: BorderSide(color: Colors.grey.shade400),
-                      padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton.icon(
                     onPressed: _submitForm,
                     icon: const Icon(Icons.save),
-                    label: const Text(
-                      "Save Changes",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
+                    label: const Text("Save Changes", style: TextStyle(fontWeight: FontWeight.bold)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green.shade700,
+                      backgroundColor: kBrandOlive,
                       foregroundColor: Colors.white,
-                      padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      elevation: 0,
                     ),
                   ),
                 ],

@@ -1,6 +1,18 @@
 import 'package:flutter/material.dart';
 
 // ============================================================
+// Shared Brand Color Palette (consistent with Register Scholar)
+// ============================================================
+const Color kBrandBrown = Color(0xFF4C3C32);
+const Color kBrandCream = Color(0xFFFAF2DB);
+const Color kBrandCreamDark = Color(0xFFF3E7C4);
+const Color kBrandOlive = Color(0xFF9AB334);
+const Color kBrandOrange = Color(0xFFE05B1C);
+
+// Shared validation patterns (kept consistent with Register Scholar).
+final RegExp _kEmailRegex = RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[\w\-]{2,4}$');
+
+// ============================================================
 // VIEW SCHOLARS COMPONENT (registry table + profile pop-up)
 // ============================================================
 
@@ -33,6 +45,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
       'dob': '2009-05-12',
       'village': 'Chilinde',
       'phone': '+265 888 12 34 56',
+      'email': 'mary.banda@example.com',
       'programType': '',
       'startYear': '2023',
       'endYear': '2027'
@@ -50,6 +63,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
       'dob': '2008-11-23',
       'village': 'Likuni',
       'phone': '+265 999 98 76 54',
+      'email': '',
       'programType': '',
       'startYear': '2022',
       'endYear': '2026'
@@ -67,6 +81,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
       'dob': '2005-04-15',
       'village': 'Chinamwali',
       'phone': '+265 881 23 45 67',
+      'email': 'chikondi.mwale@example.com',
       'programType': 'Degree',
       'startYear': '2024',
       'endYear': '2028'
@@ -84,6 +99,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
       'dob': '2004-09-02',
       'village': 'Ndirande',
       'phone': '+265 992 34 56 78',
+      'email': 'taonga.nyirenda@example.com',
       'programType': 'Diploma',
       'startYear': '2023',
       'endYear': '2026'
@@ -162,15 +178,31 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
   }
 
   // ---------------------------------------------------------------------
+  // Activate / Deactivate a scholar
+  // ---------------------------------------------------------------------
+  void _toggleScholarStatus(Map<String, String> scholar) {
+    final bool wasActive = scholar['status'] == 'Active';
+    setState(() {
+      scholar['status'] = wasActive ? 'Inactive' : 'Active';
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          wasActive
+              ? "${scholar['name']} has been deactivated."
+              : "${scholar['name']} has been activated.",
+        ),
+        backgroundColor: wasActive ? kBrandOrange : kBrandOlive,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------
   // Scholar Profile Popup
   // ---------------------------------------------------------------------
   void _showScholarProfileDialog(BuildContext context, Map<String, String> scholar) {
-    final isActive = scholar['status'] == 'Active';
-    final hasProgram =
-        scholar['programType'] != null && scholar['programType']!.isNotEmpty;
-    final isUniversity = scholar['schoolType'] == 'University';
-    final initials = _initialsOf(scholar['name']!);
-
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
@@ -188,198 +220,246 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
               backgroundColor: Colors.transparent,
               insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 480, maxHeight: 640),
-                child: Material(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  clipBehavior: Clip.antiAlias,
-                  elevation: 12,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // ---------------- Header ----------------
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.fromLTRB(24, 28, 20, 24),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [Colors.green.shade700, Colors.green.shade500],
-                          ),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              width: 64,
-                              height: 64,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.18),
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2),
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                initials,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                constraints: const BoxConstraints(maxWidth: 480, maxHeight: 680),
+                child: StatefulBuilder(
+                  builder: (context, setLocalState) {
+                    final isActive = scholar['status'] == 'Active';
+                    final hasProgram = scholar['programType'] != null &&
+                        scholar['programType']!.isNotEmpty;
+                    final isUniversity = scholar['schoolType'] == 'University';
+                    final initials = _initialsOf(scholar['name']!);
+                    final hasEmail =
+                        scholar['email'] != null && scholar['email']!.isNotEmpty;
+
+                    return Material(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      clipBehavior: Clip.antiAlias,
+                      elevation: 12,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // ---------------- Header ----------------
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.fromLTRB(24, 28, 20, 24),
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [kBrandBrown, kBrandOlive],
                               ),
                             ),
-                            const SizedBox(width: 16),
-                            Expanded(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 64,
+                                  height: 64,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.18),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 2),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    initials,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        scholar['name']!,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        "Scholar ID: ${scholar['id']}",
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(alpha: 0.85),
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 10),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: isActive
+                                              ? Colors.white
+                                              : Colors.red.shade100,
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: Text(
+                                          scholar['status']!,
+                                          style: TextStyle(
+                                            color: isActive
+                                                ? kBrandOlive
+                                                : Colors.red.shade900,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                IconButton(
+                                  onPressed: () => Navigator.of(ctx).pop(),
+                                  icon: const Icon(Icons.close, color: Colors.white),
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: Colors.white.withValues(alpha: 0.15),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // ---------------- Body ----------------
+                          Flexible(
+                            child: SingleChildScrollView(
+                              padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    scholar['name']!,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
+                                  _sectionTitle("Academic Information"),
+                                  const SizedBox(height: 12),
+                                  _infoGrid([
+                                    _InfoItem(Icons.category_outlined, "School Type", scholar['schoolType']!,
+                                        valueColor: isUniversity ? kBrandBrown : kBrandOrange),
+                                    _InfoItem(Icons.school_outlined, "School", scholar['school']!),
+                                    _InfoItem(Icons.class_outlined, "Year / Form", scholar['class']!),
+                                    _InfoItem(
+                                      Icons.workspace_premium_outlined,
+                                      "Program",
+                                      hasProgram ? scholar['programType']! : 'N/A',
                                     ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    "Scholar ID: ${scholar['id']}",
-                                    style: TextStyle(
-                                      color: Colors.white.withValues(alpha: 0.85),
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: isActive
-                                          ? Colors.white
-                                          : Colors.red.shade100,
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Text(
-                                      scholar['status']!,
-                                      style: TextStyle(
-                                        color: isActive
-                                            ? Colors.green.shade800
-                                            : Colors.red.shade900,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
+                                    _InfoItem(Icons.event_outlined, "Start Year", scholar['startYear'] ?? 'N/A'),
+                                    _InfoItem(Icons.event_available_outlined, "End Year", scholar['endYear'] ?? 'N/A'),
+                                  ]),
+                                  const SizedBox(height: 24),
+                                  _sectionTitle("Personal Information"),
+                                  const SizedBox(height: 12),
+                                  _infoGrid([
+                                    _InfoItem(Icons.wc_outlined, "Sex", scholar['sex'] ?? 'N/A'),
+                                    _InfoItem(Icons.cake_outlined, "Date of Birth", scholar['dob'] ?? 'N/A'),
+                                    _InfoItem(Icons.location_on_outlined, "District", scholar['district'] ?? 'N/A'),
+                                    _InfoItem(Icons.home_outlined, "Village", scholar['village'] ?? 'N/A'),
+                                  ]),
+                                  const SizedBox(height: 24),
+                                  _sectionTitle("Contact & Sponsorship"),
+                                  const SizedBox(height: 12),
+                                  _infoGrid([
+                                    _InfoItem(Icons.phone_outlined, "Phone", scholar['phone'] ?? 'N/A'),
+                                    _InfoItem(Icons.email_outlined, "Email", hasEmail ? scholar['email']! : 'N/A'),
+                                    _InfoItem(Icons.volunteer_activism_outlined, "Donor / Sponsor", scholar['donor'] ?? 'N/A'),
+                                  ]),
+                                  const SizedBox(height: 12),
                                 ],
                               ),
                             ),
-                            IconButton(
-                              onPressed: () => Navigator.of(ctx).pop(),
-                              icon: const Icon(Icons.close, color: Colors.white),
-                              style: IconButton.styleFrom(
-                                backgroundColor: Colors.white.withValues(alpha: 0.15),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // ---------------- Body ----------------
-                      Flexible(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _sectionTitle("Academic Information"),
-                              const SizedBox(height: 12),
-                              _infoGrid([
-                                _InfoItem(Icons.category_outlined, "School Type", scholar['schoolType']!,
-                                    valueColor: isUniversity ? Colors.blue.shade800 : Colors.orange.shade900),
-                                _InfoItem(Icons.school_outlined, "School", scholar['school']!),
-                                _InfoItem(Icons.class_outlined, "Year / Form", scholar['class']!),
-                                _InfoItem(
-                                  Icons.workspace_premium_outlined,
-                                  "Program",
-                                  hasProgram ? scholar['programType']! : 'N/A',
-                                ),
-                                _InfoItem(Icons.event_outlined, "Start Year", scholar['startYear'] ?? 'N/A'),
-                                _InfoItem(Icons.event_available_outlined, "End Year", scholar['endYear'] ?? 'N/A'),
-                              ]),
-                              const SizedBox(height: 24),
-                              _sectionTitle("Personal Information"),
-                              const SizedBox(height: 12),
-                              _infoGrid([
-                                _InfoItem(Icons.wc_outlined, "Sex", scholar['sex'] ?? 'N/A'),
-                                _InfoItem(Icons.cake_outlined, "Date of Birth", scholar['dob'] ?? 'N/A'),
-                                _InfoItem(Icons.location_on_outlined, "District", scholar['district'] ?? 'N/A'),
-                                _InfoItem(Icons.home_outlined, "Village", scholar['village'] ?? 'N/A'),
-                              ]),
-                              const SizedBox(height: 24),
-                              _sectionTitle("Contact & Sponsorship"),
-                              const SizedBox(height: 12),
-                              _infoGrid([
-                                _InfoItem(Icons.phone_outlined, "Phone", scholar['phone'] ?? 'N/A'),
-                                _InfoItem(Icons.volunteer_activism_outlined, "Donor / Sponsor", scholar['donor'] ?? 'N/A'),
-                              ]),
-                              const SizedBox(height: 12),
-                            ],
                           ),
-                        ),
-                      ),
 
-                      // ---------------- Footer Actions ----------------
-                      Container(
-                        padding: const EdgeInsets.fromLTRB(24, 14, 24, 20),
-                        decoration: BoxDecoration(
-                          border: Border(top: BorderSide(color: Colors.grey.shade200)),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: () => Navigator.of(ctx).pop(),
-                                icon: const Icon(Icons.close, size: 18),
-                                label: const Text("Close"),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  foregroundColor: Colors.grey.shade700,
-                                  side: BorderSide(color: Colors.grey.shade300),
-                                ),
-                              ),
+                          // ---------------- Footer Actions ----------------
+                          Container(
+                            padding: const EdgeInsets.fromLTRB(24, 14, 24, 20),
+                            decoration: BoxDecoration(
+                              border: Border(top: BorderSide(color: Colors.grey.shade200)),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: () {
-                                  // Close the profile pop-up, then open the
-                                  // Edit Scholar pop-up (also a dialog, not a route).
-                                  Navigator.of(ctx).pop();
-                                  showEditScholarDialog(context, scholar);
-                                },
-                                icon: const Icon(Icons.edit_outlined, size: 18),
-                                label: const Text("Edit Scholar"),
-                                style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
+                            child: Column(
+                              children: [
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton.icon(
+                                    onPressed: () {
+                                      _toggleScholarStatus(scholar);
+                                      setLocalState(() {});
+                                    },
+                                    icon: Icon(
+                                      isActive ? Icons.toggle_off_outlined : Icons.toggle_on_outlined,
+                                      size: 20,
+                                      color: isActive ? kBrandOrange : kBrandOlive,
+                                    ),
+                                    label: Text(
+                                      isActive ? "Deactivate Scholar" : "Activate Scholar",
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: isActive ? kBrandOrange : kBrandOlive,
+                                      ),
+                                    ),
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      side: BorderSide(
+                                        color: (isActive ? kBrandOrange : kBrandOlive).withValues(alpha: 0.5),
+                                      ),
+                                    ),
                                   ),
-                                  backgroundColor: Colors.green.shade700,
-                                  foregroundColor: Colors.white,
-                                  elevation: 0,
                                 ),
-                              ),
+                                const SizedBox(height: 12),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        onPressed: () => Navigator.of(ctx).pop(),
+                                        icon: const Icon(Icons.close, size: 18),
+                                        label: const Text("Close"),
+                                        style: OutlinedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(vertical: 14),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                          foregroundColor: Colors.grey.shade700,
+                                          side: BorderSide(color: Colors.grey.shade300),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: ElevatedButton.icon(
+                                        onPressed: () {
+                                          // Close the profile pop-up, then open the
+                                          // Edit Scholar pop-up (also a dialog, not a route).
+                                          Navigator.of(ctx).pop();
+                                          showEditScholarDialog(context, scholar);
+                                        },
+                                        icon: const Icon(Icons.edit_outlined, size: 18),
+                                        label: const Text("Edit Scholar"),
+                                        style: ElevatedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(vertical: 14),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                          backgroundColor: kBrandOlive,
+                                          foregroundColor: Colors.white,
+                                          elevation: 0,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
               ),
             ),
@@ -392,11 +472,11 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
   Widget _sectionTitle(String text) {
     return Text(
       text,
-      style: TextStyle(
+      style: const TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.bold,
         letterSpacing: 0.4,
-        color: Colors.green.shade800,
+        color: kBrandBrown,
       ),
     );
   }
@@ -428,10 +508,10 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                     Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: Colors.green.shade50,
+                        color: kBrandOrange.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Icon(item.icon, size: 16, color: Colors.green.shade700),
+                      child: Icon(item.icon, size: 16, color: kBrandOrange),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -508,11 +588,11 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [Colors.green.shade800, Colors.green.shade600],
+                colors: [kBrandBrown, kBrandOlive],
               ),
             ),
             child: Row(
@@ -562,8 +642,8 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                   runSpacing: 6,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    _miniStat(Icons.check_circle_rounded, "$activeCount active", Colors.tealAccent.shade100),
-                    _miniStat(Icons.account_balance_rounded, "$universityCount uni", Colors.lightBlueAccent.shade100),
+                    _miniStat(Icons.check_circle_rounded, "$activeCount active", kBrandCream),
+                    _miniStat(Icons.account_balance_rounded, "$universityCount uni", kBrandCream),
                   ],
                 ),
                 const SizedBox(width: 8),
@@ -630,7 +710,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.green.shade400),
+                          borderSide: const BorderSide(color: kBrandOlive, width: 2),
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -663,7 +743,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.green.shade400),
+                          borderSide: const BorderSide(color: kBrandOlive, width: 2),
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -712,7 +792,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.green.shade400),
+                          borderSide: const BorderSide(color: kBrandOlive, width: 2),
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -760,7 +840,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.green.shade400),
+                          borderSide: const BorderSide(color: kBrandOlive, width: 2),
                         ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -853,22 +933,22 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                       ),
                       child: DataTable(
                         showCheckboxColumn: false,
-                        headingRowColor: WidgetStateProperty.all(Colors.green.shade50),
+                        headingRowColor: WidgetStateProperty.all(kBrandCream),
                         headingRowHeight: 48,
                         dataRowMinHeight: 60,
                         dataRowMaxHeight: 64,
                         columnSpacing: 24,
                         horizontalMargin: 24,
                         dividerThickness: 0.6,
-                        columns: [
-                          DataColumn(label: Text("ID", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green.shade900))),
-                          DataColumn(label: Text("Name", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green.shade900))),
-                          DataColumn(label: Text("School Type", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green.shade900))),
-                          DataColumn(label: Text("School", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green.shade900))),
-                          DataColumn(label: Text("Year / Form", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green.shade900))),
-                          DataColumn(label: Text("Program", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green.shade900))),
-                          DataColumn(label: Text("Status", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green.shade900))),
-                          DataColumn(label: Text("Actions", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green.shade900))),
+                        columns: const [
+                          DataColumn(label: Text("ID", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown))),
+                          DataColumn(label: Text("Name", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown))),
+                          DataColumn(label: Text("School Type", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown))),
+                          DataColumn(label: Text("School", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown))),
+                          DataColumn(label: Text("Year / Form", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown))),
+                          DataColumn(label: Text("Program", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown))),
+                          DataColumn(label: Text("Status", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown))),
+                          DataColumn(label: Text("Actions", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown))),
                         ],
                         rows: filteredScholars.asMap().entries.map((entry) {
                           final index = entry.key;
@@ -878,7 +958,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                           return DataRow(
                             color: WidgetStateProperty.resolveWith((states) {
                               if (states.contains(WidgetState.hovered)) {
-                                return Colors.green.shade50.withValues(alpha: 0.6);
+                                return kBrandCream.withValues(alpha: 0.6);
                               }
                               return index.isEven ? Colors.white : Colors.grey.shade50.withValues(alpha: 0.6);
                             }),
@@ -898,15 +978,15 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                                       height: 30,
                                       alignment: Alignment.center,
                                       decoration: BoxDecoration(
-                                        color: Colors.green.shade100,
+                                        color: kBrandOlive.withValues(alpha: 0.15),
                                         shape: BoxShape.circle,
                                       ),
                                       child: Text(
                                         _initialsOf(scholar['name']!),
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.bold,
-                                          color: Colors.green.shade800,
+                                          color: kBrandBrown,
                                         ),
                                       ),
                                     ),
@@ -923,16 +1003,16 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
                                     color: scholar['schoolType'] == 'University'
-                                        ? Colors.blue.shade50
-                                        : Colors.orange.shade50,
+                                        ? kBrandBrown.withValues(alpha: 0.08)
+                                        : kBrandOrange.withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Text(
                                     scholar['schoolType']!,
                                     style: TextStyle(
                                       color: scholar['schoolType'] == 'University'
-                                          ? Colors.blue.shade800
-                                          : Colors.orange.shade900,
+                                          ? kBrandBrown
+                                          : kBrandOrange,
                                       fontSize: 12,
                                       fontWeight: FontWeight.w500,
                                     ),
@@ -954,7 +1034,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                                 Text(
                                   hasProgram ? scholar['programType']! : 'N/A',
                                   style: TextStyle(
-                                    color: hasProgram ? Colors.blue.shade900 : Colors.grey,
+                                    color: hasProgram ? kBrandOlive : Colors.grey,
                                     fontStyle: hasProgram ? FontStyle.normal : FontStyle.italic,
                                   ),
                                 ),
@@ -963,10 +1043,10 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: isActive ? Colors.green.shade50 : Colors.red.shade50,
+                                    color: isActive ? kBrandOlive.withValues(alpha: 0.12) : Colors.red.shade50,
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: isActive ? Colors.green.shade200 : Colors.red.shade200,
+                                      color: isActive ? kBrandOlive.withValues(alpha: 0.4) : Colors.red.shade200,
                                     ),
                                   ),
                                   child: Row(
@@ -976,7 +1056,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                                         width: 6,
                                         height: 6,
                                         decoration: BoxDecoration(
-                                          color: isActive ? Colors.green.shade600 : Colors.red.shade600,
+                                          color: isActive ? kBrandOlive : Colors.red.shade600,
                                           shape: BoxShape.circle,
                                         ),
                                       ),
@@ -984,7 +1064,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                                       Text(
                                         scholar['status']!,
                                         style: TextStyle(
-                                          color: isActive ? Colors.green.shade900 : Colors.red.shade900,
+                                          color: isActive ? kBrandOlive : Colors.red.shade900,
                                           fontSize: 12,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -994,14 +1074,28 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                                 ),
                               ),
                               DataCell(
-                                IconButton(
-                                  icon: const Icon(Icons.edit_note, color: Colors.blue),
-                                  onPressed: () {
-                                    // Opens the Edit Scholar pop-up dialog directly
-                                    // from the table row, without leaving the page.
-                                    showEditScholarDialog(context, scholar);
-                                  },
-                                  tooltip: "Edit Scholar",
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.edit_note, color: kBrandBrown),
+                                      onPressed: () {
+                                        // Opens the Edit Scholar pop-up dialog directly
+                                        // from the table row, without leaving the page.
+                                        showEditScholarDialog(context, scholar);
+                                      },
+                                      tooltip: "Edit Scholar",
+                                    ),
+                                    IconButton(
+                                      icon: Icon(
+                                        isActive ? Icons.toggle_on_rounded : Icons.toggle_off_rounded,
+                                        color: isActive ? kBrandOlive : Colors.grey.shade500,
+                                        size: 26,
+                                      ),
+                                      onPressed: () => _toggleScholarStatus(scholar),
+                                      tooltip: isActive ? "Deactivate" : "Activate",
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
@@ -1097,6 +1191,7 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
   final TextEditingController _yearController = TextEditingController();
   final TextEditingController _homeVillageController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _dobController = TextEditingController();
 
   // Data lists
@@ -1162,6 +1257,7 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
         _yearController.text = args['class'] ?? '';
         _homeVillageController.text = args['village'] ?? '';
         _phoneController.text = args['phone'] ?? '';
+        _emailController.text = args['email'] ?? '';
         _dobController.text = args['dob'] ?? '';
 
         if (args['dob'] != null && args['dob']!.isNotEmpty) {
@@ -1181,6 +1277,7 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
         _yearController.text = 'Form 3';
         _homeVillageController.text = 'Chilinde';
         _phoneController.text = '+265 888 12 34 56';
+        _emailController.text = 'mary.banda@example.com';
         _dobController.text = '2009-05-12';
         _selectedDateOfBirth = DateTime(2009, 5, 12);
         _selectedStartYear = '2023';
@@ -1196,8 +1293,20 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
     _yearController.dispose();
     _homeVillageController.dispose();
     _phoneController.dispose();
+    _emailController.dispose();
     _dobController.dispose();
     super.dispose();
+  }
+
+  String? _validateOptionalEmail(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      // Email is optional - empty is fine.
+      return null;
+    }
+    if (!_kEmailRegex.hasMatch(value.trim())) {
+      return "Please enter a valid email address";
+    }
+    return null;
   }
 
   Future<void> _selectDateOfBirth(BuildContext context) async {
@@ -1209,10 +1318,10 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: Colors.green.shade700,
+            colorScheme: const ColorScheme.light(
+              primary: kBrandOlive,
               onPrimary: Colors.white,
-              onSurface: Colors.black87,
+              onSurface: kBrandBrown,
             ),
           ),
           child: child!,
@@ -1233,7 +1342,7 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Scholar ${_fullNameController.text} updated successfully!"),
-          backgroundColor: Colors.green.shade700,
+          backgroundColor: kBrandOlive,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
@@ -1263,7 +1372,7 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.green.shade400, width: 1.4),
+        borderSide: const BorderSide(color: kBrandOlive, width: 1.4),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
@@ -1282,11 +1391,11 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
       padding: const EdgeInsets.only(bottom: 12),
       child: Text(
         text,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.bold,
           letterSpacing: 0.4,
-          color: Colors.green.shade800,
+          color: kBrandBrown,
         ),
       ),
     );
@@ -1336,11 +1445,11 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.fromLTRB(20, 20, 16, 16),
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               gradient: LinearGradient(
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
-                                colors: [Colors.green.shade800, Colors.green.shade600],
+                                colors: [kBrandBrown, kBrandOlive],
                               ),
                             ),
                             child: Row(
@@ -1404,7 +1513,7 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(color: Colors.green.shade400),
+                                  borderSide: const BorderSide(color: kBrandOlive),
                                 ),
                                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                               ),
@@ -1440,10 +1549,10 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                     decoration: BoxDecoration(
-                                      color: isSelected ? Colors.green.shade50 : Colors.transparent,
+                                      color: isSelected ? kBrandCream : Colors.transparent,
                                       borderRadius: BorderRadius.circular(10),
                                       border: Border.all(
-                                        color: isSelected ? Colors.green.shade300 : Colors.grey.shade200,
+                                        color: isSelected ? kBrandOlive.withValues(alpha: 0.5) : Colors.grey.shade200,
                                       ),
                                     ),
                                     child: Row(
@@ -1451,13 +1560,13 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
                                         Container(
                                           padding: const EdgeInsets.all(7),
                                           decoration: BoxDecoration(
-                                            color: isSelected ? Colors.green.shade100 : Colors.grey.shade100,
+                                            color: isSelected ? kBrandOlive.withValues(alpha: 0.15) : Colors.grey.shade100,
                                             borderRadius: BorderRadius.circular(8),
                                           ),
                                           child: Icon(
                                             isUniversity ? Icons.account_balance_rounded : Icons.school_outlined,
                                             size: 16,
-                                            color: isSelected ? Colors.green.shade800 : Colors.grey.shade600,
+                                            color: isSelected ? kBrandBrown : Colors.grey.shade600,
                                           ),
                                         ),
                                         const SizedBox(width: 12),
@@ -1467,12 +1576,12 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
                                             style: TextStyle(
                                               fontSize: 13.5,
                                               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                              color: isSelected ? Colors.green.shade900 : Colors.black87,
+                                              color: isSelected ? kBrandBrown : Colors.black87,
                                             ),
                                           ),
                                         ),
                                         if (isSelected)
-                                          Icon(Icons.check_circle_rounded, color: Colors.green.shade700, size: 20),
+                                          const Icon(Icons.check_circle_rounded, color: kBrandOlive, size: 20),
                                       ],
                                     ),
                                   ),
@@ -1519,11 +1628,11 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(24, 24, 20, 20),
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Colors.green.shade800, Colors.green.shade600],
+                  colors: [kBrandBrown, kBrandOlive],
                 ),
               ),
               child: Row(
@@ -1746,6 +1855,13 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
                       validator: (value) => (value == null || value.trim().isEmpty) ? "Please enter the phone number" : null,
                     ),
                     const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: _fieldDecoration(label: "Email Address (optional)", icon: Icons.email_outlined),
+                      validator: _validateOptionalEmail,
+                    ),
+                    const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
                       initialValue: _selectedDonor,
                       decoration: _fieldDecoration(label: "Donor / Sponsor", icon: Icons.volunteer_activism_outlined),
@@ -1790,7 +1906,7 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        backgroundColor: Colors.green.shade700,
+                        backgroundColor: kBrandOlive,
                         foregroundColor: Colors.white,
                         elevation: 0,
                       ),

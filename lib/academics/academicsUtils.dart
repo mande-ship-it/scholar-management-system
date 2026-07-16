@@ -1,5 +1,14 @@
 import 'package:flutter/material.dart';
 
+// ============================================================
+// Shared Brand Color Palette
+// ============================================================
+const Color kBrandBrown = Color(0xFF4C3C32);
+const Color kBrandCream = Color(0xFFFAF2DB);
+const Color kBrandCreamDark = Color(0xFFF3E7C4);
+const Color kBrandOlive = Color(0xFF9AB334);
+const Color kBrandOrange = Color(0xFFE05B1C);
+
 /// ---------------------------------------------------------------------
 /// SHARED MODELS & ENUMS
 /// ---------------------------------------------------------------------
@@ -35,6 +44,7 @@ class ResultRecord {
   final String studentId;
   final String code; // course/subject code e.g. "COM315"
   final String subject; // subject (secondary) or course title (university)
+  final String type; // e.g. "RC" — defaults to 'RC' so existing records still compile
   final double marks;
   final double? gpa; // university only — grade point for this course
   final double? points; // secondary only — grade point for this course
@@ -46,6 +56,7 @@ class ResultRecord {
     required this.studentId,
     required this.code,
     required this.subject,
+    this.type = 'RC',
     required this.marks,
     this.gpa,
     this.points,
@@ -73,49 +84,81 @@ final List<Student> kStudents = [
   const Student(id: 's8', name: 'Yamikani Mbewe', age: 19, schoolType: SchoolType.university, schoolName: 'University of Malawi'),
 ];
 
-final List<Map<String, dynamic>> kSubjects = [
-  {
-    'name': 'Mathematics',
-    'details': 'Core mathematics including algebra and geometry.',
-    'notes': 'Required for science majors.',
-    'level': SubjectLevel.secondary,
-    'code': 'MATH101',
-  },
-  {
-    'name': 'English Literature',
-    'details': 'Study of classic and modern literature.',
-    'notes': 'Compulsory course.',
-    'level': SubjectLevel.secondary,
-    'code': 'ENG102',
-  },
-  {
-    'name': 'Biology',
-    'details': 'General biology, genetics, and human anatomy.',
-    'notes': 'Lab hours included.',
-    'level': SubjectLevel.secondary,
-    'code': 'BIO103',
-  },
-  {
-    'name': 'Agriculture',
-    'details': 'Crop management and soil sciences.',
-    'notes': 'Practical field assignments.',
-    'level': SubjectLevel.secondary,
-    'code': 'AGR101',
-  },
-  {
-    'name': 'Chichewa',
-    'details': 'National language grammar and literature.',
-    'notes': 'Core language subject.',
-    'level': SubjectLevel.secondary,
-    'code': 'CHI104',
-  },
-  {
-    'name': 'Software Engineering',
-    'details': 'Design and construction of software systems.',
-    'notes': 'University level.',
-    'level': SubjectLevel.university,
-    'code': 'COM411',
-  },
+class Subject {
+  final String name;
+  final String code;
+  final String details;
+  final String notes;
+  final SubjectLevel level;
+
+  const Subject({
+    required this.name,
+    required this.code,
+    required this.details,
+    required this.notes,
+    required this.level,
+  });
+
+  Map<String, dynamic> toMap() => {
+    'name': name,
+    'code': code,
+    'details': details,
+    'notes': notes,
+    'level': level,
+  };
+
+  factory Subject.fromMap(Map<String, dynamic> map) => Subject(
+    name: map['name'],
+    code: map['code'],
+    details: map['details'],
+    notes: map['notes'],
+    level: map['level'],
+  );
+}
+
+final List<Subject> kSubjects = [
+  const Subject(
+    name: 'Mathematics',
+    details: 'Core mathematics including algebra and geometry.',
+    notes: 'Required for science majors.',
+    level: SubjectLevel.secondary,
+    code: 'MATH101',
+  ),
+  const Subject(
+    name: 'English Literature',
+    details: 'Study of classic and modern literature.',
+    notes: 'Compulsory course.',
+    level: SubjectLevel.secondary,
+    code: 'ENG102',
+  ),
+  const Subject(
+    name: 'Biology',
+    details: 'General biology, genetics, and human anatomy.',
+    notes: 'Lab hours included.',
+    level: SubjectLevel.secondary,
+    code: 'BIO103',
+  ),
+  const Subject(
+    name: 'Agriculture',
+    details: 'Crop management and soil sciences.',
+    notes: 'Practical field assignments.',
+    level: SubjectLevel.secondary,
+    code: 'AGR101',
+  ),
+  const Subject(
+    name: 'Chichewa',
+    details: 'National language grammar and literature.',
+    notes: 'Core language subject.',
+    level: SubjectLevel.secondary,
+    code: 'CHI104',
+  ),
+  const Subject(
+    name: 'Software Engineering',
+    details: 'Design and construction of software systems.',
+    notes: 'University level.',
+    level: SubjectLevel.university,
+    code: 'COM411',
+  ),
 ];
 
 final List<ResultRecord> kResults = [
@@ -148,6 +191,9 @@ final List<ResultRecord> kResults = [
   const ResultRecord(studentId: 's8', code: 'STA102', subject: 'Statistics', marks: 89, gpa: 3.9, year: '2026', semester: 'Semester 1'),
 ];
 
+const List<String> kTerms = ['Term 1', 'Term 2', 'Term 3'];
+const List<String> kSemesters = ['Semester 1', 'Semester 2'];
+
 /// ---------------------------------------------------------------------
 /// SHARED UTILITIES
 /// ---------------------------------------------------------------------
@@ -157,4 +203,23 @@ final List<ResultRecord> kResults = [
   if (avg >= 65) return (label: 'Good', color: Colors.blue.shade700);
   if (avg >= 50) return (label: 'Average', color: Colors.orange.shade800);
   return (label: 'Needs Improvement', color: Colors.red.shade700);
+}
+
+/// ---------------------------------------------------------------------
+/// GRADING SCALE
+/// ------------------------------------------------------------
+/// PLACEHOLDER — Edward: replace these mark boundaries / letters /
+/// grade points with your institution's official scale. Everywhere
+/// else in the app (result entry, reports, GPA calculations) calls
+/// THIS function, so updating it here is the only place you need to
+/// touch to change how grades are computed app-wide.
+/// ---------------------------------------------------------------------
+({String letter, double point}) gradeFromMarks(double marks, {required bool isUniversity}) {
+  if (marks >= 75) return (letter: 'A', point: 3.75);
+  if (marks >= 70) return (letter: 'B+', point: 3.74);
+  if (marks >= 65) return (letter: 'B', point: 3.00);
+  if (marks >= 60) return (letter: 'C+', point: 2.99);
+  if (marks >= 56) return (letter: 'C', point: 2.50);
+  if (marks >= 50) return (letter: 'C-', point: 2.00);
+  return (letter: 'F', point: 0.00);
 }

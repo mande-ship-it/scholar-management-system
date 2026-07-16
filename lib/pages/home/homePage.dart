@@ -2,17 +2,13 @@ import 'package:flutter/material.dart';
 
 // Dashboard
 import '../dashboardPages/dashboard.dart';
-import '../dashboardPages/statistics.dart';
 import '../dashboardPages/recentActivities.dart';
 import '../dashboardPages/notifications.dart';
 
 // Scholars
 import '../scholarPages/registerScholar.dart';
 import '../scholarPages/viewScholars.dart';
-import '../scholarPages/ScholarProfile.dart';
-import '../scholarPages/uploadDocuments.dart';
 import '../attendancePages/scholarAttendance.dart';
-import '../scholarPages/deleteScholar.dart';
 
 // Schools
 import '../schoolPages/registerSchool.dart';
@@ -21,10 +17,8 @@ import '../schoolPages/viewSchools.dart';
 // Sponsors
 import '../sponsorPages/registerSponsor.dart';
 import '../sponsorPages/viewSponsors.dart';
-import '../sponsorPages/sponsorshipHistory.dart';
 
 // Academics
-import '../academicPages/addSubjects.dart';
 import '../academicPages/enterResults.dart';
 import '../academicPages/viewResults.dart';
 import '../academicPages/reportCards.dart';
@@ -98,6 +92,20 @@ class _HomePageState extends State<HomePage> {
   int activeSubIndex = 0;
   bool _isSidebarVisible = true;
 
+  void _navigateToSubItem(String title) {
+    for (int i = 0; i < categories.length; i++) {
+      for (int j = 0; j < categories[i].subItems.length; j++) {
+        if (categories[i].subItems[j].title == title) {
+          setState(() {
+            activeCategoryIndex = i;
+            activeSubIndex = j;
+          });
+          return;
+        }
+      }
+    }
+  }
+
   final List<SidebarCategory> categories = const [
     SidebarCategory(
       title: "Dashboard",
@@ -130,7 +138,6 @@ class _HomePageState extends State<HomePage> {
       subItems: [
         SidebarSubItem(title: "Register Sponsor", page: RegisterSponsorPage(), icon: Icons.add_moderator),
         SidebarSubItem(title: "View Sponsors", page: ViewSponsorsPage(), icon: Icons.supervisor_account),
-        SidebarSubItem(title: "Sponsorship History", page: SponsorshipHistoryPage(), icon: Icons.history_edu),
       ],
     ),
     SidebarCategory(
@@ -255,12 +262,22 @@ class _HomePageState extends State<HomePage> {
           IconButton(
             icon: const Icon(Icons.search, color: Colors.white),
             tooltip: "Search Portal",
-            onPressed: () {},
+            onPressed: () async {
+              final String? selected = await showSearch<String>(
+                context: context,
+                delegate: ComponentSearchDelegate(
+                  allSubItems: categories.expand((c) => c.subItems).toList(),
+                ),
+              );
+              if (selected != null) {
+                _navigateToSubItem(selected);
+              }
+            },
           ),
           IconButton(
             icon: const Icon(Icons.notifications, color: Colors.white),
             tooltip: "Notifications",
-            onPressed: () {},
+            onPressed: () => _navigateToSubItem("Notifications"),
           ),
           const SizedBox(width: 8),
           const VerticalDivider(
@@ -270,21 +287,27 @@ class _HomePageState extends State<HomePage> {
             endIndent: 12,
           ),
           const SizedBox(width: 12),
-          const Text(
-            "Edward Young Shaba",
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
+          GestureDetector(
+            onTap: () => _navigateToSubItem("User Profile"),
+            child: const Text(
+              "Edward Young Shaba",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
             ),
           ),
           const SizedBox(width: 12),
           Padding(
             padding: const EdgeInsets.only(right: 20),
-            child: CircleAvatar(
-              backgroundColor: brandCream,
-              radius: 18,
-              child: const Icon(Icons.person, color: brandBrown, size: 20),
+            child: GestureDetector(
+              onTap: () => _navigateToSubItem("User Profile"),
+              child: CircleAvatar(
+                backgroundColor: brandCream,
+                radius: 18,
+                child: const Icon(Icons.person, color: brandBrown, size: 20),
+              ),
             ),
           )
         ],
@@ -643,5 +666,75 @@ class AgeAfricaLogoPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant AgeAfricaLogoPainter oldDelegate) {
     return oldDelegate.color != color || oldDelegate.accentColor != accentColor;
+  }
+}
+
+class ComponentSearchDelegate extends SearchDelegate<String> {
+  final List<SidebarSubItem> allSubItems;
+
+  ComponentSearchDelegate({required this.allSubItems});
+
+  @override
+  List<Widget>? buildActions(BuildContext context) {
+    return [
+      IconButton(
+        icon: const Icon(Icons.clear),
+        onPressed: () {
+          query = '';
+        },
+      ),
+    ];
+  }
+
+  @override
+  Widget? buildLeading(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.arrow_back),
+      onPressed: () {
+        close(context, "");
+      },
+    );
+  }
+
+  @override
+  Widget buildResults(BuildContext context) {
+    final List<SidebarSubItem> results = allSubItems
+        .where((item) => item.title.toLowerCase().contains(query.toLowerCase()))
+        .toList();
+
+    return ListView.builder(
+      itemCount: results.length,
+      itemBuilder: (context, index) {
+        final item = results[index];
+        return ListTile(
+          leading: Icon(item.icon),
+          title: Text(item.title),
+          onTap: () {
+            close(context, item.title);
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  Widget buildSuggestions(BuildContext context) {
+    final List<SidebarSubItem> suggestions = allSubItems
+        .where((item) => item.title.toLowerCase().contains(query.toLowerCase()))
+        .toList();
+
+    return ListView.builder(
+      itemCount: suggestions.length,
+      itemBuilder: (context, index) {
+        final item = suggestions[index];
+        return ListTile(
+          leading: Icon(item.icon),
+          title: Text(item.title),
+          onTap: () {
+            close(context, item.title);
+          },
+        );
+      },
+    );
   }
 }

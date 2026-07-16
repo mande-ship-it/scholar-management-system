@@ -9,11 +9,13 @@ import 'pages/dashboardPages/statistics.dart';
 import 'pages/dashboardPages/recentActivities.dart';
 import 'pages/dashboardPages/notifications.dart';
 
+// Authentication
+import 'authentication/signIn.dart';
+
 // Scholar Pages
 import 'pages/scholarPages/registerScholar.dart';
 import 'pages/scholarPages/viewScholars.dart';
 import 'pages/scholarPages/ScholarProfile.dart';
-import 'pages/scholarPages/uploadDocuments.dart';
 import 'pages/attendancePages/scholarAttendance.dart';
 
 // School Pages
@@ -25,11 +27,9 @@ import 'pages/schoolPages/schoolProfile.dart';
 import 'pages/sponsorPages/registerSponsor.dart';
 import 'pages/sponsorPages/viewSponsors.dart';
 import 'pages/sponsorPages/editSponsor.dart';
-import 'pages/sponsorPages/sponsorshipHistory.dart';
 import 'pages/sponsorPages/deleteSponsor.dart';
 
 // Academic Pages
-import 'pages/academicPages/addSubjects.dart';
 import 'pages/academicPages/enterResults.dart';
 import 'pages/academicPages/viewResults.dart';
 import 'pages/academicPages/reportCards.dart';
@@ -67,6 +67,8 @@ import 'pages/settingsPages/backupRestore.dart';
 import 'pages/settingsPages/systemSettings.dart';
 import 'pages/settingsPages/accountSettings.dart';
 
+import 'settings/themeController.dart';
+
 void main() {
   runApp(const MyApp());
 }
@@ -76,84 +78,95 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'AGE Africa Scholar Management System',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.green,
-        ),
-      ),
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const HomePage(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeController,
+      builder: (context, mode, _) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'AGE Africa Scholar Management System',
+          themeMode: mode,
+          theme: ThemeData(
+            useMaterial3: true,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.green,
+              brightness: Brightness.light,
+            ),
+          ),
+          darkTheme: ThemeData(
+            useMaterial3: true,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.green,
+              brightness: Brightness.dark,
+            ),
+          ),
+          initialRoute: '/login',
+          routes: {
+            '/': (context) => const HomePage(),
+            '/login': (context) => const SignInPage(),
+            '/home': (context) => const HomePage(),
 
-        // Dashboard
-        '/dashboard': (context) => const DashboardPage(),
-        '/dashboard/statistics': (context) => const StatisticsPage(),
-        '/dashboard/recentActivities': (context) => const RecentActivitiesPage(),
-        '/dashboard/notifications': (context) => const NotificationsPage(),
+            // Dashboard
+            '/dashboard': (context) => const DashboardPage(),
+            '/dashboard/statistics': (context) => const StatisticsPage(),
+            '/dashboard/recentActivities': (context) => const RecentActivitiesPage(),
+            '/dashboard/notifications': (context) => const NotificationsPage(),
 
-        // Scholars
-        '/registerScholar': (context) => const RegisterScholarPage(),
-        '/viewScholars': (context) => const ViewScholarsPage(),
-        '/scholarProfile': (context) => const ScholarProfilePage(),
-        '/uploadDocuments': (context) => const UploadDocumentsPage(),
-        '/scholarAttendance': (context) => const ScholarAttendancePage(),
+            // Scholars
+            '/registerScholar': (context) => const RegisterScholarPage(),
+            '/viewScholars': (context) => const ViewScholarsPage(),
+            '/scholarProfile': (context) => const ScholarProfilePage(),
+            '/scholarAttendance': (context) => const ScholarAttendancePage(),
 
+            // Schools
+            '/schools/register': (context) => const RegisterSchoolPage(),
+            '/schools/view': (context) => const ViewSchoolsPage(),
+            '/schools/profile': (context) => const SchoolProfilePage(),
 
-        // Schools
-        '/schools/register': (context) => const RegisterSchoolPage(),
-        '/schools/view': (context) => const ViewSchoolsPage(),
-        '/schools/profile': (context) => const SchoolProfilePage(),
+            // Sponsors
+            '/sponsors/register': (context) => const RegisterSponsorPage(),
+            '/sponsors/view': (context) => const ViewSponsorsPage(),
+            '/sponsors/edit': (context) => const EditSponsorPage(),
+            '/sponsors/delete': (context) => const DeleteSponsorPage(),
 
+            // Academics
+            '/academics/enterResults': (context) => const EnterResultsPage(),
+            '/academics/viewResults': (context) => const ViewResultsPage(),
+            '/academics/reportCards': (context) => const ReportCardsPage(),
+            '/academics/performanceAnalysis': (context) => const PerformanceAnalysisPage(),
 
-        // Sponsors
-        '/sponsors/register': (context) => const RegisterSponsorPage(),
-        '/sponsors/view': (context) => const ViewSponsorsPage(),
-        '/sponsors/edit': (context) => const EditSponsorPage(),
-        '/sponsors/history': (context) => const SponsorshipHistoryPage(),
-        '/sponsors/delete': (context) => const DeleteSponsorPage(),
+            // Attendance
+            '/attendance/attendanceHistory': (context) => const AttendanceHistoryPage(),
+            '/attendance/attendanceReports': (context) => const AttendanceModuleReportsPage(),
 
-        // Academics
-        '/academics/addSubjects': (context) => const AddSubjectsPage(),
-        '/academics/enterResults': (context) => const EnterResultsPage(),
-        '/academics/viewResults': (context) => const ViewResultsPage(),
-        '/academics/reportCards': (context) => const ReportCardsPage(),
-        '/academics/performanceAnalysis': (context) => const PerformanceAnalysisPage(),
+            // Finance
+            '/finance/scholarshipPayments': (context) => const ScholarshipPaymentsPage(),
+            '/finance/paymentHistory': (context) => const PaymentHistoryPage(),
+            '/finance/expenses': (context) => const ExpensesPage(),
+            '/finance/budget': (context) => const BudgetPage(),
+            '/finance/financialReports': (context) => const FinancialReportsPage(),
 
-        // Attendance
-        '/attendance/attendanceHistory': (context) => const AttendanceHistoryPage(),
-        '/attendance/attendanceReports': (context) => const AttendanceModuleReportsPage(),
+            // Reports
+            '/reports/scholar': (context) => const ScholarReportsPage(),
+            '/reports/school': (context) => const SchoolReportsPage(),
+            '/reports/sponsor': (context) => const SponsorReportsPage(),
+            '/reports/finance': (context) => const FinanceReportsPage(),
+            '/reports/exportPDF': (context) => const ExportPDFPage(),
+            '/reports/exportExcel': (context) => const ExportExcelPage(),
 
-        // Finance
-        '/finance/scholarshipPayments': (context) => const ScholarshipPaymentsPage(),
-        '/finance/paymentHistory': (context) => const PaymentHistoryPage(),
-        '/finance/expenses': (context) => const ExpensesPage(),
-        '/finance/budget': (context) => const BudgetPage(),
-        '/finance/financialReports': (context) => const FinancialReportsPage(),
+            // Users
+            '/users/create': (context) => const CreateUserPage(),
+            '/users/manage': (context) => const ManageUsersPage(),
+            '/users/roles': (context) => const UserRolesPage(),
+            '/users/permissions': (context) => const PermissionsPage(),
+            '/users/profile': (context) => const UserProfilePage(),
 
-        // Reports
-        '/reports/scholar': (context) => const ScholarReportsPage(),
-        '/reports/school': (context) => const SchoolReportsPage(),
-        '/reports/sponsor': (context) => const SponsorReportsPage(),
-        '/reports/finance': (context) => const FinanceReportsPage(),
-        '/reports/exportPDF': (context) => const ExportPDFPage(),
-        '/reports/exportExcel': (context) => const ExportExcelPage(),
-
-        // Users
-        '/users/create': (context) => const CreateUserPage(),
-        '/users/manage': (context) => const ManageUsersPage(),
-        '/users/roles': (context) => const UserRolesPage(),
-        '/users/permissions': (context) => const PermissionsPage(),
-        '/users/profile': (context) => const UserProfilePage(),
-
-        // Settings
-        '/settings/organisationProfile': (context) => const OrganisationProfilePage(),
-        '/settings/backupRestore': (context) => const BackupRestorePage(),
-        '/settings/systemSettings': (context) => const SystemSettingsPage(),
-        '/settings/accountSettings': (context) => const AccountSettingsPage(),
+            // Settings
+            '/settings/organisationProfile': (context) => const OrganisationProfilePage(),
+            '/settings/backupRestore': (context) => const BackupRestorePage(),
+            '/settings/systemSettings': (context) => const SystemSettingsPage(),
+            '/settings/accountSettings': (context) => const AccountSettingsPage(),
+          },
+        );
       },
     );
   }
