@@ -35,35 +35,43 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-          // ---------------- Gradient Header ----------------
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(24, 20, 20, 20),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [kBrandBrown, kBrandOlive]),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
-                  child: const Icon(Icons.history_rounded, color: Colors.white, size: 28),
-                ),
-                const SizedBox(width: 14),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Attendance History', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
-                      SizedBox(height: 3),
-                      Text('Review past CHATs and Study Circle attendance logs.',
-                          style: TextStyle(fontSize: 12, color: Colors.white70)),
-                    ],
+            // ---------------- Header (Banner Removed) ----------------
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 8),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: kBrandBrown.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.history_rounded,
+                        color: kBrandBrown, size: 32),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Attendance History',
+                            style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: kBrandBrown)),
+                        SizedBox(height: 4),
+                        Text('Review past CHATs and Study Circle attendance logs.',
+                            style: TextStyle(fontSize: 14, color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
 
           Padding(
             padding: const EdgeInsets.all(24.0),
@@ -74,7 +82,7 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<AttendanceType>(
-                        value: _filterType,
+                        initialValue: _filterType,
                         decoration: _inputDeco("Session Type", Icons.forum_rounded),
                         items: [
                           const DropdownMenuItem(value: null, child: Text("All Sessions")),
@@ -98,7 +106,7 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: _mockHistory.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  separatorBuilder: (_, index) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final item = _mockHistory[index];
                     final type = item['type'] as AttendanceType;

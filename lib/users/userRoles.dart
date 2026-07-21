@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 
 /// ---------------------------------------------------------------------
 /// MODEL
@@ -53,71 +54,69 @@ class UserRolesComponent extends StatefulWidget {
 }
 
 class _UserRolesComponentState extends State<UserRolesComponent> {
-  // ---------------------------------------------------------------------
-  // MOCK DATA
-  // ---------------------------------------------------------------------
-  final List<UserRole> _roles = [
-    UserRole(
-      id: '1',
-      name: 'Administrator',
-      description: 'Full system access, including user and role management.',
-      icon: Icons.shield_rounded,
-      color: Colors.purple.shade600,
-      userCount: 3,
-      isSystemRole: true,
-      createdDate: DateTime(2024, 1, 10),
-    ),
-    UserRole(
-      id: '2',
-      name: 'Program Manager',
-      description: 'Oversees scholars, schools, sponsors, and academic records.',
-      icon: Icons.supervisor_account_rounded,
-      color: Colors.blue.shade600,
-      userCount: 12,
-      isSystemRole: true,
-      createdDate: DateTime(2024, 1, 10),
-    ),
-    UserRole(
-      id: '3',
-      name: 'Data Officer',
-      description: 'Manages scholar data entry, attendance, and reporting.',
-      icon: Icons.storage_rounded,
-      color: Colors.teal.shade600,
-      userCount: 8,
-      isSystemRole: true,
-      createdDate: DateTime(2024, 1, 10),
-    ),
-    UserRole(
-      id: '4',
-      name: 'Finance Officer',
-      description: 'Handles budgets, disbursements, and financial reporting.',
-      icon: Icons.attach_money_rounded,
-      color: Colors.orange.shade700,
-      userCount: 4,
-      isSystemRole: true,
-      createdDate: DateTime(2024, 1, 10),
-    ),
-    UserRole(
-      id: '5',
-      name: 'Field Coordinator',
-      description: 'Manages on-the-ground scholar visits and attendance.',
-      icon: Icons.map_rounded,
-      color: Colors.indigo.shade600,
-      userCount: 15,
-      isSystemRole: false,
-      createdDate: DateTime(2024, 6, 2),
-    ),
-    UserRole(
-      id: '6',
-      name: 'Volunteer',
-      description: 'Limited, read-only access to scholar and program info.',
-      icon: Icons.volunteer_activism_rounded,
-      color: Colors.blueGrey.shade600,
-      userCount: 22,
-      isSystemRole: false,
-      createdDate: DateTime(2024, 8, 14),
-    ),
-  ];
+  List<UserRole> _roles = [];
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchRoles();
+  }
+
+  Future<void> _fetchRoles() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await ApiService.getAllRoles();
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data['data'] ?? [];
+        if (mounted) {
+          setState(() {
+            _roles = data.map((r) => UserRole(
+              id: r['id'].toString(),
+              name: r['name'] ?? '',
+              description: r['description'] ?? '',
+              icon: _getIconData(r['icon']),
+              color: _getColor(r['color']),
+              userCount: 0, // In a real app, backend would return this count
+              isSystemRole: r['is_system_role'] ?? false,
+              createdDate: DateTime.tryParse(r['created_at'] ?? '') ?? DateTime.now(),
+            )).toList();
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching roles: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  IconData _getIconData(String? iconName) {
+    // Basic mapping from icon name string to IconData
+    switch (iconName) {
+      case 'shield_rounded': return Icons.shield_rounded;
+      case 'supervisor_account_rounded': return Icons.supervisor_account_rounded;
+      case 'storage_rounded': return Icons.storage_rounded;
+      case 'attach_money_rounded': return Icons.attach_money_rounded;
+      case 'map_rounded': return Icons.map_rounded;
+      case 'volunteer_activism_rounded': return Icons.volunteer_activism_rounded;
+      case 'badge_rounded': return Icons.badge_rounded;
+      case 'work_rounded': return Icons.work_rounded;
+      case 'security_rounded': return Icons.security_rounded;
+      case 'admin_panel_settings_rounded': return Icons.admin_panel_settings_rounded;
+      case 'groups_rounded': return Icons.groups_rounded;
+      default: return Icons.person_rounded;
+    }
+  }
+
+  Color _getColor(String? colorHex) {
+    if (colorHex == null || colorHex.isEmpty) return Colors.blue;
+    try {
+      return Color(int.parse(colorHex.replaceFirst('#', '0xFF')));
+    } catch (e) {
+      return Colors.blue;
+    }
+  }
 
   String _searchQuery = '';
 
@@ -391,38 +390,64 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
     );
 
     if (result != null) {
-      setState(() {
-        if (role == null) {
-          _roles.add(UserRole(
-            id: DateTime.now().millisecondsSinceEpoch.toString(),
-            name: result.name,
-            description: result.description,
-            icon: result.icon,
-            color: result.color,
-            userCount: 0,
-            isSystemRole: false,
-            createdDate: DateTime.now(),
-          ));
-        } else {
-          role.name = result.name;
-          role.description = result.description;
-          role.icon = result.icon;
-          role.color = result.color;
-        }
-      });
+      final roleData = {
+        'name': result.name,
+        'description': result.description,
+        'icon': _getIconString(result.icon),
+        'color': '#${result.color.toARGB32().toRadixString(16).substring(2)}',
+      };
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(role == null
-              ? "Role '${result.name}' created."
-              : "Role '${result.name}' updated."),
-          backgroundColor: Colors.green.shade700,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
+      try {
+        if (role == null) {
+          final response = await ApiService.createRole(roleData);
+          if (response.statusCode == 201) {
+            _fetchRoles();
+          }
+        } else {
+          final response = await ApiService.updateRole(role.id, roleData);
+          if (response.statusCode == 200) {
+            _fetchRoles();
+          }
+        }
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(role == null
+                ? "Role '${result.name}' created."
+                : "Role '${result.name}' updated."),
+            backgroundColor: Colors.green.shade700,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text("Error saving role. Please try again."),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
     }
+  }
+
+  String _getIconString(IconData icon) {
+    if (icon == Icons.shield_rounded) return 'shield_rounded';
+    if (icon == Icons.supervisor_account_rounded) return 'supervisor_account_rounded';
+    if (icon == Icons.storage_rounded) return 'storage_rounded';
+    if (icon == Icons.attach_money_rounded) return 'attach_money_rounded';
+    if (icon == Icons.map_rounded) return 'map_rounded';
+    if (icon == Icons.volunteer_activism_rounded) return 'volunteer_activism_rounded';
+    if (icon == Icons.badge_rounded) return 'badge_rounded';
+    if (icon == Icons.work_rounded) return 'work_rounded';
+    if (icon == Icons.security_rounded) return 'security_rounded';
+    if (icon == Icons.admin_panel_settings_rounded) return 'admin_panel_settings_rounded';
+    if (icon == Icons.groups_rounded) return 'groups_rounded';
+    return 'person_rounded';
   }
 
   Future<void> _confirmDelete(UserRole role) async {
@@ -525,16 +550,31 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
     );
 
     if (confirmed == true) {
-      setState(() => _roles.removeWhere((r) => r.id == role.id));
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Role '${role.name}' was deleted."),
-          backgroundColor: Colors.red.shade600,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
+      try {
+        final response = await ApiService.deleteRole(role.id);
+        if (response.statusCode == 200) {
+          _fetchRoles();
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Role '${role.name}' was deleted."),
+              backgroundColor: Colors.red.shade600,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        }
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text("Error deleting role. Please try again."),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
     }
   }
 
@@ -553,10 +593,7 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildHeader(),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 4),
-            child: _buildStatsRow(),
-          ),
+          // ---------------- Stats (Banners Removed) ----------------
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 18, 24, 8),
             child: TextField(
@@ -582,61 +619,53 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
             ),
           ),
           Expanded(
-            child: filtered.isEmpty
-                ? _buildEmptyState()
-                : LayoutBuilder(
-              builder: (context, constraints) {
-                int columns = 3;
-                if (constraints.maxWidth < 620) {
-                  columns = 1;
-                } else if (constraints.maxWidth < 980) {
-                  columns = 2;
-                }
-                return GridView.builder(
-                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: columns,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 1.55,
-                  ),
-                  itemCount: filtered.length,
-                  itemBuilder: (context, index) =>
-                      _buildRoleCard(filtered[index]),
-                );
-              },
-            ),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : filtered.isEmpty
+                    ? _buildEmptyState()
+                    : LayoutBuilder(
+                        builder: (context, constraints) {
+                          int columns = 3;
+                          if (constraints.maxWidth < 620) {
+                            columns = 1;
+                          } else if (constraints.maxWidth < 980) {
+                            columns = 2;
+                          }
+                          return GridView.builder(
+                            padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: columns,
+                              crossAxisSpacing: 16,
+                              mainAxisSpacing: 16,
+                              childAspectRatio: 1.55,
+                            ),
+                            itemCount: filtered.length,
+                            itemBuilder: (context, index) =>
+                                _buildRoleCard(filtered[index]),
+                          );
+                        },
+                      ),
           ),
         ],
       ),
     );
   }
 
-  // ---------------------------------------------------------------------
-  // HEADER
-  // ---------------------------------------------------------------------
+  // ---------------- CLEAN HEADER (Banner Removed) ----------------
   Widget _buildHeader() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(24, 18, 20, 18),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Colors.green.shade800, Colors.green.shade600],
-        ),
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 32, 24, 8),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.16),
+              color: Colors.green.shade50,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.badge_rounded, color: Colors.white, size: 22),
+            child: const Icon(Icons.badge_rounded, color: Colors.green, size: 32),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 16),
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -644,12 +673,12 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
                 Text(
                   "User Roles",
                   style: TextStyle(
-                      color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                      color: Color(0xFF4C3C32), fontSize: 24, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 2),
+                SizedBox(height: 4),
                 Text(
-                  "Define and manage the roles available across CHATS",
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                  "Define and manage the roles available across CHATS.",
+                  style: TextStyle(color: Colors.grey, fontSize: 14),
                 ),
               ],
             ),
@@ -659,81 +688,12 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
             icon: const Icon(Icons.add_rounded, size: 18),
             label: const Text("New Role"),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.green.shade800,
+              backgroundColor: const Color(0xFF4C3C32),
+              foregroundColor: Colors.white,
               elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ---------------------------------------------------------------------
-  // STATS ROW
-  // ---------------------------------------------------------------------
-  Widget _buildStatsRow() {
-    return Row(
-      children: [
-        Expanded(
-          child: _statCard("Total Roles", _roles.length.toString(),
-              Icons.badge_outlined, Colors.blue.shade600),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _statCard("Assigned Users", _totalUsers.toString(),
-              Icons.groups_rounded, Colors.green.shade600),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _statCard("System Roles", _systemRoleCount.toString(),
-              Icons.verified_user_rounded, Colors.purple.shade600),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _statCard("Custom Roles", _customRoleCount.toString(),
-              Icons.tune_rounded, Colors.orange.shade700),
-        ),
-      ],
-    );
-  }
-
-  Widget _statCard(String label, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withValues(alpha: 0.15)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(9),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: color, size: 18),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(value,
-                    style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade900)),
-                Text(label,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600)),
-              ],
+              textStyle: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
         ],

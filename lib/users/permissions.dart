@@ -296,69 +296,60 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
     );
   }
 
-  // ---------------------------------------------------------------------
-  // HEADER
-  // ---------------------------------------------------------------------
+  // ---------------- CLEAN HEADER ----------------
   Widget _buildHeader() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(24, 18, 20, 18),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Colors.green.shade800, Colors.green.shade600],
-        ),
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.16),
+              color: Colors.green.shade50,
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(Icons.admin_panel_settings_rounded,
-                color: Colors.white, size: 22),
+                color: Colors.green, size: 32),
           ),
-          const SizedBox(width: 14),
-          const Expanded(
+          const SizedBox(width: 16),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   "User Permissions",
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
+                    color: Color(0xFF4C3C32),
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(height: 2),
-                Text(
-                  "Configure module-level access for each role",
-                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                const SizedBox(height: 4),
+                const Text(
+                  "Configure module-level access for each role.",
+                  style: TextStyle(color: Colors.grey, fontSize: 14),
                 ),
               ],
             ),
           ),
           if (_hasUnsavedChanges)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.amber.shade100,
+                color: Colors.amber.shade50,
                 borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.amber.shade200),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.circle, size: 7, color: Colors.amber.shade800),
-                  const SizedBox(width: 6),
+                  Icon(Icons.warning_amber_rounded, size: 14, color: Colors.amber.shade800),
+                  const SizedBox(width: 8),
                   Text(
                     "Unsaved changes",
                     style: TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
                       color: Colors.amber.shade900,
                     ),
                   ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 
 class CreateUserComponent extends StatefulWidget {
   const CreateUserComponent({super.key});
@@ -29,18 +30,23 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
   bool _isSubmitting = false;
 
   final List<String> _roles = [
-    'Administrator',
-    'Program Manager',
-    'Data Officer',
+    'Executive Director',
+    'Country Director',
+    'System Administrator',
+    'Program Coordinator',
+    'M&E Coordinator',
+    'M&E Officer',
     'Finance Officer',
-    'Field Coordinator',
-    'Volunteer',
+    'HR and Administration Officer',
+    'Field Officers',
+    'Intern',
   ];
 
   final List<String> _departments = [
     'Programs',
     'Finance & Administration',
     'Human Resources',
+    'Procurement',
     'Information Technology',
     'Field Operations',
     'Monitoring & Evaluation',
@@ -129,34 +135,59 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
     if (_formKey.currentState!.validate()) {
       setState(() => _isSubmitting = true);
 
-      // Simulate a brief save operation for a professional feel.
-      await Future.delayed(const Duration(milliseconds: 600));
+      final userData = {
+        'fullName': _fullNameController.text.trim(),
+        'username': _usernameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'password': _passwordController.text.trim(),
+        'roleName': _selectedRole,
+        'department': _selectedDepartment,
+        'isActive': _isActive,
+        'notes': _notesController.text.trim(),
+      };
 
-      if (!mounted) return;
-      setState(() => _isSubmitting = false);
+      try {
+        final response = await ApiService.createUser(userData);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            "User '${_fullNameController.text.trim()}' created successfully!",
+        if (response.statusCode == 201) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                "User '${_fullNameController.text.trim()}' created successfully! Notification email sent.",
+              ),
+              backgroundColor: Colors.green.shade700,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              duration: const Duration(seconds: 4),
+            ),
+          );
+          _resetForm();
+        } else {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response.data['message'] ?? "Failed to create user."),
+              backgroundColor: Colors.redAccent,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        }
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text("Connection error. Please try again."),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
-          backgroundColor: Colors.green.shade700,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          duration: const Duration(seconds: 4),
-        ),
-      );
-
-      _resetForm();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text("Please correct the errors in the form."),
-          backgroundColor: Colors.redAccent,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
+        );
+      } finally {
+        if (mounted) setState(() => _isSubmitting = false);
+      }
     }
   }
 
@@ -235,26 +266,18 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // ---------------- Header banner (compact) ----------------
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(20, 14, 18, 14),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Colors.green.shade800, Colors.green.shade600],
-              ),
-            ),
+          // ---------------- Clean Header ----------------
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
             child: Row(
               children: [
                 Container(
-                  width: 40,
-                  height: 40,
+                  width: 50,
+                  height: 50,
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.18),
+                    color: Colors.green.shade50,
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 1.5),
+                    border: Border.all(color: Colors.green.shade100, width: 1.5),
                   ),
                   alignment: Alignment.center,
                   child: AnimatedBuilder(
@@ -263,45 +286,54 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
                       final initials = _initialsOf(_fullNameController.text);
                       return Text(
                         initials.isEmpty ? '?' : initials,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
+                        style: TextStyle(
+                          color: Colors.green.shade800,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       );
                     },
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 16),
                 const Expanded(
-                  child: Text(
-                    "Create New User",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Create New User",
+                        style: TextStyle(
+                          color: Color(0xFF4C3C32),
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        "Provision a new system account with role-based access.",
+                        style: TextStyle(fontSize: 13, color: Colors.grey),
+                      ),
+                    ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.16),
+                    color: Colors.green.shade50,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.person_add_alt_1_rounded,
-                          size: 12, color: Colors.white.withValues(alpha: 0.9)),
-                      const SizedBox(width: 5),
-                      const Text(
+                          size: 14, color: Colors.green.shade700),
+                      const SizedBox(width: 6),
+                      Text(
                         "New Account",
                         style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w600,
+                          color: Colors.green.shade800,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ],
@@ -310,6 +342,7 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
               ],
             ),
           ),
+          const Divider(indent: 20, endIndent: 20, height: 32),
 
           // ---------------- Form body (scrollable, fills remaining space) ----------------
           Expanded(
@@ -469,7 +502,7 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
                           ),
                         ),
                         value: _isActive,
-                        activeColor: Colors.green.shade700,
+                        activeThumbColor: Colors.green.shade700,
                         onChanged: (val) => setState(() => _isActive = val),
                         secondary: Icon(
                           _isActive ? Icons.check_circle_outline : Icons.pause_circle_outline,

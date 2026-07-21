@@ -20,25 +20,21 @@ class AcademicsManagementComponent extends StatefulWidget {
 }
 
 class _AcademicsManagementComponentState extends State<AcademicsManagementComponent> {
-  int _tabIndex = 0; // 0 = Enter Results, 1 = Add Subjects
-
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildHeader(),
+        _buildHeader(context),
         const SizedBox(height: 16),
-        _buildTabToggle(),
-        const SizedBox(height: 20),
-        Expanded(
-          child: _tabIndex == 0 ? const _EnterResultsSection() : const _AddSubjectsSection(),
+        const Expanded(
+          child: _EnterResultsSection(),
         ),
       ],
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -68,22 +64,25 @@ class _AcademicsManagementComponentState extends State<AcademicsManagementCompon
               ],
             ),
           ),
+          OutlinedButton.icon(
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) => const _SubjectRegistrySheet(),
+              );
+            },
+            icon: const Icon(Icons.library_books_rounded, size: 18),
+            label: const Text("Subject Registry"),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: kBrandBrown,
+              side: BorderSide(color: kBrandBrown.withValues(alpha: 0.3)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildTabToggle() {
-    return SegmentedButton<int>(
-      segments: const [
-        ButtonSegment(value: 0, label: Text('Enter Results'), icon: Icon(Icons.post_add_rounded)),
-        ButtonSegment(value: 1, label: Text('Add Subjects'), icon: Icon(Icons.library_books_rounded)),
-      ],
-      selected: {_tabIndex},
-      onSelectionChanged: (selection) => setState(() => _tabIndex = selection.first),
-      style: SegmentedButton.styleFrom(
-        selectedBackgroundColor: kBrandOlive,
-        selectedForegroundColor: Colors.white,
       ),
     );
   }
@@ -107,7 +106,6 @@ class _EnterResultsSectionState extends State<_EnterResultsSection> {
   
   // Filters for "By Subject" mode
   final TextEditingController _subjectSearchController = TextEditingController();
-  Subject? _matchedSubject;
   
   // Filters for "By Scholar" mode
   Student? _selectedStudent;
@@ -151,7 +149,6 @@ class _EnterResultsSectionState extends State<_EnterResultsSection> {
     setState(() {
       _schoolType = type;
       _selectedSchool = null;
-      _matchedSubject = null;
       _subjectSearchController.clear();
       _selectedStudent = null;
       _selectedPeriod = null;
@@ -235,7 +232,7 @@ class _EnterResultsSectionState extends State<_EnterResultsSection> {
     // Auto-register new subject
     final newSub = Subject(
       name: name,
-      code: name.length >= 4 ? name.substring(0, 4).toUpperCase() + '101' : '${name.toUpperCase()}101',
+      code: name.length >= 4 ? '${name.substring(0, 4).toUpperCase()}101' : '${name.toUpperCase()}101',
       details: 'Auto-registered during results entry.',
       notes: '',
       level: level,
@@ -437,37 +434,65 @@ class _EnterResultsSectionState extends State<_EnterResultsSection> {
               ),
               if (_mode == EntryMode.bySubject)
                 SizedBox(
-                  width: 260,
-                  child: Autocomplete<Subject>(
-                    initialValue: TextEditingValue(text: _subjectSearchController.text),
-                    optionsBuilder: (textValue) {
-                      final options = _subjectOptions;
-                      if (textValue.text.isEmpty) return options;
-                      return options.where((s) => s.name.toLowerCase().contains(textValue.text.toLowerCase()));
-                    },
-                    displayStringForOption: (s) => s.name,
-                    onSelected: (s) => setState(() {
-                      _matchedSubject = s;
-                      _subjectSearchController.text = s.name;
-                      _loadSubjectEntryData();
-                    }),
-                    fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                      if (controller.text != _subjectSearchController.text) {
-                        // Ensure sync
-                      }
-                      return TextFormField(
-                        controller: controller,
-                        focusNode: focusNode,
-                        onFieldSubmitted: (v) => onFieldSubmitted(),
-                        decoration: _inputDeco(_schoolType == SchoolType.university ? "Course Name" : "Subject Name", Icons.book_outlined).copyWith(
-                          helperText: "Type to select or add new",
+                  width: 320,
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Autocomplete<Subject>(
+                          initialValue: TextEditingValue(text: _subjectSearchController.text),
+                          optionsBuilder: (textValue) {
+                            final options = _subjectOptions;
+                            if (textValue.text.isEmpty) return options;
+                            return options.where((s) => s.name.toLowerCase().contains(textValue.text.toLowerCase()));
+                          },
+                          displayStringForOption: (s) => s.name,
+                          onSelected: (s) => setState(() {
+                            _subjectSearchController.text = s.name;
+                            _loadSubjectEntryData();
+                          }),
+                          fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                            if (controller.text != _subjectSearchController.text && _subjectSearchController.text.isNotEmpty && controller.text.isEmpty) {
+                              controller.text = _subjectSearchController.text;
+                            }
+                            return TextFormField(
+                              controller: controller,
+                              focusNode: focusNode,
+                              onFieldSubmitted: (v) => onFieldSubmitted(),
+                              decoration: _inputDeco(_schoolType == SchoolType.university ? "Course Name" : "Subject Name", Icons.book_outlined).copyWith(
+                                helperText: "Type to select or add new",
+                              ),
+                              onChanged: (v) {
+                                _subjectSearchController.text = v;
+                                _loadSubjectEntryData();
+                              },
+                            );
+                          },
                         ),
-                        onChanged: (v) {
-                          _subjectSearchController.text = v;
-                           _loadSubjectEntryData();
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton.filled(
+                        onPressed: () {
+                          _showQuickAddSubjectDialog(
+                            context,
+                            initialName: _subjectSearchController.text,
+                            level: _schoolType == SchoolType.secondary ? SubjectLevel.secondary : SubjectLevel.university,
+                            onSaved: (newSub) {
+                              setState(() {
+                                _subjectSearchController.text = newSub.name;
+                                _loadSubjectEntryData();
+                              });
+                            },
+                          );
                         },
-                      );
-                    },
+                        icon: const Icon(Icons.add_rounded),
+                        tooltip: "Quick Register Subject",
+                        style: IconButton.styleFrom(
+                          backgroundColor: kBrandOlive,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ],
                   ),
                 )
               else
@@ -659,36 +684,64 @@ class _ScholarEntryRow extends StatelessWidget {
         children: [
           Expanded(
             flex: 3,
-            child: Autocomplete<Subject>(
-              optionsBuilder: (textValue) {
-                if (textValue.text.isEmpty) return subjects;
-                return subjects.where((s) => s.name.toLowerCase().contains(textValue.text.toLowerCase()));
-              },
-              displayStringForOption: (s) => s.name,
-              onSelected: (s) {
-                entry.subjectController.text = s.name;
-                onChanged();
-              },
-              fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                if (controller.text != entry.subjectController.text && entry.subjectController.text.isNotEmpty && controller.text.isEmpty) {
-                   controller.text = entry.subjectController.text;
-                }
-                return TextFormField(
-                  controller: controller,
-                  focusNode: focusNode,
-                  onFieldSubmitted: (v) => onFieldSubmitted(),
-                  decoration: InputDecoration(
-                    labelText: isUniversity ? "Course" : "Subject",
-                    border: const OutlineInputBorder(),
-                    helperText: "Type to select or add new",
-                    isDense: true,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Autocomplete<Subject>(
+                    optionsBuilder: (textValue) {
+                      if (textValue.text.isEmpty) return subjects;
+                      return subjects.where((s) => s.name.toLowerCase().contains(textValue.text.toLowerCase()));
+                    },
+                    displayStringForOption: (s) => s.name,
+                    onSelected: (s) {
+                      entry.subjectController.text = s.name;
+                      onChanged();
+                    },
+                    fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                      if (controller.text != entry.subjectController.text) {
+                        controller.text = entry.subjectController.text;
+                      }
+                      return TextFormField(
+                        controller: controller,
+                        focusNode: focusNode,
+                        onFieldSubmitted: (v) => onFieldSubmitted(),
+                        decoration: InputDecoration(
+                          labelText: isUniversity ? "Course" : "Subject",
+                          border: const OutlineInputBorder(),
+                          helperText: "Type to select or add new",
+                          isDense: true,
+                        ),
+                        onChanged: (v) {
+                          entry.subjectController.text = v;
+                          onChanged();
+                        },
+                      );
+                    },
                   ),
-                  onChanged: (v) {
-                    entry.subjectController.text = v;
-                    onChanged();
+                ),
+                const SizedBox(width: 8),
+                IconButton.filled(
+                  onPressed: () {
+                    _showQuickAddSubjectDialog(
+                      context,
+                      initialName: entry.subjectController.text,
+                      level: isUniversity ? SubjectLevel.university : SubjectLevel.secondary,
+                      onSaved: (newSub) {
+                        entry.subjectController.text = newSub.name;
+                        onChanged();
+                      },
+                    );
                   },
-                );
-              },
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  tooltip: "Quick Register Subject",
+                  style: IconButton.styleFrom(
+                    backgroundColor: kBrandOlive,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 12),
@@ -730,23 +783,329 @@ class _ScholarEntryRow extends StatelessWidget {
 }
 
 // ============================================================
-// SECTION 2: ADD SUBJECTS ( Registry Management )
+// WIDGET: SUBJECT REGISTRY BOTTOM SHEET
 // ============================================================
 
-class _AddSubjectsSection extends StatefulWidget {
-  const _AddSubjectsSection();
+class _SubjectRegistrySheet extends StatefulWidget {
+  const _SubjectRegistrySheet();
 
   @override
-  State<_AddSubjectsSection> createState() => _AddSubjectsSectionState();
+  State<_SubjectRegistrySheet> createState() => _SubjectRegistrySheetState();
 }
 
-class _AddSubjectsSectionState extends State<_AddSubjectsSection> {
+class _SubjectRegistrySheetState extends State<_SubjectRegistrySheet> {
+  String _searchQuery = "";
+  SubjectLevel? _levelFilter;
+
+  @override
+  Widget build(BuildContext context) {
+    final filteredSubjects = kSubjects.where((s) {
+      final matchesSearch = s.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          s.code.toLowerCase().contains(_searchQuery.toLowerCase());
+      final matchesLevel = _levelFilter == null || s.level == _levelFilter;
+      return matchesSearch && matchesLevel;
+    }).toList();
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.75,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 12),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Subject Registry",
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kBrandBrown),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          "${kSubjects.length} subjects registered total",
+                          style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        decoration: InputDecoration(
+                          hintText: "Search by name or code...",
+                          prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                          isDense: true,
+                          filled: true,
+                          fillColor: Colors.grey.shade50,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade200),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade200),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: kBrandOlive, width: 2),
+                          ),
+                        ),
+                        onChanged: (val) => setState(() => _searchQuery = val),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    DropdownButton<SubjectLevel?>(
+                      value: _levelFilter,
+                      hint: const Text("All Levels", style: TextStyle(fontSize: 14)),
+                      dropdownColor: Colors.white,
+                      underline: const SizedBox(),
+                      icon: const Icon(Icons.filter_list_rounded, color: kBrandOlive),
+                      items: [
+                        const DropdownMenuItem(value: null, child: Text("All Levels")),
+                        ...SubjectLevel.values.map((l) => DropdownMenuItem(
+                              value: l,
+                              child: Text(l.label),
+                            )),
+                      ],
+                      onChanged: (val) => setState(() => _levelFilter = val),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 24),
+
+              Expanded(
+                child: filteredSubjects.isEmpty
+                    ? Center(
+                        child: Text(
+                          "No subjects match your search.",
+                          style: TextStyle(color: Colors.grey.shade500, fontStyle: FontStyle.italic),
+                        ),
+                      )
+                    : ListView.separated(
+                        controller: scrollController,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                        itemCount: filteredSubjects.length,
+                        separatorBuilder: (_, index) => const Divider(height: 16),
+                        itemBuilder: (context, idx) {
+                          final s = filteredSubjects[idx];
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: CircleAvatar(
+                              backgroundColor: s.level == SubjectLevel.secondary ? kBrandOlive : kBrandBrown,
+                              foregroundColor: Colors.white,
+                              child: Text(s.name.isNotEmpty ? s.name[0].toUpperCase() : '?'),
+                            ),
+                            title: Text(s.name, style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown)),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 2),
+                                Text("${s.code} • ${s.level.label}"),
+                                if (s.details.isNotEmpty) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    s.details,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.delete_outline_rounded, color: kBrandOrange),
+                              onPressed: () => _confirmDeleteSubject(context, s),
+                            ),
+                          );
+                        },
+                      ),
+              ),
+
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      _showQuickAddSubjectDialog(
+                        context,
+                        level: _levelFilter ?? SubjectLevel.secondary,
+                        onSaved: (newSub) {
+                          setState(() {});
+                        },
+                      );
+                    },
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text("Register New Subject / Course", style: TextStyle(fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kBrandOlive,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _confirmDeleteSubject(BuildContext context, Subject subject) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text("Delete Subject?", style: TextStyle(color: kBrandBrown, fontWeight: FontWeight.bold)),
+          content: Text("Are you sure you want to remove '${subject.name}' (${subject.code}) from the registry?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  kSubjects.remove(subject);
+                });
+                Navigator.pop(dialogContext);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("'${subject.name}' deleted successfully."),
+                    backgroundColor: kBrandOrange,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
+              child: const Text("Delete", style: TextStyle(color: kBrandOrange, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+// ============================================================
+// WIDGETS & HELPERS: QUICK REGISTER SUBJECT DIALOG
+// ============================================================
+
+void _showQuickAddSubjectDialog(
+  BuildContext context, {
+  String? initialName,
+  required SubjectLevel level,
+  required ValueChanged<Subject> onSaved,
+}) {
+  showDialog(
+    context: context,
+    barrierDismissible: true,
+    builder: (context) {
+      return _QuickAddSubjectDialog(
+        initialName: initialName,
+        initialLevel: level,
+        onSaved: onSaved,
+      );
+    },
+  );
+}
+
+class _QuickAddSubjectDialog extends StatefulWidget {
+  final String? initialName;
+  final SubjectLevel initialLevel;
+  final ValueChanged<Subject> onSaved;
+
+  const _QuickAddSubjectDialog({
+    this.initialName,
+    required this.initialLevel,
+    required this.onSaved,
+  });
+
+  @override
+  State<_QuickAddSubjectDialog> createState() => _QuickAddSubjectDialogState();
+}
+
+class _QuickAddSubjectDialogState extends State<_QuickAddSubjectDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _codeController = TextEditingController();
+  late final TextEditingController _nameController;
+  late final TextEditingController _codeController;
   final _detailsController = TextEditingController();
   final _notesController = TextEditingController();
-  SubjectLevel _level = SubjectLevel.secondary;
+  late SubjectLevel _level;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.initialName);
+    _codeController = TextEditingController();
+    _level = widget.initialLevel;
+
+    if (widget.initialName != null && widget.initialName!.isNotEmpty) {
+      _generateCode(widget.initialName!);
+    }
+
+    _nameController.addListener(() {
+      _generateCode(_nameController.text);
+    });
+  }
+
+  void _generateCode(String name) {
+    if (_codeController.text.isEmpty || _codeController.text == _autoCode(name)) {
+      _codeController.text = _autoCode(name);
+    }
+  }
+
+  String _autoCode(String name) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return "";
+    final words = trimmed.split(RegExp(r'\s+'));
+    String base = "";
+    if (words.length >= 2) {
+      base = (words[0].substring(0, 1) + words[1].substring(0, _min(3, words[1].length))).toUpperCase();
+    } else {
+      base = trimmed.substring(0, _min(4, trimmed.length)).toUpperCase();
+    }
+    while (base.length < 3) {
+      base += "X";
+    }
+    return "${base}101";
+  }
+
+  int _min(int a, int b) => a < b ? a : b;
 
   @override
   void dispose() {
@@ -757,9 +1116,9 @@ class _AddSubjectsSectionState extends State<_AddSubjectsSection> {
     super.dispose();
   }
 
-  void _saveSubject() {
+  void _save() {
     if (!_formKey.currentState!.validate()) return;
-    
+
     final sub = Subject(
       name: _nameController.text.trim(),
       code: _codeController.text.trim().toUpperCase(),
@@ -767,106 +1126,123 @@ class _AddSubjectsSectionState extends State<_AddSubjectsSection> {
       notes: _notesController.text.trim(),
       level: _level,
     );
-    
-    setState(() {
-      kSubjects.add(sub);
-      _nameController.clear();
-      _codeController.clear();
-      _detailsController.clear();
-      _notesController.clear();
-    });
-    
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Subject registered successfully.'), backgroundColor: kBrandOlive));
+
+    kSubjects.add(sub);
+    widget.onSaved(sub);
+    Navigator.pop(context);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("'${sub.name}' registered successfully in registry!"),
+        backgroundColor: kBrandOlive,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Left: Form
-        Expanded(
-          flex: 2,
-          child: SingleChildScrollView(
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade200)),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(_level == SubjectLevel.university ? "Register New Course" : "Register New Subject", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                    const SizedBox(height: 20),
-                    SegmentedButton<SubjectLevel>(
-                      segments: const [
-                        ButtonSegment(value: SubjectLevel.secondary, label: Text('Secondary'), icon: Icon(Icons.school)),
-                        ButtonSegment(value: SubjectLevel.university, label: Text('University'), icon: Icon(Icons.account_balance)),
-                      ],
-                      selected: {_level},
-                      onSelectionChanged: (s) => setState(() => _level = s.first),
-                      style: SegmentedButton.styleFrom(selectedBackgroundColor: kBrandOlive, selectedForegroundColor: Colors.white),
-                    ),
-                    const SizedBox(height: 20),
-                    TextFormField(
-                      controller: _nameController, 
-                      decoration: InputDecoration(
-                        labelText: _level == SubjectLevel.university ? "Course Name" : "Subject Name", 
-                        border: const OutlineInputBorder()
-                      ), 
-                      validator: (v) => v!.isEmpty ? 'Required' : null
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _codeController, 
-                      decoration: InputDecoration(
-                        labelText: _level == SubjectLevel.university ? "Course Code (e.g. COM315)" : "Subject Code (e.g. MATH101)", 
-                        border: const OutlineInputBorder()
-                      ), 
-                      validator: (v) => v!.isEmpty ? 'Required' : null
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(controller: _detailsController, maxLines: 2, decoration: const InputDecoration(labelText: "Details", border: OutlineInputBorder())),
-                    const SizedBox(height: 16),
-                    TextFormField(controller: _notesController, decoration: const InputDecoration(labelText: "Notes", border: OutlineInputBorder())),
-                    const SizedBox(height: 24),
-                    SizedBox(width: double.infinity, child: ElevatedButton(onPressed: _saveSubject, style: ElevatedButton.styleFrom(backgroundColor: kBrandOlive, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16)), child: Text(_level == SubjectLevel.university ? "Register Course" : "Register Subject"))),
-                  ],
-                ),
-              ),
-            ),
+    final isUni = _level == SubjectLevel.university;
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: Colors.white,
+      title: Row(
+        children: [
+          const Icon(Icons.library_add_rounded, color: kBrandOlive, size: 24),
+          const SizedBox(width: 8),
+          Text(
+            isUni ? "Quick Register Course" : "Quick Register Subject",
+            style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown),
           ),
-        ),
-        const SizedBox(width: 24),
-        // Right: List
-        Expanded(
-          flex: 3,
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade200)),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: SizedBox(
+          width: 400,
+          child: Form(
+            key: _formKey,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text("Registry Management", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                SegmentedButton<SubjectLevel>(
+                  segments: const [
+                    ButtonSegment(value: SubjectLevel.secondary, label: Text('Secondary'), icon: Icon(Icons.school_outlined)),
+                    ButtonSegment(value: SubjectLevel.university, label: Text('University'), icon: Icon(Icons.account_balance_outlined)),
+                  ],
+                  selected: {_level},
+                  onSelectionChanged: (s) => setState(() => _level = s.first),
+                  style: SegmentedButton.styleFrom(
+                    selectedBackgroundColor: kBrandOlive,
+                    selectedForegroundColor: Colors.white,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                TextFormField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    labelText: isUni ? "Course Name" : "Subject Name",
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                    prefixIcon: const Icon(Icons.book_outlined),
+                  ),
+                  validator: (v) => v == null || v.trim().isEmpty ? 'Name is required' : null,
+                ),
                 const SizedBox(height: 16),
-                Expanded(
-                  child: ListView.separated(
-                    itemCount: kSubjects.length,
-                    separatorBuilder: (_, __) => const Divider(),
-                    itemBuilder: (context, index) {
-                      final s = kSubjects[index];
-                      return ListTile(
-                        leading: CircleAvatar(backgroundColor: s.level == SubjectLevel.secondary ? kBrandOlive : kBrandBrown, foregroundColor: Colors.white, child: Text(s.name[0])),
-                        title: Text(s.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text("${s.code} • ${s.level.label}"),
-                        trailing: IconButton(icon: const Icon(Icons.delete_outline, color: kBrandOrange), onPressed: () => setState(() => kSubjects.removeAt(index))),
-                      );
-                    },
+
+                TextFormField(
+                  controller: _codeController,
+                  decoration: InputDecoration(
+                    labelText: isUni ? "Course Code (e.g. CS201)" : "Subject Code (e.g. MATH101)",
+                    border: const OutlineInputBorder(),
+                    isDense: true,
+                    prefixIcon: const Icon(Icons.code_rounded),
+                    helperText: "Suggested code structure.",
+                  ),
+                  validator: (v) => v == null || v.trim().isEmpty ? 'Code is required' : null,
+                ),
+                const SizedBox(height: 16),
+
+                TextFormField(
+                  controller: _detailsController,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    labelText: "Details (Optional)",
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                TextFormField(
+                  controller: _notesController,
+                  decoration: const InputDecoration(
+                    labelText: "Notes (Optional)",
+                    border: OutlineInputBorder(),
+                    isDense: true,
                   ),
                 ),
               ],
             ),
           ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+        ),
+        ElevatedButton(
+          onPressed: _save,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: kBrandOlive,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+          child: const Text("Register", style: TextStyle(fontWeight: FontWeight.bold)),
         ),
       ],
     );

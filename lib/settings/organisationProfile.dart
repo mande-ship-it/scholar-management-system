@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 
 // ============================================================
 // Shared Brand Color Palette
@@ -20,15 +21,16 @@ class _OrganisationProfileComponentState
     extends State<OrganisationProfileComponent> {
   final _formKey = GlobalKey<FormState>();
 
-  final _nameController = TextEditingController(text: "AGE Africa");
-  final _addressController = TextEditingController(text: "Lilongwe, Malawi");
-  final _phoneController = TextEditingController(text: "+265 999 123 456");
-  final _emailController = TextEditingController(text: "info@ageafrica.org");
-  final _websiteController = TextEditingController(text: "www.ageafrica.org");
+  final _nameController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _websiteController = TextEditingController();
 
   String _orgType = "Non-Profit";
-  bool _isVerified = true;
+  bool _isVerified = false;
   bool _isSaving = false;
+  bool _isLoading = false;
 
   final List<String> _orgTypes = [
     "Non-Profit",
@@ -38,8 +40,41 @@ class _OrganisationProfileComponentState
     "Cooperative",
   ];
 
-  final String _orgId = "AGE-2026-0987";
-  final String _createdDate = "July 2026";
+  String _orgId = "N/A";
+  String _createdDate = "N/A";
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProfile();
+  }
+
+  Future<void> _fetchProfile() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await ApiService.getOrganisationProfile();
+      if (response.statusCode == 200) {
+        final data = response.data['data'];
+        if (data != null && mounted) {
+          setState(() {
+            _nameController.text = data['name'] ?? '';
+            _addressController.text = data['address'] ?? '';
+            _phoneController.text = data['phone'] ?? '';
+            _emailController.text = data['email'] ?? '';
+            _websiteController.text = data['website'] ?? '';
+            _orgType = data['type'] ?? "Non-Profit";
+            _isVerified = data['is_verified'] ?? false;
+            _orgId = data['org_id'] ?? "N/A";
+            _createdDate = data['created_date'] ?? "N/A";
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching organisation profile: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -55,57 +90,76 @@ class _OrganisationProfileComponentState
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isSaving = true);
-    await Future.delayed(const Duration(milliseconds: 900));
-    setState(() => _isSaving = false);
+    try {
+      final response = await ApiService.updateOrganisationProfile({
+        'name': _nameController.text.trim(),
+        'address': _addressController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'email': _emailController.text.trim(),
+        'website': _websiteController.text.trim(),
+        'type': _orgType,
+      });
 
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Organisation profile updated successfully."),
-        backgroundColor: kBrandOlive,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+      if (response.statusCode == 200) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Organisation profile updated successfully."),
+            backgroundColor: kBrandOlive,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error saving organisation profile: $e');
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: theme.dividerColor),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
       ),
       clipBehavior: Clip.antiAlias,
-      child: SingleChildScrollView(
+      child: _isLoading 
+        ? const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+        : SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ---------------- Gradient Header ----------------
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 20, 20, 20),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [kBrandBrown, kBrandOlive]),
-              ),
+            // ---------------- Clean Header ----------------
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 8),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
-                    child: const Icon(Icons.business_rounded, color: Colors.white, size: 28),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: kBrandBrown.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.business_rounded, color: kBrandBrown, size: 32),
                   ),
-                  const SizedBox(width: 14),
-                  const Expanded(
+                  const SizedBox(width: 16),
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Organisation Profile', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
-                        SizedBox(height: 3),
-                        Text('Manage your organization\'s identity and public details.',
-                            style: TextStyle(fontSize: 12, color: Colors.white70)),
+                        Text('Organisation Profile', 
+                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kBrandBrown)),
+                        const SizedBox(height: 4),
+                        const Text('Manage your organization\'s identity and public details.',
+                            style: TextStyle(fontSize: 14, color: Colors.grey)),
                       ],
                     ),
                   ),
@@ -123,7 +177,7 @@ class _OrganisationProfileComponentState
                     _buildProfilePreview(),
                     const SizedBox(height: 32),
                     
-                    const Text("Basic Information", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                    Text("Basic Information", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? theme.colorScheme.primary : kBrandBrown)),
                     const SizedBox(height: 16),
                     _buildTextField(
                       controller: _nameController,
@@ -141,7 +195,7 @@ class _OrganisationProfileComponentState
                     ),
 
                     const SizedBox(height: 32),
-                    const Text("Contact Details", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                    Text("Contact Details", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? theme.colorScheme.primary : kBrandBrown)),
                     const SizedBox(height: 16),
                     _buildTextField(
                       controller: _addressController,
@@ -207,12 +261,15 @@ class _OrganisationProfileComponentState
   }
 
   Widget _buildProfilePreview() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: kBrandCream.withValues(alpha: 0.3),
+        color: isDark ? theme.colorScheme.surfaceContainerHighest : kBrandCream.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: kBrandCream),
+        border: Border.all(color: isDark ? theme.dividerColor : kBrandCream),
       ),
       child: Row(
         children: [
@@ -241,7 +298,7 @@ class _OrganisationProfileComponentState
               children: [
                 Row(
                   children: [
-                    Text(_nameController.text, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                    Text(_nameController.text, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kBrandBrown)),
                     if (_isVerified) ...[
                       const SizedBox(width: 8),
                       const Icon(Icons.verified_rounded, size: 18, color: kBrandOlive),
@@ -267,18 +324,21 @@ class _OrganisationProfileComponentState
     TextInputType? keyboardType,
     String? Function(String?)? validator,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       validator: validator,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, size: 20, color: kBrandBrown),
+        prefixIcon: Icon(icon, size: 20, color: isDark ? Colors.white70 : kBrandBrown),
         filled: true,
-        fillColor: Colors.grey.shade50,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kBrandOlive, width: 2)),
+        fillColor: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.grey.shade50,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: theme.dividerColor)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: theme.dividerColor)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kBrandOlive, width: 2)),
       ),
     );
   }
@@ -290,16 +350,20 @@ class _OrganisationProfileComponentState
     required List<String> options,
     required ValueChanged<String?> onChanged,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
+      dropdownColor: theme.cardColor,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, size: 20, color: kBrandBrown),
+        prefixIcon: Icon(icon, size: 20, color: isDark ? Colors.white70 : kBrandBrown),
         filled: true,
-        fillColor: Colors.grey.shade50,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kBrandOlive, width: 2)),
+        fillColor: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.grey.shade50,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: theme.dividerColor)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: theme.dividerColor)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kBrandOlive, width: 2)),
       ),
       items: options.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
       onChanged: onChanged,

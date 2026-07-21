@@ -1,71 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../academics/academicsUtils.dart';
+import '../services/api_service.dart';
+import 'sponsorsUtils.dart';
 
-/// Model representing a Sponsor record.
-class Sponsor {
-  final String name;
-  final String organization;
-  final String email;
-  final String phone;
-  final String contactPerson;
-  final String sponsorshipType;
-  final double amount;
-  final DateTime registrationDate;
-  final String address;
-  final String notes;
-
-  Sponsor({
-    required this.name,
-    required this.organization,
-    required this.email,
-    required this.phone,
-    required this.contactPerson,
-    required this.sponsorshipType,
-    required this.amount,
-    required this.registrationDate,
-    required this.address,
-    required this.notes,
-  });
-
-  Map<String, dynamic> toJson() => {
-    'name': name,
-    'organization': organization,
-    'email': email,
-    'phone': phone,
-    'contactPerson': contactPerson,
-    'sponsorshipType': sponsorshipType,
-    'amount': amount,
-    'registrationDate': registrationDate.toIso8601String(),
-    'address': address,
-    'notes': notes,
-  };
-}
-
-/// Callback signature for when a sponsor is successfully registered.
 typedef OnSponsorRegistered = Future<void> Function(Sponsor sponsor);
 
 class RegisterSponsorComponent extends StatefulWidget {
-  /// Optional callback invoked with the built Sponsor when the form is
-  /// submitted and validated. If not provided, the widget just simulates
-  /// a save (useful for demos / before backend wiring is done).
   final OnSponsorRegistered? onRegister;
+  final Sponsor? existingSponsor;
 
-  const RegisterSponsorComponent({super.key, this.onRegister});
+  const RegisterSponsorComponent({super.key, this.onRegister, this.existingSponsor});
 
   @override
-  State<RegisterSponsorComponent> createState() =>
-      _RegisterSponsorComponentState();
+  State<RegisterSponsorComponent> createState() => _RegisterSponsorComponentState();
 }
 
 class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
   final _formKey = GlobalKey<FormState>();
-
-  // Brand Color Palette (consistent with Scholar / School registration)
-  static const Color brandBrown = Color(0xFF4C3C32);
-  static const Color brandCream = Color(0xFFFAF2DB);
-  static const Color brandCreamDark = Color(0xFFF3E7C4);
-  static const Color brandOlive = Color(0xFF9AB334);
-  static const Color brandOrange = Color(0xFFE05B1C);
 
   final _nameController = TextEditingController();
   final _organizationController = TextEditingController();
@@ -76,36 +27,35 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
   final _addressController = TextEditingController();
   final _notesController = TextEditingController();
 
-  final List<String> _sponsorshipTypes = const [
-    'Platinum',
-    'Gold',
-    'Silver',
-    'Bronze',
-    'In-Kind',
-  ];
+  final List<String> _sponsorshipTypes = const ['Platinum', 'Gold', 'Silver', 'Bronze', 'In-Kind'];
 
   String? _selectedSponsorshipType;
   DateTime _registrationDate = DateTime.now();
   bool _isSaving = false;
 
+  bool get _isEditing => widget.existingSponsor != null;
+
   @override
   void initState() {
     super.initState();
-    for (final c in [
-      _nameController,
-      _organizationController,
-      _emailController,
-      _phoneController,
-      _contactPersonController,
-      _amountController,
-      _addressController,
-      _notesController,
-    ]) {
-      c.addListener(_updatePreview);
+    final existing = widget.existingSponsor;
+    if (existing != null) {
+      _nameController.text = existing.name;
+      _organizationController.text = existing.organization;
+      _emailController.text = existing.email;
+      _phoneController.text = existing.phone;
+      _contactPersonController.text = existing.contactPerson;
+      _amountController.text = existing.amount.toStringAsFixed(0);
+      _addressController.text = existing.address;
+      _notesController.text = existing.notes;
+      _selectedSponsorshipType = existing.sponsorshipType;
+      _registrationDate = existing.registrationDate;
+    }
+    
+    for (final c in [_nameController, _organizationController, _emailController, _phoneController, _contactPersonController, _amountController]) {
+      c.addListener(() => setState(() {}));
     }
   }
-
-  void _updatePreview() => setState(() {});
 
   @override
   void dispose() {
@@ -121,52 +71,7 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
   }
 
   String? _validateRequired(String? value, {String fieldName = 'This field'}) {
-    if (value == null || value.trim().isEmpty) {
-      return '$fieldName is required';
-    }
-    return null;
-  }
-
-  String? _validateEmail(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'Email is required';
-    }
-    final emailRegex = RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[\w\-]{2,4}$');
-    if (!emailRegex.hasMatch(value.trim())) {
-      return 'Enter a valid email address';
-    }
-    return null;
-  }
-
-  String? _validatePhone(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'Phone number is required';
-    }
-    final phoneRegex = RegExp(r'^\+?[0-9\s\-]{7,15}$');
-    if (!phoneRegex.hasMatch(value.trim())) {
-      return 'Enter a valid phone number';
-    }
-    return null;
-  }
-
-  String? _validateAmount(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return 'Amount is required';
-    }
-    final parsed = double.tryParse(value.trim());
-    if (parsed == null) {
-      return 'Enter a valid numeric amount';
-    }
-    if (parsed <= 0) {
-      return 'Amount must be greater than zero';
-    }
-    return null;
-  }
-
-  String? _validateSponsorshipType(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please select a sponsorship type';
-    }
+    if (value == null || value.trim().isEmpty) return '$fieldName is required';
     return null;
   }
 
@@ -176,156 +81,52 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
       initialDate: _registrationDate,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: brandBrown,
-              onPrimary: Colors.white,
-              onSurface: brandBrown,
-            ),
-          ),
-          child: child!,
-        );
-      },
     );
-    if (picked != null) {
-      setState(() => _registrationDate = picked);
-    }
+    if (picked != null) setState(() => _registrationDate = picked);
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/'
-        '${date.month.toString().padLeft(2, '0')}/'
-        '${date.year}';
-  }
-
-  String _getInitials(String name) {
-    if (name.trim().isEmpty) return "SP";
-    final parts = name.trim().split(RegExp(r'\s+'));
-    if (parts.length == 1) return parts[0][0].toUpperCase();
-    return (parts[0][0] + parts[1][0]).toUpperCase();
-  }
-
-  // Required: name, contactPerson, email, phone, sponsorshipType, amount
-  // Optional (still tracked for completeness): organization, address
-  int _getTotalFieldsCount() => 8;
-
-  int _getCompletedFieldsCount() {
-    int count = 0;
-    if (_nameController.text.trim().isNotEmpty) count++;
-    if (_contactPersonController.text.trim().isNotEmpty) count++;
-    if (_emailController.text.trim().isNotEmpty) count++;
-    if (_phoneController.text.trim().isNotEmpty) count++;
-    if (_selectedSponsorshipType != null) count++;
-    if (_amountController.text.trim().isNotEmpty) count++;
-    if (_organizationController.text.trim().isNotEmpty) count++;
-    if (_addressController.text.trim().isNotEmpty) count++;
-    return count;
-  }
-
-  double _calculateCompletionPercentage() {
-    final total = _getTotalFieldsCount();
-    if (total == 0) return 0.0;
-    return _getCompletedFieldsCount() / total;
-  }
-
-  Color _sponsorshipTypeColor(String? type) {
-    switch (type) {
-      case 'Platinum':
-        return const Color(0xFF6C7A89);
-      case 'Gold':
-        return const Color(0xFFC9971E);
-      case 'Silver':
-        return const Color(0xFF9AA5AD);
-      case 'Bronze':
-        return const Color(0xFFA0622D);
-      case 'In-Kind':
-        return brandOlive;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  InputDecoration _getInputDecoration({
-    required String labelText,
-    required IconData prefixIcon,
-    String? helperText,
-  }) {
-    return InputDecoration(
-      labelText: labelText,
-      helperText: helperText,
-      prefixIcon: Icon(prefixIcon, color: brandBrown.withValues(alpha: 0.7)),
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.grey.shade300),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.grey.shade300),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: brandOlive, width: 2),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Colors.red, width: 1.5),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Colors.red, width: 2),
-      ),
-    );
-  }
+  String _formatDate(DateTime date) => '${date.day}/${date.month}/${date.year}';
 
   Future<void> _handleSubmit() async {
-    final isValid = _formKey.currentState?.validate() ?? false;
-    if (!isValid) return;
+    if (!(_formKey.currentState?.validate() ?? false)) return;
 
     setState(() => _isSaving = true);
 
-    final sponsor = Sponsor(
-      name: _nameController.text.trim(),
-      organization: _organizationController.text.trim(),
-      email: _emailController.text.trim(),
-      phone: _phoneController.text.trim(),
-      contactPerson: _contactPersonController.text.trim(),
-      sponsorshipType: _selectedSponsorshipType!,
-      amount: double.parse(_amountController.text.trim()),
-      registrationDate: _registrationDate,
-      address: _addressController.text.trim(),
-      notes: _notesController.text.trim(),
-    );
+    final sponsorData = {
+      'name': _nameController.text.trim(),
+      'organization': _organizationController.text.trim(),
+      'email': _emailController.text.trim(),
+      'phone': _phoneController.text.trim(),
+      'contactPerson': _contactPersonController.text.trim(),
+      'sponsorshipType': _selectedSponsorshipType!,
+      'amount': double.tryParse(_amountController.text.trim()) ?? 0,
+      'registrationDate': _registrationDate.toIso8601String(),
+      'address': _addressController.text.trim(),
+      'notes': _notesController.text.trim(),
+      'status': widget.existingSponsor?.status ?? 'Active',
+    };
 
     try {
-      if (widget.onRegister != null) {
-        await widget.onRegister!(sponsor);
+      if (_isEditing) {
+        await ApiService.updateSponsor(widget.existingSponsor!.id, sponsorData);
       } else {
-        // Simulated network/save delay when no callback is supplied.
-        await Future.delayed(const Duration(milliseconds: 800));
+        await ApiService.createSponsor(sponsorData);
       }
 
       if (!mounted) return;
-
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Sponsor "${sponsor.name}" registered successfully'),
-          backgroundColor: brandOlive,
-        ),
+        SnackBar(content: Text('Sponsor "${_nameController.text.trim()}" saved successfully'), backgroundColor: kBrandOlive),
       );
-
-      _resetForm();
+      if (widget.onRegister != null) {
+        // If it was a dialog/component callback, we might need a full object
+        // but for now just pop or notify
+        Navigator.of(context).pop(true);
+      }
+      if (!_isEditing) _resetForm();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to register sponsor: $e'),
-          backgroundColor: Colors.red.shade600,
-        ),
+        SnackBar(content: Text('Failed: $e'), backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -350,533 +151,224 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final bool isWide = constraints.maxWidth > 950;
-
-        final Widget formContent = Form(
-          key: _formKey,
-          autovalidateMode: AutovalidateMode.onUserInteraction,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildFormHeader(),
-              const SizedBox(height: 20),
-              _buildContactCard(isWide),
-              const SizedBox(height: 16),
-              _buildSponsorshipCard(isWide),
-              const SizedBox(height: 16),
-              _buildAdditionalCard(),
-              const SizedBox(height: 24),
-              _buildActionButtons(),
-            ],
-          ),
-        );
-
-        final Widget previewContent = _buildPreviewCard();
-
-        if (isWide) {
-          return SingleChildScrollView(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 3,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: formContent,
-                  ),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 12),
-                    child: previewContent,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              previewContent,
-              const SizedBox(height: 24),
-              formContent,
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildFormHeader() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: brandOlive.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(Icons.volunteer_activism_rounded, color: brandOlive, size: 28),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Register Sponsor",
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: brandBrown),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "Enter details below to add a new sponsor record.",
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCardShell({required String title, required IconData icon, required List<Widget> children}) {
-    return Card(
-      elevation: 1,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200, width: 1),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, color: brandOrange, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: brandBrown),
-                ),
-              ],
-            ),
-            const Divider(height: 24),
-            ...children,
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildContactCard(bool isWide) {
-    final nameField = TextFormField(
-      controller: _nameController,
-      textCapitalization: TextCapitalization.words,
-      decoration: _getInputDecoration(labelText: "Sponsor Name", prefixIcon: Icons.edit_outlined),
-      validator: (v) => _validateRequired(v, fieldName: 'Sponsor name'),
-    );
-
-    final orgField = TextFormField(
-      controller: _organizationController,
-      textCapitalization: TextCapitalization.words,
-      decoration: _getInputDecoration(labelText: "Organization / Company", prefixIcon: Icons.business_outlined),
-    );
-
-    final contactPersonField = TextFormField(
-      controller: _contactPersonController,
-      textCapitalization: TextCapitalization.words,
-      decoration: _getInputDecoration(labelText: "Contact Person", prefixIcon: Icons.person_outline),
-      validator: (v) => _validateRequired(v, fieldName: 'Contact person'),
-    );
-
-    final emailField = TextFormField(
-      controller: _emailController,
-      keyboardType: TextInputType.emailAddress,
-      decoration: _getInputDecoration(labelText: "Email", prefixIcon: Icons.email_outlined),
-      validator: _validateEmail,
-    );
-
-    final phoneField = TextFormField(
-      controller: _phoneController,
-      keyboardType: TextInputType.phone,
-      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9\+\-\s]'))],
-      decoration: _getInputDecoration(labelText: "Phone", prefixIcon: Icons.phone_outlined),
-      validator: _validatePhone,
-    );
-
-    return _buildCardShell(
-      title: "Sponsor & Contact Information",
-      icon: Icons.badge_outlined,
-      children: isWide
-          ? [
-        Row(children: [Expanded(flex: 2, child: nameField), const SizedBox(width: 16), Expanded(child: orgField)]),
-        const SizedBox(height: 16),
-        contactPersonField,
-        const SizedBox(height: 16),
-        Row(children: [Expanded(child: emailField), const SizedBox(width: 16), Expanded(child: phoneField)]),
-      ]
-          : [
-        nameField,
-        const SizedBox(height: 16),
-        orgField,
-        const SizedBox(height: 16),
-        contactPersonField,
-        const SizedBox(height: 16),
-        emailField,
-        const SizedBox(height: 16),
-        phoneField,
-      ],
-    );
-  }
-
-  Widget _buildSponsorshipCard(bool isWide) {
-    final typeField = DropdownButtonFormField<String>(
-      initialValue: _selectedSponsorshipType,
-      decoration: _getInputDecoration(labelText: "Sponsorship Type", prefixIcon: Icons.workspace_premium_outlined),
-      items: _sponsorshipTypes.map((type) => DropdownMenuItem(value: type, child: Text(type))).toList(),
-      onChanged: (value) => setState(() => _selectedSponsorshipType = value),
-      validator: _validateSponsorshipType,
-    );
-
-    final amountField = TextFormField(
-      controller: _amountController,
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}'))],
-      decoration: _getInputDecoration(labelText: "Amount (\$)", prefixIcon: Icons.attach_money),
-      validator: _validateAmount,
-    );
-
-    final dateField = InkWell(
-      borderRadius: BorderRadius.circular(10),
-      onTap: _pickRegistrationDate,
-      child: InputDecorator(
-        decoration: _getInputDecoration(labelText: "Registration Date", prefixIcon: Icons.calendar_today_outlined),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(_formatDate(_registrationDate)),
-            Icon(Icons.arrow_drop_down, color: brandBrown.withValues(alpha: 0.7)),
-          ],
-        ),
-      ),
-    );
-
-    return _buildCardShell(
-      title: "Sponsorship Details",
-      icon: Icons.workspace_premium_outlined,
-      children: isWide
-          ? [
-        Row(children: [Expanded(child: typeField), const SizedBox(width: 16), Expanded(child: amountField)]),
-        const SizedBox(height: 16),
-        dateField,
-      ]
-          : [
-        typeField,
-        const SizedBox(height: 16),
-        amountField,
-        const SizedBox(height: 16),
-        dateField,
-      ],
-    );
-  }
-
-  Widget _buildAdditionalCard() {
-    return _buildCardShell(
-      title: "Additional Information",
-      icon: Icons.info_outline,
-      children: [
-        TextFormField(
-          controller: _addressController,
-          maxLines: 2,
-          decoration: _getInputDecoration(labelText: "Address", prefixIcon: Icons.location_on_outlined),
-        ),
-        const SizedBox(height: 16),
-        TextFormField(
-          controller: _notesController,
-          maxLines: 3,
-          decoration: _getInputDecoration(labelText: "Additional Notes", prefixIcon: Icons.sticky_note_2_outlined),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActionButtons() {
-    final completion = _calculateCompletionPercentage();
-    final isComplete = completion >= 1.0;
-
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: _isSaving ? null : _handleSubmit,
-            icon: _isSaving
-                ? const SizedBox(
-              width: 18,
-              height: 18,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-            )
-                : const Icon(Icons.save_rounded, size: 20),
-            label: Text(
-              _isSaving ? "Saving..." : "Save Sponsor Record",
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-            ),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 18),
-              backgroundColor: isComplete ? brandOlive : brandOrange,
-              foregroundColor: Colors.white,
-              elevation: 2,
-              shadowColor: (isComplete ? brandOlive : brandOrange).withValues(alpha: 0.3),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        TextButton.icon(
-          onPressed: _isSaving ? null : _resetForm,
-          icon: const Icon(Icons.refresh),
-          label: const Text("Reset"),
-          style: TextButton.styleFrom(
-            foregroundColor: brandBrown,
-            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPreviewCard() {
-    final completion = _calculateCompletionPercentage();
-    final completed = _getCompletedFieldsCount();
-    final total = _getTotalFieldsCount();
-    final name = _nameController.text.trim();
-    final initials = _getInitials(name);
-    final typeColor = _sponsorshipTypeColor(_selectedSponsorshipType);
-
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    return SingleChildScrollView(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [brandBrown, brandOlive],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.only(topLeft: Radius.circular(16), topRight: Radius.circular(16)),
-            ),
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 30,
-                  backgroundColor: Colors.white,
-                  child: Text(
-                    initials,
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: brandBrown),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name.isNotEmpty ? name : "New Sponsor Profile",
-                        style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _organizationController.text.trim().isNotEmpty
-                            ? _organizationController.text.trim()
-                            : "No organization specified",
-                        style: const TextStyle(color: Colors.white70, fontSize: 12),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                _buildStatusBadge(completion),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: brandCream,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: brandCreamDark),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.workspace_premium_outlined, color: typeColor, size: 22),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              "Sponsorship & Amount",
-                              style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold),
-                            ),
-                            Text(
-                              _selectedSponsorshipType != null
-                                  ? "$_selectedSponsorshipType tier${_amountController.text.trim().isNotEmpty ? ' — \$${_amountController.text.trim()}' : ''}"
-                                  : "Pending Assignment",
-                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: brandBrown),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                LayoutBuilder(
-                  builder: (context, gridConstraints) {
-                    final w = (gridConstraints.maxWidth - 16) / 2;
-                    return Wrap(
-                      spacing: 16,
-                      runSpacing: 16,
-                      children: [
-                        SizedBox(width: w, child: _buildPreviewDetailItem(Icons.person_outline, "Contact Person", _contactPersonController.text.trim(), brandOlive)),
-                        SizedBox(width: w, child: _buildPreviewDetailItem(Icons.email_outlined, "Email", _emailController.text.trim(), brandOrange)),
-                        SizedBox(width: w, child: _buildPreviewDetailItem(Icons.phone_outlined, "Phone", _phoneController.text.trim(), brandBrown)),
-                        SizedBox(width: w, child: _buildPreviewDetailItem(Icons.calendar_today_outlined, "Registered", _formatDate(_registrationDate), brandOlive)),
-                        SizedBox(width: w, child: _buildPreviewDetailItem(Icons.location_on_outlined, "Address", _addressController.text.trim(), brandOrange)),
-                      ],
-                    );
-                  },
-                ),
-                const Divider(height: 32),
-                _buildCompletionMeter(completion, completed, total),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusBadge(double completion) {
-    String text = "DRAFT";
-    Color bg = Colors.grey.shade300;
-    Color fg = Colors.grey.shade800;
-
-    if (completion >= 1.0) {
-      text = "READY";
-      bg = brandOlive.withValues(alpha: 0.2);
-      fg = brandOlive;
-    } else if (completion >= 0.6) {
-      text = "PROGRESS";
-      bg = Colors.blue.withValues(alpha: 0.2);
-      fg = Colors.blue;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: fg.withValues(alpha: 0.5), width: 1),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(color: fg, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-      ),
-    );
-  }
-
-  Widget _buildPreviewDetailItem(IconData icon, String label, String value, Color color) {
-    return Row(
-      children: [
-        CircleAvatar(
-          radius: 16,
-          backgroundColor: color.withValues(alpha: 0.1),
-          child: Icon(icon, color: color, size: 16),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
+          if (!_isEditing) ...[
+            _buildHeader(),
+            const SizedBox(height: 24),
+          ],
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w500)),
-              Text(
-                value.isNotEmpty ? value : "Not specified",
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: value.isNotEmpty ? brandBrown : Colors.grey.shade400,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+              Expanded(flex: 3, child: _buildForm()),
+              const SizedBox(width: 32),
+              Expanded(flex: 2, child: _buildPreview()),
             ],
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(color: kBrandBrown.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+          child: const Icon(Icons.person_add_alt_1_rounded, color: kBrandBrown, size: 28),
+        ),
+        const SizedBox(width: 16),
+        const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Register New Sponsor", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kBrandBrown)),
+            Text("Onboard a new partner to the scholarship program.", style: TextStyle(fontSize: 12, color: Colors.grey)),
+          ],
         ),
       ],
     );
   }
 
-  Widget _buildCompletionMeter(double completion, int completed, int total) {
-    Color progressColor = brandOrange;
-    String message = "Drafting Profile";
-    if (completion >= 1.0) {
-      progressColor = brandOlive;
-      message = "Complete & Ready";
-    } else if (completion >= 0.6) {
-      progressColor = Colors.blue;
-      message = "Almost Ready";
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(message, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: progressColor)),
-            Text(
-              "${(completion * 100).toInt()}% ($completed of $total)",
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: brandBrown),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: completion,
-            backgroundColor: Colors.grey.shade200,
-            valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-            minHeight: 8,
+  Widget _buildForm() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        children: [
+          _buildCard(
+            title: "Basic Information",
+            children: [
+              _buildTextField(_nameController, "Sponsor / Entity Name", Icons.badge_outlined, required: true),
+              const SizedBox(height: 16),
+              _buildTextField(_organizationController, "Parent Organization (if any)", Icons.business_outlined),
+              const SizedBox(height: 16),
+              _buildTextField(_contactPersonController, "Primary Contact Person", Icons.person_outline, required: true),
+            ],
           ),
-        ),
-      ],
+          const SizedBox(height: 16),
+          _buildCard(
+            title: "Contact Details",
+            children: [
+              Row(
+                children: [
+                  Expanded(child: _buildTextField(_emailController, "Email Address", Icons.email_outlined, required: true)),
+                  const SizedBox(width: 16),
+                  Expanded(child: _buildTextField(_phoneController, "Phone Number", Icons.phone_outlined, required: true)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildTextField(_addressController, "Physical Address", Icons.location_on_outlined, maxLines: 2),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildCard(
+            title: "Sponsorship Commitment",
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _selectedSponsorshipType,
+                      decoration: _inputDeco("Tier", Icons.workspace_premium_outlined),
+                      items: _sponsorshipTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+                      onChanged: (v) => setState(() => _selectedSponsorshipType = v),
+                      validator: (v) => v == null ? "Required" : null,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(child: _buildTextField(_amountController, "Amount (MWK)", Icons.payments_outlined, required: true, isNumber: true)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              InkWell(
+                onTap: _pickRegistrationDate,
+                child: InputDecorator(
+                  decoration: _inputDeco("Registration Date", Icons.calendar_today_rounded),
+                  child: Text(_formatDate(_registrationDate)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _isSaving ? null : _handleSubmit,
+                  icon: _isSaving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.save_rounded),
+                  label: Text(_isEditing ? "Update Record" : "Save Sponsor Record", style: const TextStyle(fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kBrandOlive,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              if (!_isEditing)
+                OutlinedButton(
+                  onPressed: _isSaving ? null : _resetForm,
+                  style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  child: const Text("Reset", style: TextStyle(color: kBrandBrown)),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPreview() {
+    final typeColor = getSponsorshipTypeColor(_selectedSponsorshipType ?? 'Other');
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.grey.shade200)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("Live Preview", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey)),
+          const SizedBox(height: 24),
+          Center(
+            child: CircleAvatar(
+              radius: 40,
+              backgroundColor: typeColor.withValues(alpha: 0.1),
+              child: Text(
+                _nameController.text.isNotEmpty ? _nameController.text[0].toUpperCase() : "?",
+                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: typeColor),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: Text(
+              _nameController.text.isEmpty ? "New Sponsor Name" : _nameController.text,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kBrandBrown),
+            ),
+          ),
+          Center(child: Text(_organizationController.text.isEmpty ? "Organization" : _organizationController.text, style: TextStyle(color: Colors.grey.shade600))),
+          const Divider(height: 48),
+          _previewRow(Icons.person_outline, "Contact", _contactPersonController.text),
+          _previewRow(Icons.email_outlined, "Email", _emailController.text),
+          _previewRow(Icons.workspace_premium_outlined, "Tier", _selectedSponsorshipType ?? "Not selected", color: typeColor),
+          _previewRow(Icons.payments_outlined, "Funding", _amountController.text.isEmpty ? "MWK 0" : "MWK ${_amountController.text}"),
+        ],
+      ),
+    );
+  }
+
+  Widget _previewRow(IconData icon, String label, String value, {Color? color}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: color ?? kBrandBrown),
+          const SizedBox(width: 12),
+          Text("$label: ", style: const TextStyle(fontSize: 13, color: Colors.grey)),
+          Expanded(child: Text(value.isEmpty ? "—" : value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color ?? kBrandBrown), overflow: TextOverflow.ellipsis)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCard({required String title, required List<Widget> children}) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.shade200)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: kBrandBrown)),
+          const SizedBox(height: 20),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextField(TextEditingController controller, String label, IconData icon, {bool required = false, bool isNumber = false, int maxLines = 1}) {
+    return TextFormField(
+      controller: controller,
+      maxLines: maxLines,
+      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+      decoration: _inputDeco(label, icon),
+      validator: required ? (v) => _validateRequired(v, fieldName: label) : null,
+    );
+  }
+
+  InputDecoration _inputDeco(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, size: 20, color: kBrandBrown.withValues(alpha: 0.6)),
+      isDense: true,
+      filled: true,
+      fillColor: Colors.grey.shade50,
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kBrandOlive, width: 2)),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
     );
   }
 }

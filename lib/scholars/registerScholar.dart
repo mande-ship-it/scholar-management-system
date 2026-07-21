@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../academics/academicsUtils.dart';
+import '../services/api_service.dart';
 
 class RegisterScholarComponent extends StatefulWidget {
   const RegisterScholarComponent({super.key});
@@ -18,6 +20,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
   static const Color brandOrange = Color(0xFFE05B1C);
 
   // Form Field States
+  bool _isLoading = false;
   String? _selectedDistrict;
   String? _selectedSchoolType;
   String? _selectedSchool;
@@ -85,15 +88,74 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
   final List<String> _donors = ['PMI', 'BGE', 'General Fund'];
   final List<String> _sexOptions = ['Female', 'Male', 'Other'];
 
+  // Backend Registered Schools state
+  List<Map<String, dynamic>> _registeredSchools = [];
+  bool _isLoadingSchools = false;
+  String? _selectedSchoolId;
+
   @override
   void initState() {
     super.initState();
+    _fetchRegisteredSchools();
     _fullNameController.addListener(_updatePreview);
     _yearController.addListener(_updatePreview);
     _homeVillageController.addListener(_updatePreview);
     _phoneController.addListener(_updatePreview);
     _emailController.addListener(_updatePreview);
     _dobController.addListener(_updatePreview);
+  }
+
+  Future<void> _fetchRegisteredSchools() async {
+    setState(() => _isLoadingSchools = true);
+    try {
+      final response = await ApiService.getAllSchools();
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data['data'] ?? [];
+        if (mounted) {
+          setState(() {
+            _registeredSchools = data.map((s) => Map<String, dynamic>.from(s)).toList();
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching registered schools: $e');
+    } finally {
+      if (mounted) setState(() => _isLoadingSchools = false);
+    }
+  }
+
+  List<Map<String, dynamic>> _getAvailableSchoolsForScholar() {
+    if (_registeredSchools.isEmpty) {
+      if (_selectedSchoolType == 'Secondary') {
+        return _secondarySchools.map((s) => {'id': null, 'name': s, 'level': 'Secondary School'}).toList();
+      } else if (_selectedSchoolType == 'University') {
+        return _publicUniversities.map((s) => {'id': null, 'name': s, 'level': 'Tertiary / University'}).toList();
+      } else {
+        return [
+          ..._secondarySchools.map((s) => {'id': null, 'name': s, 'level': 'Secondary School'}),
+          ..._publicUniversities.map((s) => {'id': null, 'name': s, 'level': 'Tertiary / University'}),
+        ];
+      }
+    }
+
+    if (_selectedSchoolType == null) {
+      return _registeredSchools;
+    }
+
+    final typeLower = _selectedSchoolType!.toLowerCase();
+    final filtered = _registeredSchools.where((school) {
+      final level = (school['level'] ?? '').toString().toLowerCase();
+      final type = (school['type'] ?? '').toString().toLowerCase();
+
+      if (typeLower == 'secondary') {
+        return level.contains('secondary') || level.contains('high') || type.contains('cdss') || level.contains('primary');
+      } else if (typeLower == 'university') {
+        return level.contains('university') || level.contains('tertiary') || level.contains('vocational') || type.contains('university');
+      }
+      return true;
+    }).toList();
+
+    return filtered.isNotEmpty ? filtered : _registeredSchools;
   }
 
   void _updatePreview() {
@@ -162,36 +224,197 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
     }
   }
 
-  void _submitForm() {
+  void _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      // Form is valid, show success snackbar
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Scholar ${_fullNameController.text} Registered Successfully!"),
-          backgroundColor: brandOlive,
-        ),
-      );
-
-      // Reset form
-      _formKey.currentState!.reset();
       setState(() {
-        _selectedDistrict = null;
-        _selectedSchoolType = null;
-        _selectedSchool = null;
-        _selectedProgramType = null;
-        _selectedDonor = null;
-        _selectedSex = null;
-        _selectedDateOfBirth = null;
-        _selectedStartYear = null;
-        _selectedEndYear = null;
-        _fullNameController.clear();
-        _yearController.clear();
-        _homeVillageController.clear();
-        _phoneController.clear();
-        _emailController.clear();
-        _dobController.clear();
+        _isLoading = true;
       });
+
+      final scholarData = {
+        'fullName': _fullNameController.text.trim(),
+        'schoolType': _selectedSchoolType,
+        'schoolName': _selectedSchool,
+        'schoolId': _selectedSchoolId != null ? int.tryParse(_selectedSchoolId!) ?? _selectedSchoolId : null,
+        'sex': _selectedSex,
+        'dob': _dobController.text.trim(),
+        'currentClass': _yearController.text.trim(),
+        'district': _selectedDistrict,
+        'village': _homeVillageController.text.trim(),
+        'donor': _selectedDonor,
+        'phone': _phoneController.text.trim(),
+        'email': _emailController.text.trim(),
+        'programType': _selectedProgramType,
+        'startYear': _selectedStartYear,
+        'endYear': _selectedEndYear,
+      };
+
+      try {
+        final response = await ApiService.createScholar(scholarData);
+
+        if (response.statusCode == 201) {
+          final newScholar = response.data['data']['scholar'];
+          
+          // Create local student object to show in success dialog
+          final student = Student(
+            id: newScholar['id'].toString(),
+            name: newScholar['full_name'],
+            age: 16, // Placeholder
+            schoolType: _selectedSchoolType == 'University' ? SchoolType.university : SchoolType.secondary,
+            schoolName: _selectedSchool ?? 'N/A',
+            currentClass: _yearController.text.trim(),
+            status: 'Active',
+            district: _selectedDistrict ?? 'Lilongwe',
+            village: _homeVillageController.text.trim(),
+            donor: _selectedDonor ?? 'General Fund',
+            phone: _phoneController.text.trim(),
+            email: _emailController.text.trim(),
+            sex: _selectedSex ?? 'Female',
+            dob: _dobController.text.trim(),
+            programType: _selectedProgramType ?? '',
+            startYear: _selectedStartYear ?? '2026',
+            endYear: _selectedEndYear ?? '2030',
+          );
+
+          // Optionally add to local mock database if still using it for other screens
+          kStudents.add(student);
+
+          if (mounted) {
+            _showSuccessDialog(student);
+          }
+        } else {
+          _showErrorSnackBar(response.data['message'] ?? 'Failed to create scholar.');
+        }
+      } catch (e) {
+        _showErrorSnackBar('An error occurred. Please check your connection.');
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
     }
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  void _showSuccessDialog(Student student) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext ctx) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            padding: const EdgeInsets.all(28),
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: brandOlive.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.check_circle_rounded, color: brandOlive, size: 48),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  "Registration Complete",
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: brandBrown),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "Scholar ${student.name} has been successfully added to the registry.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Column(
+                    children: [
+                      _rowDetail("Scholar ID", student.id),
+                      const Divider(height: 16),
+                      _rowDetail("Institution", student.schoolName),
+                      const Divider(height: 16),
+                      _rowDetail("Class/Form", student.currentClass),
+                      const Divider(height: 16),
+                      _rowDetail("District", student.district),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 28),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(ctx).pop();
+                      _resetForm();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: brandOlive,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      elevation: 0,
+                    ),
+                    child: const Text("Go to Registry", style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _rowDetail(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
+        Text(value, style: const TextStyle(fontSize: 12, color: brandBrown, fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+
+  void _resetForm() {
+    _formKey.currentState!.reset();
+    setState(() {
+      _selectedDistrict = null;
+      _selectedSchoolType = null;
+      _selectedSchool = null;
+      _selectedSchoolId = null;
+      _selectedProgramType = null;
+      _selectedDonor = null;
+      _selectedSex = null;
+      _selectedDateOfBirth = null;
+      _selectedStartYear = null;
+      _selectedEndYear = null;
+      _fullNameController.clear();
+      _yearController.clear();
+      _homeVillageController.clear();
+      _phoneController.clear();
+      _emailController.clear();
+      _dobController.clear();
+    });
   }
 
   double _calculateCompletionPercentage() {
@@ -414,6 +637,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
     );
 
     final Widget sexField = DropdownButtonFormField<String>(
+      isExpanded: true,
       initialValue: _selectedSex,
       decoration: _getInputDecoration(
         labelText: "Sex",
@@ -524,6 +748,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
     final List<String> yearsList = List.generate(21, (index) => (DateTime.now().year - 5 + index).toString());
 
     final Widget startYearField = DropdownButtonFormField<String>(
+      isExpanded: true,
       initialValue: _selectedStartYear,
       decoration: _getInputDecoration(
         labelText: _selectedSchoolType == 'University' ? "Program Start Year" : "Session Start Year",
@@ -545,6 +770,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
     );
 
     final Widget endYearField = DropdownButtonFormField<String>(
+      isExpanded: true,
       initialValue: _selectedEndYear,
       decoration: _getInputDecoration(
         labelText: _selectedSchoolType == 'University' ? "Program End Year" : "Session End Year",
@@ -577,6 +803,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
     );
 
     final Widget schoolTypeField = DropdownButtonFormField<String>(
+      isExpanded: true,
       initialValue: _selectedSchoolType,
       decoration: _getInputDecoration(
         labelText: "School Type",
@@ -599,37 +826,46 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
       value == null ? "Please select a school type" : null,
     );
 
+    final availableSchools = _getAvailableSchoolsForScholar();
+
     final Widget schoolField = DropdownButtonFormField<String>(
-      key: ValueKey(_selectedSchoolType),
+      isExpanded: true,
+      key: ValueKey('${_selectedSchoolType}_${_registeredSchools.length}'),
       initialValue: _selectedSchool,
       decoration: _getInputDecoration(
-        labelText: _selectedSchoolType == null
-            ? "School (Select School Type first)"
-            : (_selectedSchoolType == "University"
-            ? "Public University"
-            : "Secondary School"),
+        labelText: _isLoadingSchools
+            ? "Loading Registered Schools..."
+            : (_selectedSchoolType == null
+                ? "School (Select School Type first)"
+                : (_selectedSchoolType == "University"
+                    ? "Registered University"
+                    : "Registered Secondary School")),
         prefixIcon: Icons.school_outlined,
+        helperText: availableSchools.isEmpty && !_isLoadingSchools
+            ? "No schools registered under School component."
+            : null,
       ),
-      items: _selectedSchoolType == null
-          ? []
-          : (_selectedSchoolType == 'Secondary'
-          ? _secondarySchools
-          : _publicUniversities)
-          .map((school) {
+      items: availableSchools.map((school) {
+        final schoolName = school['name']?.toString() ?? 'Unnamed School';
         return DropdownMenuItem<String>(
-          value: school,
-          child: Text(school),
+          value: schoolName,
+          child: Text(schoolName, overflow: TextOverflow.ellipsis),
         );
       }).toList(),
-      onChanged: _selectedSchoolType == null
+      onChanged: _selectedSchoolType == null || availableSchools.isEmpty
           ? null
           : (value) {
-        setState(() {
-          _selectedSchool = value;
-        });
-      },
+              setState(() {
+                _selectedSchool = value;
+                final match = availableSchools.firstWhere(
+                  (s) => s['name']?.toString() == value,
+                  orElse: () => {},
+                );
+                _selectedSchoolId = match['id']?.toString();
+              });
+            },
       validator: (value) =>
-      value == null ? "Please select a school" : null,
+          value == null ? "Please select a registered school" : null,
     );
 
     final Widget yearField = TextFormField(
@@ -648,6 +884,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
     );
 
     final Widget programTypeField = DropdownButtonFormField<String>(
+      isExpanded: true,
       key: ValueKey('programType_$_selectedSchoolType'),
       initialValue: _selectedProgramType,
       decoration: _getInputDecoration(
@@ -749,6 +986,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
 
   Widget _buildDemographicsCard(bool isWide) {
     final Widget districtField = DropdownButtonFormField<String>(
+      isExpanded: true,
       initialValue: _selectedDistrict,
       decoration: _getInputDecoration(
         labelText: "District",
@@ -785,6 +1023,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
     );
 
     final Widget donorField = DropdownButtonFormField<String>(
+      isExpanded: true,
       initialValue: _selectedDonor,
       decoration: _getInputDecoration(
         labelText: "Donor / Sponsor",
@@ -867,11 +1106,13 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
     final bool isComplete = completion >= 1.0;
 
     return ElevatedButton.icon(
-      onPressed: _submitForm,
-      icon: const Icon(Icons.person_add_rounded, size: 20),
-      label: const Text(
-        "Complete Scholar Registration",
-        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+      onPressed: _isLoading ? null : _submitForm,
+      icon: _isLoading 
+          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+          : const Icon(Icons.person_add_rounded, size: 20),
+      label: Text(
+        _isLoading ? "Registering..." : "Complete Scholar Registration",
+        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
       ),
       style: ElevatedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 18),
@@ -899,15 +1140,12 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Header with gradient
+          // Header with banner removed (Clean Design)
           Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [brandBrown, brandOlive],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.only(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+              borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(16),
                 topRight: Radius.circular(16),
               ),
@@ -917,7 +1155,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
               children: [
                 CircleAvatar(
                   radius: 30,
-                  backgroundColor: Colors.white,
+                  backgroundColor: brandBrown.withValues(alpha: 0.1),
                   child: Text(
                     initials,
                     style: const TextStyle(
@@ -935,7 +1173,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
                       Text(
                         fullName.isNotEmpty ? fullName : "New Scholar Profile",
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: brandBrown,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
@@ -947,8 +1185,8 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
                         _selectedSchoolType != null
                             ? "$_selectedSchoolType Student"
                             : "Level not selected",
-                        style: const TextStyle(
-                          color: Colors.white70,
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
                           fontSize: 12,
                         ),
                       ),

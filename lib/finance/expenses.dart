@@ -60,33 +60,36 @@ class _ExpensesComponentState extends State<ExpensesComponent> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ---------------- Header ----------------
+            // ---------------- Header (Banner Removed) ----------------
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 20, 20, 20),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [kBrandBrown, kBrandOlive],
-                ),
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 8),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
               ),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
-                    child: const Icon(Icons.receipt_long_rounded, color: Colors.white, size: 28),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: kBrandBrown.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.receipt_long_rounded, color: kBrandBrown, size: 32),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 16),
                   const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Operational Expenses', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
-                        SizedBox(height: 3),
+                        Text('Operational Expenses',
+                            style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: kBrandBrown)),
+                        SizedBox(height: 4),
                         Text('Record and manage organization operational costs.',
-                            style: TextStyle(fontSize: 12, color: Colors.white70)),
+                            style: TextStyle(fontSize: 14, color: Colors.grey)),
                       ],
                     ),
                   ),

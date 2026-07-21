@@ -1,85 +1,90 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 
-class NotificationsComponent extends StatelessWidget {
+class NotificationsComponent extends StatefulWidget {
   const NotificationsComponent({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    const Color brandBrown = Color(0xFF4C3C32);
-    const Color brandCream = Color(0xFFFAF2DB);
-    const Color brandOlive = Color(0xFF9AB334);
-    const Color brandOrange = Color(0xFFE05B1C);
+  State<NotificationsComponent> createState() => _NotificationsComponentState();
+}
 
-    final List<Map<String, dynamic>> activities = [
-      {
-        "role": "Program Officer",
-        "name": "Alice",
-        "action": "added 5 new scholars in Zomba district",
-        "time": "2 hours ago",
-        "icon": Icons.person_add,
-        "color": brandOlive
-      },
-      {
-        "role": "Finance Officer",
-        "name": "Bob",
-        "action": "approved allowance payouts for July cohort",
-        "time": "4 hours ago",
-        "icon": Icons.payments,
-        "color": brandOrange
-      },
-      {
-        "role": "Data Clerk",
-        "name": "Clara",
-        "action": "uploaded Term 1 report cards for Marymount Secondary",
-        "time": "1 day ago",
-        "icon": Icons.upload_file,
-        "color": brandBrown
-      },
-      {
-        "role": "Administrator",
-        "name": "Edward Shaba",
-        "action": "completed system database backup and encryption verification",
-        "time": "2 days ago",
-        "icon": Icons.backup,
-        "color": brandOlive
-      }
-    ];
+class _NotificationsComponentState extends State<NotificationsComponent> {
+  List<dynamic> _notifications = [];
+  bool _isLoading = true;
 
-    return SingleChildScrollView(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth > 950) {
-            // Side-by-side layout
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: _buildActivityCard(activities, brandBrown, brandOrange),
-                ),
-                const SizedBox(width: 24),
-                Expanded(
-                  flex: 1,
-                  child: _buildQuickActionsCard(brandBrown, brandOlive, brandOrange, brandCream),
-                ),
-              ],
-            );
-          } else {
-            // Stacked layout
-            return Column(
-              children: [
-                _buildActivityCard(activities, brandBrown, brandOrange),
-                const SizedBox(height: 24),
-                _buildQuickActionsCard(brandBrown, brandOlive, brandOrange, brandCream),
-              ],
-            );
-          }
-        },
-      ),
-    );
+  final Color brandBrown = const Color(0xFF4C3C32);
+  final Color brandCream = const Color(0xFFFAF2DB);
+  final Color brandOlive = const Color(0xFF9AB334);
+  final Color brandOrange = const Color(0xFFE05B1C);
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchNotifications();
   }
 
-  Widget _buildActivityCard(List<Map<String, dynamic>> activities, Color brandBrown, Color brandOrange) {
+  Future<void> _fetchNotifications() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await ApiService.getNotifications();
+      if (response.statusCode == 200) {
+        setState(() {
+          _notifications = response.data['data'];
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching notifications: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _markAsRead(String id) async {
+    try {
+      await ApiService.markNotificationRead(id);
+      _fetchNotifications();
+    } catch (e) {
+      debugPrint('Error marking as read: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _isLoading
+        ? const Center(child: CircularProgressIndicator(color: Color(0xFF9AB334)))
+        : SingleChildScrollView(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth > 950) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: _buildActivityCard(),
+                      ),
+                      const SizedBox(width: 24),
+                      Expanded(
+                        flex: 1,
+                        child: _buildQuickActionsCard(),
+                      ),
+                    ],
+                  );
+                } else {
+                  return Column(
+                    children: [
+                      _buildActivityCard(),
+                      const SizedBox(height: 24),
+                      _buildQuickActionsCard(),
+                    ],
+                  );
+                }
+              },
+            ),
+          );
+  }
+
+  Widget _buildActivityCard() {
     return Card(
       elevation: 2,
       color: Colors.white,
@@ -104,6 +109,12 @@ class NotificationsComponent extends StatelessWidget {
                     color: brandBrown,
                   ),
                 ),
+                const Spacer(),
+                TextButton.icon(
+                  onPressed: _fetchNotifications,
+                  icon: const Icon(Icons.refresh, size: 16),
+                  label: const Text("Refresh"),
+                )
               ],
             ),
             const SizedBox(height: 6),
@@ -112,69 +123,99 @@ class NotificationsComponent extends StatelessWidget {
               style: TextStyle(color: Colors.grey, fontSize: 13),
             ),
             const Divider(height: 30),
-            
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: activities.length,
-              separatorBuilder: (context, index) => const Divider(height: 20, color: Color(0xFFF7F5EE)),
-              itemBuilder: (context, index) {
-                final activity = activities[index];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      CircleAvatar(
-                        radius: 18,
-                        backgroundColor: activity["color"].withValues(alpha: 0.12),
-                        child: Icon(activity["icon"], color: activity["color"], size: 16),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            RichText(
-                              text: TextSpan(
-                                style: const TextStyle(color: Colors.black87, fontSize: 13, height: 1.4),
-                                children: [
-                                  TextSpan(
-                                    text: "[${activity["role"]}] ",
-                                    style: TextStyle(
-                                      color: brandOrange,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 11,
-                                    ),
+            if (_notifications.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(40.0),
+                  child: Text("No recent activities found."),
+                ),
+              )
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _notifications.length,
+                separatorBuilder: (context, index) => const Divider(height: 20, color: Color(0xFFF7F5EE)),
+                itemBuilder: (context, index) {
+                  final notification = _notifications[index];
+                  final bool isRead = notification['is_read'] ?? false;
+                  final String type = notification['type'] ?? 'info';
+
+                  IconData icon = Icons.info_outline;
+                  Color color = brandOlive;
+                  if (type == 'success') { icon = Icons.check_circle_outline; color = Colors.green; }
+                  if (type == 'warning') { icon = Icons.warning_amber_rounded; color = brandOrange; }
+                  if (type == 'error') { icon = Icons.error_outline; color = Colors.red; }
+
+                  return InkWell(
+                    onTap: isRead ? null : () => _markAsRead(notification['id'].toString()),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CircleAvatar(
+                            radius: 18,
+                            backgroundColor: color.withOpacity(0.12),
+                            child: Icon(icon, color: color, size: 16),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  notification['message'],
+                                  style: TextStyle(
+                                    color: isRead ? Colors.grey : Colors.black87,
+                                    fontSize: 13,
+                                    fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
+                                    height: 1.4,
                                   ),
-                                  TextSpan(
-                                    text: "${activity["name"]} ",
-                                    style: const TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                  TextSpan(text: activity["action"]),
-                                ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _formatTime(notification['created_at']),
+                                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (!isRead)
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: Colors.blue,
+                                shape: BoxShape.circle,
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              activity["time"],
-                              style: const TextStyle(color: Colors.grey, fontSize: 11),
-                            ),
-                          ],
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
-                );
-              },
-            ),
+                    ),
+                  );
+                },
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildQuickActionsCard(Color brandBrown, Color brandOlive, Color brandOrange, Color brandCream) {
+  String _formatTime(String? timestamp) {
+    if (timestamp == null) return "Unknown time";
+    final date = DateTime.parse(timestamp);
+    final now = DateTime.now();
+    final diff = now.difference(date);
+
+    if (diff.inMinutes < 1) return "Just now";
+    if (diff.inMinutes < 60) return "${diff.inMinutes} minutes ago";
+    if (diff.inHours < 24) return "${diff.inHours} hours ago";
+    if (diff.inDays < 7) return "${diff.inDays} days ago";
+    return "${date.day}/${date.month}/${date.year}";
+  }
+
+  Widget _buildQuickActionsCard() {
     return Card(
       elevation: 2,
       color: Colors.white,
@@ -201,7 +242,6 @@ class NotificationsComponent extends StatelessWidget {
               style: TextStyle(color: Colors.grey, fontSize: 12),
             ),
             const Divider(height: 30),
-            
             _buildActionRow(
               icon: Icons.table_view,
               label: "Export Scholar Excel",

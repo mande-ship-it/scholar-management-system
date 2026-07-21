@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
+import '../../services/api_service.dart';
 
 // Dashboard
 import '../dashboardPages/dashboard.dart';
@@ -8,25 +11,33 @@ import '../dashboardPages/notifications.dart';
 // Scholars
 import '../scholarPages/registerScholar.dart';
 import '../scholarPages/viewScholars.dart';
+import '../scholarPages/promoteScholars.dart';
+import '../scholarPages/scholarStats.dart';
 import '../attendancePages/scholarAttendance.dart';
 
 // Schools
 import '../schoolPages/registerSchool.dart';
 import '../schoolPages/viewSchools.dart';
+import '../schoolPages/schoolStats.dart';
 
 // Sponsors
 import '../sponsorPages/registerSponsor.dart';
 import '../sponsorPages/viewSponsors.dart';
+import '../sponsorPages/sponsorStats.dart';
 
 // Academics
 import '../academicPages/enterResults.dart';
 import '../academicPages/viewResults.dart';
 import '../academicPages/reportCards.dart';
 import '../academicPages/performanceAnalysis.dart';
+import '../academicPages/academicStats.dart';
 
 // Attendance
 import '../attendancePages/attendanceHistory.dart';
 import '../attendancePages/attendanceReports.dart';
+
+// Events
+import '../eventPages/events.dart';
 
 // Finance
 import '../financePages/scholarshipPayments.dart';
@@ -91,6 +102,90 @@ class _HomePageState extends State<HomePage> {
   int activeCategoryIndex = 0;
   int activeSubIndex = 0;
   bool _isSidebarVisible = true;
+  int _notificationCount = 0;
+  IO.Socket? _socket;
+
+  @override
+  void initState() {
+    super.initState();
+    _initSocket();
+    _fetchNotificationCount();
+  }
+
+  void _initSocket() {
+    // In production, use your actual server IP
+    _socket = IO.io('http://localhost:5000', IO.OptionBuilder()
+      .setTransports(['websocket'])
+      .disableAutoConnect()
+      .build());
+
+    _socket!.connect();
+
+    _socket!.onConnect((_) {
+      debugPrint('Connected to Notification Server');
+      // For testing, join as user 1
+      _socket!.emit('join', 1);
+    });
+
+    _socket!.on('notification', (data) {
+      setState(() {
+        _notificationCount++;
+      });
+      _playNotificationSound();
+      _showNotificationOverlay(data['message']);
+    });
+  }
+
+  void _playNotificationSound() {
+    // Play a system click sound as a fallback
+    SystemSound.play(SystemSoundType.click);
+
+    // If you have audioplayers installed and an asset:
+    // AudioPlayer().play(AssetSource('sounds/notification.mp3'));
+  }
+
+  Future<void> _fetchNotificationCount() async {
+    try {
+      final response = await ApiService.getNotifications();
+      if (response.statusCode == 200) {
+        final List notifications = response.data['data'];
+        setState(() {
+          _notificationCount = notifications.where((n) => n['is_read'] == false).length;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching notifications: $e');
+    }
+  }
+
+  void _showNotificationOverlay(String message) {
+    // Show a simple snackbar or overlay for real-time notification
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.notifications_active, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: const Color(0xFF9AB334), // brandOlive
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: 'VIEW',
+          textColor: Colors.white,
+          onPressed: () => _navigateToSubItem("Notifications"),
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _socket?.disconnect();
+    super.dispose();
+  }
 
   void _navigateToSubItem(String title) {
     for (int i = 0; i < categories.length; i++) {
@@ -112,6 +207,7 @@ class _HomePageState extends State<HomePage> {
       icon: Icons.dashboard,
       subItems: [
         SidebarSubItem(title: "Overview", page: DashboardPage(), icon: Icons.view_quilt),
+        SidebarSubItem(title: "Events & Programs", page: EventsPage(), icon: Icons.event_available),
         SidebarSubItem(title: "Recent Activities", page: RecentActivitiesPage(), icon: Icons.history),
         SidebarSubItem(title: "Notifications", page: NotificationsPage(), icon: Icons.notifications_active),
       ],
@@ -122,6 +218,8 @@ class _HomePageState extends State<HomePage> {
       subItems: [
         SidebarSubItem(title: "Register Scholar", page: RegisterScholarPage(), icon: Icons.person_add),
         SidebarSubItem(title: "View Scholars", page: ViewScholarsPage(), icon: Icons.people),
+        SidebarSubItem(title: "Promote Scholar", page: PromoteScholarsPage(), icon: Icons.upgrade),
+        SidebarSubItem(title: "Scholar Statistics", page: ScholarStatsPage(), icon: Icons.insights_rounded),
       ],
     ),
     SidebarCategory(
@@ -130,6 +228,7 @@ class _HomePageState extends State<HomePage> {
       subItems: [
         SidebarSubItem(title: "Register School", page: RegisterSchoolPage(), icon: Icons.add_business),
         SidebarSubItem(title: "View Schools", page: ViewSchoolsPage(), icon: Icons.store),
+        SidebarSubItem(title: "School Statistics", page: SchoolStatsPage(), icon: Icons.analytics_outlined),
       ],
     ),
     SidebarCategory(
@@ -138,6 +237,7 @@ class _HomePageState extends State<HomePage> {
       subItems: [
         SidebarSubItem(title: "Register Sponsor", page: RegisterSponsorPage(), icon: Icons.add_moderator),
         SidebarSubItem(title: "View Sponsors", page: ViewSponsorsPage(), icon: Icons.supervisor_account),
+        SidebarSubItem(title: "Sponsor Statistics", page: SponsorStatsPage(), icon: Icons.analytics_rounded),
       ],
     ),
     SidebarCategory(
@@ -148,6 +248,7 @@ class _HomePageState extends State<HomePage> {
         SidebarSubItem(title: "View Results", page: ViewResultsPage(), icon: Icons.pageview),
         SidebarSubItem(title: "Report Cards", page: ReportCardsPage(), icon: Icons.badge),
         SidebarSubItem(title: "Performance Analysis", page: PerformanceAnalysisPage(), icon: Icons.analytics),
+        SidebarSubItem(title: "Academic Statistics", page: AcademicStatsPage(), icon: Icons.insights_rounded),
       ],
     ),
     SidebarCategory(
@@ -274,10 +375,42 @@ class _HomePageState extends State<HomePage> {
               }
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.notifications, color: Colors.white),
-            tooltip: "Notifications",
-            onPressed: () => _navigateToSubItem("Notifications"),
+          Stack(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications, color: Colors.white),
+                tooltip: "Notifications",
+                onPressed: () {
+                  setState(() => _notificationCount = 0); // Clear count on view
+                  _navigateToSubItem("Notifications");
+                },
+              ),
+              if (_notificationCount > 0)
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: brandOrange,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 16,
+                      minHeight: 16,
+                    ),
+                    child: Text(
+                      '$_notificationCount',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(width: 8),
           const VerticalDivider(

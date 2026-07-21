@@ -20,7 +20,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-
+import '../services/api_service.dart';
 import 'academicsUtils.dart';
 
 // ============================================================
@@ -136,6 +136,116 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
   String? _yearFilter;
   String? _periodFilter; // null = Overall (all periods combined)
   bool _isExporting = false;
+  bool _isLoadingResults = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchBaseData();
+  }
+
+  Future<void> _fetchBaseData() async {
+    // Ensure scholars are loaded for the pickers
+    if (kStudents.isEmpty) {
+      try {
+        final response = await ApiService.getAllScholars();
+        if (response.statusCode == 200) {
+          final List<dynamic> data = response.data['data'];
+          setState(() {
+            kStudents.clear();
+            for (var item in data) {
+              kStudents.add(Student(
+                id: item['id'].toString(),
+                name: item['full_name'],
+                age: item['dob'] != null ? DateTime.now().year - DateTime.parse(item['dob']).year : 16,
+                schoolType: item['school_type'] == 'University' ? SchoolType.university : SchoolType.secondary,
+                schoolName: item['display_school_name'] ?? 'N/A',
+                currentClass: item['academic_year'] ?? 'N/A',
+                status: item['status'] ?? 'Active',
+                district: item['district'] ?? 'N/A',
+                village: item['village'] ?? 'N/A',
+                donor: item['donor'] ?? 'N/A',
+                phone: item['phone'] ?? 'N/A',
+                email: item['email'] ?? 'N/A',
+                sex: item['sex'] ?? 'Female',
+                dob: item['dob'] ?? '',
+                programType: item['program_type'] ?? '',
+                startYear: item['start_year'] ?? '2026',
+                endYear: item['end_year'] ?? '2030',
+              ));
+            }
+          });
+        }
+      } catch (e) {
+        debugPrint('Error fetching scholars for report cards: $e');
+      }
+    }
+  }
+
+  Future<void> _fetchResultsForStudent(String id) async {
+    setState(() => _isLoadingResults = true);
+    try {
+      final response = await ApiService.getResultsByScholar(id);
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data['data'];
+        setState(() {
+          // Remove old results for this student and add new ones
+          kResults.removeWhere((r) => r.studentId == id);
+          for (var item in data) {
+            kResults.add(ResultRecord(
+              studentId: item['scholar_id'].toString(),
+              code: item['subject_code'] ?? 'N/A',
+              subject: item['subject_name'] ?? 'N/A',
+              marks: double.parse(item['marks'].toString()),
+              gpa: item['gpa'] != null ? double.parse(item['gpa'].toString()) : null,
+              points: item['points'] != null ? double.parse(item['points'].toString()) : null,
+              year: item['academic_year'].toString(),
+              term: item['term'],
+              semester: item['semester'],
+            ));
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching results for student: $e');
+    } finally {
+      if (mounted) setState(() => _isLoadingResults = false);
+    }
+  }
+
+  Future<void> _fetchResultsForSchool(String schoolName) async {
+    setState(() => _isLoadingResults = true);
+    try {
+      final response = await ApiService.getResultsBySchool(schoolName);
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data['data'];
+        setState(() {
+          // In a real app, we might want to be more selective, 
+          // but for this dashboard we'll refresh results for students in this school
+          final studentIds = kStudents.where((s) => s.schoolName == schoolName).map((s) => s.id).toSet();
+          kResults.removeWhere((r) => studentIds.contains(r.studentId));
+          
+          for (var item in data) {
+            kResults.add(ResultRecord(
+              studentId: item['scholar_id'].toString(),
+              code: item['subject_code'] ?? 'N/A',
+              subject: item['subject_name'] ?? 'N/A',
+              marks: double.parse(item['marks'].toString()),
+              gpa: item['gpa'] != null ? double.parse(item['gpa'].toString()) : null,
+              points: item['points'] != null ? double.parse(item['points'].toString()) : null,
+              year: item['academic_year'].toString(),
+              term: item['term'],
+              semester: item['semester'],
+            ));
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching results for school: $e');
+    } finally {
+      if (mounted) setState(() => _isLoadingResults = false);
+    }
+  }
 
   List<String> get _schoolOptions => kStudents.map((s) => s.schoolName).toSet().toList()..sort();
 
@@ -590,12 +700,12 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ---------------- Gradient Header ----------------
+            // ---------------- Header ----------------
             Container(
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(24, 20, 20, 20),
               decoration: const BoxDecoration(
-                gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [kBrandBrown, kBrandOlive]),
+                border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
               ),
               child: Row(
                 children: [
@@ -604,12 +714,12 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
                     child: Container(
                       width: 48,
                       height: 48,
-                      color: Colors.white.withValues(alpha: 0.15),
+                      color: kBrandBrown.withValues(alpha: 0.1),
                       padding: const EdgeInsets.all(6),
                       child: Image.asset(
                         kAgeLogoAsset,
                         fit: BoxFit.contain,
-                        errorBuilder: (context, error, stack) => const Icon(Icons.picture_as_pdf_rounded, color: Colors.white),
+                        errorBuilder: (context, error, stack) => const Icon(Icons.picture_as_pdf_rounded, color: kBrandBrown),
                       ),
                     ),
                   ),
@@ -618,20 +728,20 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Academic Report Cards', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+                        Text('Academic Report Cards', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kBrandBrown)),
                         SizedBox(height: 3),
                         Text('Generate official student transcripts and school summaries.',
-                            style: TextStyle(fontSize: 12, color: Colors.white70)),
+                            style: TextStyle(fontSize: 12, color: Colors.grey)),
                       ],
                     ),
                   ),
                   if (hasSelection) ...[
                     OutlinedButton.icon(
                       onPressed: _isExporting ? null : (_mode == ReportMode.student ? _exportStudentCsv : _exportSchoolCsv),
-                      icon: const Icon(Icons.grid_on_rounded, size: 18, color: Colors.white),
-                      label: const Text('CSV / Excel', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      icon: const Icon(Icons.grid_on_rounded, size: 18, color: kBrandBrown),
+                      label: const Text('CSV / Excel', style: TextStyle(color: kBrandBrown, fontWeight: FontWeight.bold)),
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.white70),
+                        side: BorderSide(color: kBrandBrown.withValues(alpha: 0.3)),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       ),
@@ -640,12 +750,12 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
                     ElevatedButton.icon(
                       onPressed: _isExporting ? null : (_mode == ReportMode.student ? _exportStudentPdf : _exportSchoolPdf),
                       icon: _isExporting
-                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: kBrandBrown))
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                           : const Icon(Icons.picture_as_pdf_rounded),
                       label: Text(_isExporting ? 'Exporting...' : 'Export PDF', style: const TextStyle(fontWeight: FontWeight.bold)),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: kBrandBrown,
+                        backgroundColor: kBrandOlive,
+                        foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         elevation: 0,
                       ),
@@ -705,11 +815,14 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
                               if (query.isEmpty) return pool;
                               return pool.where((s) => s.name.toLowerCase().contains(query));
                             },
-                            onSelected: (s) => setState(() {
-                              _selectedStudentId = s.id;
-                              _yearFilter = null;
-                              _periodFilter = null;
-                            }),
+                            onSelected: (s) {
+                              setState(() {
+                                _selectedStudentId = s.id;
+                                _yearFilter = null;
+                                _periodFilter = null;
+                              });
+                              _fetchResultsForStudent(s.id);
+                            },
                             optionsViewBuilder: (context, onSelected, options) {
                               return Align(
                                 alignment: Alignment.topLeft,
@@ -766,11 +879,14 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
                         if (query.isEmpty) return _schoolOptions;
                         return _schoolOptions.where((name) => name.toLowerCase().contains(query));
                       },
-                      onSelected: (name) => setState(() {
-                        _selectedSchool = name;
-                        _yearFilter = null;
-                        _periodFilter = null;
-                      }),
+                      onSelected: (name) {
+                        setState(() {
+                          _selectedSchool = name;
+                          _yearFilter = null;
+                          _periodFilter = null;
+                        });
+                        _fetchResultsForSchool(name);
+                      },
                       optionsViewBuilder: (context, onSelected, options) {
                         return Align(
                           alignment: Alignment.topLeft,
@@ -873,6 +989,8 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
                         ),
                       ),
                     )
+                  else if (_isLoadingResults)
+                    const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator(color: kBrandOlive)))
                   else if (_mode == ReportMode.student)
                     _StudentReportCard(studentId: _selectedStudentId!, year: _yearFilter, period: _periodFilter)
                   else

@@ -16,24 +16,27 @@ import 'authentication/signIn.dart';
 import 'pages/scholarPages/registerScholar.dart';
 import 'pages/scholarPages/viewScholars.dart';
 import 'pages/scholarPages/ScholarProfile.dart';
+import 'pages/scholarPages/promoteScholars.dart';
+import 'pages/scholarPages/scholarStats.dart';
 import 'pages/attendancePages/scholarAttendance.dart';
 
 // School Pages
 import 'pages/schoolPages/registerSchool.dart';
 import 'pages/schoolPages/viewSchools.dart';
 import 'pages/schoolPages/schoolProfile.dart';
+import 'pages/schoolPages/schoolStats.dart';
 
 // Sponsor Pages
 import 'pages/sponsorPages/registerSponsor.dart';
 import 'pages/sponsorPages/viewSponsors.dart';
-import 'pages/sponsorPages/editSponsor.dart';
-import 'pages/sponsorPages/deleteSponsor.dart';
+import 'pages/sponsorPages/sponsorStats.dart';
 
 // Academic Pages
 import 'pages/academicPages/enterResults.dart';
 import 'pages/academicPages/viewResults.dart';
 import 'pages/academicPages/reportCards.dart';
 import 'pages/academicPages/performanceAnalysis.dart';
+import 'pages/academicPages/academicStats.dart';
 
 // Attendance Pages
 import 'pages/attendancePages/attendanceHistory.dart';
@@ -116,23 +119,26 @@ class MyApp extends StatelessWidget {
             '/viewScholars': (context) => const ViewScholarsPage(),
             '/scholarProfile': (context) => const ScholarProfilePage(),
             '/scholarAttendance': (context) => const ScholarAttendancePage(),
+            '/scholars/promote': (context) => const PromoteScholarsPage(),
+            '/scholars/stats': (context) => const ScholarStatsPage(),
 
             // Schools
             '/schools/register': (context) => const RegisterSchoolPage(),
             '/schools/view': (context) => const ViewSchoolsPage(),
             '/schools/profile': (context) => const SchoolProfilePage(),
+            '/schools/stats': (context) => const SchoolStatsPage(),
 
             // Sponsors
             '/sponsors/register': (context) => const RegisterSponsorPage(),
             '/sponsors/view': (context) => const ViewSponsorsPage(),
-            '/sponsors/edit': (context) => const EditSponsorPage(),
-            '/sponsors/delete': (context) => const DeleteSponsorPage(),
+            '/sponsors/stats': (context) => const SponsorStatsPage(),
 
             // Academics
             '/academics/enterResults': (context) => const EnterResultsPage(),
             '/academics/viewResults': (context) => const ViewResultsPage(),
             '/academics/reportCards': (context) => const ReportCardsPage(),
             '/academics/performanceAnalysis': (context) => const PerformanceAnalysisPage(),
+            '/academics/academicStats': (context) => const AcademicStatsPage(),
 
             // Attendance
             '/attendance/attendanceHistory': (context) => const AttendanceHistoryPage(),

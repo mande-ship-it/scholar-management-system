@@ -268,20 +268,17 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
   }
 
   // ---------------------------------------------------------------------
-  // HEADER CARD
+  // HEADER CARD (Banner Removed)
   // ---------------------------------------------------------------------
   Widget _buildHeaderCard() {
     return Column(
       children: [
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(28, 30, 28, 30),
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [kBrandBrown, kBrandOlive],
-            ),
+          padding: const EdgeInsets.fromLTRB(28, 40, 28, 30),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -290,31 +287,33 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
                 clipBehavior: Clip.none,
                 children: [
                   Container(
-                    width: 90,
-                    height: 90,
+                    width: 100,
+                    height: 100,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.18),
+                      color: kBrandBrown.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 3),
+                      border: Border.all(color: kBrandCream, width: 2),
                     ),
                     alignment: Alignment.center,
                     child: Text(
                       _initials(_originalValues['name'] ?? 'U'),
                       style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 32,
+                        color: kBrandBrown,
+                        fontSize: 36,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
                   Positioned(
-                    bottom: 0,
-                    right: 0,
+                    bottom: 2,
+                    right: 2,
                     child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: const BoxDecoration(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
                         color: kBrandOrange,
                         shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)],
                       ),
                       child: const Icon(Icons.camera_alt_rounded,
                           size: 16, color: Colors.white),
@@ -322,7 +321,7 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
                   ),
                 ],
               ),
-              const SizedBox(width: 24),
+              const SizedBox(width: 28),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -330,25 +329,26 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
                     Text(
                       _originalValues['name'] ?? '',
                       style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
+                        color: kBrandBrown,
+                        fontSize: 26,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(
                       "@$_username • $_role",
                       style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.85), fontSize: 13, fontWeight: FontWeight.w500),
+                          color: Colors.grey.shade600, fontSize: 14, fontWeight: FontWeight.w500),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     Row(
                       children: [
                         _headerPill(Icons.apartment_rounded, _department),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 10),
                         _headerPill(
                           _isActive ? Icons.check_circle_rounded : Icons.pause_circle_rounded,
                           _isActive ? 'Active' : 'Inactive',
+                          isStatus: true,
                         ),
                       ],
                     ),
@@ -360,22 +360,23 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
                   if (!_isEditing)
                     ElevatedButton.icon(
                       onPressed: _startEditing,
-                      icon: const Icon(Icons.edit_rounded, size: 16),
+                      icon: const Icon(Icons.edit_outlined, size: 18),
                       label: const Text("Edit Profile"),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: kBrandBrown,
+                        backgroundColor: kBrandBrown,
+                        foregroundColor: Colors.white,
                         elevation: 0,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                     ),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
+                  const SizedBox(height: 10),
+                  TextButton.icon(
                     onPressed: _handleLogout,
-                    icon: const Icon(Icons.logout_rounded, size: 16, color: Colors.white),
-                    label: const Text("Logout", style: TextStyle(color: Colors.white)),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.white54),
+                    icon: const Icon(Icons.logout_rounded, size: 18, color: Colors.redAccent),
+                    label: const Text("Logout", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                   ),
@@ -384,84 +385,35 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
             ],
           ),
         ),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          color: kBrandCream.withValues(alpha: 0.4),
-          child: Row(
-            children: [
-              Expanded(
-                child: _quickStat(Icons.calendar_today_rounded, "Member Since",
-                    _formatDate(_memberSince)),
-              ),
-              _verticalDivider(),
-              Expanded(
-                child: _quickStat(Icons.access_time_rounded, "Last Login",
-                    _formatDateTime(_lastLogin)),
-              ),
-              _verticalDivider(),
-              Expanded(
-                child: _quickStat(
-                    Icons.badge_outlined, "User ID", "CHATS-${_username.toUpperCase()}"),
-              ),
-            ],
-          ),
-        ),
+        // ---------------- Stats (Banners Removed) ----------------
       ],
     );
   }
 
-  Widget _headerPill(IconData icon, String label) {
+  Widget _headerPill(IconData icon, String label, {bool isStatus = false}) {
+    final Color color = isStatus 
+        ? (label == 'Active' ? kBrandOlive : Colors.orange) 
+        : kBrandBrown.withValues(alpha: 0.6);
+    final Color bgColor = color.withValues(alpha: 0.1);
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.16),
+        color: bgColor,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: Colors.white.withValues(alpha: 0.9)),
-          const SizedBox(width: 5),
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 6),
           Text(label,
-              style: const TextStyle(
-                  color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w600)),
+              style: TextStyle(
+                  color: color, fontSize: 12, fontWeight: FontWeight.bold)),
         ],
       ),
     );
   }
-
-  Widget _quickStat(IconData icon, String label, String value) {
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: kBrandBrown.withValues(alpha: 0.6)),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(label,
-                  style: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontWeight: FontWeight.bold)),
-              Text(value,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: kBrandBrown)),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _verticalDivider() => Container(
-    width: 1,
-    height: 32,
-    margin: const EdgeInsets.symmetric(horizontal: 16),
-    color: Colors.grey.shade300,
-  );
 
   // ---------------------------------------------------------------------
   // TABS BAR

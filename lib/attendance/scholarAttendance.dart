@@ -165,29 +165,38 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-          // ---------------- Gradient Header ----------------
+          // ---------------- Header (Banner Removed) ----------------
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(24, 20, 20, 20),
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [kBrandBrown, kBrandOlive]),
+            padding: const EdgeInsets.fromLTRB(24, 32, 24, 8),
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
             ),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
-                  child: Icon(_attendanceType.icon, color: Colors.white, size: 28),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: kBrandBrown.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child:
+                      Icon(_attendanceType.icon, color: kBrandBrown, size: 32),
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Attendance Register', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
-                      const SizedBox(height: 3),
-                      Text('Recording attendance for ${_attendanceType.label} sessions.',
-                          style: const TextStyle(fontSize: 12, color: Colors.white70)),
+                      const Text('Attendance Register',
+                          style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: kBrandBrown)),
+                      const SizedBox(height: 4),
+                      Text(
+                          'Recording attendance for ${_attendanceType.label} sessions.',
+                          style: const TextStyle(fontSize: 14, color: Colors.grey)),
                     ],
                   ),
                 ),
@@ -326,7 +335,11 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
                     children: [
                       Text("${_entries.length} Scholars Found", style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown)),
                       TextButton.icon(
-                        onPressed: () => setState(() { for (var e in _entries) e.status = AttendanceStatus.present; }),
+                        onPressed: () => setState(() {
+                          for (var e in _entries) {
+                            e.status = AttendanceStatus.present;
+                          }
+                        }),
                         icon: const Icon(Icons.done_all_rounded, size: 18),
                         label: const Text("Mark All Present"),
                         style: TextButton.styleFrom(foregroundColor: kBrandOlive),

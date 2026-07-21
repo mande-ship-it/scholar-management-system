@@ -144,17 +144,17 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
+        color: kBrandBrown.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: kBrandCream),
+          Icon(icon, size: 13, color: kBrandBrown),
           const SizedBox(width: 5),
           Text(
             label,
-            style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: Colors.white),
+            style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: kBrandBrown),
           ),
         ],
       ),
@@ -176,11 +176,8 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> {
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
             decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [kBrandBrown, kBrandOlive],
-              ),
+              color: Colors.white,
+              border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -191,27 +188,21 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> {
                       Container(
                         padding: const EdgeInsets.all(6),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
+                          color: kBrandBrown.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(Icons.assignment_rounded, color: Colors.white, size: 16),
+                        child: const Icon(Icons.assignment_rounded, color: kBrandBrown, size: 16),
                       ),
                       const SizedBox(width: 10),
-                      Expanded(
+                      const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text(
-                              "View Results",
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                              overflow: TextOverflow.ellipsis,
-                            ),
                             Text(
-                              "${students.length} of ${kStudents.length} students",
-                              style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 11),
+                              "View Results",
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kBrandBrown),
                               overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
                             ),
                           ],
                         ),
@@ -236,16 +227,17 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> {
                   child: SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: CircularProgressIndicator(strokeWidth: 2, color: kBrandBrown),
                   ),
                 )
                     : Container(
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
+                    color: Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade300),
                   ),
                   child: IconButton(
-                    icon: const Icon(Icons.file_download_outlined, color: Colors.white, size: 18),
+                    icon: const Icon(Icons.file_download_outlined, color: kBrandBrown, size: 18),
                     padding: const EdgeInsets.all(6),
                     constraints: const BoxConstraints(),
                     onPressed: _exportRosterCsv,
@@ -255,11 +247,12 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> {
                 const SizedBox(width: 6),
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
+                    color: Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade300),
                   ),
                   child: IconButton(
-                    icon: const Icon(Icons.refresh, color: Colors.white, size: 18),
+                    icon: const Icon(Icons.refresh, color: kBrandBrown, size: 18),
                     padding: const EdgeInsets.all(6),
                     constraints: const BoxConstraints(),
                     onPressed: () => setState(() {
@@ -745,25 +738,30 @@ class _StudentExamResultsSheetState extends State<_StudentExamResultsSheet> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(24, 24, 20, 20),
-            decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [kBrandBrown, kBrandOlive])),
+            decoration: const BoxDecoration(
+              border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+            ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
                   width: 52,
                   height: 52,
-                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.18), shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
+                  decoration: BoxDecoration(
+                    color: kBrandBrown.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
                   alignment: Alignment.center,
-                  child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  child: Text(initials, style: const TextStyle(color: kBrandBrown, fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('EXAM RESULTS — ${widget.student.name}', style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+                      Text('EXAM RESULTS — ${widget.student.name}', style: const TextStyle(color: kBrandBrown, fontSize: 17, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
                       const SizedBox(height: 4),
-                      Text(widget.student.schoolName, style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12.5), overflow: TextOverflow.ellipsis),
+                      Text(widget.student.schoolName, style: TextStyle(color: Colors.grey.shade600, fontSize: 12.5), overflow: TextOverflow.ellipsis),
                     ],
                   ),
                 ),
@@ -771,18 +769,17 @@ class _StudentExamResultsSheetState extends State<_StudentExamResultsSheet> {
                   Container(
                     margin: const EdgeInsets.only(right: 8),
                     padding: const EdgeInsets.symmetric(horizontal: 10),
-                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
+                    decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade300)),
                     child: DropdownButton<String>(
                       value: _selectedYear,
-                      dropdownColor: kBrandBrown,
                       underline: const SizedBox.shrink(),
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-                      icon: const Icon(Icons.expand_more, color: Colors.white, size: 18),
+                      style: const TextStyle(color: kBrandBrown, fontWeight: FontWeight.w600),
+                      icon: const Icon(Icons.expand_more, color: kBrandBrown, size: 18),
                       items: _yearOptions.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
                       onChanged: (v) => setState(() => _selectedYear = v!),
                     ),
                   ),
-                IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.of(context).pop(), style: IconButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: 0.15))),
+                IconButton(icon: const Icon(Icons.close, color: kBrandBrown), onPressed: () => Navigator.of(context).pop(), style: IconButton.styleFrom(backgroundColor: Colors.grey.shade100)),
               ],
             ),
           ),

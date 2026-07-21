@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import '../../sponsors/editSponsor.dart';
+import '../../academics/academicStats.dart';
 
-class EditSponsorPage extends StatelessWidget {
-  const EditSponsorPage({super.key});
+class AcademicStatsPage extends StatelessWidget {
+  const AcademicStatsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
       body: Padding(
         padding: EdgeInsets.all(20),
-        child: EditSponsorComponent(),
+        child: AcademicStatsComponent(),
       ),
     );
   }

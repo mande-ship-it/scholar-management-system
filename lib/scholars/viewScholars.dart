@@ -1,13 +1,6 @@
 import 'package:flutter/material.dart';
-
-// ============================================================
-// Shared Brand Color Palette (consistent with Register Scholar)
-// ============================================================
-const Color kBrandBrown = Color(0xFF4C3C32);
-const Color kBrandCream = Color(0xFFFAF2DB);
-const Color kBrandCreamDark = Color(0xFFF3E7C4);
-const Color kBrandOlive = Color(0xFF9AB334);
-const Color kBrandOrange = Color(0xFFE05B1C);
+import '../academics/academicsUtils.dart';
+import '../services/api_service.dart';
 
 // Shared validation patterns (kept consistent with Register Scholar).
 final RegExp _kEmailRegex = RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[\w\-]{2,4}$');
@@ -29,82 +22,84 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
   String _selectedSchoolType = 'All';
   String _selectedSchoolName = 'All';
   String _selectedSex = 'All';
+  bool _isLoading = true;
 
-  // Rich mock data representing different school types, districts, donors, etc.
-  final List<Map<String, String>> _allScholars = [
-    {
-      'id': '001',
-      'name': 'Mary Banda',
-      'schoolType': 'Secondary',
-      'school': 'Mzuzu Government Secondary School',
-      'class': 'Form 3',
-      'status': 'Active',
-      'district': 'Mzimba',
-      'donor': 'PMI',
-      'sex': 'Female',
-      'dob': '2009-05-12',
-      'village': 'Chilinde',
-      'phone': '+265 888 12 34 56',
-      'email': 'mary.banda@example.com',
-      'programType': '',
-      'startYear': '2023',
-      'endYear': '2027'
-    },
-    {
-      'id': '002',
-      'name': 'John Phiri',
-      'schoolType': 'Secondary',
-      'school': 'Likuni Boys Secondary School',
-      'class': 'Form 4',
-      'status': 'Active',
-      'district': 'Lilongwe',
-      'donor': 'BGE',
-      'sex': 'Male',
-      'dob': '2008-11-23',
-      'village': 'Likuni',
-      'phone': '+265 999 98 76 54',
-      'email': '',
-      'programType': '',
-      'startYear': '2022',
-      'endYear': '2026'
-    },
-    {
-      'id': '003',
-      'name': 'Chikondi Mwale',
-      'schoolType': 'University',
-      'school': 'University of Malawi (UNIMA)',
-      'class': 'Year 2',
-      'status': 'Active',
-      'district': 'Zomba',
-      'donor': 'General Fund',
-      'sex': 'Female',
-      'dob': '2005-04-15',
-      'village': 'Chinamwali',
-      'phone': '+265 881 23 45 67',
-      'email': 'chikondi.mwale@example.com',
-      'programType': 'Degree',
-      'startYear': '2024',
-      'endYear': '2028'
-    },
-    {
-      'id': '004',
-      'name': 'Taonga Nyirenda',
-      'schoolType': 'University',
-      'school': 'Malawi University of Business and Applied Sciences (MUBAS)',
-      'class': 'Year 3',
-      'status': 'Inactive',
-      'district': 'Blantyre',
-      'donor': 'PMI',
-      'sex': 'Male',
-      'dob': '2004-09-02',
-      'village': 'Ndirande',
-      'phone': '+265 992 34 56 78',
-      'email': 'taonga.nyirenda@example.com',
-      'programType': 'Diploma',
-      'startYear': '2023',
-      'endYear': '2026'
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _fetchScholars();
+  }
+
+  List<String> _registeredSchoolNames = [];
+
+  Future<void> _fetchScholars() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await ApiService.getAllScholars();
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data['data'];
+        kStudents.clear();
+        for (var item in data) {
+          kStudents.add(Student(
+            id: item['id'].toString(),
+            name: item['full_name'] ?? 'N/A',
+            age: item['dob'] != null && item['dob'].toString().isNotEmpty
+                ? DateTime.now().year - DateTime.parse(item['dob']).year
+                : 16,
+            schoolType: item['school_type'] == 'University' ? SchoolType.university : SchoolType.secondary,
+            schoolName: item['display_school_name'] ?? 'N/A',
+            currentClass: item['academic_year'] ?? 'N/A',
+            status: item['status'] ?? 'Active',
+            district: item['district'] ?? 'N/A',
+            village: item['village'] ?? 'N/A',
+            donor: item['donor'] ?? 'N/A',
+            phone: item['phone'] ?? 'N/A',
+            email: item['email'] ?? 'N/A',
+            sex: item['sex'] ?? 'Female',
+            dob: item['dob'] ?? '',
+            programType: item['program_type'] ?? '',
+            startYear: item['start_year']?.toString() ?? '2026',
+            endYear: item['end_year']?.toString() ?? '2030',
+          ));
+        }
+      }
+
+      final schoolsRes = await ApiService.getAllSchools();
+      if (schoolsRes.statusCode == 200) {
+        final List<dynamic> sData = schoolsRes.data['data'] ?? [];
+        _registeredSchoolNames = sData
+            .map((s) => s['name']?.toString() ?? '')
+            .where((n) => n.isNotEmpty)
+            .toList();
+      }
+    } catch (e) {
+      debugPrint('Error fetching scholars: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // Dynamic getter referencing the global kStudents database as a single source of truth
+  List<Map<String, String>> get _allScholars {
+    return kStudents.map((s) => {
+      'id': s.id,
+      'name': s.name,
+      'schoolType': s.schoolType == SchoolType.secondary ? 'Secondary' : 'University',
+      'school': s.schoolName,
+      'class': s.currentClass,
+      'status': s.status,
+      'district': s.district,
+      'donor': s.donor,
+      'sex': s.sex,
+      'dob': s.dob,
+      'village': s.village,
+      'phone': s.phone,
+      'email': s.email,
+      'programType': s.programType,
+      'startYear': s.startYear,
+      'endYear': s.endYear,
+    }).toList();
+  }
 
   final List<String> _secondarySchools = [
     'Chaminade Secondary School',
@@ -134,12 +129,23 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
 
   // Helper to get matching schools list for the dropdown filter based on selected school type
   List<String> _getAvailableSchoolsForFilter() {
+    final schoolNamesFromScholars = kStudents.map((s) => s.schoolName).where((n) => n.isNotEmpty && n != 'N/A');
+    final combinedSet = <String>{
+      ..._registeredSchoolNames,
+      ...schoolNamesFromScholars,
+      ..._secondarySchools,
+      ..._publicUniversities
+    };
+
+    final combinedList = combinedSet.toList();
+    combinedList.sort();
+
     if (_selectedSchoolType == 'Secondary') {
-      return _secondarySchools;
+      return combinedList.where((s) => s.toLowerCase().contains('secondary') || _secondarySchools.contains(s) || !_publicUniversities.contains(s)).toList();
     } else if (_selectedSchoolType == 'University') {
-      return _publicUniversities;
+      return combinedList.where((s) => s.toLowerCase().contains('university') || _publicUniversities.contains(s)).toList();
     } else {
-      return [..._secondarySchools, ..._publicUniversities];
+      return combinedList;
     }
   }
 
@@ -180,23 +186,62 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
   // ---------------------------------------------------------------------
   // Activate / Deactivate a scholar
   // ---------------------------------------------------------------------
-  void _toggleScholarStatus(Map<String, String> scholar) {
+  void _toggleScholarStatus(Map<String, String> scholar) async {
     final bool wasActive = scholar['status'] == 'Active';
-    setState(() {
-      scholar['status'] = wasActive ? 'Inactive' : 'Active';
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          wasActive
-              ? "${scholar['name']} has been deactivated."
-              : "${scholar['name']} has been activated.",
-        ),
-        backgroundColor: wasActive ? kBrandOrange : kBrandOlive,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    final newStatus = wasActive ? 'Inactive' : 'Active';
+    
+    try {
+      final response = await ApiService.updateScholar(scholar['id']!, {'status': newStatus});
+      if (response.statusCode == 200) {
+        _fetchScholars(); // Refresh list to get updated status
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(wasActive ? "${scholar['name']} has been deactivated." : "${scholar['name']} has been activated."),
+            backgroundColor: wasActive ? kBrandOrange : kBrandOlive,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error updating scholar status: $e');
+    }
+  }
+
+  void _deleteScholar(Map<String, String> scholar) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Delete Scholar"),
+        content: Text("Are you sure you want to delete ${scholar['name']}? This action cannot be undone."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text("Delete"),
+          ),
+        ],
       ),
     );
+
+    if (confirm == true) {
+      try {
+        final response = await ApiService.deleteScholar(scholar['id']!);
+        if (response.statusCode == 200) {
+          setState(() {
+            kStudents.removeWhere((s) => s.id == scholar['id']);
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Scholar deleted successfully."), backgroundColor: Colors.red),
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('Error deleting scholar: $e');
+      }
+    }
   }
 
   // ---------------------------------------------------------------------
@@ -433,10 +478,10 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                                     Expanded(
                                       child: ElevatedButton.icon(
                                         onPressed: () {
-                                          // Close the profile pop-up, then open the
-                                          // Edit Scholar pop-up (also a dialog, not a route).
                                           Navigator.of(ctx).pop();
-                                          showEditScholarDialog(context, scholar);
+                                          showEditScholarDialog(context, scholar).then((_) {
+                                            _fetchScholars(); // Refresh list after edit
+                                          });
                                         },
                                         icon: const Icon(Icons.edit_outlined, size: 18),
                                         label: const Text("Edit Scholar"),
@@ -549,21 +594,22 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
   // ---------------------------------------------------------------------
   // Page-level UI helpers
   // ---------------------------------------------------------------------
-  Widget _miniStat(IconData icon, String label, Color accent) {
+  Widget _miniStat(IconData icon, String label, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.14),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: accent),
+          Icon(icon, size: 13, color: color),
           const SizedBox(width: 5),
           Text(
             label,
-            style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: Colors.white),
+            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: color),
           ),
         ],
       ),
@@ -584,16 +630,13 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 1. Gradient Header (compact)
+          // 1. Clean Header (No Banners)
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
+            padding: const EdgeInsets.fromLTRB(24, 20, 20, 20),
             decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [kBrandBrown, kBrandOlive],
-              ),
+              color: Colors.white,
+              border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -602,14 +645,14 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(6),
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(8),
+                          color: kBrandBrown.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.groups_rounded, color: Colors.white, size: 16),
+                        child: const Icon(Icons.groups_rounded, color: kBrandBrown, size: 28),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 14),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -618,17 +661,17 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                             const Text(
                               "Scholars Registry",
                               style: TextStyle(
-                                fontSize: 16,
+                                fontSize: 20,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: kBrandBrown,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
+                            const SizedBox(height: 3),
                             Text(
-                              "${filteredScholars.length} of ${_allScholars.length} scholars",
-                              style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 11),
+                              "${filteredScholars.length} of ${kStudents.length} scholars enrolled in the program.",
+                              style: const TextStyle(color: Colors.grey, fontSize: 12),
                               overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
                             ),
                           ],
                         ),
@@ -638,34 +681,26 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                 ),
                 const SizedBox(width: 12),
                 Wrap(
-                  spacing: 8,
+                  spacing: 12,
                   runSpacing: 6,
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    _miniStat(Icons.check_circle_rounded, "$activeCount active", kBrandCream),
-                    _miniStat(Icons.account_balance_rounded, "$universityCount uni", kBrandCream),
+                    _miniStat(Icons.check_circle_rounded, "$activeCount Active", kBrandOlive),
+                    _miniStat(Icons.account_balance_rounded, "$universityCount University", kBrandBrown),
+                    IconButton(
+                      icon: const Icon(Icons.refresh, color: kBrandBrown, size: 22),
+                      tooltip: "Reset Filters",
+                      onPressed: () {
+                        _fetchScholars();
+                        setState(() {
+                          _searchQuery = '';
+                          _selectedSchoolType = 'All';
+                          _selectedSchoolName = 'All';
+                          _selectedSex = 'All';
+                        });
+                      },
+                    ),
                   ],
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.refresh, color: Colors.white, size: 18),
-                    padding: const EdgeInsets.all(6),
-                    constraints: const BoxConstraints(),
-                    onPressed: () {
-                      setState(() {
-                        _searchQuery = '';
-                        _selectedSchoolType = 'All';
-                        _selectedSchoolName = 'All';
-                        _selectedSex = 'All';
-                      });
-                    },
-                    tooltip: "Reset Filters",
-                  ),
                 ),
               ],
             ),
@@ -894,7 +929,9 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                   ],
                 ),
                 clipBehavior: Clip.antiAlias,
-                child: filteredScholars.isEmpty
+                child: _isLoading 
+                    ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
+                    : filteredScholars.isEmpty
                     ? Center(
                   child: Padding(
                     padding: const EdgeInsets.all(32.0),
@@ -1080,9 +1117,9 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                                     IconButton(
                                       icon: const Icon(Icons.edit_note, color: kBrandBrown),
                                       onPressed: () {
-                                        // Opens the Edit Scholar pop-up dialog directly
-                                        // from the table row, without leaving the page.
-                                        showEditScholarDialog(context, scholar);
+                                        showEditScholarDialog(context, scholar).then((_) {
+                                          _fetchScholars(); // Refresh list after edit
+                                        });
                                       },
                                       tooltip: "Edit Scholar",
                                     ),
@@ -1094,6 +1131,11 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                                       ),
                                       onPressed: () => _toggleScholarStatus(scholar),
                                       tooltip: isActive ? "Deactivate" : "Activate",
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                                      onPressed: () => _deleteScholar(scholar),
+                                      tooltip: "Delete Scholar",
                                     ),
                                   ],
                                 ),
@@ -1336,17 +1378,69 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
     }
   }
 
-  void _submitForm() {
+  void _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Scholar ${_fullNameController.text} updated successfully!"),
-          backgroundColor: kBrandOlive,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
+      final updatedData = {
+        'fullName': _fullNameController.text.trim(),
+        'schoolType': _selectedSchoolType,
+        'schoolName': _selectedSchool,
+        'sex': _selectedSex,
+        'dob': _dobController.text.trim(),
+        'currentClass': _yearController.text.trim(),
+        'district': _selectedDistrict,
+        'village': _homeVillageController.text.trim(),
+        'donor': _selectedDonor,
+        'phone': _phoneController.text.trim(),
+        'email': _emailController.text.trim(),
+        'programType': _selectedProgramType ?? '',
+        'startYear': _selectedStartYear,
+        'endYear': _selectedEndYear,
+      };
+
+      try {
+        final response = await ApiService.updateScholar(widget.scholarData!['id']!, updatedData);
+        if (response.statusCode == 200) {
+          final index = kStudents.indexWhere((s) => s.id == widget.scholarData?['id']);
+          if (index != -1) {
+            kStudents[index] = kStudents[index].copyWith(
+              name: _fullNameController.text.trim(),
+              schoolType: _selectedSchoolType == 'University' ? SchoolType.university : SchoolType.secondary,
+              schoolName: _selectedSchool ?? 'N/A',
+              sex: _selectedSex ?? 'Female',
+              dob: _dobController.text.trim(),
+              currentClass: _yearController.text.trim(),
+              district: _selectedDistrict ?? 'Lilongwe',
+              village: _homeVillageController.text.trim(),
+              donor: _selectedDonor ?? 'General Fund',
+              phone: _phoneController.text.trim(),
+              email: _emailController.text.trim(),
+              programType: _selectedProgramType ?? '',
+              startYear: _selectedStartYear ?? '2026',
+              endYear: _selectedEndYear ?? '2030',
+            );
+          }
+          if (mounted) {
+            Navigator.of(context).pop();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("Scholar ${_fullNameController.text} updated successfully!"),
+                backgroundColor: kBrandOlive,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Failed to update scholar. Please try again."),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'themeController.dart';
+import '../services/api_service.dart';
 
 // ============================================================
 // Shared Brand Color Palette
@@ -21,19 +22,70 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
   bool _biometricEnabled = false;
   String _language = "English (Malawi)";
   String _currency = "Malawian Kwacha (MWK)";
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSettings();
+  }
+
+  Future<void> _fetchSettings() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await ApiService.getUserSettings();
+      if (response.statusCode == 200) {
+        final data = response.data['data'];
+        if (data != null && mounted) {
+          setState(() {
+            _notificationsEnabled = data['notifications_enabled'] ?? true;
+            _biometricEnabled = data['biometric_enabled'] ?? false;
+            _language = data['language'] ?? "English (Malawi)";
+            _currency = data['currency'] ?? "Malawian Kwacha (MWK)";
+            
+            // Sync theme controller if theme is stored in backend
+            if (data['theme'] == 'dark') {
+              themeController.value = ThemeMode.dark;
+            } else if (data['theme'] == 'light') {
+              themeController.value = ThemeMode.light;
+            } else {
+              themeController.value = ThemeMode.system;
+            }
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching settings: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _updateSettings(Map<String, dynamic> delta) async {
+    try {
+      await ApiService.updateUserSettings(delta);
+    } catch (e) {
+      debugPrint('Error updating settings: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: theme.dividerColor),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
       ),
       clipBehavior: Clip.antiAlias,
-      child: SingleChildScrollView(
+      child: _isLoading 
+        ? const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+        : SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -72,7 +124,7 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Appearance & Theme", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                  Text("Appearance & Theme", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? theme.colorScheme.primary : kBrandBrown)),
                   const SizedBox(height: 16),
                   
                   ValueListenableBuilder<ThemeMode>(
@@ -85,7 +137,10 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
                             subtitle: "Matches your device's system theme",
                             icon: Icons.brightness_auto_rounded,
                             isSelected: mode == ThemeMode.system,
-                            onTap: () => themeController.value = ThemeMode.system,
+                            onTap: () {
+                              themeController.value = ThemeMode.system;
+                              _updateSettings({'theme': 'system'});
+                            },
                           ),
                           const SizedBox(height: 12),
                           _buildThemeOption(
@@ -93,7 +148,10 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
                             subtitle: "Bright and clear interface",
                             icon: Icons.light_mode_rounded,
                             isSelected: mode == ThemeMode.light,
-                            onTap: () => themeController.value = ThemeMode.light,
+                            onTap: () {
+                              themeController.value = ThemeMode.light;
+                              _updateSettings({'theme': 'light'});
+                            },
                           ),
                           const SizedBox(height: 12),
                           _buildThemeOption(
@@ -101,7 +159,10 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
                             subtitle: "Dark interface to reduce eye strain",
                             icon: Icons.dark_mode_rounded,
                             isSelected: mode == ThemeMode.dark,
-                            onTap: () => themeController.value = ThemeMode.dark,
+                            onTap: () {
+                              themeController.value = ThemeMode.dark;
+                              _updateSettings({'theme': 'dark'});
+                            },
                           ),
                         ],
                       );
@@ -109,7 +170,7 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
                   ),
 
                   const SizedBox(height: 32),
-                  const Text("General Preferences", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                  Text("General Preferences", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? theme.colorScheme.primary : kBrandBrown)),
                   const SizedBox(height: 16),
                   
                   _buildSwitchTile(
@@ -117,7 +178,10 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
                     subtitle: "Receive alerts for program activities",
                     icon: Icons.notifications_active_outlined,
                     value: _notificationsEnabled,
-                    onChanged: (v) => setState(() => _notificationsEnabled = v),
+                    onChanged: (v) {
+                      setState(() => _notificationsEnabled = v);
+                      _updateSettings({'notificationsEnabled': v});
+                    },
                   ),
                   const SizedBox(height: 12),
                   _buildSwitchTile(
@@ -125,7 +189,10 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
                     subtitle: "Secure access using Fingerprint/FaceID",
                     icon: Icons.fingerprint_rounded,
                     value: _biometricEnabled,
-                    onChanged: (v) => setState(() => _biometricEnabled = v),
+                    onChanged: (v) {
+                      setState(() => _biometricEnabled = v);
+                      _updateSettings({'biometricEnabled': v});
+                    },
                   ),
                   const SizedBox(height: 16),
                   _buildDropdownTile(
@@ -133,7 +200,10 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
                     value: _language,
                     icon: Icons.translate_rounded,
                     options: ["English (Malawi)", "Chichewa", "English (UK)"],
-                    onChanged: (v) => setState(() => _language = v!),
+                    onChanged: (v) {
+                      setState(() => _language = v!);
+                      _updateSettings({'language': v});
+                    },
                   ),
                   const SizedBox(height: 12),
                   _buildDropdownTile(
@@ -141,7 +211,10 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
                     value: _currency,
                     icon: Icons.monetization_on_outlined,
                     options: ["Malawian Kwacha (MWK)", "US Dollar (USD)"],
-                    onChanged: (v) => setState(() => _currency = v!),
+                    onChanged: (v) {
+                      setState(() => _currency = v!);
+                      _updateSettings({'currency': v});
+                    },
                   ),
 
                   const SizedBox(height: 32),
@@ -170,25 +243,33 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? kBrandOlive.withValues(alpha: 0.1) : Colors.grey.shade50,
+          color: isSelected 
+            ? kBrandOlive.withValues(alpha: 0.1) 
+            : (isDark ? theme.colorScheme.surfaceContainerHighest : Colors.grey.shade50),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: isSelected ? kBrandOlive : Colors.grey.shade200, width: isSelected ? 2 : 1),
+          border: Border.all(
+            color: isSelected ? kBrandOlive : theme.dividerColor, 
+            width: isSelected ? 2 : 1
+          ),
         ),
         child: Row(
           children: [
-            Icon(icon, color: isSelected ? kBrandOlive : Colors.grey),
+            Icon(icon, color: isSelected ? kBrandOlive : (isDark ? Colors.white70 : Colors.grey)),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: isSelected ? kBrandOlive : kBrandBrown)),
+                  Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: isSelected ? kBrandOlive : (isDark ? Colors.white : kBrandBrown))),
                   Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey)),
                 ],
               ),
@@ -207,20 +288,23 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: theme.dividerColor),
       ),
       child: SwitchListTile(
         contentPadding: EdgeInsets.zero,
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: 14)),
+        title: Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : kBrandBrown, fontSize: 14)),
         subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-        secondary: Icon(icon, color: kBrandBrown, size: 22),
+        secondary: Icon(icon, color: isDark ? Colors.white70 : kBrandBrown, size: 22),
         value: value,
-        activeColor: kBrandOlive.withValues(alpha: 0.8),
+        activeThumbColor: kBrandOlive,
         activeTrackColor: kBrandOlive.withValues(alpha: 0.3),
         onChanged: onChanged,
       ),
@@ -234,32 +318,36 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
     required List<String> options,
     required ValueChanged<String?> onChanged,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, color: kBrandBrown, size: 20),
+              Icon(icon, color: isDark ? Colors.white70 : kBrandBrown, size: 20),
               const SizedBox(width: 12),
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: 14)),
+              Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : kBrandBrown, fontSize: 14)),
             ],
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            value: value,
+            initialValue: value,
             isExpanded: true,
-            decoration: const InputDecoration(
+            dropdownColor: theme.cardColor,
+            decoration: InputDecoration(
               isDense: true,
-              border: OutlineInputBorder(),
+              border: const OutlineInputBorder(),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: theme.cardColor,
             ),
             items: options.map((o) => DropdownMenuItem(value: o, child: Text(o, style: const TextStyle(fontSize: 13)))).toList(),
             onChanged: onChanged,

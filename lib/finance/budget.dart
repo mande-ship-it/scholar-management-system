@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../academics/academicsUtils.dart';
+import '../services/api_service.dart';
 import 'financeUtils.dart';
 
 class BudgetComponent extends StatefulWidget {
@@ -10,6 +11,38 @@ class BudgetComponent extends StatefulWidget {
 }
 
 class _BudgetComponentState extends State<BudgetComponent> {
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchBudgets();
+  }
+
+  Future<void> _fetchBudgets() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await ApiService.getAllBudgets();
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data['data'];
+        kBudgets.clear();
+        for (var item in data) {
+          kBudgets.add(BudgetAllocation(
+            id: item['id'].toString(),
+            fiscalYear: item['fiscal_year'] ?? '2026',
+            category: item['category'],
+            allocatedAmount: double.parse(item['allocated_amount'].toString()),
+            spentAmount: double.parse(item['spent_amount'].toString()),
+          ));
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching budgets: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -20,45 +53,57 @@ class _BudgetComponentState extends State<BudgetComponent> {
         border: Border.all(color: Colors.grey.shade200),
       ),
       clipBehavior: Clip.antiAlias,
-      child: SingleChildScrollView(
+      child: _isLoading 
+          ? const Center(child: Padding(padding: EdgeInsets.all(50), child: CircularProgressIndicator(color: kBrandOlive)))
+          : SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ---------------- Header ----------------
+            // ---------------- Header (Banner Removed) ----------------
             Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 20, 20, 20),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [kBrandBrown, kBrandOlive],
-                ),
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 8),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
               ),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
-                    child: const Icon(Icons.pie_chart_rounded, color: Colors.white, size: 28),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: kBrandBrown.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.pie_chart_rounded, color: kBrandBrown, size: 32),
                   ),
-                  const SizedBox(width: 14),
-                  const Expanded(
+                  const SizedBox(width: 16),
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Budget & Allocations', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
-                        SizedBox(height: 3),
+                        const Text('Budget & Allocations', 
+                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                        const SizedBox(height: 4),
                         Text('Monitor budget utilization and fiscal planning.',
-                            style: TextStyle(fontSize: 12, color: Colors.white70)),
+                            style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
                       ],
                     ),
                   ),
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: _fetchBudgets,
+                  ),
+                  const SizedBox(width: 8),
                   ElevatedButton.icon(
                     onPressed: () {},
                     icon: const Icon(Icons.add, size: 18),
                     label: const Text("New Allocation"),
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: kBrandBrown, elevation: 0),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kBrandOlive, 
+                      foregroundColor: Colors.white, 
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
                   ),
                 ],
               ),
@@ -69,27 +114,13 @@ class _BudgetComponentState extends State<BudgetComponent> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text("Fiscal Year 2026 Overview", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                  const SizedBox(height: 20),
-                  
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                      childAspectRatio: 2.2,
-                    ),
-                    itemCount: kBudgets.length,
-                    itemBuilder: (context, index) {
-                      final b = kBudgets[index];
-                      return _BudgetCard(budget: b);
-                    },
-                  ),
-                  
-                  const SizedBox(height: 32),
-                  const Text("Detailed Utilization", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                  // ---------------- Stats (Banners Removed) ----------------
+
+                  const Text("Detailed Utilization",
+                      style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: kBrandBrown)),
                   const SizedBox(height: 16),
                   
                   Container(

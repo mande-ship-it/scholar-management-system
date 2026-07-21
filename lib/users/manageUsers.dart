@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 
 /// ---------------------------------------------------------------------
 /// MODEL
@@ -45,99 +46,43 @@ class ManageUsersComponent extends StatefulWidget {
 }
 
 class _ManageUsersComponentState extends State<ManageUsersComponent> {
-  // ---------------------------------------------------------------------
-  // MOCK DATA (replace with your real data source / API call)
-  // ---------------------------------------------------------------------
-  final List<AppUser> _users = [
-    AppUser(
-      id: '1',
-      fullName: 'Edward Shaba',
-      username: 'eshaba',
-      email: 'edward.shaba@ageafrica.org',
-      phone: '+265 991 234 567',
-      role: 'Administrator',
-      department: 'Information Technology',
-      isActive: true,
-      createdDate: DateTime(2025, 3, 12),
-    ),
-    AppUser(
-      id: '2',
-      fullName: 'Grace Banda',
-      username: 'gbanda',
-      email: 'grace.banda@ageafrica.org',
-      phone: '+265 998 765 432',
-      role: 'Program Manager',
-      department: 'Programs',
-      isActive: true,
-      createdDate: DateTime(2025, 5, 2),
-    ),
-    AppUser(
-      id: '3',
-      fullName: 'Chikondi Phiri',
-      username: 'cphiri',
-      email: 'chikondi.phiri@ageafrica.org',
-      phone: '+265 887 112 233',
-      role: 'Data Officer',
-      department: 'Monitoring & Evaluation',
-      isActive: true,
-      createdDate: DateTime(2025, 6, 18),
-    ),
-    AppUser(
-      id: '4',
-      fullName: 'Thandiwe Mvula',
-      username: 'tmvula',
-      email: 'thandiwe.mvula@ageafrica.org',
-      phone: '+265 992 345 678',
-      role: 'Finance Officer',
-      department: 'Finance & Administration',
-      isActive: false,
-      createdDate: DateTime(2024, 11, 9),
-    ),
-    AppUser(
-      id: '5',
-      fullName: 'Blessings Kamanga',
-      username: 'bkamanga',
-      email: 'blessings.kamanga@ageafrica.org',
-      phone: '+265 881 998 776',
-      role: 'Field Coordinator',
-      department: 'Field Operations',
-      isActive: true,
-      createdDate: DateTime(2025, 1, 27),
-    ),
-    AppUser(
-      id: '6',
-      fullName: 'Memory Nyirenda',
-      username: 'mnyirenda',
-      email: 'memory.nyirenda@ageafrica.org',
-      phone: '+265 995 443 221',
-      role: 'Volunteer',
-      department: 'Programs',
-      isActive: true,
-      createdDate: DateTime(2025, 7, 1),
-    ),
-    AppUser(
-      id: '7',
-      fullName: 'Yamikani Chirwa',
-      username: 'ychirwa',
-      email: 'yamikani.chirwa@ageafrica.org',
-      phone: '+265 993 221 445',
-      role: 'Data Officer',
-      department: 'Human Resources',
-      isActive: false,
-      createdDate: DateTime(2024, 9, 15),
-    ),
-    AppUser(
-      id: '8',
-      fullName: 'Precious Mhango',
-      username: 'pmhango',
-      email: 'precious.mhango@ageafrica.org',
-      phone: '+265 884 556 778',
-      role: 'Program Manager',
-      department: 'Programs',
-      isActive: true,
-      createdDate: DateTime(2025, 4, 22),
-    ),
-  ];
+  List<AppUser> _users = [];
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUsers();
+  }
+
+  Future<void> _fetchUsers() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await ApiService.getAllUsers();
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data['data'] ?? [];
+        if (mounted) {
+          setState(() {
+            _users = data.map((u) => AppUser(
+              id: u['id'].toString(),
+              fullName: u['full_name'] ?? '',
+              username: u['username'] ?? '',
+              email: u['email'] ?? '',
+              phone: u['phone'] ?? '',
+              role: u['role_name'] ?? '',
+              department: u['department'] ?? '',
+              isActive: u['is_active'] ?? true,
+              createdDate: DateTime.tryParse(u['created_at'] ?? '') ?? DateTime.now(),
+            )).toList();
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching users: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   // Filters
   String _searchQuery = '';
@@ -195,8 +140,6 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
   int get _totalCount => _users.length;
   int get _activeCount => _users.where((u) => u.isActive).length;
   int get _inactiveCount => _totalCount - _activeCount;
-  int get _adminCount =>
-      _users.where((u) => u.role == 'Administrator').length;
 
   bool get _hasActiveFilters =>
       _searchQuery.isNotEmpty ||
@@ -216,20 +159,39 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
   // ---------------------------------------------------------------------
   // ACTIONS
   // ---------------------------------------------------------------------
-  void _toggleStatus(AppUser user) {
+  void _toggleStatus(AppUser user) async {
+    final oldStatus = user.isActive;
     setState(() => user.isActive = !user.isActive);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          "${user.fullName} is now ${user.isActive ? 'active' : 'inactive'}",
+
+    try {
+      final response = await ApiService.updateUser(user.id, {'isActive': user.isActive});
+      if (response.statusCode != 200) {
+        throw Exception("Failed to update status");
+      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            "${user.fullName} is now ${user.isActive ? 'active' : 'inactive'}",
+          ),
+          backgroundColor: user.isActive ? Colors.green.shade700 : Colors.grey.shade700,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 2),
         ),
-        backgroundColor:
-        user.isActive ? Colors.green.shade700 : Colors.grey.shade700,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+      );
+    } catch (e) {
+      setState(() => user.isActive = oldStatus);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("Error updating status. Please try again."),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
   }
 
   void _editUser(AppUser user) {
@@ -291,16 +253,33 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
     );
 
     if (confirmed == true) {
-      setState(() => _users.removeWhere((u) => u.id == user.id));
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("'${user.fullName}' was deleted."),
-          backgroundColor: Colors.red.shade600,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
+      try {
+        final response = await ApiService.deleteUser(user.id);
+        if (response.statusCode == 200) {
+          setState(() => _users.removeWhere((u) => u.id == user.id));
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("'${user.fullName}' was deleted."),
+              backgroundColor: Colors.red.shade600,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        } else {
+          throw Exception("Delete failed");
+        }
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text("Error deleting user. Please try again."),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
     }
   }
 
@@ -356,10 +335,7 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildHeader(),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 4),
-            child: _buildStatsRow(),
-          ),
+          // ---------------- Stats (Banners Removed) ----------------
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
             child: _buildFilterBar(),
@@ -371,16 +347,18 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
           ),
           Divider(color: Colors.grey.shade200, height: 1, thickness: 1),
           Expanded(
-            child: filtered.isEmpty
-                ? _buildEmptyState()
-                : ListView.separated(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-              itemCount: filtered.length,
-              separatorBuilder: (context, index) =>
-                  Divider(color: Colors.grey.shade100, height: 1),
-              itemBuilder: (context, index) =>
-                  _buildUserRow(filtered[index]),
-            ),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : filtered.isEmpty
+                    ? _buildEmptyState()
+                    : ListView.separated(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+                        itemCount: filtered.length,
+                        separatorBuilder: (context, index) =>
+                            Divider(color: Colors.grey.shade100, height: 1),
+                        itemBuilder: (context, index) =>
+                            _buildUserRow(filtered[index]),
+                      ),
           ),
           _buildFooter(filtered.length),
         ],
@@ -388,31 +366,21 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
     );
   }
 
-  // ---------------------------------------------------------------------
-  // HEADER BANNER
-  // ---------------------------------------------------------------------
+  // ---------------- CLEAN HEADER (Banner Removed) ----------------
   Widget _buildHeader() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(24, 18, 20, 18),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Colors.green.shade800, Colors.green.shade600],
-        ),
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 32, 24, 8),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.16),
+              color: Colors.green.shade50,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.group_rounded, color: Colors.white, size: 22),
+            child: Icon(Icons.group_rounded, color: Colors.green.shade800, size: 32),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -420,28 +388,22 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
                 const Text(
                   "Manage Users",
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
+                    color: Color(0xFF4C3C32),
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
-                  "View, filter, and manage all system user accounts",
+                  "View, filter, and manage all system user accounts.",
                   style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.85),
-                    fontSize: 12,
+                    color: Colors.grey.shade600,
+                    fontSize: 14,
                   ),
                 ),
               ],
             ),
           ),
-          IconButton(
-            onPressed: () => setState(() {}),
-            icon: const Icon(Icons.refresh_rounded, color: Colors.white),
-            tooltip: "Refresh",
-          ),
-          const SizedBox(width: 4),
           ElevatedButton.icon(
             onPressed: widget.onAddUser ??
                     () {
@@ -457,102 +419,12 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
             icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
             label: const Text("Add User"),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.green.shade800,
+              backgroundColor: const Color(0xFF4C3C32),
+              foregroundColor: Colors.white,
               elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ---------------------------------------------------------------------
-  // STATS ROW
-  // ---------------------------------------------------------------------
-  Widget _buildStatsRow() {
-    return Row(
-      children: [
-        Expanded(
-          child: _statCard(
-            "Total Users",
-            _totalCount.toString(),
-            Icons.groups_rounded,
-            Colors.blue.shade600,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _statCard(
-            "Active",
-            _activeCount.toString(),
-            Icons.check_circle_rounded,
-            Colors.green.shade600,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _statCard(
-            "Inactive",
-            _inactiveCount.toString(),
-            Icons.pause_circle_rounded,
-            Colors.orange.shade600,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _statCard(
-            "Administrators",
-            _adminCount.toString(),
-            Icons.shield_rounded,
-            Colors.purple.shade600,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _statCard(String label, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withValues(alpha: 0.15)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(9),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: color, size: 18),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade900,
-                  ),
-                ),
-                Text(
-                  label,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600),
-                ),
-              ],
+              textStyle: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
         ],

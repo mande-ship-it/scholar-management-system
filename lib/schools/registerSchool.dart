@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 
 class RegisterSchoolComponent extends StatefulWidget {
   const RegisterSchoolComponent({super.key});
@@ -39,6 +40,7 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
   String? _selectedGenderType;
   String? _selectedRegion;
   String? _selectedDistrict;
+  bool _isSaving = false;
 
   // Options Lists
   final List<String> _schoolLevels = [
@@ -198,50 +200,63 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
     );
   }
 
-  void _submitForm() {
+  void _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      final schoolName = _nameController.text;
-      final schoolCode = _codeController.text;
+      setState(() => _isSaving = true);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("School '$schoolName' ($schoolCode) successfully registered!"),
-          backgroundColor: brandOlive,
-          duration: const Duration(seconds: 4),
-        ),
-      );
+      final schoolData = <String, dynamic>{
+        'name': _nameController.text.trim(),
+        'code': _codeController.text.trim(),
+        'level': _selectedLevel ?? '',
+        'type': _selectedType ?? '',
+        'genderPolicy': _selectedGenderType ?? '',
+        'region': _selectedRegion ?? '',
+        'district': _selectedDistrict ?? '',
+        'address': _addressController.text.trim(),
+        'postal': _postalController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'altPhone': _altPhoneController.text.trim(),
+        'email': _emailController.text.trim(),
+        'website': _websiteController.text.trim(),
+        'adminName': _adminNameController.text.trim(),
+        'adminRole': _adminRoleController.text.trim(),
+        'adminPhone': _adminPhoneController.text.trim(),
+        'adminEmail': _adminEmailController.text.trim(),
+        'description': _descriptionController.text.trim(),
+        'notes': _notesController.text.trim(),
+      };
 
-      _formKey.currentState!.reset();
-      for (final c in [
-        _nameController,
-        _codeController,
-        _addressController,
-        _phoneController,
-        _altPhoneController,
-        _emailController,
-        _postalController,
-        _websiteController,
-        _adminNameController,
-        _adminRoleController,
-        _adminPhoneController,
-        _adminEmailController,
-        _descriptionController,
-        _notesController,
-      ]) {
-        c.clear();
+      try {
+        final response = await ApiService.createSchool(schoolData);
+        if (response.statusCode == 201) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("School '${_nameController.text}' successfully registered!"),
+                backgroundColor: brandOlive,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+            Navigator.pop(context, true);
+          }
+        }
+      } catch (e) {
+        debugPrint('Error registering school: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Failed to register school. Please try again."),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isSaving = false);
       }
-
-      setState(() {
-        _selectedLevel = null;
-        _selectedType = null;
-        _selectedGenderType = null;
-        _selectedRegion = null;
-        _selectedDistrict = null;
-      });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text("Please correct the errors in the form."),
+        const SnackBar(
+          content: Text("Please correct the errors in the form."),
           backgroundColor: brandOrange,
         ),
       );
@@ -638,11 +653,13 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
     final isComplete = completion >= 1.0;
 
     return ElevatedButton.icon(
-      onPressed: _submitForm,
-      icon: const Icon(Icons.save_rounded, size: 20),
-      label: const Text(
-        "Save School Record",
-        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+      onPressed: _isSaving ? null : _submitForm,
+      icon: _isSaving 
+          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+          : const Icon(Icons.save_rounded, size: 20),
+      label: Text(
+        _isSaving ? "Saving..." : "Save School Record",
+        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
       ),
       style: ElevatedButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 18),

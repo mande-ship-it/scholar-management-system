@@ -54,69 +54,39 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ---------------- Gradient Header ----------------
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 20, 20, 20),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [kBrandBrown, kBrandOlive]),
-              ),
+            // ---------------- Header (No Banners) ----------------
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
               child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.analytics_rounded, color: Colors.white, size: 28),
+                    decoration: BoxDecoration(color: kBrandOlive.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                    child: const Icon(Icons.analytics_rounded, color: kBrandOlive, size: 24),
                   ),
                   const SizedBox(width: 14),
                   const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Performance Analysis', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
-                        SizedBox(height: 3),
+                        Text('Performance Analysis', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                        SizedBox(height: 2),
                         Text('Detailed academic insights and student ranking statistics.',
-                            style: TextStyle(fontSize: 12, color: Colors.white70)),
+                            style: TextStyle(fontSize: 12, color: Colors.grey)),
                       ],
                     ),
                   ),
                 ],
               ),
             ),
+            const Divider(indent: 24, endIndent: 24),
 
             Padding(
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // --- Quick Stats Row ---
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _TopBanner(
-                          label: 'Top Scholar',
-                          value: rankedStudents.isEmpty ? '—' : rankedStudents.first.student.name,
-                          score: rankedStudents.isEmpty ? '0%' : '${rankedStudents.first.average.toStringAsFixed(1)}%',
-                          icon: Icons.emoji_events_rounded,
-                          color: kBrandOrange,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _TopBanner(
-                          label: 'Top School',
-                          value: rankedSchools.isEmpty ? '—' : rankedSchools.first.name,
-                          score: rankedSchools.isEmpty ? '0%' : '${rankedSchools.first.average.toStringAsFixed(1)}%',
-                          icon: Icons.apartment_rounded,
-                          color: kBrandOlive,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
+                  // ---------------- Quick Stats (Banners Removed) ----------------
 
                   // Mode Toggle
                   SegmentedButton<AnalysisMode>(
@@ -260,41 +230,6 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
   }
 }
 
-class _TopBanner extends StatelessWidget {
-  const _TopBanner({required this.label, required this.value, required this.score, required this.icon, required this.color});
-  final String label, value, score;
-  final IconData icon;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(backgroundColor: color, radius: 20, child: Icon(icon, color: Colors.white, size: 20)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color, letterSpacing: 0.5)),
-                Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kBrandBrown), overflow: TextOverflow.ellipsis),
-                Text(score, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _ScholarDetailAnalysis extends StatelessWidget {
   const _ScholarDetailAnalysis({required this.studentId});
   final String studentId;
@@ -309,9 +244,6 @@ class _ScholarDetailAnalysis extends StatelessWidget {
     
     // Performance Indicator logic
     final isGood = avg >= 60;
-    final indicatorColor = isGood ? Colors.green : Colors.red;
-    final indicatorIcon = isGood ? Icons.trending_up_rounded : Icons.trending_down_rounded;
-    final indicatorText = isGood ? "Satisfactory / Good Progress" : "Academic Support Recommended";
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -325,27 +257,6 @@ class _ScholarDetailAnalysis extends StatelessWidget {
             _MetricCard(label: 'Current Status', value: band.label, color: band.color, isBadge: true),
           ],
         ),
-        const SizedBox(height: 20),
-        
-        // Performance Indicator Bar
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: indicatorColor.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: indicatorColor.withValues(alpha: 0.2)),
-          ),
-          child: Row(
-            children: [
-              Icon(indicatorIcon, color: indicatorColor),
-              const SizedBox(width: 10),
-              Text(indicatorText, style: TextStyle(fontWeight: FontWeight.bold, color: indicatorColor, fontSize: 13)),
-              const Spacer(),
-              Text("Scholar: ${student.name}", style: const TextStyle(fontSize: 11, color: kBrandBrown, fontWeight: FontWeight.bold)),
-            ],
-          ),
-        ),
-        
         const SizedBox(height: 24),
         const Text("Score Distribution", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown)),
         const SizedBox(height: 12),

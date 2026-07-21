@@ -12,10 +12,6 @@ class FinancialReportsComponent extends StatefulWidget {
 class _FinancialReportsComponentState extends State<FinancialReportsComponent> {
   @override
   Widget build(BuildContext context) {
-    final double totalPayments = kPayments.fold(0, (sum, item) => sum + item.amount);
-    final double totalExpenses = kExpenses.fold(0, (sum, item) => sum + item.amount);
-    final double totalDisbursed = totalPayments + totalExpenses;
-
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -28,41 +24,46 @@ class _FinancialReportsComponentState extends State<FinancialReportsComponent> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ---------------- Header ----------------
+            // ---------------- Header (Banner Removed) ----------------
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 20, 20, 20),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [kBrandBrown, kBrandOlive],
-                ),
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 8),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
               ),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
-                    child: const Icon(Icons.bar_chart_rounded, color: Colors.white, size: 28),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: kBrandBrown.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.bar_chart_rounded,
+                        color: kBrandBrown, size: 32),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 16),
                   const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Financial Reports', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
-                        SizedBox(height: 3),
+                        Text('Financial Reports',
+                            style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: kBrandBrown)),
+                        SizedBox(height: 4),
                         Text('Aggregated summaries and program expenditure analytics.',
-                            style: TextStyle(fontSize: 12, color: Colors.white70)),
+                            style: TextStyle(fontSize: 14, color: Colors.grey)),
                       ],
                     ),
                   ),
                   OutlinedButton.icon(
                     onPressed: () {},
-                    icon: const Icon(Icons.file_download, size: 18, color: Colors.white),
-                    label: const Text("Export PDF", style: TextStyle(color: Colors.white)),
-                    style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.white)),
+                    icon: const Icon(Icons.file_download, size: 18, color: kBrandBrown),
+                    label: const Text("Export PDF", style: TextStyle(color: kBrandBrown)),
+                    style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: kBrandBrown)),
                   ),
                 ],
               ),
@@ -73,18 +74,8 @@ class _FinancialReportsComponentState extends State<FinancialReportsComponent> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // High level summary
-                  Row(
-                    children: [
-                      _StatCard(label: "Total Disbursed", value: "MWK ${totalDisbursed.toStringAsFixed(0)}", color: kBrandBrown, icon: Icons.payments),
-                      const SizedBox(width: 16),
-                      _StatCard(label: "Scholarship Funds", value: "MWK ${totalPayments.toStringAsFixed(0)}", color: kBrandOlive, icon: Icons.school),
-                      const SizedBox(width: 16),
-                      _StatCard(label: "Operational Costs", value: "MWK ${totalExpenses.toStringAsFixed(0)}", color: kBrandOrange, icon: Icons.receipt),
-                    ],
-                  ),
+                  // ---------------- Stats (Banners Removed) ----------------
 
-                  const SizedBox(height: 32),
                   const Text("Monthly Spending Trend", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kBrandBrown)),
                   const SizedBox(height: 16),
                   
@@ -117,32 +108,6 @@ class _FinancialReportsComponentState extends State<FinancialReportsComponent> {
                 ],
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  const _StatCard({required this.label, required this.value, required this.color, required this.icon});
-  final String label, value;
-  final Color color;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.grey.shade200), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4)]),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(padding: const EdgeInsets.all(6), decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)), child: Icon(icon, color: color, size: 16)),
-            const SizedBox(height: 12),
-            Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
-            Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
           ],
         ),
       ),
