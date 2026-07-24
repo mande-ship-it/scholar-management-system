@@ -156,7 +156,7 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
                         children: [
                           CircleAvatar(
                             radius: 18,
-                            backgroundColor: color.withOpacity(0.12),
+                            backgroundColor: color.withValues(alpha: 0.12),
                             child: Icon(icon, color: color, size: 16),
                           ),
                           const SizedBox(width: 16),

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart';
-import 'api_service.dart';
 // Note: You might need to add socket_io_client and audioplayers to pubspec.yaml
 // import 'package:socket_io_client/socket_io_client.dart' as IO;
 // import 'package:audioplayers/audioplayers.dart';
@@ -69,7 +67,7 @@ class NotificationProvider extends ChangeNotifier {
       await Future.delayed(const Duration(seconds: 1));
       _unreadCount = 3;
     } catch (e) {
-      print('Error fetching notifications: $e');
+      debugPrint('Error fetching notifications: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -86,7 +84,7 @@ class NotificationProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      print('Error marking as read: $e');
+      debugPrint('Error marking as read: $e');
     }
   }
 

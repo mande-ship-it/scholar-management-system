@@ -1,76 +1,79 @@
 import 'package:flutter/material.dart';
 
 // Home Page
-import 'pages/home/homePage.dart';
+import 'pages/home/home_page.dart';
 
 // Dashboard Pages
 import 'pages/dashboardPages/dashboard.dart';
 import 'pages/dashboardPages/statistics.dart';
-import 'pages/dashboardPages/recentActivities.dart';
+import 'pages/dashboardPages/recent_activities.dart';
 import 'pages/dashboardPages/notifications.dart';
 
 // Authentication
-import 'authentication/signIn.dart';
+import 'authentication/sign_in.dart';
 
 // Scholar Pages
-import 'pages/scholarPages/registerScholar.dart';
-import 'pages/scholarPages/viewScholars.dart';
-import 'pages/scholarPages/ScholarProfile.dart';
-import 'pages/scholarPages/promoteScholars.dart';
-import 'pages/scholarPages/scholarStats.dart';
-import 'pages/attendancePages/scholarAttendance.dart';
+import 'pages/scholarPages/register_scholar.dart';
+import 'pages/scholarPages/view_scholars.dart';
+import 'pages/scholarPages/scholar_profile.dart';
+import 'pages/scholarPages/promote_scholars.dart';
+import 'pages/scholarPages/scholar_stats.dart';
+import 'pages/attendancePages/scholar_attendance.dart';
 
 // School Pages
-import 'pages/schoolPages/registerSchool.dart';
-import 'pages/schoolPages/viewSchools.dart';
-import 'pages/schoolPages/schoolProfile.dart';
-import 'pages/schoolPages/schoolStats.dart';
+import 'pages/schoolPages/register_school.dart';
+import 'pages/schoolPages/view_schools.dart';
+import 'pages/schoolPages/school_profile.dart';
+import 'pages/schoolPages/school_stats.dart';
 
 // Sponsor Pages
-import 'pages/sponsorPages/registerSponsor.dart';
-import 'pages/sponsorPages/viewSponsors.dart';
-import 'pages/sponsorPages/sponsorStats.dart';
+import 'pages/sponsorPages/register_sponsor.dart';
+import 'pages/sponsorPages/view_sponsors.dart';
+import 'pages/sponsorPages/sponsor_stats.dart';
 
 // Academic Pages
-import 'pages/academicPages/enterResults.dart';
-import 'pages/academicPages/viewResults.dart';
-import 'pages/academicPages/reportCards.dart';
-import 'pages/academicPages/performanceAnalysis.dart';
-import 'pages/academicPages/academicStats.dart';
+import 'pages/academicPages/enter_results.dart';
+import 'pages/academicPages/view_results.dart';
+import 'pages/academicPages/report_cards.dart';
+import 'pages/academicPages/performance_analysis.dart';
+import 'pages/academicPages/academic_stats.dart';
 
 // Attendance Pages
-import 'pages/attendancePages/attendanceHistory.dart';
-import 'pages/attendancePages/attendanceReports.dart';
+import 'pages/attendancePages/attendance_history.dart';
+import 'pages/attendancePages/attendance_reports.dart';
 
 // Finance Pages
-import 'pages/financePages/scholarshipPayments.dart';
-import 'pages/financePages/paymentHistory.dart';
+import 'pages/financePages/scholarship_payments.dart';
+import 'pages/financePages/payment_history.dart';
 import 'pages/financePages/expenses.dart';
 import 'pages/financePages/budget.dart';
-import 'pages/financePages/financialReports.dart';
+import 'pages/financePages/financial_reports.dart';
 
 // Report Pages
-import 'pages/reportPages/scholarReports.dart';
-import 'pages/reportPages/schoolReports.dart';
-import 'pages/reportPages/sponsorReports.dart';
-import 'pages/reportPages/financeReports.dart';
-import 'pages/reportPages/exportPDF.dart';
-import 'pages/reportPages/exportExcel.dart';
+import 'pages/reportPages/scholar_reports.dart';
+import 'pages/reportPages/school_reports.dart';
+import 'pages/reportPages/sponsor_reports.dart';
+import 'pages/reportPages/finance_reports.dart';
+import 'pages/reportPages/export_pdf.dart';
+import 'pages/reportPages/export_excel.dart';
 
 // User Pages
-import 'pages/userPages/createUser.dart';
-import 'pages/userPages/manageUsers.dart';
-import 'pages/userPages/userRoles.dart';
+import 'pages/userPages/create_user.dart';
+import 'pages/userPages/manage_users.dart';
+import 'pages/userPages/user_roles.dart';
 import 'pages/userPages/permissions.dart';
-import 'pages/userPages/userProfile.dart';
+import 'pages/userPages/user_profile.dart';
+
+// Splash Screen
+import 'pages/splash/splash_screen.dart';
 
 // Settings Pages
-import 'pages/settingsPages/organisationProfile.dart';
-import 'pages/settingsPages/backupRestore.dart';
-import 'pages/settingsPages/systemSettings.dart';
-import 'pages/settingsPages/accountSettings.dart';
+import 'pages/settingsPages/organisation_profile.dart';
+import 'pages/settingsPages/backup_restore.dart';
+import 'pages/settingsPages/system_settings.dart';
+import 'pages/settingsPages/account_settings.dart';
 
-import 'settings/themeController.dart';
+import 'settings/theme_controller.dart';
 
 void main() {
   runApp(const MyApp());
@@ -102,75 +105,76 @@ class MyApp extends StatelessWidget {
               brightness: Brightness.dark,
             ),
           ),
-          initialRoute: '/login',
+          initialRoute: '/splash',
           routes: {
-            '/': (context) => const HomePage(),
-            '/login': (context) => const SignInPage(),
-            '/home': (context) => const HomePage(),
+            '/': (context) => const SplashScreen(),
+            '/splash': (context) => const SplashScreen(),
+            '/login': (context) => SignInPage(),
+            '/home': (context) => HomePage(),
 
             // Dashboard
-            '/dashboard': (context) => const DashboardPage(),
-            '/dashboard/statistics': (context) => const StatisticsPage(),
-            '/dashboard/recentActivities': (context) => const RecentActivitiesPage(),
-            '/dashboard/notifications': (context) => const NotificationsPage(),
+            '/dashboard': (context) => DashboardPage(),
+            '/dashboard/statistics': (context) => StatisticsPage(),
+            '/dashboard/recentActivities': (context) => RecentActivitiesPage(),
+            '/dashboard/notifications': (context) => NotificationsPage(),
 
             // Scholars
-            '/registerScholar': (context) => const RegisterScholarPage(),
-            '/viewScholars': (context) => const ViewScholarsPage(),
-            '/scholarProfile': (context) => const ScholarProfilePage(),
-            '/scholarAttendance': (context) => const ScholarAttendancePage(),
-            '/scholars/promote': (context) => const PromoteScholarsPage(),
-            '/scholars/stats': (context) => const ScholarStatsPage(),
+            '/registerScholar': (context) => RegisterScholarPage(),
+            '/viewScholars': (context) => ViewScholarsPage(),
+            '/scholarProfile': (context) => ScholarProfilePage(),
+            '/scholarAttendance': (context) => ScholarAttendancePage(),
+            '/scholars/promote': (context) => PromoteScholarsPage(),
+            '/scholars/stats': (context) => ScholarStatsPage(),
 
             // Schools
-            '/schools/register': (context) => const RegisterSchoolPage(),
-            '/schools/view': (context) => const ViewSchoolsPage(),
-            '/schools/profile': (context) => const SchoolProfilePage(),
-            '/schools/stats': (context) => const SchoolStatsPage(),
+            '/schools/register': (context) => RegisterSchoolPage(),
+            '/schools/view': (context) => ViewSchoolsPage(),
+            '/schools/profile': (context) => SchoolProfilePage(),
+            '/schools/stats': (context) => SchoolStatsPage(),
 
             // Sponsors
-            '/sponsors/register': (context) => const RegisterSponsorPage(),
-            '/sponsors/view': (context) => const ViewSponsorsPage(),
-            '/sponsors/stats': (context) => const SponsorStatsPage(),
+            '/sponsors/register': (context) => RegisterSponsorPage(),
+            '/sponsors/view': (context) => ViewSponsorsPage(),
+            '/sponsors/stats': (context) => SponsorStatsPage(),
 
             // Academics
-            '/academics/enterResults': (context) => const EnterResultsPage(),
-            '/academics/viewResults': (context) => const ViewResultsPage(),
-            '/academics/reportCards': (context) => const ReportCardsPage(),
-            '/academics/performanceAnalysis': (context) => const PerformanceAnalysisPage(),
-            '/academics/academicStats': (context) => const AcademicStatsPage(),
+            '/academics/enterResults': (context) => EnterResultsPage(),
+            '/academics/viewResults': (context) => ViewResultsPage(),
+            '/academics/reportCards': (context) => ReportCardsPage(),
+            '/academics/performanceAnalysis': (context) => PerformanceAnalysisPage(),
+            '/academics/academicStats': (context) => AcademicStatsPage(),
 
             // Attendance
-            '/attendance/attendanceHistory': (context) => const AttendanceHistoryPage(),
-            '/attendance/attendanceReports': (context) => const AttendanceModuleReportsPage(),
+            '/attendance/attendanceHistory': (context) => AttendanceHistoryPage(),
+            '/attendance/attendanceReports': (context) => AttendanceModuleReportsPage(),
 
             // Finance
-            '/finance/scholarshipPayments': (context) => const ScholarshipPaymentsPage(),
-            '/finance/paymentHistory': (context) => const PaymentHistoryPage(),
-            '/finance/expenses': (context) => const ExpensesPage(),
-            '/finance/budget': (context) => const BudgetPage(),
-            '/finance/financialReports': (context) => const FinancialReportsPage(),
+            '/finance/scholarshipPayments': (context) => ScholarshipPaymentsPage(),
+            '/finance/paymentHistory': (context) => PaymentHistoryPage(),
+            '/finance/expenses': (context) => ExpensesPage(),
+            '/finance/budget': (context) => BudgetPage(),
+            '/finance/financialReports': (context) => FinancialReportsPage(),
 
             // Reports
-            '/reports/scholar': (context) => const ScholarReportsPage(),
-            '/reports/school': (context) => const SchoolReportsPage(),
-            '/reports/sponsor': (context) => const SponsorReportsPage(),
-            '/reports/finance': (context) => const FinanceReportsPage(),
-            '/reports/exportPDF': (context) => const ExportPDFPage(),
-            '/reports/exportExcel': (context) => const ExportExcelPage(),
+            '/reports/scholar': (context) => ScholarReportsPage(),
+            '/reports/school': (context) => SchoolReportsPage(),
+            '/reports/sponsor': (context) => SponsorReportsPage(),
+            '/reports/finance': (context) => FinanceReportsPage(),
+            '/reports/exportPDF': (context) => ExportPDFPage(),
+            '/reports/exportExcel': (context) => ExportExcelPage(),
 
             // Users
-            '/users/create': (context) => const CreateUserPage(),
-            '/users/manage': (context) => const ManageUsersPage(),
-            '/users/roles': (context) => const UserRolesPage(),
-            '/users/permissions': (context) => const PermissionsPage(),
-            '/users/profile': (context) => const UserProfilePage(),
+            '/users/create': (context) => CreateUserPage(),
+            '/users/manage': (context) => ManageUsersPage(),
+            '/users/roles': (context) => UserRolesPage(),
+            '/users/permissions': (context) => PermissionsPage(),
+            '/users/profile': (context) => UserProfilePage(),
 
             // Settings
-            '/settings/organisationProfile': (context) => const OrganisationProfilePage(),
-            '/settings/backupRestore': (context) => const BackupRestorePage(),
-            '/settings/systemSettings': (context) => const SystemSettingsPage(),
-            '/settings/accountSettings': (context) => const AccountSettingsPage(),
+            '/settings/organisationProfile': (context) => OrganisationProfilePage(),
+            '/settings/backupRestore': (context) => BackupRestorePage(),
+            '/settings/systemSettings': (context) => SystemSettingsPage(),
+            '/settings/accountSettings': (context) => AccountSettingsPage(),
           },
         );
       },

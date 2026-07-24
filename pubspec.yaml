@@ -19,6 +19,9 @@ dependencies:
   socket_io_client: ^2.0.3
   audioplayers: ^6.0.0
   flutter_local_notifications: ^17.2.2
+  excel: ^4.0.0
+  docx_to_text: ^1.0.1
+  syncfusion_flutter_pdf: ^21.1.35
 
 dev_dependencies:
   flutter_test:

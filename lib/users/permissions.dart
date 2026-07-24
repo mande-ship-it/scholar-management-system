@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 
 /// ---------------------------------------------------------------------
 /// PERMISSIONS COMPONENT
@@ -15,14 +16,7 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
   // ---------------------------------------------------------------------
   // CONFIG
   // ---------------------------------------------------------------------
-  final List<String> _roles = [
-    'Administrator',
-    'Program Manager',
-    'Data Officer',
-    'Finance Officer',
-    'Field Coordinator',
-    'Volunteer',
-  ];
+  final List<String> _roles = [];
 
   final List<String> _modules = [
     'Dashboard',
@@ -66,15 +60,40 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
     'Settings': Icons.settings_outlined,
   };
 
-  late Map<String, Map<String, Map<String, bool>>> _permissions;
+  Map<String, Map<String, Map<String, bool>>> _permissions = {};
   String _selectedRole = 'Administrator';
   String _moduleSearch = '';
   bool _hasUnsavedChanges = false;
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _permissions = _buildDefaultPermissions();
+    _fetchRoles();
+  }
+
+  Future<void> _fetchRoles() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await ApiService.getAllRoles();
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data['data'] ?? [];
+        if (mounted) {
+          setState(() {
+            _roles.clear();
+            _roles.addAll(data.map((r) => r['name'].toString()).toList());
+            _permissions = _buildDefaultPermissions();
+            if (_roles.isNotEmpty) {
+              _selectedRole = _roles.first;
+            }
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching roles: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   // ---------------------------------------------------------------------
@@ -277,22 +296,24 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildHeader(),
-          Expanded(
-            child: Row(
+      child: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SizedBox(width: 260, child: _buildRolesPanel()),
-                VerticalDivider(width: 1, color: Colors.grey.shade200),
-                Expanded(child: _buildPermissionsPanel()),
+                _buildHeader(),
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(width: 260, child: _buildRolesPanel()),
+                      VerticalDivider(width: 1, color: Colors.grey.shade200),
+                      Expanded(child: _buildPermissionsPanel()),
+                    ],
+                  ),
+                ),
               ],
             ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -715,7 +736,7 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
               child: Switch(
                 value: value,
                 onChanged: (val) => _toggleAction(module, action, val),
-                activeColor: roleColor,
+                activeThumbColor: roleColor,
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             ),

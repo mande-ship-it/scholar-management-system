@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'statistics.dart';
-import 'recentActivities.dart';
+import 'recent_activities.dart';
 import 'notifications.dart';
 
 class DashboardComponent extends StatelessWidget {
@@ -12,7 +12,7 @@ class DashboardComponent extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
+        children: [
           Text(
             "Dashboard",
             style: TextStyle(

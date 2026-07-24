@@ -20,6 +20,19 @@ class ApiService {
     _token = token;
   }
 
+  static Future<Response> login(String email, String password) async {
+    return await _dio.post('/auth/login', data: {
+      'email': email,
+      'password': password,
+    });
+  }
+
+  static Future<Response> changeFirstPassword(String newPassword) async {
+    return await _dio.post('/auth/change-password', data: {
+      'newPassword': newPassword,
+    });
+  }
+
   // Scholars
   static Future<Response> getAllScholars() async {
     return await _dio.get('/scholars');
@@ -47,9 +60,22 @@ class ApiService {
 
   static Future<Response> getScholarsBySchool({String? schoolId, String? schoolName}) async {
     return await _dio.get('/scholars/by-school', queryParameters: {
-      if (schoolId != null) 'schoolId': schoolId,
-      if (schoolName != null) 'schoolName': schoolName,
+      'schoolId': schoolId,
+      'schoolName': schoolName,
     });
+  }
+
+  // Attendance
+  static Future<Response> getAttendanceBySchool({String? schoolId, String? schoolName, String? date}) async {
+    return await _dio.get('/attendance', queryParameters: {
+      'schoolId': schoolId,
+      'schoolName': schoolName,
+      'date': date,
+    });
+  }
+
+  static Future<Response> saveAttendance(Map<String, dynamic> data) async {
+    return await _dio.post('/attendance', data: data);
   }
 
   // Finance
@@ -57,8 +83,20 @@ class ApiService {
     return await _dio.get('/finance/budgets');
   }
 
+  static Future<Response> getAllPayments() async {
+    return await _dio.get('/finance/payments');
+  }
+
   static Future<Response> getPaymentsByScholar(String scholarId) async {
     return await _dio.get('/finance/payments', queryParameters: {'scholarId': scholarId});
+  }
+
+  static Future<Response> createPayment(Map<String, dynamic> data) async {
+    return await _dio.post('/finance/payments', data: data);
+  }
+
+  static Future<Response> updatePaymentStatus(String id, String status) async {
+    return await _dio.patch('/finance/payments/$id/status', data: {'status': status});
   }
 
   // Academics
@@ -68,6 +106,18 @@ class ApiService {
 
   static Future<Response> getResultsBySchool(String schoolName) async {
     return await _dio.get('/academic/results/by-school', queryParameters: {'schoolName': schoolName});
+  }
+
+  static Future<Response> recordResults(Map<String, dynamic> data) async {
+    return await _dio.post('/academic/record', data: data);
+  }
+
+  static Future<Response> getSubjects({String? level}) async {
+    return await _dio.get('/academic/subjects', queryParameters: level != null ? {'level': level} : null);
+  }
+
+  static Future<Response> getYearlyStats(String year) async {
+    return await _dio.get('/academic/stats/$year');
   }
 
   // Schools
@@ -97,9 +147,9 @@ class ApiService {
 
   static Future<Response> getScholarsForPromotion({String? schoolId, String? schoolName, String? year}) async {
     return await _dio.get('/schools/progression/review', queryParameters: {
-      if (schoolId != null) 'schoolId': schoolId,
-      if (schoolName != null) 'schoolName': schoolName,
-      if (year != null) 'year': year,
+      'schoolId': schoolId,
+      'schoolName': schoolName,
+      'year': year,
     });
   }
 

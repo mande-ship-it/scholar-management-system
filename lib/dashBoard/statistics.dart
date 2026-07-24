@@ -15,11 +15,14 @@ class StatisticsComponent extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // --- Header Section ---
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
+        LayoutBuilder(
+          builder: (context, constraints) {
+            // Very defensive narrow check
+            final bool isNarrow = constraints.maxWidth < 950;
+            
+            final titleWidget = Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 const Text(
                   "System Intelligence Overview",
@@ -32,6 +35,7 @@ class StatisticsComponent extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
                       width: 8,
@@ -39,22 +43,48 @@ class StatisticsComponent extends StatelessWidget {
                       decoration: const BoxDecoration(color: brandOlive, shape: BoxShape.circle),
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      "Live Data Feed • Last updated: Just now",
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.grey.shade600),
+                    Flexible(
+                      child: Text(
+                        "Live Data Feed • Last updated: Just now",
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.grey.shade600),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
               ],
-            ),
-            Row(
+            );
+
+            final actionsWidget = Wrap(
+              spacing: 12,
+              runSpacing: 12,
               children: [
                 _actionButton(Icons.calendar_today_rounded, "Academic Year 2026"),
-                const SizedBox(width: 12),
                 _actionButton(Icons.filter_list_rounded, "Global Filters"),
               ],
-            ),
-          ],
+            );
+
+            if (isNarrow) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  titleWidget,
+                  const SizedBox(height: 20),
+                  actionsWidget,
+                ],
+              );
+            }
+
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(child: titleWidget),
+                const SizedBox(width: 24),
+                actionsWidget,
+              ],
+            );
+          },
         ),
         const SizedBox(height: 32),
 
@@ -88,7 +118,13 @@ class StatisticsComponent extends StatelessWidget {
         LayoutBuilder(
           builder: (context, constraints) {
             final double width = constraints.maxWidth;
-            int crossAxisCount = width > 1200 ? 4 : (width > 800 ? 2 : 1);
+            // Handle grid layout responsively
+            int crossAxisCount = 1;
+            if (width > 1200) {
+              crossAxisCount = 4;
+            } else if (width > 800) {
+              crossAxisCount = 2;
+            }
             
             return GridView.count(
               crossAxisCount: crossAxisCount,
@@ -96,7 +132,7 @@ class StatisticsComponent extends StatelessWidget {
               physics: const NeverScrollableScrollPhysics(),
               crossAxisSpacing: 20,
               mainAxisSpacing: 20,
-              childAspectRatio: 2.2,
+              childAspectRatio: (width / crossAxisCount) > 400 ? 2.8 : 2.2,
               children: [
                 _buildKpiCard("Total Scholars", "1,248", "+14.2%", Icons.people_alt_rounded, brandOlive, true),
                 _buildKpiCard("Retention Rate", "96.4%", "+2.1%", Icons.verified_user_rounded, brandOrange, true),
@@ -146,6 +182,7 @@ class StatisticsComponent extends StatelessWidget {
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2))],
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 16, color: const Color(0xFF4C3C32)),
           const SizedBox(width: 8),
@@ -182,8 +219,15 @@ class StatisticsComponent extends StatelessWidget {
                 Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey.shade500)),
                 const SizedBox(height: 4),
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF4C3C32))),
+                    Flexible(
+                      child: Text(
+                        value,
+                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF4C3C32)),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                     const SizedBox(width: 8),
                     if (trend != "Steady")
                       Container(
@@ -290,7 +334,7 @@ class StatisticsComponent extends StatelessWidget {
 
   Widget _buildBudgetPulse(Color orange, Color gold, Color brown) {
     return _GlassContainer(
-      title: "Financial Resource pulse",
+      title: "Financial Resource Pulse",
       subtitle: "Budget utilization for current term",
       child: Column(
         children: [
@@ -318,7 +362,8 @@ class StatisticsComponent extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+              Expanded(child: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
+              const SizedBox(width: 8),
               Text("${(val * 100).toInt()}%", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: color)),
             ],
           ),

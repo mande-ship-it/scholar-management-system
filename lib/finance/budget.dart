@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../academics/academicsUtils.dart';
+import '../academics/academics_utils.dart';
 import '../services/api_service.dart';
-import 'financeUtils.dart';
+import 'finance_utils.dart';
 
 class BudgetComponent extends StatefulWidget {
   const BudgetComponent({super.key});
@@ -54,7 +54,7 @@ class _BudgetComponentState extends State<BudgetComponent> {
       ),
       clipBehavior: Clip.antiAlias,
       child: _isLoading 
-          ? const Center(child: Padding(padding: EdgeInsets.all(50), child: CircularProgressIndicator(color: kBrandOlive)))
+          ? Center(child: const Padding(padding: EdgeInsets.all(50), child: CircularProgressIndicator(color: kBrandOlive)))
           : SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -151,56 +151,3 @@ class _BudgetComponentState extends State<BudgetComponent> {
   }
 }
 
-class _BudgetCard extends StatelessWidget {
-  const _BudgetCard({required this.budget});
-  final BudgetAllocation budget;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(budget.category, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-          const Spacer(),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("Spent", style: TextStyle(fontSize: 10, color: Colors.grey)),
-                  Text("MWK ${budget.spentAmount.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBrandBrown)),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  const Text("Remaining", style: TextStyle(fontSize: 10, color: Colors.grey)),
-                  Text("MWK ${budget.remaining.toStringAsFixed(0)}", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBrandOlive)),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: budget.utilizationRate,
-              minHeight: 6,
-              backgroundColor: Colors.grey.shade100,
-              color: budget.utilizationRate > 0.9 ? Colors.red : kBrandOlive,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

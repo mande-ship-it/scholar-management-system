@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../academics/academicsUtils.dart';
-import 'financeUtils.dart';
+import '../academics/academics_utils.dart';
+import 'finance_utils.dart';
 
 class ExpensesComponent extends StatefulWidget {
   const ExpensesComponent({super.key});
@@ -39,7 +39,7 @@ class _ExpensesComponentState extends State<ExpensesComponent> {
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Operational expense recorded.'), backgroundColor: kBrandOlive),
+      SnackBar(content: const Text('Operational expense recorded.'), backgroundColor: kBrandOlive),
     );
     _descController.clear();
     _amountController.clear();
@@ -202,7 +202,7 @@ class _ExpensesComponentState extends State<ExpensesComponent> {
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: kExpenses.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          separatorBuilder: (_, _) => const SizedBox(height: 12),
                           itemBuilder: (context, index) {
                             final e = kExpenses[kExpenses.length - 1 - index];
                             return Container(

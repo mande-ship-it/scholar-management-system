@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../academics/academicsUtils.dart';
+import '../academics/academics_utils.dart';
 import '../services/api_service.dart';
 
 // ============================================================
