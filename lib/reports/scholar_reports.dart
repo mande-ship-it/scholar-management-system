@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../academics/academics_utils.dart';
+import '../services/api_service.dart';
 
 class ScholarReportsComponent extends StatefulWidget {
   const ScholarReportsComponent({super.key});
@@ -11,9 +12,45 @@ class ScholarReportsComponent extends StatefulWidget {
 class _ScholarReportsComponentState extends State<ScholarReportsComponent> {
   String _selectedPeriod = 'Annual (2026)';
   String _reportType = 'Performance Summary';
+  bool _isLoading = true;
+  Map<String, dynamic>? _data;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchReport();
+  }
+
+  Future<void> _fetchReport() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await ApiService.getScholarReport(
+        period: _selectedPeriod,
+        type: _reportType,
+      );
+      if (response.statusCode == 200) {
+        setState(() {
+          _data = response.data['data'];
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching scholar report: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator(color: kBrandOlive));
+    }
+
+    final metrics = _data?['metrics'] ?? {};
+    final distribution = _data?['distribution'] as List? ?? [];
+    final regional = _data?['regional'] as List? ?? [];
+    final scholars = _data?['scholars'] as List? ?? [];
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -31,11 +68,11 @@ class _ScholarReportsComponentState extends State<ScholarReportsComponent> {
           // 3. Key Metrics
           Row(
             children: [
-              _metricCard("Total Active", "148", kBrandOlive, Icons.people_outline_rounded),
+              _metricCard("Total Active", "${metrics['total_active'] ?? 0}", kBrandOlive, Icons.people_outline_rounded),
               const SizedBox(width: 16),
-              _metricCard("Average Performance", "74.2%", kBrandBrown, Icons.auto_graph_rounded),
+              _metricCard("Average Performance", "${metrics['avg_performance'] ?? 0}%", kBrandBrown, Icons.auto_graph_rounded),
               const SizedBox(width: 16),
-              _metricCard("Scholarship Disbursed", "MWK 12.4M", kBrandOrange, Icons.payments_outlined),
+              _metricCard("Scholarship Disbursed", "MWK ${metrics['total_disbursed'] ?? 0}", kBrandOrange, Icons.payments_outlined),
             ],
           ),
           
@@ -49,7 +86,7 @@ class _ScholarReportsComponentState extends State<ScholarReportsComponent> {
                 flex: 2,
                 child: _reportSection(
                   title: "Performance Distribution",
-                  child: _buildPerformanceChart(),
+                  child: _buildPerformanceChart(distribution),
                 ),
               ),
               const SizedBox(width: 24),
@@ -57,7 +94,7 @@ class _ScholarReportsComponentState extends State<ScholarReportsComponent> {
                 flex: 1,
                 child: _reportSection(
                   title: "Regional Summary",
-                  child: _buildRegionalBreakdown(),
+                  child: _buildRegionalBreakdown(regional),
                 ),
               ),
             ],
@@ -68,7 +105,7 @@ class _ScholarReportsComponentState extends State<ScholarReportsComponent> {
           // 5. Recent Report Log / Detailed Table Preview
           _reportSection(
             title: "Detailed Scholar Performance Preview",
-            child: _buildScholarTable(),
+            child: _buildScholarTable(scholars),
           ),
           
           const SizedBox(height: 40),
@@ -126,12 +163,18 @@ class _ScholarReportsComponentState extends State<ScholarReportsComponent> {
       ),
       child: Row(
         children: [
-          _dropdownControl("Report Type", _reportType, ['Performance Summary', 'Financial Support', 'Demographics'], (v) => setState(() => _reportType = v!)),
+          _dropdownControl("Report Type", _reportType, ['Performance Summary', 'Financial Support', 'Demographics'], (v) {
+            setState(() => _reportType = v!);
+            _fetchReport();
+          }),
           const SizedBox(width: 20),
-          _dropdownControl("Time Period", _selectedPeriod, ['Term 1 2026', 'Term 2 2026', 'Annual (2026)'], (v) => setState(() => _selectedPeriod = v!)),
+          _dropdownControl("Time Period", _selectedPeriod, ['Term 1 2026', 'Term 2 2026', 'Annual (2026)'], (v) {
+            setState(() => _selectedPeriod = v!);
+            _fetchReport();
+          }),
           const Spacer(),
           TextButton.icon(
-            onPressed: () {},
+            onPressed: _fetchReport,
             icon: const Icon(Icons.refresh_rounded),
             label: const Text("Refresh Data"),
           ),
@@ -202,14 +245,17 @@ class _ScholarReportsComponentState extends State<ScholarReportsComponent> {
     );
   }
 
-  Widget _buildPerformanceChart() {
+  Widget _buildPerformanceChart(List distribution) {
+    if (distribution.isEmpty) return const Center(child: Text("No distribution data"));
     return Column(
-      children: [
-        _chartBar("Exceeding Expectations (80%+)", 0.35, Colors.green),
-        _chartBar("Meeting Expectations (65-79%)", 0.48, kBrandOlive),
-        _chartBar("Approaching Expectations (50-64%)", 0.12, kBrandOrange),
-        _chartBar("Needs Support (<50%)", 0.05, Colors.red),
-      ],
+      children: distribution.map((d) {
+        Color color = kBrandOlive;
+        if (d['label'].toString().contains('Exceeding')) color = Colors.green;
+        if (d['label'].toString().contains('Approaching')) color = kBrandOrange;
+        if (d['label'].toString().contains('Needs')) color = Colors.red;
+
+        return _chartBar(d['label'], (double.parse(d['percentage'].toString()) / 100), color);
+      }).toList(),
     );
   }
 
@@ -235,28 +281,30 @@ class _ScholarReportsComponentState extends State<ScholarReportsComponent> {
     );
   }
 
-  Widget _buildRegionalBreakdown() {
-    final regions = [
-      ("Southern Region", 64, kBrandBrown),
-      ("Central Region", 52, kBrandOlive),
-      ("Northern Region", 32, kBrandOrange),
-    ];
+  Widget _buildRegionalBreakdown(List regional) {
+    if (regional.isEmpty) return const Center(child: Text("No regional data"));
+    final List<Color> colors = [kBrandBrown, kBrandOlive, kBrandOrange, Colors.blue, Colors.teal];
     return Column(
-      children: regions.map((r) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Row(
-          children: [
-            Container(width: 8, height: 8, decoration: BoxDecoration(color: r.$3, shape: BoxShape.circle)),
-            const SizedBox(width: 12),
-            Expanded(child: Text(r.$1, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
-            Text(r.$2.toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
-          ],
-        ),
-      )).toList(),
+      children: regional.asMap().entries.map((entry) {
+        final r = entry.value;
+        final color = colors[entry.key % colors.length];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            children: [
+              Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+              const SizedBox(width: 12),
+              Expanded(child: Text(r['region'] ?? 'N/A', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
+              Text(r['count'].toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 
-  Widget _buildScholarTable() {
+  Widget _buildScholarTable(List scholars) {
+    if (scholars.isEmpty) return const Center(child: Text("No scholars data"));
     return Table(
       columnWidths: const {
         0: FlexColumnWidth(2),
@@ -273,12 +321,14 @@ class _ScholarReportsComponentState extends State<ScholarReportsComponent> {
             Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text("Status", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey))),
           ],
         ),
-        ...kStudents.take(5).map((s) => TableRow(
+        ...scholars.map((s) => TableRow(
           children: [
-            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(s.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(s.schoolName, style: const TextStyle(fontSize: 12))),
-            const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text("78%", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandOlive))),
-            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: _badge("Active", Colors.green.shade50, Colors.green.shade700)),
+            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(s['name'] ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(s['institution'] ?? 'N/A', style: const TextStyle(fontSize: 12))),
+            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text("${s['avg_mark'] ?? 0}%", style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandOlive))),
+            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: _badge(s['status'] ?? 'Active',
+              s['status'] == 'Active' ? Colors.green.shade50 : Colors.grey.shade50,
+              s['status'] == 'Active' ? Colors.green.shade700 : Colors.grey.shade700)),
           ],
         )),
       ],

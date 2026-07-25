@@ -1,4 +1,7 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
+import 'package:intl/intl.dart';
 
 // ============================================================
 // Shared Brand Color Palette
@@ -16,14 +19,97 @@ class SchoolStatsComponent extends StatefulWidget {
 }
 
 class _SchoolStatsComponentState extends State<SchoolStatsComponent> {
+  bool _isLoading = true;
+  int _totalSchools = 0;
+  int _secondaryCount = 0;
+  int _universityCount = 0;
+  int _activeScholars = 0;
+
+  Map<String, int> _regionalDistribution = {
+    'Northern Region': 0,
+    'Central Region': 0,
+    'Southern Region': 0,
+  };
+
+  List<Map<String, dynamic>> _onboardingTrend = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchStats();
+  }
+
+  Future<void> _fetchStats() async {
+    setState(() => _isLoading = true);
+    try {
+      final schoolsResponse = await ApiService.getAllSchools();
+      final scholarsResponse = await ApiService.getAllScholars();
+
+      if (schoolsResponse.statusCode == 200 && scholarsResponse.statusCode == 200) {
+        final List<dynamic> schools = schoolsResponse.data['data'] ?? [];
+        final List<dynamic> scholars = scholarsResponse.data['data'] ?? [];
+
+        int secondary = 0;
+        int university = 0;
+        Map<String, int> regions = {
+          'Northern Region': 0,
+          'Central Region': 0,
+          'Southern Region': 0,
+        };
+
+        Map<String, int> yearlyOnboarding = {};
+
+        for (var school in schools) {
+          // Education Level
+          final level = school['level']?.toString() ?? '';
+          if (level.contains('Secondary') || level.contains('High')) {
+            secondary++;
+          } else if (level.contains('Tertiary') || level.contains('University')) {
+            university++;
+          }
+
+          // Regional
+          final region = school['region']?.toString() ?? '';
+          if (regions.containsKey(region)) {
+            regions[region] = regions[region]! + 1;
+          }
+
+          // Onboarding Trend (by year)
+          final createdAt = school['created_at'];
+          if (createdAt != null) {
+            final date = DateTime.parse(createdAt);
+            final yearStr = date.year.toString();
+            yearlyOnboarding[yearStr] = (yearlyOnboarding[yearStr] ?? 0) + 1;
+          }
+        }
+
+        // Convert onboarding map to sorted list
+        final trendList = yearlyOnboarding.entries.map((e) => {
+          'year': e.key,
+          'count': e.value
+        }).toList();
+        trendList.sort((a, b) => (a['year'] as String).compareTo(b['year'] as String));
+
+        if (mounted) {
+          setState(() {
+            _totalSchools = schools.length;
+            _secondaryCount = secondary;
+            _universityCount = university;
+            _regionalDistribution = regions;
+            _activeScholars = scholars.where((s) => s['status'] == 'Active').length;
+            _onboardingTrend = trendList;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching stats: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Mock data for display
-    const totalSchools = 32;
-    const secondaryCount = 24;
-    const universityCount = 8;
-    const totalPartnershipDuration = "8.4 Years";
-
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -33,7 +119,9 @@ class _SchoolStatsComponentState extends State<SchoolStatsComponent> {
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
       ),
       clipBehavior: Clip.antiAlias,
-      child: SingleChildScrollView(
+      child: _isLoading
+          ? const Center(child: Padding(padding: EdgeInsets.all(50), child: CircularProgressIndicator(color: kBrandOlive)))
+          : SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -48,17 +136,22 @@ class _SchoolStatsComponentState extends State<SchoolStatsComponent> {
                     child: const Icon(Icons.apartment_rounded, color: kBrandOlive, size: 24),
                   ),
                   const SizedBox(width: 14),
-                  const Expanded(
+                  Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('School Statistics', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                        SizedBox(height: 2),
-                        Text('Regional distribution of partner institutions.',
-                            style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        const Text('School Statistics', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                        const SizedBox(height: 2),
+                        Text('Dynamic distribution of partner institutions across Malawi.',
+                            style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                       ],
                     ),
                   ),
+                  IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: _fetchStats,
+                    tooltip: "Refresh Stats",
+                  )
                 ],
               ),
             ),
@@ -72,11 +165,11 @@ class _SchoolStatsComponentState extends State<SchoolStatsComponent> {
                   // --- Key Metrics ---
                   Row(
                     children: [
-                      _StatMetric(label: "Partner Schools", value: "$totalSchools", icon: Icons.domain_rounded, color: kBrandBrown),
+                      _StatMetric(label: "Partner Schools", value: "$_totalSchools", icon: Icons.domain_rounded, color: kBrandBrown),
                       const SizedBox(width: 16),
-                      _StatMetric(label: "Avg. Duration", value: totalPartnershipDuration, icon: Icons.history_rounded, color: kBrandOlive),
+                      _StatMetric(label: "Active Scholars", value: "$_activeScholars", icon: Icons.groups_rounded, color: kBrandOrange),
                       const SizedBox(width: 16),
-                      _StatMetric(label: "Active Scholars", value: "246", icon: Icons.groups_rounded, color: kBrandOrange),
+                      _StatMetric(label: "Secondary", value: "$_secondaryCount", icon: Icons.school_rounded, color: kBrandOlive),
                     ],
                   ),
 
@@ -92,9 +185,9 @@ class _SchoolStatsComponentState extends State<SchoolStatsComponent> {
                           subtitle: "Breakdown of secondary vs tertiary partners",
                           child: Column(
                             children: [
-                              _DistributionBar(label: "Secondary Schools", value: secondaryCount, total: totalSchools, color: kBrandBrown),
+                              _DistributionBar(label: "Secondary Schools", value: _secondaryCount, total: _totalSchools, color: kBrandBrown),
                               const SizedBox(height: 12),
-                              _DistributionBar(label: "Public Universities", value: universityCount, total: totalSchools, color: kBrandOlive),
+                              _DistributionBar(label: "Public Universities", value: _universityCount, total: _totalSchools, color: kBrandOlive),
                             ],
                           ),
                         ),
@@ -107,11 +200,26 @@ class _SchoolStatsComponentState extends State<SchoolStatsComponent> {
                           subtitle: "Geographic spread of partner schools",
                           child: Column(
                             children: [
-                              _RegionItem(label: "Northern Region", count: 12, percent: 0.38, color: kBrandOlive),
+                              _RegionItem(
+                                label: "Northern Region",
+                                count: _regionalDistribution['Northern Region'] ?? 0,
+                                percent: _totalSchools == 0 ? 0.0 : (_regionalDistribution['Northern Region'] ?? 0) / _totalSchools,
+                                color: kBrandOlive
+                              ),
                               const Divider(height: 20),
-                              _RegionItem(label: "Central Region", count: 15, percent: 0.46, color: kBrandBrown),
+                              _RegionItem(
+                                label: "Central Region",
+                                count: _regionalDistribution['Central Region'] ?? 0,
+                                percent: _totalSchools == 0 ? 0.0 : (_regionalDistribution['Central Region'] ?? 0) / _totalSchools,
+                                color: kBrandBrown
+                              ),
                               const Divider(height: 20),
-                              _RegionItem(label: "Southern Region", count: 5, percent: 0.16, color: kBrandOrange),
+                              _RegionItem(
+                                label: "Southern Region",
+                                count: _regionalDistribution['Southern Region'] ?? 0,
+                                percent: _totalSchools == 0 ? 0.0 : (_regionalDistribution['Southern Region'] ?? 0) / _totalSchools,
+                                color: kBrandOrange
+                              ),
                             ],
                           ),
                         ),
@@ -121,28 +229,38 @@ class _SchoolStatsComponentState extends State<SchoolStatsComponent> {
 
                   const SizedBox(height: 32),
                   const Text("Yearly Onboarding Trend", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
+                  const Text("Number of schools registered per year.", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  const SizedBox(height: 24),
                   
-                  // Simple Growth Chart
+                  // Real Onboarding Trend Chart
                   Container(
                     height: 200,
                     width: double.infinity,
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                     decoration: BoxDecoration(
                       color: kBrandBrown.withValues(alpha: 0.02),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: Colors.grey.shade200),
                     ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _TrendBar(label: "2023", value: 0.4),
-                        _TrendBar(label: "2024", value: 0.65),
-                        _TrendBar(label: "2025", value: 0.5),
-                        _TrendBar(label: "2026", value: 0.85, isCurrent: true),
-                      ],
-                    ),
+                    child: _onboardingTrend.isEmpty
+                        ? const Center(child: Text("No onboarding data available", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)))
+                        : Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: _onboardingTrend.map((t) {
+                              final int maxCount = _onboardingTrend.map((e) => e['count'] as int).reduce(math.max);
+                              final double value = (t['count'] as int) / maxCount;
+                              final bool isCurrent = t['year'] == DateTime.now().year.toString();
+
+                              return _TrendBar(
+                                label: t['year'],
+                                value: value,
+                                isCurrent: isCurrent,
+                                count: t['count'],
+                              );
+                            }).toList(),
+                          ),
                   ),
                 ],
               ),
@@ -273,19 +391,22 @@ class _RegionItem extends StatelessWidget {
 }
 
 class _TrendBar extends StatelessWidget {
-  const _TrendBar({required this.label, required this.value, this.isCurrent = false});
+  const _TrendBar({required this.label, required this.value, this.isCurrent = false, required this.count});
   final String label;
   final double value;
   final bool isCurrent;
+  final int count;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
+        Text("$count", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isCurrent ? kBrandOrange : Colors.grey)),
+        const SizedBox(height: 4),
         Container(
           width: 40,
-          height: 140 * value,
+          height: math.max(140 * value, 5.0), // Ensure at least a small sliver is visible
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: isCurrent ? [kBrandOrange, kBrandOrange.withValues(alpha: 0.6)] : [kBrandOlive, kBrandOlive.withValues(alpha: 0.6)],

@@ -1,24 +1,21 @@
-import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart';
 import '../academics/academics_utils.dart';
 import '../services/api_service.dart';
 
-class SignInPage extends StatefulWidget {
-  const SignInPage({super.key});
+class PasswordResetPage extends StatefulWidget {
+  const PasswordResetPage({super.key});
 
   @override
-  State<SignInPage> createState() => _SignInPageState();
+  State<PasswordResetPage> createState() => _PasswordResetPageState();
 }
 
-class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
+class _PasswordResetPageState extends State<PasswordResetPage> with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isPasswordObscured = true;
-  bool _rememberMe = true;
+  final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
+  bool _isPasswordObscured = true;
 
   late AnimationController _fadeController;
   late AnimationController _backgroundController;
@@ -54,75 +51,38 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    _usernameController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     _fadeController.dispose();
     _backgroundController.dispose();
     super.dispose();
   }
 
-  void _handleSignIn() async {
+  void _handleReset() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
-
       try {
-        final response = await ApiService.login(
-          _usernameController.text.trim(),
-          _passwordController.text,
-        );
-
+        final response = await ApiService.changeFirstPassword(_passwordController.text);
         if (response.statusCode == 200) {
-          final responseBody = response.data;
-          final data = responseBody['data'];
-          final String token = data['token'];
-          final userData = data['user'];
-
-          // Save token in ApiService for subsequent requests
-          ApiService.setToken(token, persist: _rememberMe);
-
           if (mounted) {
             setState(() => _isLoading = false);
-
-            // Check if password reset is required
-            if (userData['mustResetPassword'] == true || userData['isFirstLogin'] == true) {
-              Navigator.pushReplacementNamed(context, '/password-reset');
-              return;
-            }
-
-            Navigator.pushReplacementNamed(
-              context,
-              '/home',
-              arguments: {
-                'username': userData['fullName'] ?? _usernameController.text.trim(),
-                'role': userData['role'] ?? 'User',
-              },
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text("Security update successful! Please sign in with your new password."),
+                backgroundColor: kBrandOlive,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
             );
+            Navigator.pushReplacementNamed(context, '/login');
           }
         }
       } catch (e) {
         if (mounted) {
           setState(() => _isLoading = false);
-          String errorMessage = "Authentication failed. Please check your credentials.";
-          
-          if (e is DioException) {
-            if (e.response?.statusCode == 401) {
-              errorMessage = "Invalid email or password.";
-            } else if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
-              errorMessage = "Server connection timed out. Please try again later.";
-            } else if (e.type == DioExceptionType.connectionError) {
-              errorMessage = "Unable to connect to the server. Check your internet connection.";
-            }
-          }
-
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.error_outline, color: Colors.white),
-                  const SizedBox(width: 12),
-                  Expanded(child: Text(errorMessage)),
-                ],
-              ),
+              content: const Text("Failed to update password. Please try again or contact IT support."),
               backgroundColor: Colors.redAccent,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -133,14 +93,6 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
     }
   }
 
-  void _showForgotPasswordDialog() {
-    Navigator.pushNamed(context, '/forgot-password');
-  }
-
-  void _showResetPasswordDialog(String email) {
-    // This is now handled by the dedicated ForgotPasswordPage
-  }
-
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -148,9 +100,7 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
     return Scaffold(
       body: Stack(
         children: [
-          // 1. Beautiful Animated Background
           _buildAnimatedBackground(size),
-
           Positioned.fill(
             child: IgnorePointer(
               child: BackdropFilter(
@@ -159,8 +109,6 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
               ),
             ),
           ),
-
-          // 3. Login Content
           SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -193,28 +141,9 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
                         ],
                         border: Border.all(color: Colors.white, width: 2),
                       ),
-                      child: _buildLoginForm(),
+                      child: _buildResetForm(),
                     ),
                   ),
-                ),
-              ),
-            ),
-          ),
-
-          // 4. Footer attribution
-          Positioned(
-            bottom: 24,
-            left: 0,
-            right: 0,
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: const Text(
-                "© 2025 AGE Africa • Scholar Management System",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 12,
-                  letterSpacing: 0.5,
                 ),
               ),
             ),
@@ -230,10 +159,7 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
       builder: (context, child) {
         return Stack(
           children: [
-            // Static Base
             Container(color: kBrandBrown),
-
-            // Dynamic Gradients
             Positioned(
               top: -size.height * 0.2 + (20 * _backgroundController.value),
               left: -size.width * 0.2 + (40 * _backgroundController.value),
@@ -251,43 +177,25 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
                 ),
               ),
             ),
-            Positioned(
-              bottom: -size.height * 0.1 - (30 * _backgroundController.value),
-              right: -size.width * 0.1 - (20 * _backgroundController.value),
-              child: Container(
-                width: size.width * 0.9,
-                height: size.width * 0.9,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      kBrandOrange.withOpacity(0.3),
-                      kBrandOrange.withOpacity(0),
-                    ],
-                  ),
-                ),
-              ),
-            ),
           ],
         );
       },
     );
   }
 
-  Widget _buildLoginForm() {
+  Widget _buildResetForm() {
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Logo & Branding
           Center(
             child: Column(
               children: [
                 Container(
-                  height: 90,
-                  width: 90,
+                  height: 80,
+                  width: 80,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -300,19 +208,11 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
                       ),
                     ],
                   ),
-                  child: Image.asset(
-                    'assets/images/age-logo.png',
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) => const Icon(
-                      Icons.school_rounded,
-                      size: 45,
-                      color: kBrandOlive,
-                    ),
-                  ),
+                  child: const Icon(Icons.shield_rounded, size: 40, color: kBrandOrange),
                 ),
                 const SizedBox(height: 24),
                 const Text(
-                  "PORTAL ACCESS",
+                  "SECURITY UPDATE",
                   style: TextStyle(
                     color: kBrandOlive,
                     fontSize: 11,
@@ -322,12 +222,22 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  "Welcome Back",
+                  "Set Your Password",
                   style: TextStyle(
                     color: kBrandBrown,
-                    fontSize: 28,
+                    fontSize: 24,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "For your security, please create a new permanent password for your account.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 13,
+                    height: 1.5,
                   ),
                 ),
               ],
@@ -335,84 +245,30 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
           ),
           const SizedBox(height: 32),
 
-          // Fields
-          _buildInputLabel("USERNAME OR EMAIL"),
-          TextFormField(
-            controller: _usernameController,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: kBrandBrown),
-            decoration: _fieldDecoration(Icons.person_outline_rounded, hint: "Enter your username"),
-            validator: (value) => (value == null || value.trim().isEmpty) ? "Username is required" : null,
-          ),
-          const SizedBox(height: 20),
-
-          _buildInputLabel("PASSWORD"),
+          _buildInputLabel("NEW PASSWORD"),
           TextFormField(
             controller: _passwordController,
             obscureText: _isPasswordObscured,
             style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: kBrandBrown),
-            decoration: _fieldDecoration(
-              Icons.lock_open_rounded,
-              hint: "••••••••",
-              suffix: IconButton(
-                icon: Icon(
-                  _isPasswordObscured ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                  color: kBrandBrown.withValues(alpha: 0.4),
-                  size: 20,
-                ),
-                onPressed: () => setState(() => _isPasswordObscured = !_isPasswordObscured),
-              ),
-            ),
-            validator: (value) => (value == null || value.isEmpty) ? "Password is required" : null,
+            decoration: _fieldDecoration(Icons.lock_outline_rounded, hint: "••••••••"),
+            validator: (value) => (value == null || value.length < 6) ? "Minimum 6 characters required" : null,
           ),
+          const SizedBox(height: 20),
 
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  SizedBox(
-                    height: 24,
-                    width: 24,
-                    child: Checkbox(
-                      value: _rememberMe,
-                      activeColor: kBrandOlive,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                      onChanged: (val) => setState(() => _rememberMe = val!),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    "Keep me signed in",
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: kBrandBrown,
-                    ),
-                  ),
-                ],
-              ),
-              TextButton(
-                onPressed: _showForgotPasswordDialog,
-                style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                child: const Text(
-                  "Forgot Password?",
-                  style: TextStyle(
-                    color: kBrandOrange,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-            ],
+          _buildInputLabel("CONFIRM PASSWORD"),
+          TextFormField(
+            controller: _confirmPasswordController,
+            obscureText: _isPasswordObscured,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: kBrandBrown),
+            decoration: _fieldDecoration(Icons.lock_reset_rounded, hint: "••••••••"),
+            validator: (value) => (value != _passwordController.text) ? "Passwords do not match" : null,
           ),
           const SizedBox(height: 32),
 
-          // Action Button
           SizedBox(
             height: 58,
             child: ElevatedButton(
-              onPressed: _isLoading ? null : _handleSignIn,
+              onPressed: _isLoading ? null : _handleReset,
               style: ElevatedButton.styleFrom(
                 backgroundColor: kBrandBrown,
                 foregroundColor: Colors.white,
@@ -424,16 +280,13 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
                   ? const SizedBox(
                       width: 24,
                       height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 3,
-                        color: Colors.white,
-                      ),
+                      child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white),
                     )
                   : const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          "SIGN IN TO PORTAL",
+                          "ACTIVATE ACCOUNT",
                           style: TextStyle(
                             fontWeight: FontWeight.w900,
                             letterSpacing: 1.2,
@@ -441,33 +294,17 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
                           ),
                         ),
                         SizedBox(width: 12),
-                        Icon(Icons.arrow_forward_rounded, size: 20),
+                        Icon(Icons.check_circle_rounded, size: 20),
                       ],
                     ),
             ),
           ),
-          
-          const SizedBox(height: 24),
-          Center(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  "Don't have an account?",
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                ),
-                TextButton(
-                  onPressed: () {},
-                  child: const Text(
-                    "Contact Admin",
-                    style: TextStyle(
-                      color: kBrandOlive,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              ],
+          const SizedBox(height: 20),
+          TextButton(
+            onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
+            child: Text(
+              "Cancel & Return to Login",
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -490,12 +327,11 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
     );
   }
 
-  InputDecoration _fieldDecoration(IconData icon, {String? hint, Widget? suffix}) {
+  InputDecoration _fieldDecoration(IconData icon, {String? hint}) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14, fontWeight: FontWeight.normal),
+      hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
       prefixIcon: Icon(icon, color: kBrandOlive, size: 22),
-      suffixIcon: suffix,
       filled: true,
       fillColor: Colors.grey.shade50,
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),

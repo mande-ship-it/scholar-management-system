@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'dart:typed_data';
 import '../academics/academics_utils.dart';
+import '../services/api_service.dart';
+
+import 'package:printing/printing.dart';
 
 class ExportPDFComponent extends StatefulWidget {
   const ExportPDFComponent({super.key});
@@ -25,13 +29,29 @@ class _ExportPDFComponentState extends State<ExportPDFComponent> {
   Future<void> _generatePDF() async {
     if (_selectedItems.isEmpty) return;
     setState(() => _isGenerating = true);
-    await Future.delayed(const Duration(seconds: 2));
-    setState(() => _isGenerating = false);
-    
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("PDF Report generated and saved to downloads.")),
-    );
+    try {
+      final response = await ApiService.exportToPDF(_selectedItems);
+      if (response.statusCode == 200) {
+        final bytes = Uint8List.fromList(response.data as List<int>);
+        await Printing.sharePdf(
+          bytes: bytes,
+          filename: "Scholar_System_Report_${DateTime.now().millisecondsSinceEpoch}.pdf",
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("PDF Report generated.")),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error exporting PDF: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("PDF generation failed.")),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isGenerating = false);
+    }
   }
 
   @override

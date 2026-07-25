@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../academics/academics_utils.dart';
+import '../services/api_service.dart';
 
 class SponsorReportsComponent extends StatefulWidget {
   const SponsorReportsComponent({super.key});
@@ -10,9 +11,42 @@ class SponsorReportsComponent extends StatefulWidget {
 
 class _SponsorReportsComponentState extends State<SponsorReportsComponent> {
   String _selectedRegion = 'All Regions';
+  bool _isLoading = true;
+  Map<String, dynamic>? _data;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchReport();
+  }
+
+  Future<void> _fetchReport() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await ApiService.getSponsorReport(region: _selectedRegion);
+      if (response.statusCode == 200) {
+        setState(() {
+          _data = response.data['data'];
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching sponsor report: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator(color: kBrandOlive));
+    }
+
+    final metrics = _data?['metrics'] ?? {};
+    final funding = _data?['funding'] as List? ?? [];
+    final types = _data?['types'] as List? ?? [];
+    final sponsors = _data?['sponsors'] as List? ?? [];
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -30,11 +64,11 @@ class _SponsorReportsComponentState extends State<SponsorReportsComponent> {
           // 3. Key Metrics
           Row(
             children: [
-              _metricCard("Active Sponsors", "18", kBrandOrange, Icons.volunteer_activism_rounded),
+              _metricCard("Active Sponsors", "${metrics['active_sponsors'] ?? 0}", kBrandOrange, Icons.volunteer_activism_rounded),
               const SizedBox(width: 16),
-              _metricCard("Total Funding", "MWK 85.2M", kBrandOlive, Icons.account_balance_wallet_rounded),
+              _metricCard("Total Funding", "MWK ${metrics['total_funding'] ?? 0}", kBrandOlive, Icons.account_balance_wallet_rounded),
               const SizedBox(width: 16),
-              _metricCard("Impacted Scholars", "312", kBrandBrown, Icons.auto_awesome_rounded),
+              _metricCard("Impacted Scholars", "${metrics['impacted_scholars'] ?? 0}", kBrandBrown, Icons.auto_awesome_rounded),
             ],
           ),
           
@@ -48,7 +82,7 @@ class _SponsorReportsComponentState extends State<SponsorReportsComponent> {
                 flex: 2,
                 child: _reportSection(
                   title: "Funding Distribution by Category",
-                  child: _buildFundingChart(),
+                  child: _buildFundingChart(funding),
                 ),
               ),
               const SizedBox(width: 24),
@@ -56,7 +90,7 @@ class _SponsorReportsComponentState extends State<SponsorReportsComponent> {
                 flex: 1,
                 child: _reportSection(
                   title: "Sponsor Types",
-                  child: _buildTypeDistribution(),
+                  child: _buildTypeDistribution(types),
                 ),
               ),
             ],
@@ -67,7 +101,7 @@ class _SponsorReportsComponentState extends State<SponsorReportsComponent> {
           // 5. Sponsor List Preview
           _reportSection(
             title: "Major Donors & Contribution Preview",
-            child: _buildSponsorTable(),
+            child: _buildSponsorTable(sponsors),
           ),
           
           const SizedBox(height: 40),
@@ -125,12 +159,15 @@ class _SponsorReportsComponentState extends State<SponsorReportsComponent> {
       ),
       child: Row(
         children: [
-          _dropdownControl("Focus Region", _selectedRegion, ['All Regions', 'USA', 'Malawi', 'International'], (v) => setState(() => _selectedRegion = v!)),
+          _dropdownControl("Focus Region", _selectedRegion, ['All Regions', 'USA', 'Malawi', 'International'], (v) {
+            setState(() => _selectedRegion = v!);
+            _fetchReport();
+          }),
           const Spacer(),
           TextButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.tune_rounded),
-            label: const Text("Filter Results"),
+            onPressed: _fetchReport,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text("Refresh"),
           ),
         ],
       ),
@@ -199,14 +236,14 @@ class _SponsorReportsComponentState extends State<SponsorReportsComponent> {
     );
   }
 
-  Widget _buildFundingChart() {
+  Widget _buildFundingChart(List funding) {
+    if (funding.isEmpty) return const Center(child: Text("No funding data"));
     return Column(
-      children: [
-        _chartBar("Tuition Fees", 0.65, kBrandOlive),
-        _chartBar("Scholar Stipends", 0.20, kBrandOrange),
-        _chartBar("Educational Resources", 0.10, kBrandBrown),
-        _chartBar("Admin & Support", 0.05, Colors.grey),
-      ],
+      children: funding.map((f) => _chartBar(
+        f['category'] ?? 'Other',
+        (double.parse(f['percentage'].toString()) / 100),
+        kBrandOlive
+      )).toList(),
     );
   }
 
@@ -232,34 +269,30 @@ class _SponsorReportsComponentState extends State<SponsorReportsComponent> {
     );
   }
 
-  Widget _buildTypeDistribution() {
-    final types = [
-      ("Individual", 45, kBrandBrown),
-      ("Corporate", 30, kBrandOlive),
-      ("Foundation", 25, kBrandOrange),
-    ];
+  Widget _buildTypeDistribution(List types) {
+    if (types.isEmpty) return const Center(child: Text("No type data"));
+    final List<Color> colors = [kBrandBrown, kBrandOlive, kBrandOrange, Colors.blue, Colors.teal];
     return Column(
-      children: types.map((t) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Row(
-          children: [
-            Container(width: 8, height: 8, decoration: BoxDecoration(color: t.$3, shape: BoxShape.circle)),
-            const SizedBox(width: 12),
-            Expanded(child: Text(t.$1, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
-            Text("${t.$2}%", style: const TextStyle(fontWeight: FontWeight.bold)),
-          ],
-        ),
-      )).toList(),
+      children: types.asMap().entries.map((entry) {
+        final t = entry.value;
+        final color = colors[entry.key % colors.length];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            children: [
+              Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+              const SizedBox(width: 12),
+              Expanded(child: Text(t['type'] ?? 'N/A', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
+              Text("${t['percentage']}%", style: const TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 
-  Widget _buildSponsorTable() {
-    final donors = [
-      ("PMI Foundation", "MWK 25.0M", 82, "Annual"),
-      ("AGE Africa US", "MWK 18.5M", 64, "Monthly"),
-      ("Standard Bank", "MWK 5.2M", 12, "One-time"),
-      ("Malawi Government", "MWK 12.0M", 45, "Quarterly"),
-    ];
+  Widget _buildSponsorTable(List sponsors) {
+    if (sponsors.isEmpty) return const Center(child: Text("No sponsor data"));
     return Table(
       columnWidths: const {
         0: FlexColumnWidth(2),
@@ -276,12 +309,12 @@ class _SponsorReportsComponentState extends State<SponsorReportsComponent> {
             Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text("Cycle", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey))),
           ],
         ),
-        ...donors.map((d) => TableRow(
+        ...sponsors.map((d) => TableRow(
           children: [
-            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(d.$1, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBrandBrown))),
-            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(d.$2, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kBrandOlive))),
-            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(d.$3.toString(), style: const TextStyle(fontWeight: FontWeight.bold))),
-            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: _badge(d.$4, Colors.grey.shade50, Colors.grey.shade700)),
+            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(d['donor_name'] ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBrandBrown))),
+            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text("MWK ${d['contribution']}", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kBrandOlive))),
+            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(d['scholars'].toString(), style: const TextStyle(fontWeight: FontWeight.bold))),
+            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: _badge(d['cycle'] ?? 'Annual', Colors.grey.shade50, Colors.grey.shade700)),
           ],
         )),
       ],

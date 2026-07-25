@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../academics/academics_utils.dart';
+import '../services/api_service.dart';
 
 class AttendanceReportsComponent extends StatefulWidget {
   const AttendanceReportsComponent({super.key});
@@ -9,10 +10,41 @@ class AttendanceReportsComponent extends StatefulWidget {
 }
 
 class _AttendanceReportsComponentState extends State<AttendanceReportsComponent> {
-  String _selectedMonth = 'July 2026';
+  bool _isLoading = true;
+  Map<String, dynamic>? _analytics;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAnalytics();
+  }
+
+  Future<void> _fetchAnalytics() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await ApiService.getAttendanceAnalytics();
+      if (response.statusCode == 200) {
+        setState(() {
+          _analytics = response.data['data'];
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching attendance analytics: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: Padding(padding: EdgeInsets.all(80), child: CircularProgressIndicator(color: kBrandOlive)));
+    }
+
+    if (_analytics == null) {
+      return const Center(child: Text("Failed to load attendance analytics."));
+    }
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -25,8 +57,6 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
           // 2. Control Row
           _buildControls(),
 
-          // ---------------- Stats (Banners Removed) ----------------
-
           const SizedBox(height: 24),
           
           // 4. Main Report Content
@@ -36,7 +66,7 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
               Expanded(
                 flex: 2,
                 child: _reportSection(
-                  title: "Monthly Attendance Trends",
+                  title: "Attendance Growth Trends",
                   child: _buildTrendsChart(),
                 ),
               ),
@@ -44,7 +74,7 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
               Expanded(
                 flex: 1,
                 child: _reportSection(
-                  title: "Attendance Alerts",
+                  title: "Critical Alerts",
                   child: _buildAlertsList(),
                 ),
               ),
@@ -83,18 +113,18 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
                 color: kBrandOlive, size: 32),
           ),
           const SizedBox(width: 16),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Attendance Analytics',
+                const Text('Attendance Analytics',
                     style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: kBrandBrown)),
-                SizedBox(height: 4),
+                const SizedBox(height: 4),
                 Text('Program-wide attendance metrics and trend analysis.',
-                    style: TextStyle(fontSize: 14, color: Colors.grey)),
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
               ],
             ),
           ),
@@ -115,40 +145,32 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
   }
 
   Widget _buildControls() {
+    final stats = _analytics!['stats'] ?? {};
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _dropdownControl("Select Month", _selectedMonth, ['May 2026', 'June 2026', 'July 2026'], (v) => setState(() => _selectedMonth = v!)),
-          const Spacer(),
-          TextButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.tune_rounded),
-            label: const Text("Detailed Filters"),
-          ),
+          _statSummary("Total Logs", stats['total']?.toString() ?? '0', kBrandBrown),
+          _statSummary("Present", stats['present']?.toString() ?? '0', kBrandOlive),
+          _statSummary("Absent", stats['absent']?.toString() ?? '0', Colors.red),
+          _statSummary("Late", stats['late']?.toString() ?? '0', Colors.orange),
         ],
       ),
     );
   }
 
-  Widget _dropdownControl(String label, String value, List<String> items, ValueChanged<String?> onChanged) {
+  Widget _statSummary(String label, String value, Color color) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Text(value, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: color)),
+        const SizedBox(height: 4),
         Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
-        DropdownButton<String>(
-          value: value,
-          isDense: true,
-          underline: const SizedBox(),
-          style: const TextStyle(color: kBrandBrown, fontWeight: FontWeight.bold, fontSize: 14),
-          items: items.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
-          onChanged: onChanged,
-        ),
       ],
     );
   }
@@ -173,13 +195,15 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
   }
 
   Widget _buildTrendsChart() {
+    final trends = (_analytics!['trends'] as List? ?? []);
+    if (trends.isEmpty) return const Center(child: Text("Insufficient data for trends.", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)));
+
     return Column(
-      children: [
-        _chartBar("Week 1", 0.95, kBrandOlive),
-        _chartBar("Week 2", 0.92, kBrandOlive),
-        _chartBar("Week 3", 0.88, kBrandBrown),
-        _chartBar("Week 4", 0.94, kBrandOlive),
-      ],
+      children: trends.map((t) => _chartBar(
+        "Week of ${t['week_start']}",
+        (t['attendance_rate'] as num).toDouble() / 100,
+        kBrandOlive
+      )).toList(),
     );
   }
 
@@ -206,12 +230,16 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
   }
 
   Widget _buildAlertsList() {
+    final alerts = (_analytics!['alerts'] as List? ?? []);
+    if (alerts.isEmpty) return const Center(child: Text("No active alerts.", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)));
+
     return Column(
-      children: [
-        _alertItem("Low Enrollment Participation", "Providence High dropped to 65%", Colors.red),
-        _alertItem("Consistency Issue", "Sarah Kambewa missed 3 sessions", Colors.orange),
-        _alertItem("High Performance", "Kamuzu Academy reached 100% rate", kBrandOlive),
-      ],
+      children: alerts.map((a) {
+        Color color = kBrandOlive;
+        if (a['type'] == 'danger') color = Colors.red;
+        if (a['type'] == 'warning') color = Colors.orange;
+        return _alertItem(a['title'] ?? '', a['subtitle'] ?? '', color);
+      }).toList(),
     );
   }
 
@@ -243,6 +271,9 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
   }
 
   Widget _buildAttendanceTable() {
+    final summary = (_analytics!['summary'] as List? ?? []);
+    if (summary.isEmpty) return const Center(child: Text("No school data available.", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)));
+
     return Table(
       columnWidths: const {
         0: FlexColumnWidth(2),
@@ -259,18 +290,17 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
             Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text("Avg Rate", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey))),
           ],
         ),
-        ...[
-          ("Kamuzu Academy", 42, 38, 92.4),
-          ("UNIMA", 128, 115, 89.8),
-          ("Chichiri Secondary", 24, 18, 75.0),
-        ].map((s) => TableRow(
-          children: [
-            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(s.$1, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBrandBrown))),
-            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(s.$2.toString(), style: const TextStyle(fontSize: 12))),
-            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(s.$3.toString(), style: const TextStyle(fontSize: 12))),
-            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text("${s.$4}%", style: TextStyle(fontWeight: FontWeight.bold, color: s.$4 >= 85 ? kBrandOlive : kBrandOrange))),
-          ],
-        )),
+        ...summary.map((s) {
+          final rate = double.parse(s['avg_rate']?.toString() ?? '0');
+          return TableRow(
+            children: [
+              Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(s['school_name'] ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBrandBrown))),
+              Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(s['active_scholars']?.toString() ?? '0', style: const TextStyle(fontSize: 12))),
+              Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(s['present_logs']?.toString() ?? '0', style: const TextStyle(fontSize: 12))),
+              Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text("$rate%", style: TextStyle(fontWeight: FontWeight.bold, color: rate >= 85 ? kBrandOlive : kBrandOrange))),
+            ],
+          );
+        }),
       ],
     );
   }

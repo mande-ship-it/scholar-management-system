@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../academics/academics_utils.dart';
+import '../services/api_service.dart';
 
 class AttendanceReportsComponent extends StatefulWidget {
   const AttendanceReportsComponent({super.key});
@@ -10,9 +11,42 @@ class AttendanceReportsComponent extends StatefulWidget {
 
 class _AttendanceReportsComponentState extends State<AttendanceReportsComponent> {
   String _selectedMonth = 'July 2026';
+  bool _isLoading = true;
+  Map<String, dynamic>? _data;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchReport();
+  }
+
+  Future<void> _fetchReport() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await ApiService.getAttendanceReport(month: _selectedMonth);
+      if (response.statusCode == 200) {
+        setState(() {
+          _data = response.data['data'];
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching attendance report: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator(color: kBrandOlive));
+    }
+
+    final metrics = _data?['metrics'] ?? {};
+    final trends = _data?['trends'] as List? ?? [];
+    final reasons = _data?['reasons'] as List? ?? [];
+    final scholars = _data?['scholars'] as List? ?? [];
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -30,11 +64,11 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
           // 3. Key Metrics
           Row(
             children: [
-              _metricCard("Average Attendance", "92.4%", kBrandOlive, Icons.rule_rounded),
+              _metricCard("Average Attendance", "${metrics['avg_rate'] ?? 0}%", kBrandOlive, Icons.rule_rounded),
               const SizedBox(width: 16),
-              _metricCard("Perfect Attendance", "84 Scholars", kBrandBrown, Icons.verified_rounded),
+              _metricCard("Perfect Attendance", "${metrics['perfect_attendance'] ?? 0} Scholars", kBrandBrown, Icons.verified_rounded),
               const SizedBox(width: 16),
-              _metricCard("Critical Lows", "5", Colors.red, Icons.warning_amber_rounded),
+              _metricCard("Critical Lows", "${metrics['critical_lows'] ?? 0}", Colors.red, Icons.warning_amber_rounded),
             ],
           ),
           
@@ -48,7 +82,7 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
                 flex: 2,
                 child: _reportSection(
                   title: "Monthly Attendance Trends",
-                  child: _buildTrendsChart(),
+                  child: _buildTrendsChart(trends),
                 ),
               ),
               const SizedBox(width: 24),
@@ -56,7 +90,7 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
                 flex: 1,
                 child: _reportSection(
                   title: "Absence Reasons",
-                  child: _buildReasonBreakdown(),
+                  child: _buildReasonBreakdown(reasons),
                 ),
               ),
             ],
@@ -67,7 +101,7 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
           // 5. Attendance Detail Preview
           _reportSection(
             title: "Scholar Attendance Summary",
-            child: _buildAttendanceTable(),
+            child: _buildAttendanceTable(scholars),
           ),
           
           const SizedBox(height: 40),
@@ -125,12 +159,15 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
       ),
       child: Row(
         children: [
-          _dropdownControl("Select Month", _selectedMonth, ['May 2026', 'June 2026', 'July 2026'], (v) => setState(() => _selectedMonth = v!)),
+          _dropdownControl("Select Month", _selectedMonth, ['May 2026', 'June 2026', 'July 2026'], (v) {
+            setState(() => _selectedMonth = v!);
+            _fetchReport();
+          }),
           const Spacer(),
           TextButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.filter_list_rounded),
-            label: const Text("Advanced Filters"),
+            onPressed: _fetchReport,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text("Refresh"),
           ),
         ],
       ),
@@ -199,14 +236,14 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
     );
   }
 
-  Widget _buildTrendsChart() {
+  Widget _buildTrendsChart(List trends) {
+    if (trends.isEmpty) return const Center(child: Text("No trend data available"));
     return Column(
-      children: [
-        _chartBar("Week 1", 0.95, kBrandOlive),
-        _chartBar("Week 2", 0.92, kBrandOlive),
-        _chartBar("Week 3", 0.88, kBrandBrown),
-        _chartBar("Week 4", 0.94, kBrandOlive),
-      ],
+      children: trends.map((t) => _chartBar(
+        "Week ${t['week']}",
+        (double.parse(t['rate'].toString()) / 100),
+        kBrandOlive
+      )).toList(),
     );
   }
 
@@ -232,29 +269,30 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
     );
   }
 
-  Widget _buildReasonBreakdown() {
-    final reasons = [
-      ("Illness", 45, Colors.blue),
-      ("Family Obligations", 30, kBrandOrange),
-      ("Financial/Transport", 15, kBrandBrown),
-      ("Other", 10, Colors.grey),
-    ];
+  Widget _buildReasonBreakdown(List reasons) {
+    if (reasons.isEmpty) return const Center(child: Text("No absence data"));
+    final List<Color> colors = [Colors.blue, kBrandOrange, kBrandBrown, Colors.grey];
     return Column(
-      children: reasons.map((r) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Row(
-          children: [
-            Container(width: 8, height: 8, decoration: BoxDecoration(color: r.$3, shape: BoxShape.circle)),
-            const SizedBox(width: 12),
-            Expanded(child: Text(r.$1, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
-            Text("${r.$2}%", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-          ],
-        ),
-      )).toList(),
+      children: reasons.asMap().entries.map((entry) {
+        final r = entry.value;
+        final color = colors[entry.key % colors.length];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            children: [
+              Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+              const SizedBox(width: 12),
+              Expanded(child: Text(r['reason'] ?? 'N/A', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
+              Text("${r['percentage']}%", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 
-  Widget _buildAttendanceTable() {
+  Widget _buildAttendanceTable(List scholars) {
+    if (scholars.isEmpty) return const Center(child: Text("No scholars data"));
     return Table(
       columnWidths: const {
         0: FlexColumnWidth(2),
@@ -271,12 +309,12 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
             Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text("Rate", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey))),
           ],
         ),
-        ...kStudents.take(5).map((s) => TableRow(
+        ...scholars.map((s) => TableRow(
           children: [
-            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(s.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBrandBrown))),
-            const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text("19", style: TextStyle(fontSize: 13))),
-            const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text("1", style: TextStyle(fontSize: 13, color: Colors.red))),
-            const Padding(padding: EdgeInsets.symmetric(vertical: 12), child: Text("95%", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandOlive))),
+            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(s['full_name'] ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBrandBrown))),
+            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(s['present']?.toString() ?? '0', style: const TextStyle(fontSize: 13))),
+            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(s['absent']?.toString() ?? '0', style: const TextStyle(fontSize: 13, color: Colors.red))),
+            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text("${s['rate'] ?? 0}%", style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandOlive))),
           ],
         )),
       ],

@@ -53,6 +53,7 @@ class OrganisationEvent {
   final String location;
   final String? organizer;
   final List<String>? targetedParticipants;
+  final String status; // 'Active' or 'History'
 
   OrganisationEvent({
     required this.id,
@@ -64,6 +65,7 @@ class OrganisationEvent {
     required this.location,
     this.organizer,
     this.targetedParticipants,
+    this.status = 'Active',
   });
 
   DateTime get fullDateTime => DateTime(
@@ -74,11 +76,11 @@ class OrganisationEvent {
         time.minute,
       );
 
-  bool get isUpcoming => fullDateTime.isAfter(DateTime.now());
+  bool get isUpcoming => status == 'Active' && fullDateTime.isAfter(DateTime.now());
 
-  bool get isHistory => !isUpcoming;
+  bool get isHistory => status == 'History';
 
-  bool get isExpired => isHistory && DateTime.now().difference(fullDateTime).inDays > 30;
+  bool get isExpired => isHistory && DateTime.now().difference(fullDateTime).inDays > 7;
 
   factory OrganisationEvent.fromJson(Map<String, dynamic> json) {
     // Parse time string "HH:mm:ss" or "HH:mm"
@@ -101,49 +103,9 @@ class OrganisationEvent {
       location: json['location'],
       organizer: json['organizer'],
       targetedParticipants: json['targetedParticipants'] != null ? List<String>.from(json['targetedParticipants']) : null,
+      status: json['status'] ?? 'Active',
     );
   }
 }
 
-final List<OrganisationEvent> kEvents = [
-  OrganisationEvent(
-    id: 'e1',
-    title: 'Scholar Mentorship Workshop',
-    description: 'A session focused on career guidance and personal development for all university scholars.',
-    category: EventCategory.mentorship,
-    date: DateTime(2026, 8, 15),
-    time: const TimeOfDay(hour: 9, minute: 0),
-    location: 'BICC, Lilongwe',
-    organizer: 'Academic Department',
-  ),
-  OrganisationEvent(
-    id: 'e2',
-    title: 'Annual Award Ceremony',
-    description: 'Celebrating outstanding academic achievements of our scholars.',
-    category: EventCategory.celebration,
-    date: DateTime(2026, 12, 10),
-    time: const TimeOfDay(hour: 14, minute: 30),
-    location: 'Mount Soche Hotel, Blantyre',
-    organizer: 'Management',
-  ),
-  OrganisationEvent(
-    id: 'e3',
-    title: 'Q2 Staff Meeting',
-    description: 'Quarterly review of program performance and budget utilization.',
-    category: EventCategory.meeting,
-    date: DateTime(2025, 6, 15), // Past event
-    time: const TimeOfDay(hour: 10, minute: 0),
-    location: 'Head Office',
-    organizer: 'Operations',
-  ),
-  OrganisationEvent(
-    id: 'e4',
-    title: 'Old Training Session',
-    description: 'This event is older than 30 days and should be auto-deleted.',
-    category: EventCategory.training,
-    date: DateTime(2024, 1, 1), // Very old event
-    time: const TimeOfDay(hour: 9, minute: 0),
-    location: 'Virtual',
-    organizer: 'HR',
-  ),
-];
+final List<OrganisationEvent> kEvents = [];

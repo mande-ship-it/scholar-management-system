@@ -1,7 +1,9 @@
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   static String? _token;
+  static const String _tokenKey = 'auth_token';
 
   static final Dio _dio = Dio(BaseOptions(
     baseUrl: 'http://localhost:5000/api', // Use http://10.0.2.2:5000 for Android emulator
@@ -16,14 +18,46 @@ class ApiService {
     },
   ));
 
-  static void setToken(String token) {
-    _token = token;
+  static Future<void> init() async {
+    final prefs = await SharedPreferences.getInstance();
+    _token = prefs.getString(_tokenKey);
   }
+
+  static void setToken(String token, {bool persist = false}) async {
+    _token = token;
+    final prefs = await SharedPreferences.getInstance();
+    if (persist) {
+      await prefs.setString(_tokenKey, token);
+    } else {
+      // Clear any previously saved token if the user doesn't want to be remembered
+      await prefs.remove(_tokenKey);
+    }
+  }
+
+  static Future<void> logout() async {
+    _token = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_tokenKey);
+  }
+
+  static bool get isAuthenticated => _token != null;
 
   static Future<Response> login(String email, String password) async {
     return await _dio.post('/auth/login', data: {
       'email': email,
       'password': password,
+    });
+  }
+
+  static Future<Response> forgotPassword(String email) async {
+    return await _dio.post('/auth/forgot-password', data: {'email': email});
+  }
+
+  static Future<Response> resetPassword(String email, String otp, String newPassword) async {
+    return await _dio.post('/auth/reset-password', data: {
+      'email': email,
+      'otp': otp,
+      'newPassword': newPassword,
     });
   }
 
@@ -66,16 +100,20 @@ class ApiService {
   }
 
   // Attendance
-  static Future<Response> getAttendanceBySchool({String? schoolId, String? schoolName, String? date}) async {
-    return await _dio.get('/attendance', queryParameters: {
+  static Future<Response> getAttendanceHistory({String? type, String? schoolId, String? schoolName}) async {
+    return await _dio.get('/attendance/history', queryParameters: {
+      'type': type,
       'schoolId': schoolId,
       'schoolName': schoolName,
-      'date': date,
     });
   }
 
+  static Future<Response> getAttendanceAnalytics() async {
+    return await _dio.get('/attendance/analytics');
+  }
+
   static Future<Response> saveAttendance(Map<String, dynamic> data) async {
-    return await _dio.post('/attendance', data: data);
+    return await _dio.post('/attendance/record', data: data);
   }
 
   // Finance
@@ -229,6 +267,13 @@ class ApiService {
     return await _dio.put('/settings/profile', data: data);
   }
 
+  static Future<Response> uploadProfilePicture(List<int> bytes, String fileName) async {
+    FormData formData = FormData.fromMap({
+      "profilePicture": MultipartFile.fromBytes(bytes, filename: fileName),
+    });
+    return await _dio.post('/settings/profile/upload', data: formData);
+  }
+
   static Future<Response> changePassword(String currentPassword, String newPassword) async {
     return await _dio.post('/settings/change-password', data: {
       'currentPassword': currentPassword,
@@ -277,6 +322,10 @@ class ApiService {
     return await _dio.patch('/notifications/$id/read');
   }
 
+  static Future<Response> deleteNotification(String id) async {
+    return await _dio.delete('/notifications/$id');
+  }
+
   // Events
   static Future<Response> getAllEvents() async {
     return await _dio.get('/events');
@@ -292,5 +341,48 @@ class ApiService {
 
   static Future<Response> deleteEvent(String id) async {
     return await _dio.delete('/events/$id');
+  }
+
+  // Dashboard
+  static Future<Response> getDashboardStats() async {
+    return await _dio.get('/dashboard');
+  }
+
+  // Reports
+  static Future<Response> getScholarReport({String? period, String? type}) async {
+    return await _dio.get('/reports/scholars', queryParameters: {'period': period, 'type': type});
+  }
+
+  static Future<Response> getFinanceReport({String? year}) async {
+    return await _dio.get('/reports/finance', queryParameters: {'year': year});
+  }
+
+  static Future<Response> getSchoolReport({String? level}) async {
+    return await _dio.get('/reports/schools', queryParameters: {'level': level});
+  }
+
+  static Future<Response> getSponsorReport({String? region}) async {
+    return await _dio.get('/reports/sponsors', queryParameters: {'region': region});
+  }
+
+  static Future<Response> getAttendanceReport({String? month}) async {
+    return await _dio.get('/reports/attendance', queryParameters: {'month': month});
+  }
+
+  // Reports / Exports
+  static Future<Response> exportToExcel(List<String> datasets) async {
+    return await _dio.post(
+      '/reports/export/excel',
+      data: {'datasets': datasets},
+      options: Options(responseType: ResponseType.bytes),
+    );
+  }
+
+  static Future<Response> exportToPDF(List<String> modules) async {
+    return await _dio.post(
+      '/reports/export/pdf',
+      data: {'modules': modules},
+      options: Options(responseType: ResponseType.bytes),
+    );
   }
 }

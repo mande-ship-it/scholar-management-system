@@ -1,5 +1,10 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:dio/dio.dart';
 import '../services/api_service.dart';
+import '../widgets/custom_loaders.dart';
 
 // ============================================================
 // Shared Brand Color Palette
@@ -19,12 +24,14 @@ class AccountSettingsComponent extends StatefulWidget {
 class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
 
   bool _isSaving = false;
   bool _isLoading = false;
   String _userRole = "Staff";
+  String? _profileImageUrl;
 
   @override
   void initState() {
@@ -41,9 +48,11 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
         if (data != null && mounted) {
           setState(() {
             _nameController.text = data['full_name'] ?? '';
+            _usernameController.text = data['username'] ?? '';
             _emailController.text = data['email'] ?? '';
             _phoneController.text = data['phone'] ?? '';
             _userRole = data['role_name'] ?? 'Staff';
+            _profileImageUrl = data['profile_picture'];
           });
         }
       }
@@ -54,9 +63,42 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
     }
   }
 
+  Future<void> _pickAndUploadImage() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.single.bytes != null) {
+        final bytes = result.files.single.bytes!;
+        final fileName = result.files.single.name;
+
+        setState(() => _isSaving = true);
+        final response = await ApiService.uploadProfilePicture(bytes, fileName);
+
+        if (response.statusCode == 200) {
+          setState(() {
+            _profileImageUrl = response.data['data']['profilePicture'];
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Profile picture updated!"), backgroundColor: kBrandOlive),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error uploading image: $e');
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
+    _usernameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
     super.dispose();
@@ -69,6 +111,7 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
     try {
       final response = await ApiService.updateAccountProfile({
         'fullName': _nameController.text.trim(),
+        'username': _usernameController.text.trim(),
         'email': _emailController.text.trim(),
         'phone': _phoneController.text.trim(),
       });
@@ -105,41 +148,11 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
       ),
       clipBehavior: Clip.antiAlias,
       child: _isLoading 
-        ? const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+        ? const Center(child: Padding(padding: EdgeInsets.all(80), child: BeautifulLoader(isOverlay: false, message: "Fetching Profile")))
         : SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ---------------- Clean Header ----------------
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 32, 24, 8),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: kBrandBrown.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.manage_accounts_rounded, color: kBrandBrown, size: 32),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Account Settings', 
-                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kBrandBrown)),
-                        const SizedBox(height: 4),
-                        const Text('Manage your personal profile and security credentials.',
-                            style: TextStyle(fontSize: 14, color: Colors.grey)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
             Padding(
               padding: const EdgeInsets.all(24.0),
               child: Form(
@@ -157,6 +170,13 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
                       label: "Full Name",
                       icon: Icons.person_outline_rounded,
                       validator: (v) => (v == null || v.trim().isEmpty) ? "Name is required" : null,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                      controller: _usernameController,
+                      label: "Username",
+                      icon: Icons.alternate_email_rounded,
+                      validator: (v) => (v == null || v.trim().isEmpty) ? "Username is required" : null,
                     ),
                     const SizedBox(height: 16),
                     _buildTextField(
@@ -244,18 +264,29 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
         children: [
           Stack(
             children: [
-              CircleAvatar(
-                radius: 40,
-                backgroundColor: kBrandOlive,
-                child: Text(initials, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+              GestureDetector(
+                onTap: _pickAndUploadImage,
+                child: CircleAvatar(
+                  radius: 40,
+                  backgroundColor: kBrandOlive,
+                  backgroundImage: _profileImageUrl != null
+                    ? NetworkImage('http://localhost:5000${_profileImageUrl}')
+                    : null,
+                  child: _profileImageUrl == null
+                    ? Text(initials, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white))
+                    : null,
+                ),
               ),
               Positioned(
                 bottom: 0,
                 right: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(color: kBrandOrange, shape: BoxShape.circle),
-                  child: const Icon(Icons.camera_alt, size: 14, color: Colors.white),
+                child: GestureDetector(
+                  onTap: _pickAndUploadImage,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(color: kBrandOrange, shape: BoxShape.circle),
+                    child: const Icon(Icons.camera_alt, size: 14, color: Colors.white),
+                  ),
                 ),
               ),
             ],
@@ -267,7 +298,7 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
               children: [
                 Text(_nameController.text, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kBrandBrown)),
                 const SizedBox(height: 4),
-                Text(_emailController.text, style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
+                Text("@${_usernameController.text}", style: const TextStyle(fontSize: 13, color: kBrandOrange, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -405,7 +436,15 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
                     );
                   }
                 } catch (e) {
-                  debugPrint('Error changing password: $e');
+                  if (mounted) {
+                    String msg = "Error changing password";
+                    if (e is DioException && e.response?.statusCode == 401) {
+                      msg = "Current password is incorrect";
+                    }
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(msg), backgroundColor: Colors.red),
+                    );
+                  }
                 }
               }
             },
@@ -434,3 +473,4 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
     );
   }
 }
+

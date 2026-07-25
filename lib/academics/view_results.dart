@@ -10,6 +10,7 @@ import 'package:printing/printing.dart';
 
 import 'academics_utils.dart';
 import '../services/api_service.dart';
+import '../widgets/custom_loaders.dart';
 
 // ============================================================
 // Shared Brand Color Palette
@@ -247,11 +248,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> {
         children: [
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(20, 14, 16, 14),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
-            ),
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -259,23 +256,37 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> {
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(6),
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: kBrandBrown.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
+                          color: kBrandBrown.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.assignment_rounded, color: kBrandBrown, size: 16),
+                        child: const Icon(
+                          Icons.assignment_rounded,
+                          color: kBrandBrown,
+                          size: 28,
+                        ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 16),
                       const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
                               "View Results",
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kBrandBrown),
-                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: kBrandBrown,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              "Monitor scholar performance and download rosters.",
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
                             ),
                           ],
                         ),
@@ -339,6 +350,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> {
               ],
             ),
           ),
+          const Divider(height: 32),
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 14, 24, 12),
             child: Container(

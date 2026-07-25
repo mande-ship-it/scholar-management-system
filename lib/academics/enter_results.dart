@@ -43,7 +43,7 @@ class _AcademicsManagementComponentState extends State<AcademicsManagementCompon
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _buildHeader(context),
-        const SizedBox(height: 18),
+        const SizedBox(height: 12),
         const Expanded(child: _EnterResultsSection()),
       ],
     );
@@ -51,27 +51,20 @@ class _AcademicsManagementComponentState extends State<AcademicsManagementCompon
 
   Widget _buildHeader(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [kBrandOlive, Color(0xFF7F9A29)],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: kBrandOlive.withValues(alpha: 0.28), blurRadius: 18, offset: const Offset(0, 8)),
-        ],
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(12),
+              color: kBrandOlive.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.menu_book_rounded, color: Colors.white, size: 26),
+            child: const Icon(
+              Icons.menu_book_rounded,
+              color: kBrandOlive,
+              size: 28,
+            ),
           ),
           const SizedBox(width: 16),
           const Expanded(
@@ -80,12 +73,19 @@ class _AcademicsManagementComponentState extends State<AcademicsManagementCompon
               children: [
                 Text(
                   "Enter Academic Results",
-                  style: TextStyle(fontSize: 21, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.2),
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: kBrandBrown,
+                  ),
                 ),
-                SizedBox(height: 3),
+                SizedBox(height: 4),
                 Text(
-                  "Record scholar exam results per term or semester — manually, or by importing a document.",
-                  style: TextStyle(fontSize: 12.5, color: Colors.white70, height: 1.3),
+                  "Record scholar exam results per term or semester.",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                  ),
                 ),
               ],
             ),

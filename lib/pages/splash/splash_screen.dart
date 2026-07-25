@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import '../../academics/academics_utils.dart';
+import '../../widgets/custom_loaders.dart';
+import '../../services/api_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -29,11 +31,41 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     _animationController.forward();
 
-    Timer(const Duration(milliseconds: 4000), () {
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
+    await ApiService.init();
+
+    await Future.delayed(const Duration(milliseconds: 3500));
+
+    if (mounted) {
+      if (ApiService.isAuthenticated) {
+        // Try to fetch profile to see if token is still valid
+        try {
+          final response = await ApiService.getAccountProfile();
+          if (response.statusCode == 200 && mounted) {
+            final userData = response.data['data'];
+            Navigator.pushReplacementNamed(
+              context,
+              '/home',
+              arguments: {
+                'username': userData['full_name'] ?? 'User',
+                'role': userData['role_name'] ?? 'Staff',
+              },
+            );
+            return;
+          }
+        } catch (e) {
+          // Token probably expired
+          ApiService.logout();
+        }
+      }
+
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/login');
       }
-    });
+    }
   }
 
   @override
@@ -48,8 +80,19 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       backgroundColor: kBrandBrown,
       body: Stack(
         children: [
-          // Moving background lines
-          const Positioned.fill(child: _MovingLinesBackground()),
+          // 1. New Professional Background Pattern
+          Positioned.fill(
+            child: Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [kBrandBrown, Color(0xFF2C241D)],
+                ),
+              ),
+            ),
+          ),
+          const Positioned.fill(child: _AnimatedRadialBackground()),
           
           FadeTransition(
             opacity: _fadeAnimation,
@@ -59,17 +102,17 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 children: [
                   // High-end Branding
                   Container(
-                    width: 140,
-                    height: 140,
-                    padding: const EdgeInsets.all(24),
+                    width: 150,
+                    height: 150,
+                    padding: const EdgeInsets.all(28),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(35),
+                      borderRadius: BorderRadius.circular(40),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.3),
-                          blurRadius: 40,
-                          offset: const Offset(0, 20),
+                          color: Colors.black.withValues(alpha: 0.4),
+                          blurRadius: 50,
+                          offset: const Offset(0, 25),
                         ),
                       ],
                     ),
@@ -78,47 +121,37 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       fit: BoxFit.contain,
                       errorBuilder: (context, error, stackTrace) => const Icon(
                         Icons.school_rounded,
-                        size: 70,
+                        size: 80,
                         color: kBrandOlive,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 48),
                   
                   const Text(
                     "AGE AFRICA",
                     style: TextStyle(
-                      fontSize: 36,
+                      fontSize: 40,
                       fontWeight: FontWeight.w900,
                       color: Colors.white,
-                      letterSpacing: 4,
+                      letterSpacing: 6,
                     ),
                   ),
+                  const SizedBox(height: 8),
                   Text(
                     "SCHOLAR MANAGEMENT SYSTEM",
                     style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: kBrandOlive.withOpacity(0.9),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: kBrandOlive,
                       letterSpacing: 4,
                     ),
                   ),
                   
-                  const SizedBox(height: 100),
+                  const SizedBox(height: 80),
                   
                   // Professional Loader
-                  const _MultiColorLoader(),
-                  
-                  const SizedBox(height: 40),
-                  Text(
-                    "INITIALIZING SECURE PORTAL",
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white.withOpacity(0.3),
-                      letterSpacing: 2,
-                    ),
-                  ),
+                  const BeautifulLoader(isOverlay: false, message: "Initializing Secure Portal"),
                 ],
               ),
             ),
@@ -129,14 +162,14 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   }
 }
 
-class _MovingLinesBackground extends StatefulWidget {
-  const _MovingLinesBackground();
+class _AnimatedRadialBackground extends StatefulWidget {
+  const _AnimatedRadialBackground();
 
   @override
-  State<_MovingLinesBackground> createState() => _MovingLinesBackgroundState();
+  State<_AnimatedRadialBackground> createState() => _AnimatedRadialBackgroundState();
 }
 
-class _MovingLinesBackgroundState extends State<_MovingLinesBackground> with SingleTickerProviderStateMixin {
+class _AnimatedRadialBackgroundState extends State<_AnimatedRadialBackground> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
   @override
@@ -144,8 +177,8 @@ class _MovingLinesBackgroundState extends State<_MovingLinesBackground> with Sin
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 10),
-    )..repeat();
+      duration: const Duration(seconds: 15),
+    )..repeat(reverse: true);
   }
 
   @override
@@ -160,127 +193,42 @@ class _MovingLinesBackgroundState extends State<_MovingLinesBackground> with Sin
       animation: _controller,
       builder: (context, child) {
         return CustomPaint(
-          painter: _LinePainter(_controller.value),
+          painter: _RadialPainter(_controller.value),
         );
       },
     );
   }
 }
 
-class _LinePainter extends CustomPainter {
+class _RadialPainter extends CustomPainter {
   final double progress;
-  _LinePainter(this.progress);
+  _RadialPainter(this.progress);
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0;
+      ..shader = RadialGradient(
+        colors: [
+          kBrandOlive.withValues(alpha: 0.1),
+          Colors.transparent,
+        ],
+      ).createShader(Rect.fromLTWH(
+        size.width * 0.2 + (size.width * 0.6 * progress),
+        size.height * 0.2 + (size.height * 0.6 * (1 - progress)),
+        size.width,
+        size.height,
+      ));
 
-    final random = math.Random(42);
-    for (int i = 0; i < 15; i++) {
-      final opacity = (random.nextDouble() * 0.15).clamp(0.05, 0.15);
-      paint.color = kBrandOlive.withOpacity(opacity);
-      paint.strokeWidth = random.nextDouble() * 100 + 50;
-
-      final path = Path();
-      final startY = random.nextDouble() * size.height;
-      final offset = progress * size.width;
-      
-      path.moveTo(-size.width, startY);
-      path.quadraticBezierTo(
-        size.width * 0.5, 
-        startY + (math.sin(progress * math.pi * 2 + i) * 200), 
-        size.width * 2, 
-        startY + 100
-      );
-
-      canvas.save();
-      canvas.translate((offset + (i * 100)) % (size.width * 3) - size.width, 0);
-      canvas.drawPath(path, paint);
-      canvas.restore();
-    }
+    canvas.drawCircle(
+      Offset(
+        size.width * 0.5 + (math.cos(progress * 2 * math.pi) * 100),
+        size.height * 0.5 + (math.sin(progress * 2 * math.pi) * 100),
+      ),
+      size.width * 0.8,
+      paint,
+    );
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-}
-
-class _MultiColorLoader extends StatefulWidget {
-  const _MultiColorLoader();
-
-  @override
-  State<_MultiColorLoader> createState() => _MultiColorLoaderState();
-}
-
-class _MultiColorLoaderState extends State<_MultiColorLoader> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 3),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        return Stack(
-          alignment: Alignment.center,
-          children: [
-            RotationTransition(
-              turns: _controller,
-              child: const SizedBox(
-                width: 90,
-                height: 90,
-                child: CircularProgressIndicator(
-                  strokeWidth: 8,
-                  value: 0.3,
-                  strokeCap: StrokeCap.round,
-                  valueColor: AlwaysStoppedAnimation<Color>(kBrandOlive),
-                ),
-              ),
-            ),
-            RotationTransition(
-              turns: ReverseAnimation(_controller),
-              child: const SizedBox(
-                width: 60,
-                height: 60,
-                child: CircularProgressIndicator(
-                  strokeWidth: 8,
-                  value: 0.3,
-                  strokeCap: StrokeCap.round,
-                  valueColor: AlwaysStoppedAnimation<Color>(kBrandOrange),
-                ),
-              ),
-            ),
-            RotationTransition(
-              turns: _controller.drive(CurveTween(curve: Curves.easeInOut)),
-              child: const SizedBox(
-                width: 30,
-                height: 30,
-                child: CircularProgressIndicator(
-                  strokeWidth: 8,
-                  value: 0.3,
-                  strokeCap: StrokeCap.round,
-                  valueColor: AlwaysStoppedAnimation<Color>(kBrandCream),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
 }

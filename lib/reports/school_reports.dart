@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../academics/academics_utils.dart';
+import '../services/api_service.dart';
 
 class SchoolReportsComponent extends StatefulWidget {
   const SchoolReportsComponent({super.key});
@@ -10,9 +11,42 @@ class SchoolReportsComponent extends StatefulWidget {
 
 class _SchoolReportsComponentState extends State<SchoolReportsComponent> {
   String _selectedLevel = 'All Levels';
+  bool _isLoading = true;
+  Map<String, dynamic>? _data;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchReport();
+  }
+
+  Future<void> _fetchReport() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await ApiService.getSchoolReport(level: _selectedLevel);
+      if (response.statusCode == 200) {
+        setState(() {
+          _data = response.data['data'];
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching school report: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator(color: kBrandOlive));
+    }
+
+    final metrics = _data?['metrics'] ?? {};
+    final types = _data?['types'] as List? ?? [];
+    final standings = _data?['standings'] as List? ?? [];
+    final schools = _data?['schools'] as List? ?? [];
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -30,11 +64,11 @@ class _SchoolReportsComponentState extends State<SchoolReportsComponent> {
           // 3. Key Metrics
           Row(
             children: [
-              _metricCard("Partner Schools", "42", Colors.blue, Icons.business_rounded),
+              _metricCard("Partner Schools", "${metrics['partner_schools'] ?? 0}", Colors.blue, Icons.business_rounded),
               const SizedBox(width: 16),
-              _metricCard("Total Enrollment", "1,240", kBrandOlive, Icons.groups_rounded),
+              _metricCard("Total Enrollment", "${metrics['total_enrollment'] ?? 0}", kBrandOlive, Icons.groups_rounded),
               const SizedBox(width: 16),
-              _metricCard("Pending Fees", "MWK 4.2M", kBrandOrange, Icons.warning_amber_rounded),
+              _metricCard("Pending Fees", "MWK ${metrics['pending_fees'] ?? 0}", kBrandOrange, Icons.warning_amber_rounded),
             ],
           ),
           
@@ -47,8 +81,8 @@ class _SchoolReportsComponentState extends State<SchoolReportsComponent> {
               Expanded(
                 flex: 2,
                 child: _reportSection(
-                  title: "Performance by School Type",
-                  child: _buildTypeChart(),
+                  title: "Institution Distribution by Type",
+                  child: _buildTypeChart(types),
                 ),
               ),
               const SizedBox(width: 24),
@@ -56,7 +90,7 @@ class _SchoolReportsComponentState extends State<SchoolReportsComponent> {
                 flex: 1,
                 child: _reportSection(
                   title: "School Standing",
-                  child: _buildStandingDistribution(),
+                  child: _buildStandingDistribution(standings),
                 ),
               ),
             ],
@@ -67,7 +101,7 @@ class _SchoolReportsComponentState extends State<SchoolReportsComponent> {
           // 5. School List Preview
           _reportSection(
             title: "School Performance Ranking Preview",
-            child: _buildSchoolTable(),
+            child: _buildSchoolTable(schools),
           ),
           
           const SizedBox(height: 40),
@@ -123,13 +157,15 @@ class _SchoolReportsComponentState extends State<SchoolReportsComponent> {
       ),
       child: Row(
         children: [
-          _dropdownControl("Education Level", _selectedLevel, ['All Levels', 'Secondary', 'University'], (v) => setState(() => _selectedLevel = v!)),
+          _dropdownControl("Education Level", _selectedLevel, ['All Levels', 'Secondary School', 'Tertiary / University'], (v) {
+            setState(() => _selectedLevel = v!);
+            _fetchReport();
+          }),
           const Spacer(),
-          ElevatedButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.analytics_outlined, size: 18),
-            label: const Text("Run Comparison"),
-            style: ElevatedButton.styleFrom(backgroundColor: kBrandOlive, foregroundColor: Colors.white),
+          TextButton.icon(
+            onPressed: _fetchReport,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text("Refresh"),
           ),
         ],
       ),
@@ -198,12 +234,14 @@ class _SchoolReportsComponentState extends State<SchoolReportsComponent> {
     );
   }
 
-  Widget _buildTypeChart() {
+  Widget _buildTypeChart(List types) {
+    if (types.isEmpty) return const Center(child: Text("No distribution data"));
     return Column(
-      children: [
-        _chartBar("Public Schools", 0.72, Colors.blue),
-        _chartBar("Private Institutions", 0.28, kBrandOlive),
-      ],
+      children: types.map((t) => _chartBar(
+        t['type'] ?? 'Other',
+        (double.parse(t['percentage'].toString()) / 100),
+        kBrandOlive
+      )).toList(),
     );
   }
 
@@ -229,35 +267,30 @@ class _SchoolReportsComponentState extends State<SchoolReportsComponent> {
     );
   }
 
-  Widget _buildStandingDistribution() {
-    final standings = [
-      ("Excellent", 8, Colors.green),
-      ("Satisfactory", 24, kBrandOlive),
-      ("Support Required", 10, kBrandOrange),
-    ];
+  Widget _buildStandingDistribution(List standings) {
+    if (standings.isEmpty) return const Center(child: Text("No standing data"));
+    final List<Color> colors = [Colors.green, kBrandOlive, kBrandOrange, Colors.red];
     return Column(
-      children: standings.map((s) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Row(
-          children: [
-            Container(width: 8, height: 8, decoration: BoxDecoration(color: s.$3, shape: BoxShape.circle)),
-            const SizedBox(width: 12),
-            Expanded(child: Text(s.$1, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
-            Text(s.$2.toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
-          ],
-        ),
-      )).toList(),
+      children: standings.asMap().entries.map((entry) {
+        final s = entry.value;
+        final color = colors[entry.key % colors.length];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            children: [
+              Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+              const SizedBox(width: 12),
+              Expanded(child: Text(s['standing'] ?? 'N/A', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
+              Text(s['count'].toString(), style: const TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 
-  Widget _buildSchoolTable() {
-    final schools = [
-      ("Kamuzu Academy", "Secondary", 84.2, "Excellent"),
-      ("University of Malawi", "University", 72.5, "Satisfactory"),
-      ("Chichiri Secondary", "Secondary", 65.8, "Satisfactory"),
-      ("Providence High", "Secondary", 81.0, "Excellent"),
-      ("Mzuzu University", "University", 68.4, "Satisfactory"),
-    ];
+  Widget _buildSchoolTable(List schools) {
+    if (schools.isEmpty) return const Center(child: Text("No school data"));
     return Table(
       columnWidths: const {
         0: FlexColumnWidth(2),
@@ -276,10 +309,10 @@ class _SchoolReportsComponentState extends State<SchoolReportsComponent> {
         ),
         ...schools.map((s) => TableRow(
           children: [
-            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(s.$1, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBrandBrown))),
-            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(s.$2, style: const TextStyle(fontSize: 12))),
-            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text("${s.$3}%", style: const TextStyle(fontWeight: FontWeight.bold))),
-            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: _badge(s.$4, s.$4 == "Excellent" ? Colors.green.shade50 : Colors.blue.shade50, s.$4 == "Excellent" ? Colors.green.shade700 : Colors.blue.shade700)),
+            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(s['name'] ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBrandBrown))),
+            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(s['level'] ?? 'N/A', style: const TextStyle(fontSize: 12))),
+            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text("${s['avg_mark'] ?? 0}%", style: const TextStyle(fontWeight: FontWeight.bold))),
+            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: _badge(s['standing'] ?? 'Satisfactory', s['standing'] == "Excellent" ? Colors.green.shade50 : Colors.blue.shade50, s['standing'] == "Excellent" ? Colors.green.shade700 : Colors.blue.shade700)),
           ],
         )),
       ],

@@ -1,4 +1,6 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import '../academics/academics_utils.dart';
 import '../services/api_service.dart';
 
@@ -38,6 +40,7 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
   String _username = '';
   String _role = '';
   String _department = '';
+  String? _profilePicture;
   bool _isActive = true;
   DateTime _memberSince = DateTime.now();
   DateTime _lastLogin = DateTime.now();
@@ -51,6 +54,7 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
   Map<String, String> _originalValues = {};
   bool _isEditing = false;
   bool _isLoading = false;
+  bool _isUploading = false;
   final _profileFormKey = GlobalKey<FormState>();
 
   int _selectedTab = 0; // 0 = Personal Info, 1 = Security, 2 = Activity
@@ -89,9 +93,9 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
             _role = u['role_name'] ?? '';
             _department = u['department'] ?? '';
             _isActive = u['is_active'] ?? true;
+            _profilePicture = u['profile_picture'];
             _memberSince =
                 DateTime.tryParse(u['created_at'] ?? '') ?? DateTime.now();
-            // Backend might need to return last_login
             _lastLogin = DateTime.now();
 
             _originalValues = {
@@ -144,6 +148,39 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
       _bioController.text = _originalValues['bio']!;
       _isEditing = false;
     });
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      withData: true,
+    );
+
+    if (result == null || result.files.single.bytes == null) return;
+
+    setState(() => _isUploading = true);
+    try {
+      final file = result.files.single;
+      final response = await ApiService.uploadProfilePicture(file.bytes!, file.name);
+      if (response.statusCode == 200) {
+        setState(() {
+          _profilePicture = response.data['data']['profilePicture'];
+        });
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Profile picture updated."), backgroundColor: kBrandOlive),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error uploading image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to upload image."), backgroundColor: Colors.redAccent),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
+    }
   }
 
   void _saveProfile() async {
@@ -323,6 +360,8 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
   // HEADER CARD (Banner Removed)
   // ---------------------------------------------------------------------
   Widget _buildHeaderCard() {
+    final String baseUrl = 'http://localhost:5000'; // Should be from config
+    
     return Column(
       children: [
         Container(
@@ -345,30 +384,42 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
                       color: kBrandBrown.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                       border: Border.all(color: kBrandCream, width: 2),
+                      image: (_profilePicture != null) 
+                        ? DecorationImage(
+                            image: NetworkImage('$baseUrl$_profilePicture'),
+                            fit: BoxFit.cover,
+                          ) 
+                        : null,
                     ),
                     alignment: Alignment.center,
-                    child: Text(
-                      _initials(_originalValues['name'] ?? 'U'),
-                      style: const TextStyle(
-                        color: kBrandBrown,
-                        fontSize: 36,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child: (_profilePicture == null) 
+                      ? Text(
+                          _initials(_originalValues['name'] ?? 'U'),
+                          style: const TextStyle(
+                            color: kBrandBrown,
+                            fontSize: 36,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                      : null,
                   ),
                   Positioned(
                     bottom: 2,
                     right: 2,
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: kBrandOrange,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)],
+                    child: InkWell(
+                      onTap: _pickAndUploadImage,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: kBrandOrange,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)],
+                        ),
+                        child: _isUploading 
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Icon(Icons.camera_alt_rounded, size: 16, color: Colors.white),
                       ),
-                      child: const Icon(Icons.camera_alt_rounded,
-                          size: 16, color: Colors.white),
                     ),
                   ),
                 ],

@@ -1,7 +1,54 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
+import '../events/events_utils.dart';
+import 'package:intl/intl.dart';
 
-class RecentActivitiesComponent extends StatelessWidget {
+class RecentActivitiesComponent extends StatefulWidget {
   const RecentActivitiesComponent({super.key});
+
+  @override
+  State<RecentActivitiesComponent> createState() => _RecentActivitiesComponentState();
+}
+
+class _RecentActivitiesComponentState extends State<RecentActivitiesComponent> {
+  bool _isLoading = true;
+  List<OrganisationEvent> _events = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchEvents();
+  }
+
+  Future<void> _fetchEvents() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await ApiService.getAllEvents();
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data['data'] ?? [];
+        final allEvents = data.map((json) => OrganisationEvent.fromJson(json)).toList();
+
+        // Filter: Keep upcoming events and very recent history (last 7 days)
+        final now = DateTime.now();
+        final filtered = allEvents.where((e) {
+          return e.fullDateTime.isAfter(now.subtract(const Duration(days: 7)));
+        }).toList();
+
+        // Sort: Upcoming first, closest to now first
+        filtered.sort((a, b) => a.fullDateTime.compareTo(b.fullDateTime));
+
+        if (mounted) {
+          setState(() {
+            _events = filtered.take(5).toList(); // Show top 5 relevant activities
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching recent activities: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -10,37 +57,6 @@ class RecentActivitiesComponent extends StatelessWidget {
     const Color brandCreamDark = Color(0xFFF3E7C4);
     const Color brandOlive = Color(0xFF9AB334);
     const Color brandOrange = Color(0xFFE05B1C);
-
-    final List<Map<String, String>> upcomingEvents = [
-      {
-        "month": "JUL",
-        "day": "15",
-        "title": "Form 4 Career Guidance Workshop",
-        "desc": "Equipping final-year secondary students with career planning resources and career talks.",
-        "venue": "Zomba Catholic Secondary School"
-      },
-      {
-        "month": "AUG",
-        "day": "02",
-        "title": "Annual Sponsorship Disbursements",
-        "desc": "Distribution of pocket allowances, school materials, and tuition coverage payouts.",
-        "venue": "Mzuzu Secondary School & Partner Banks"
-      },
-      {
-        "month": "AUG",
-        "day": "20",
-        "title": "Mentorship Circle Meeting",
-        "desc": "Monthly cohort sync focusing on life-skills, academic hurdles, and community building.",
-        "venue": "Virtual Sync (Microsoft Teams)"
-      },
-      {
-        "month": "SEP",
-        "day": "05",
-        "title": "New Scholar Orientation Day",
-        "desc": "Welcoming the newly admitted Form 1 scholars into the AGE Africa support program.",
-        "venue": "AGE Africa Zomba Head Office"
-      }
-    ];
 
     return Card(
       elevation: 2,
@@ -59,13 +75,20 @@ class RecentActivitiesComponent extends StatelessWidget {
                 const Icon(Icons.event_note, color: brandOrange, size: 28),
                 const SizedBox(width: 12),
                 const Text(
-                  "Upcoming Events & Program Deadlines",
+                  "Recent & Upcoming Activities",
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: brandBrown,
                   ),
                 ),
+                const Spacer(),
+                if (!_isLoading)
+                  IconButton(
+                    icon: const Icon(Icons.refresh, size: 20, color: brandBrown),
+                    onPressed: _fetchEvents,
+                    tooltip: "Refresh Activities",
+                  ),
               ],
             ),
             const SizedBox(height: 6),
@@ -75,126 +98,157 @@ class RecentActivitiesComponent extends StatelessWidget {
             ),
             const Divider(height: 30),
             
-            // Events list
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: upcomingEvents.length,
-              separatorBuilder: (context, index) => const Divider(height: 24, color: Color(0xFFEEECE5)),
-              itemBuilder: (context, index) {
-                final event = upcomingEvents[index];
-                return InkWell(
-                  onTap: () => Future.microtask(() => _showEventDetails(context, event)),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Date Badge Widget
-                        Container(
-                          width: 55,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: brandCreamDark),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Column(
-                            children: [
-                              Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.symmetric(vertical: 4),
-                                decoration: const BoxDecoration(
-                                  color: brandOrange,
-                                  borderRadius: BorderRadius.vertical(top: Radius.circular(6)),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    event["month"]!,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              Expanded(
-                                child: Container(
+            if (_isLoading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40),
+                  child: CircularProgressIndicator(color: brandOlive),
+                ),
+              )
+            else if (_events.isEmpty)
+              _buildEmptyState()
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _events.length,
+                separatorBuilder: (context, index) => const Divider(height: 24, color: Color(0xFFEEECE5)),
+                itemBuilder: (context, index) {
+                  final event = _events[index];
+                  final month = DateFormat('MMM').format(event.date).toUpperCase();
+                  final day = DateFormat('dd').format(event.date);
+
+                  return InkWell(
+                    onTap: () => _showEventDetails(context, event),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Date Badge Widget
+                          Container(
+                            width: 55,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: brandCreamDark),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(
+                              children: [
+                                Container(
                                   width: double.infinity,
-                                  decoration: const BoxDecoration(
-                                    color: brandCream,
-                                    borderRadius: BorderRadius.vertical(bottom: Radius.circular(6)),
+                                  padding: const EdgeInsets.symmetric(vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: event.isUpcoming ? brandOrange : Colors.grey,
+                                    borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
                                   ),
                                   child: Center(
                                     child: Text(
-                                      event["day"]!,
+                                      month,
                                       style: const TextStyle(
-                                        fontSize: 18,
+                                        color: Colors.white,
+                                        fontSize: 10,
                                         fontWeight: FontWeight.bold,
-                                        color: brandBrown,
+                                        letterSpacing: 0.5,
                                       ),
                                     ),
                                   ),
                                 ),
-                              )
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        // Event info
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                event["title"]!,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: brandBrown,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                event["desc"]!,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.black54,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  Icon(Icons.location_on, size: 12, color: brandOlive.withOpacity(0.8)),
-                                  const SizedBox(width: 4),
-                                  Expanded(
-                                    child: Text(
-                                      "Venue: ${event["venue"]!}",
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontStyle: FontStyle.italic,
-                                        color: brandOlive.withOpacity(0.9),
+                                Expanded(
+                                  child: Container(
+                                    width: double.infinity,
+                                    decoration: const BoxDecoration(
+                                      color: brandCream,
+                                      borderRadius: BorderRadius.vertical(bottom: Radius.circular(6)),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        day,
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: brandBrown,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                ],
-                              ),
-                            ],
+                                )
+                              ],
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        // Action Arrow (Icon only, parent InkWell handles tap)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 12),
-                          child: Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
-                        ),
-                      ],
+                          const SizedBox(width: 16),
+                          // Event info
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  event.title,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: brandBrown,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  event.description,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    Icon(Icons.location_on, size: 12, color: brandOlive.withOpacity(0.8)),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        "Venue: ${event.location}",
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontStyle: FontStyle.italic,
+                                          color: brandOlive.withOpacity(0.9),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Padding(
+                            padding: EdgeInsets.only(top: 12),
+                            child: Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.symmetric(vertical: 40),
+        child: Column(
+          children: [
+            Icon(Icons.event_busy_outlined, size: 40, color: Colors.grey),
+            SizedBox(height: 12),
+            Text(
+              "No recent or upcoming activities found.",
+              style: TextStyle(color: Colors.grey, fontSize: 13, fontStyle: FontStyle.italic),
             ),
           ],
         ),
@@ -202,10 +256,12 @@ class RecentActivitiesComponent extends StatelessWidget {
     );
   }
 
-  void _showEventDetails(BuildContext context, Map<String, String> event) {
+  void _showEventDetails(BuildContext context, OrganisationEvent event) {
     const Color brandBrown = Color(0xFF4C3C32);
     const Color brandOlive = Color(0xFF9AB334);
     const Color brandOrange = Color(0xFFE05B1C);
+
+    final fullDate = DateFormat('dd MMMM yyyy').format(event.date);
 
     showDialog(
       context: context,
@@ -220,11 +276,11 @@ class RecentActivitiesComponent extends StatelessWidget {
           ),
           child: Row(
             children: [
-              const Icon(Icons.event_available, color: Colors.white, size: 28),
+              Icon(event.category.icon, color: Colors.white, size: 28),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  event["title"]!,
+                  event.title,
                   style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -235,9 +291,11 @@ class RecentActivitiesComponent extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildDetailRow(Icons.calendar_today, "Date", "${event["day"]} ${event["month"]} 2026", brandOrange),
+            _buildDetailRow(Icons.calendar_today, "Date", fullDate, brandOrange),
             const SizedBox(height: 16),
-            _buildDetailRow(Icons.location_on, "Venue", event["venue"]!, brandOlive),
+            _buildDetailRow(Icons.access_time, "Time", event.time.format(context), brandBrown),
+            const SizedBox(height: 16),
+            _buildDetailRow(Icons.location_on, "Venue", event.location, brandOlive),
             const SizedBox(height: 24),
             const Text(
               "Event Description",
@@ -245,7 +303,7 @@ class RecentActivitiesComponent extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              event["desc"]!,
+              event.description,
               style: const TextStyle(color: Colors.black87, fontSize: 14, height: 1.5),
             ),
           ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../academics/academics_utils.dart';
+import '../services/api_service.dart';
 
 class FinanceReportsComponent extends StatefulWidget {
   const FinanceReportsComponent({super.key});
@@ -9,10 +10,42 @@ class FinanceReportsComponent extends StatefulWidget {
 }
 
 class _FinanceReportsComponentState extends State<FinanceReportsComponent> {
-  String _selectedYear = 'FY 2026';
+  String _selectedYear = '2026';
+  bool _isLoading = true;
+  Map<String, dynamic>? _data;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchReport();
+  }
+
+  Future<void> _fetchReport() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await ApiService.getFinanceReport(year: _selectedYear);
+      if (response.statusCode == 200) {
+        setState(() {
+          _data = response.data['data'];
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching finance report: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator(color: kBrandOlive));
+    }
+
+    final expenditure = _data?['expenditure'] as List? ?? [];
+    final funding = _data?['funding'] as List? ?? [];
+    final transactions = _data?['transactions'] as List? ?? [];
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -24,9 +57,7 @@ class _FinanceReportsComponentState extends State<FinanceReportsComponent> {
           
           // 2. Control Row
           _buildControls(),
-          
-          // ---------------- Stats (Banners Removed) ----------------
-          
+
           const SizedBox(height: 24),
           
           // 4. Main Report Content
@@ -37,7 +68,7 @@ class _FinanceReportsComponentState extends State<FinanceReportsComponent> {
                 flex: 2,
                 child: _reportSection(
                   title: "Expenditure by Category",
-                  child: _buildExpenseChart(),
+                  child: _buildExpenseChart(expenditure),
                 ),
               ),
               const SizedBox(width: 24),
@@ -45,7 +76,7 @@ class _FinanceReportsComponentState extends State<FinanceReportsComponent> {
                 flex: 1,
                 child: _reportSection(
                   title: "Funding Sources",
-                  child: _buildSourceBreakdown(),
+                  child: _buildSourceBreakdown(funding),
                 ),
               ),
             ],
@@ -56,7 +87,7 @@ class _FinanceReportsComponentState extends State<FinanceReportsComponent> {
           // 5. Transaction Summary Preview
           _reportSection(
             title: "Major Transactions Preview",
-            child: _buildTransactionTable(),
+            child: _buildTransactionTable(transactions),
           ),
           
           const SizedBox(height: 40),
@@ -125,12 +156,15 @@ class _FinanceReportsComponentState extends State<FinanceReportsComponent> {
       ),
       child: Row(
         children: [
-          _dropdownControl("Fiscal Year", _selectedYear, ['FY 2024', 'FY 2025', 'FY 2026'], (v) => setState(() => _selectedYear = v!)),
+          _dropdownControl("Fiscal Year", _selectedYear, ['2024', '2025', '2026'], (v) {
+            setState(() => _selectedYear = v!);
+            _fetchReport();
+          }),
           const Spacer(),
           TextButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.print_rounded),
-            label: const Text("Print Full Audit"),
+            onPressed: _fetchReport,
+            icon: const Icon(Icons.refresh_rounded),
+            label: const Text("Refresh"),
           ),
         ],
       ),
@@ -173,14 +207,14 @@ class _FinanceReportsComponentState extends State<FinanceReportsComponent> {
     );
   }
 
-  Widget _buildExpenseChart() {
+  Widget _buildExpenseChart(List expenditure) {
+    if (expenditure.isEmpty) return const Center(child: Text("No expenditure data"));
     return Column(
-      children: [
-        _chartBar("Direct Scholar Support", 0.68, kBrandOlive),
-        _chartBar("Program Operations", 0.18, kBrandBrown),
-        _chartBar("Staffing & Admin", 0.10, kBrandOrange),
-        _chartBar("Fundraising & Misc", 0.04, Colors.grey),
-      ],
+      children: expenditure.map((e) => _chartBar(
+        e['category'] ?? 'Other',
+        (double.parse(e['percentage'].toString()) / 100),
+        kBrandOlive
+      )).toList(),
     );
   }
 
@@ -206,34 +240,30 @@ class _FinanceReportsComponentState extends State<FinanceReportsComponent> {
     );
   }
 
-  Widget _buildSourceBreakdown() {
-    final sources = [
-      ("International Donors", 70, kBrandBrown),
-      ("Local Corporates", 20, kBrandOlive),
-      ("Events & Misc", 10, kBrandOrange),
-    ];
+  Widget _buildSourceBreakdown(List funding) {
+    if (funding.isEmpty) return const Center(child: Text("No funding data"));
+    final List<Color> colors = [kBrandBrown, kBrandOlive, kBrandOrange, Colors.blue, Colors.teal];
     return Column(
-      children: sources.map((s) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Row(
-          children: [
-            Container(width: 8, height: 8, decoration: BoxDecoration(color: s.$3, shape: BoxShape.circle)),
-            const SizedBox(width: 12),
-            Expanded(child: Text(s.$1, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
-            Text("${s.$2}%", style: const TextStyle(fontWeight: FontWeight.bold)),
-          ],
-        ),
-      )).toList(),
+      children: funding.asMap().entries.map((entry) {
+        final s = entry.value;
+        final color = colors[entry.key % colors.length];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            children: [
+              Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+              const SizedBox(width: 12),
+              Expanded(child: Text(s['source'] ?? 'N/A', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500))),
+              Text("${s['percentage']}%", style: const TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 
-  Widget _buildTransactionTable() {
-    final txns = [
-      ("Tuition Disbursal - UNIMA", "Expense", "MWK 18.5M", "July 15"),
-      ("Grant: PMI Foundation", "Income", "MWK 25.0M", "July 12"),
-      ("Stipend Payouts (July)", "Expense", "MWK 4.2M", "July 08"),
-      ("Operational: Office Rent", "Expense", "MWK 1.5M", "July 01"),
-    ];
+  Widget _buildTransactionTable(List transactions) {
+    if (transactions.isEmpty) return const Center(child: Text("No transactions data"));
     return Table(
       columnWidths: const {
         0: FlexColumnWidth(2),
@@ -250,14 +280,17 @@ class _FinanceReportsComponentState extends State<FinanceReportsComponent> {
             Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text("Date", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.grey))),
           ],
         ),
-        ...txns.map((t) => TableRow(
-          children: [
-            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(t.$1, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBrandBrown))),
-            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: _badge(t.$2, t.$2 == "Income" ? Colors.green.shade50 : Colors.red.shade50, t.$2 == "Income" ? Colors.green.shade700 : Colors.red.shade700)),
-            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(t.$3, style: TextStyle(fontWeight: FontWeight.bold, color: t.$2 == "Income" ? Colors.green.shade700 : kBrandBrown))),
-            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(t.$4, style: const TextStyle(fontSize: 12))),
-          ],
-        )),
+        ...transactions.map((t) {
+          final String dateStr = t['date'] != null ? t['date'].toString().split('T')[0] : 'N/A';
+          return TableRow(
+            children: [
+              Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(t['description'] ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBrandBrown))),
+              Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: _badge(t['type'] ?? 'Expense', t['type'] == "Income" ? Colors.green.shade50 : Colors.red.shade50, t['type'] == "Income" ? Colors.green.shade700 : Colors.red.shade700)),
+              Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text("MWK ${t['amount']}", style: TextStyle(fontWeight: FontWeight.bold, color: t['type'] == "Income" ? Colors.green.shade700 : kBrandBrown))),
+              Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(dateStr, style: const TextStyle(fontSize: 12))),
+            ],
+          );
+        }),
       ],
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'theme_controller.dart';
 import '../services/api_service.dart';
+import '../widgets/custom_loaders.dart';
 
 // ============================================================
 // Shared Brand Color Palette
@@ -84,41 +85,11 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
       ),
       clipBehavior: Clip.antiAlias,
       child: _isLoading 
-        ? const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
+        ? const Center(child: Padding(padding: EdgeInsets.all(80), child: BeautifulLoader(isOverlay: false, message: "Loading Preferences")))
         : SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ---------------- Gradient Header ----------------
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 20, 20, 20),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [kBrandBrown, kBrandOlive]),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
-                    child: const Icon(Icons.settings_suggest_rounded, color: Colors.white, size: 28),
-                  ),
-                  const SizedBox(width: 14),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('System Settings', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
-                        SizedBox(height: 3),
-                        Text('Configure application preferences and appearance.',
-                            style: TextStyle(fontSize: 12, color: Colors.white70)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
             Padding(
               padding: const EdgeInsets.all(24.0),
               child: Column(

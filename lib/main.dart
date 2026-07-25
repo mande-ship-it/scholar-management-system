@@ -11,6 +11,8 @@ import 'pages/dashboardPages/notifications.dart';
 
 // Authentication
 import 'authentication/sign_in.dart';
+import 'authentication/password_reset.dart';
+import 'authentication/forgot_password.dart';
 
 // Scholar Pages
 import 'pages/scholarPages/register_scholar.dart';
@@ -109,8 +111,10 @@ class MyApp extends StatelessWidget {
           routes: {
             '/': (context) => const SplashScreen(),
             '/splash': (context) => const SplashScreen(),
-            '/login': (context) => SignInPage(),
-            '/home': (context) => HomePage(),
+            '/login': (context) => const SignInPage(),
+            '/password-reset': (context) => const PasswordResetPage(),
+            '/forgot-password': (context) => const ForgotPasswordPage(),
+            '/home': (context) => const HomePage(),
 
             // Dashboard
             '/dashboard': (context) => DashboardPage(),

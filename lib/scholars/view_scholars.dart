@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../academics/academics_utils.dart';
 import '../services/api_service.dart';
+import '../widgets/custom_loaders.dart';
 
 // Shared validation patterns (kept consistent with Register Scholar).
 final RegExp _kEmailRegex = RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[\w\-]{2,4}$');
@@ -60,7 +61,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
             dob: item['dob'] ?? '',
             programType: item['program_type'] ?? '',
             programName: item['program_name'] ?? 'N/A',
-            previousSchool: item['previous_school'] ?? 'N/A',
+            previousSchool: item['previous_primary_school'] ?? item['previous_school'] ?? 'N/A',
             startYear: item['start_year']?.toString() ?? '2026',
             endYear: item['end_year']?.toString() ?? '2030',
           ));
@@ -107,49 +108,21 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
     }).toList();
   }
 
-  final List<String> _secondarySchools = [
-    'Chaminade Secondary School',
-    'Chassa Secondary School',
-    'Chipasula Secondary School',
-    'Dedza Secondary School',
-    'HHI Secondary School',
-    'Karonga Girls Secondary School',
-    'Likuni Boys Secondary School',
-    'Likuni Girls Secondary School',
-    'Lilongwe Girls Secondary School',
-    'Marymount Secondary School',
-    'Mzuzu Government Secondary School',
-    'Nkhata Bay Secondary School',
-    'St. Mary\'s Girls Secondary School',
-    'Zomba Catholic Secondary School',
-  ];
-
-  final List<String> _publicUniversities = [
-    'University of Malawi (UNIMA)',
-    'Malawi University of Business and Applied Sciences (MUBAS)',
-    'Kamuzu University of Health Sciences (KUHeS)',
-    'Lilongwe University of Agriculture and Natural Resources (LUANAR)',
-    'Mzuzu University (MZUNI)',
-    'Malawi University of Science and Technology (MUST)',
-  ];
-
   // Helper to get matching schools list for the dropdown filter based on selected school type
   List<String> _getAvailableSchoolsForFilter() {
     final schoolNamesFromScholars = kStudents.map((s) => s.schoolName).where((n) => n.isNotEmpty && n != 'N/A');
     final combinedSet = <String>{
       ..._registeredSchoolNames,
       ...schoolNamesFromScholars,
-      ..._secondarySchools,
-      ..._publicUniversities
     };
 
     final combinedList = combinedSet.toList();
     combinedList.sort();
 
     if (_selectedSchoolType == 'Secondary') {
-      return combinedList.where((s) => s.toLowerCase().contains('secondary') || _secondarySchools.contains(s) || !_publicUniversities.contains(s)).toList();
+      return combinedList.where((s) => s.toLowerCase().contains('secondary') || s.toLowerCase().contains('high') || s.toLowerCase().contains('school')).toList();
     } else if (_selectedSchoolType == 'University') {
-      return combinedList.where((s) => s.toLowerCase().contains('university') || _publicUniversities.contains(s)).toList();
+      return combinedList.where((s) => s.toLowerCase().contains('university') || s.toLowerCase().contains('college') || s.toLowerCase().contains('polytechnic')).toList();
     } else {
       return combinedList;
     }
@@ -180,6 +153,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
   }
 
   String _initialsOf(String name) {
+    if (name.trim().isEmpty) return 'NS';
     return name
         .trim()
         .split(RegExp(r'\s+'))
@@ -967,7 +941,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: _isLoading 
-                    ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
+                    ? const BeautifulLoader(isOverlay: false, message: "Syncing Registry...")
                     : filteredScholars.isEmpty
                     ? Center(
                   child: Padding(
@@ -1264,6 +1238,8 @@ class EditScholarComponent extends StatefulWidget {
 class _EditScholarComponentState extends State<EditScholarComponent> {
   final _formKey = GlobalKey<FormState>();
   bool _initialized = false;
+  bool _isLoadingSponsors = false;
+  List<String> _registeredSponsors = [];
 
   // Form Field States
   String? _selectedDistrict;
@@ -1297,35 +1273,32 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
   ];
 
   final List<String> _schoolTypes = ['Secondary', 'University'];
-
-  final List<String> _secondarySchools = [
-    'Chaminade Secondary School',
-    'Chassa Secondary School',
-    'Chipasula Secondary School',
-    'Dedza Secondary School',
-    'HHI Secondary School',
-    'Karonga Girls Secondary School',
-    'Likuni Boys Secondary School',
-    'Likuni Girls Secondary School',
-    'Lilongwe Girls Secondary School',
-    'Marymount Secondary School',
-    'Mzuzu Government Secondary School',
-    'Nkhata Bay Secondary School',
-    'St. Mary\'s Girls Secondary School',
-    'Zomba Catholic Secondary School',
-  ];
-
-  final List<String> _publicUniversities = [
-    'University of Malawi (UNIMA)',
-    'Malawi University of Business and Applied Sciences (MUBAS)',
-    'Kamuzu University of Health Sciences (KUHeS)',
-    'Lilongwe University of Agriculture and Natural Resources (LUANAR)',
-    'Mzuzu University (MZUNI)',
-    'Malawi University of Science and Technology (MUST)',
-  ];
-
-  final List<String> _donors = ['PMI', 'BGE', 'General Fund'];
   final List<String> _sexOptions = ['Female', 'Male', 'Other'];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSponsors();
+  }
+
+  Future<void> _fetchSponsors() async {
+    setState(() => _isLoadingSponsors = true);
+    try {
+      final response = await ApiService.getAllSponsors();
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data['data'] ?? [];
+        if (mounted) {
+          setState(() {
+            _registeredSponsors = data.map((s) => s['name'].toString()).toList();
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching sponsors: $e');
+    } finally {
+      if (mounted) setState(() => _isLoadingSponsors = false);
+    }
+  }
 
   @override
   void didChangeDependencies() {
@@ -1359,23 +1332,6 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
             _selectedDateOfBirth = DateTime.parse(args['dob']!);
           } catch (_) {}
         }
-      } else {
-        // Fallback default info (Mary Banda)
-        _selectedDistrict = 'Mzimba';
-        _selectedSchoolType = 'Secondary';
-        _selectedSchool = 'Mzuzu Government Secondary School';
-        _selectedProgramType = null;
-        _selectedDonor = 'PMI';
-        _selectedSex = 'Female';
-        _fullNameController.text = 'Mary Banda';
-        _yearController.text = 'Form 3';
-        _homeVillageController.text = 'Chilinde';
-        _phoneController.text = '+265 888 12 34 56';
-        _emailController.text = 'mary.banda@example.com';
-        _dobController.text = '2009-05-12';
-        _selectedDateOfBirth = DateTime(2009, 5, 12);
-        _selectedStartYear = '2023';
-        _selectedEndYear = '2027';
       }
       _initialized = true;
     }
@@ -1396,7 +1352,6 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
 
   String? _validateOptionalEmail(String? value) {
     if (value == null || value.trim().isEmpty) {
-      // Email is optional - empty is fine.
       return null;
     }
     if (!_kEmailRegex.hasMatch(value.trim())) {
@@ -1448,7 +1403,7 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
         'email': _emailController.text.trim(),
         'programType': _selectedProgramType ?? '',
         'programName': _programNameController.text.trim(),
-        'previousSchool': _previousSchoolController.text.trim(),
+        'previousPrimarySchool': _previousSchoolController.text.trim(),
         'startYear': _selectedStartYear,
         'endYear': _selectedEndYear,
       };
@@ -1550,207 +1505,6 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
           color: kBrandBrown,
         ),
       ),
-    );
-  }
-
-  // ---------------------------------------------------------------------
-  // Professional searchable "Select School" popup
-  // ---------------------------------------------------------------------
-  Future<String?> _showSchoolPickerDialog(BuildContext context) {
-    final options = _selectedSchoolType == 'Secondary' ? _secondarySchools : _publicUniversities;
-    final isUniversity = _selectedSchoolType == 'University';
-    String query = '';
-
-    return showGeneralDialog<String>(
-      context: context,
-      barrierDismissible: true,
-      barrierLabel: "Select School",
-      barrierColor: Colors.black.withValues(alpha: 0.5),
-      transitionDuration: const Duration(milliseconds: 200),
-      pageBuilder: (ctx, anim1, anim2) => const SizedBox.shrink(),
-      transitionBuilder: (ctx, anim, secondaryAnim, child) {
-        final curved = CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
-        return Opacity(
-          opacity: anim.value,
-          child: Transform.scale(
-            scale: 0.95 + (0.05 * curved.value),
-            child: Dialog(
-              backgroundColor: Colors.transparent,
-              insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 460, maxHeight: 560),
-                child: StatefulBuilder(
-                  builder: (context, setLocalState) {
-                    final filtered = options
-                        .where((s) => s.toLowerCase().contains(query.toLowerCase()))
-                        .toList();
-
-                    return Material(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      clipBehavior: Clip.antiAlias,
-                      elevation: 14,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Header
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.fromLTRB(20, 20, 16, 16),
-                            decoration: const BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [kBrandBrown, kBrandOlive],
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(9),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.18),
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Icon(
-                                    isUniversity ? Icons.account_balance_rounded : Icons.school_rounded,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        isUniversity ? "Select Public University" : "Select Secondary School",
-                                        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        "${options.length} institutions available",
-                                        style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 11.5),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                IconButton(
-                                  onPressed: () => Navigator.of(ctx).pop(),
-                                  icon: const Icon(Icons.close, color: Colors.white, size: 20),
-                                  style: IconButton.styleFrom(
-                                    backgroundColor: Colors.white.withValues(alpha: 0.15),
-                                    padding: const EdgeInsets.all(6),
-                                    minimumSize: const Size(32, 32),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          // Search bar
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
-                            child: TextField(
-                              autofocus: true,
-                              decoration: InputDecoration(
-                                isDense: true,
-                                filled: true,
-                                fillColor: Colors.grey.shade50,
-                                hintText: "Search schools...",
-                                prefixIcon: const Icon(Icons.search, size: 20),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide(color: Colors.grey.shade200),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(color: kBrandOlive),
-                                ),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                              ),
-                              onChanged: (value) => setLocalState(() => query = value),
-                            ),
-                          ),
-
-                          // List
-                          Flexible(
-                            child: filtered.isEmpty
-                                ? Padding(
-                              padding: const EdgeInsets.all(32.0),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.search_off_rounded, size: 40, color: Colors.grey.shade400),
-                                  const SizedBox(height: 12),
-                                  Text("No schools match your search", style: TextStyle(color: Colors.grey.shade600)),
-                                ],
-                              ),
-                            )
-                                : ListView.separated(
-                              shrinkWrap: true,
-                              padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
-                              itemCount: filtered.length,
-                              separatorBuilder: (_, _) => const SizedBox(height: 6),
-                              itemBuilder: (context, index) {
-                                final school = filtered[index];
-                                final isSelected = school == _selectedSchool;
-                                return InkWell(
-                                  borderRadius: BorderRadius.circular(10),
-                                  onTap: () => Navigator.of(ctx).pop(school),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                    decoration: BoxDecoration(
-                                      color: isSelected ? kBrandCream : Colors.transparent,
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(
-                                        color: isSelected ? kBrandOlive.withValues(alpha: 0.5) : Colors.grey.shade200,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(7),
-                                          decoration: BoxDecoration(
-                                            color: isSelected ? kBrandOlive.withValues(alpha: 0.15) : Colors.grey.shade100,
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: Icon(
-                                            isUniversity ? Icons.account_balance_rounded : Icons.school_outlined,
-                                            size: 16,
-                                            color: isSelected ? kBrandBrown : Colors.grey.shade600,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Text(
-                                            school,
-                                            style: TextStyle(
-                                              fontSize: 13.5,
-                                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                              color: isSelected ? kBrandBrown : Colors.black87,
-                                            ),
-                                          ),
-                                        ),
-                                        if (isSelected)
-                                          const Icon(Icons.check_circle_rounded, color: kBrandOlive, size: 20),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 
@@ -1868,42 +1622,12 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
                       validator: (value) => (value == null || value.trim().isEmpty) ? "Required" : null,
                     ),
                     const SizedBox(height: 16),
-                    FormField<String>(
-                      key: ValueKey('school_field_${_selectedSchoolType}_$_selectedSchool'),
-                      initialValue: _selectedSchool,
-                      validator: (value) => _selectedSchool == null ? "Please select a school" : null,
-                      builder: (state) {
-                        return InkWell(
-                          borderRadius: BorderRadius.circular(10),
-                          onTap: _selectedSchoolType == null
-                              ? null
-                              : () async {
-                            final result = await _showSchoolPickerDialog(context);
-                            if (result != null) {
-                              setState(() => _selectedSchool = result);
-                              state.didChange(result);
-                            }
-                          },
-                          child: InputDecorator(
-                            decoration: _fieldDecoration(
-                              label: _selectedSchoolType == null
-                                  ? "School (select type first)"
-                                  : (_selectedSchoolType == "University" ? "Public University" : "Secondary School"),
-                              icon: Icons.school_outlined,
-                              enabled: _selectedSchoolType != null,
-                              suffixIcon: Icon(Icons.arrow_drop_down_rounded, color: Colors.grey.shade600),
-                            ).copyWith(errorText: state.errorText),
-                            child: Text(
-                              _selectedSchool ?? "Tap to select a school",
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: _selectedSchool == null ? Colors.grey.shade500 : Colors.black87,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        );
-                      },
+                    // For editing, let's just use simple text for school name for now, or you could implement the picker.
+                    TextFormField(
+                      controller: TextEditingController(text: _selectedSchool),
+                      onChanged: (v) => _selectedSchool = v,
+                      decoration: _fieldDecoration(label: "School Name", icon: Icons.school_outlined),
+                      validator: (v) => (v == null || v.isEmpty) ? "Required" : null,
                     ),
                     if (_selectedSchoolType == 'University') ...[
                       const SizedBox(height: 16),
@@ -2032,7 +1756,7 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
                     DropdownButtonFormField<String>(
                       initialValue: _selectedDonor,
                       decoration: _fieldDecoration(label: "Donor / Sponsor", icon: Icons.volunteer_activism_outlined),
-                      items: _donors.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
+                      items: _registeredSponsors.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
                       onChanged: (value) => setState(() => _selectedDonor = value),
                       validator: (value) => value == null ? "Please select a donor" : null,
                     ),

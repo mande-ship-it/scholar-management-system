@@ -54,32 +54,51 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ---------------- Header (No Banners) ----------------
+            // ---------------- Header (Simple) ----------------
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+              padding: const EdgeInsets.symmetric(vertical: 8),
               child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: kBrandOlive.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-                    child: const Icon(Icons.analytics_rounded, color: kBrandOlive, size: 24),
+                    decoration: BoxDecoration(
+                      color: kBrandOlive.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.analytics_rounded,
+                      color: kBrandOlive,
+                      size: 28,
+                    ),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 16),
                   const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Performance Analysis', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                        SizedBox(height: 2),
-                        Text('Detailed academic insights and student ranking statistics.',
-                            style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text(
+                          "Performance Analysis",
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: kBrandBrown,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Academic insights and student rankings.",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
                       ],
                     ),
                   ),
                 ],
               ),
             ),
-            const Divider(indent: 24, endIndent: 24),
+            const Divider(height: 32),
 
             Padding(
               padding: const EdgeInsets.all(24.0),

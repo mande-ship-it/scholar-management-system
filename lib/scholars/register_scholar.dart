@@ -52,14 +52,11 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
   String? _selectedGuardianRelation;
 
   // Validation patterns
-  // Accepts local Malawi numbers starting with 0 (e.g. 0888123456)
-  // or international format starting with +265 (e.g. +265888123456).
-  // Both forms require exactly 9 digits after the prefix.
   static final RegExp _malawiPhoneRegex = RegExp(r'^(?:\+265|0)[0-9]{9}$');
   static final RegExp _emailRegex =
   RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[\w\-]{2,4}$');
 
-  // Data lists
+  // Data lists (Standard geographic data is kept)
   final List<String> _districts = [
     'Balaka', 'Blantyre', 'Chikwawa', 'Chiradzulu', 'Chitipa',
     'Dedza', 'Dowa', 'Karonga', 'Kasungu', 'Likoma',
@@ -70,45 +67,20 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
   ];
 
   final List<String> _schoolTypes = ['Secondary', 'University'];
-
-  final List<String> _secondarySchools = [
-    'Chaminade Secondary School',
-    'Chassa Secondary School',
-    'Chipasula Secondary School',
-    'Dedza Secondary School',
-    'HHI Secondary School',
-    'Karonga Girls Secondary School',
-    'Likuni Boys Secondary School',
-    'Likuni Girls Secondary School',
-    'Lilongwe Girls Secondary School',
-    'Marymount Secondary School',
-    'Mzuzu Government Secondary School',
-    'Nkhata Bay Secondary School',
-    'St. Mary\'s Girls Secondary School',
-    'Zomba Catholic Secondary School',
-  ];
-
-  final List<String> _publicUniversities = [
-    'University of Malawi (UNIMA)',
-    'Malawi University of Business and Applied Sciences (MUBAS)',
-    'Kamuzu University of Health Sciences (KUHeS)',
-    'Lilongwe University of Agriculture and Natural Resources (LUANAR)',
-    'Mzuzu University (MZUNI)',
-    'Malawi University of Science and Technology (MUST)',
-  ];
-
-  final List<String> _donors = ['PMI', 'BGE', 'General Fund'];
   final List<String> _sexOptions = ['Female', 'Male', 'Other'];
 
-  // Backend Registered Schools state
+  // Backend Registered Schools and Sponsors state
   List<Map<String, dynamic>> _registeredSchools = [];
+  List<String> _registeredSponsors = [];
   bool _isLoadingSchools = false;
+  bool _isLoadingSponsors = false;
   String? _selectedSchoolId;
 
   @override
   void initState() {
     super.initState();
     _fetchRegisteredSchools();
+    _fetchRegisteredSponsors();
     _fullNameController.addListener(_updatePreview);
     _yearController.addListener(_updatePreview);
     _homeVillageController.addListener(_updatePreview);
@@ -140,20 +112,26 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
     }
   }
 
-  List<Map<String, dynamic>> _getAvailableSchoolsForScholar() {
-    if (_registeredSchools.isEmpty) {
-      if (_selectedSchoolType == 'Secondary') {
-        return _secondarySchools.map((s) => {'id': null, 'name': s, 'level': 'Secondary School'}).toList();
-      } else if (_selectedSchoolType == 'University') {
-        return _publicUniversities.map((s) => {'id': null, 'name': s, 'level': 'Tertiary / University'}).toList();
-      } else {
-        return [
-          ..._secondarySchools.map((s) => {'id': null, 'name': s, 'level': 'Secondary School'}),
-          ..._publicUniversities.map((s) => {'id': null, 'name': s, 'level': 'Tertiary / University'}),
-        ];
+  Future<void> _fetchRegisteredSponsors() async {
+    setState(() => _isLoadingSponsors = true);
+    try {
+      final response = await ApiService.getAllSponsors();
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data['data'] ?? [];
+        if (mounted) {
+          setState(() {
+            _registeredSponsors = data.map((s) => s['name'].toString()).toList();
+          });
+        }
       }
+    } catch (e) {
+      debugPrint('Error fetching registered sponsors: $e');
+    } finally {
+      if (mounted) setState(() => _isLoadingSponsors = false);
     }
+  }
 
+  List<Map<String, dynamic>> _getAvailableSchoolsForScholar() {
     if (_selectedSchoolType == null) {
       return _registeredSchools;
     }
@@ -171,7 +149,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
       return true;
     }).toList();
 
-    return filtered.isNotEmpty ? filtered : _registeredSchools;
+    return filtered;
   }
 
   void _updatePreview() {
@@ -195,8 +173,6 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
     super.dispose();
   }
 
-  // Returns null when valid (or empty, since phone is required elsewhere
-  // and email is optional so emptiness is handled by the caller).
   String? _validateMalawiPhone(String? value) {
     if (value == null || value.trim().isEmpty) {
       return "Please enter the phone number";
@@ -210,7 +186,6 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
 
   String? _validateOptionalEmail(String? value) {
     if (value == null || value.trim().isEmpty) {
-      // Email is optional - empty is fine.
       return null;
     }
     if (!_emailRegex.hasMatch(value.trim())) {
@@ -228,7 +203,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: brandBrown,
               onPrimary: Colors.white,
               onSurface: brandBrown,
@@ -284,12 +259,11 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
         if (response.statusCode == 201) {
           final newScholar = response.data['data']['scholar'];
           
-          // Create local student object to show in success dialog
           final student = Student(
-            id: newScholar['id'].toString(), // Database ID
-            scholarId: newScholar['scholar_id'].toString(), // business ID (AGE-1, etc)
+            id: newScholar['id'].toString(),
+            scholarId: newScholar['scholar_id'].toString(),
             name: newScholar['full_name'] ?? _fullNameController.text.trim(),
-            age: 16, // Placeholder
+            age: _selectedDateOfBirth != null ? DateTime.now().year - _selectedDateOfBirth!.year : 16,
             schoolType: _selectedSchoolType == 'University' ? SchoolType.university : SchoolType.secondary,
             schoolName: _selectedSchool ?? 'N/A',
             currentClass: _yearController.text.trim(),
@@ -308,7 +282,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
             endYear: _selectedEndYear ?? '2030',
           );
 
-          // Optionally add to local mock database if still using it for other screens
+          // Add to registry source of truth
           kStudents.add(student);
 
           if (mounted) {
@@ -382,7 +356,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
                   ),
                   child: Column(
                     children: [
-                      _rowDetail("Scholar ID", student.id),
+                      _rowDetail("Scholar ID", student.scholarId),
                       const Divider(height: 16),
                       _rowDetail("Institution", student.schoolName),
                       const Divider(height: 16),
@@ -399,12 +373,6 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
                     onPressed: () {
                       Navigator.of(ctx).pop();
                       _resetForm();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Scholar registered. Visit the Registry to view details."),
-                          backgroundColor: brandOlive,
-                        ),
-                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: brandOlive,
@@ -470,10 +438,6 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
   }
 
   int _getTotalFieldsCount() {
-    // Email is optional, so it is not counted toward the required total.
-    // Added 3 required guardian fields: name, relation, phone.
-    // University: 18 fields (Program Name + Prev School)
-    // Secondary: 16 fields (Prev School)
     return _selectedSchoolType == 'University' ? 18 : 16;
   }
 
@@ -1258,10 +1222,10 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
       isExpanded: true,
       initialValue: _selectedDonor,
       decoration: _getInputDecoration(
-        labelText: "Donor / Sponsor",
+        labelText: _isLoadingSponsors ? "Loading Donors..." : "Donor / Sponsor",
         prefixIcon: Icons.monetization_on_outlined,
       ),
-      items: _donors.map((donor) {
+      items: _registeredSponsors.map((donor) {
         return DropdownMenuItem<String>(
           value: donor,
           child: Text(donor),
@@ -1356,355 +1320,6 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
           borderRadius: BorderRadius.circular(10),
         ),
       ),
-    );
-  }
-
-  Widget _buildPreviewCard() {
-    final double completion = _calculateCompletionPercentage();
-    final int completed = _getCompletedFieldsCount();
-    final int total = _getTotalFieldsCount();
-    final String fullName = _fullNameController.text.trim();
-    final String initials = _getInitials(fullName);
-
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Header with banner removed (Clean Design)
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
-              ),
-            ),
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 30,
-                  backgroundColor: brandBrown.withValues(alpha: 0.1),
-                  child: Text(
-                    initials,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: brandBrown,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        fullName.isNotEmpty ? fullName : "New Scholar Profile",
-                        style: const TextStyle(
-                          color: brandBrown,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        _selectedSchoolType != null
-                            ? "$_selectedSchoolType Student"
-                            : "Level not selected",
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                _buildStatusBadge(completion),
-              ],
-            ),
-          ),
-
-          // Body of preview card
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Academics Summary Badge
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: brandCream,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: brandCreamDark),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.school_outlined, color: brandOrange, size: 22),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              "Institution & Year",
-                              style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold),
-                            ),
-                            Text(
-                              _selectedSchool != null
-                                  ? "$_selectedSchool (${_yearController.text.trim().isNotEmpty ? _yearController.text.trim() : 'Year TBD'})"
-                                  : "Pending Assignment",
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: brandBrown,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            if (_selectedSchoolType == 'University' && _programNameController.text.trim().isNotEmpty)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 4.0),
-                                child: Text(
-                                  "Program: ${_programNameController.text.trim()}",
-                                  style: TextStyle(fontSize: 11, color: brandBrown.withValues(alpha: 0.8), fontWeight: FontWeight.w500),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // Grid of Details
-                LayoutBuilder(
-                    builder: (context, gridConstraints) {
-                      return Wrap(
-                        spacing: 16,
-                        runSpacing: 16,
-                        children: [
-                          SizedBox(
-                            width: (gridConstraints.maxWidth - 16) / 2,
-                            child: _buildPreviewDetailItem(
-                              Icons.wc,
-                              "Sex",
-                              _selectedSex ?? "",
-                              brandOlive,
-                            ),
-                          ),
-                          SizedBox(
-                            width: (gridConstraints.maxWidth - 16) / 2,
-                            child: _buildPreviewDetailItem(
-                              Icons.cake_outlined,
-                              "Date of Birth",
-                              _dobController.text,
-                              brandOrange,
-                            ),
-                          ),
-                          SizedBox(
-                            width: (gridConstraints.maxWidth - 16) / 2,
-                            child: _buildPreviewDetailItem(
-                              Icons.phone_outlined,
-                              "Phone",
-                              _phoneController.text.trim(),
-                              brandBrown,
-                            ),
-                          ),
-                          SizedBox(
-                            width: (gridConstraints.maxWidth - 16) / 2,
-                            child: _buildPreviewDetailItem(
-                              Icons.email_outlined,
-                              "Email",
-                              _emailController.text.trim(),
-                              brandOlive,
-                            ),
-                          ),
-                          SizedBox(
-                            width: (gridConstraints.maxWidth - 16) / 2,
-                            child: _buildPreviewDetailItem(
-                              Icons.map_outlined,
-                              "District",
-                              _selectedDistrict ?? "",
-                              brandOlive,
-                            ),
-                          ),
-                          SizedBox(
-                            width: (gridConstraints.maxWidth - 16) / 2,
-                            child: _buildPreviewDetailItem(
-                              Icons.home_outlined,
-                              "Home Village",
-                              _homeVillageController.text.trim(),
-                              brandOrange,
-                            ),
-                          ),
-                          SizedBox(
-                            width: (gridConstraints.maxWidth - 16) / 2,
-                            child: _buildPreviewDetailItem(
-                              Icons.monetization_on_outlined,
-                              "Donor",
-                              _selectedDonor ?? "",
-                              brandBrown,
-                            ),
-                          ),
-                          SizedBox(
-                            width: (gridConstraints.maxWidth - 16) / 2,
-                            child: _buildPreviewDetailItem(
-                              Icons.supervisor_account_outlined,
-                              "Guardian",
-                              _guardianNameController.text.trim(),
-                              brandBrown,
-                            ),
-                          ),
-                          SizedBox(
-                            width: (gridConstraints.maxWidth - 16) / 2,
-                            child: _buildPreviewDetailItem(
-                              Icons.calendar_today_outlined,
-                              _selectedSchoolType == 'University' ? "Start Year" : "Session Start",
-                              _selectedStartYear ?? "",
-                              brandOlive,
-                            ),
-                          ),
-                          SizedBox(
-                            width: (gridConstraints.maxWidth - 16) / 2,
-                            child: _buildPreviewDetailItem(
-                              Icons.calendar_today_outlined,
-                              _selectedSchoolType == 'University' ? "End Year" : "Session End",
-                              _selectedEndYear ?? "",
-                              brandOrange,
-                            ),
-                          ),
-                        ],
-                      );
-                    }
-                ),
-
-                const Divider(height: 32),
-
-                // Completion progress meter
-                _buildCompletionMeter(completion, completed, total),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatusBadge(double completion) {
-    String text = "DRAFT";
-    Color bg = Colors.grey.shade300;
-    Color fg = Colors.grey.shade800;
-
-    if (completion >= 1.0) {
-      text = "READY";
-      bg = brandOlive.withValues(alpha: 0.2);
-      fg = brandOlive;
-    } else if (completion >= 0.6) {
-      text = "PROGRESS";
-      bg = Colors.blue.withValues(alpha: 0.2);
-      fg = Colors.blue;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: fg.withValues(alpha: 0.5), width: 1),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: fg,
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPreviewDetailItem(IconData icon, String label, String value, Color color) {
-    return Row(
-      children: [
-        CircleAvatar(
-          radius: 16,
-          backgroundColor: color.withValues(alpha: 0.1),
-          child: Icon(icon, color: color, size: 16),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w500),
-              ),
-              Text(
-                value.isNotEmpty ? value : "Not specified",
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: value.isNotEmpty ? brandBrown : Colors.grey.shade400,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCompletionMeter(double completion, int completed, int total) {
-    Color progressColor = brandOrange;
-    String message = "Drafting Profile";
-    if (completion >= 1.0) {
-      progressColor = brandOlive;
-      message = "Complete & Ready";
-    } else if (completion >= 0.6) {
-      progressColor = Colors.blue;
-      message = "Almost Ready";
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              message,
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: progressColor),
-            ),
-            Text(
-              "${(completion * 100).toInt()}% ($completed of $total)",
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: brandBrown),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: completion,
-            backgroundColor: Colors.grey.shade200,
-            valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-            minHeight: 8,
-          ),
-        ),
-      ],
     );
   }
 }

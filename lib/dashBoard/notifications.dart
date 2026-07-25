@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/file_download_service.dart';
+import 'package:printing/printing.dart';
+import 'dart:typed_data';
 
 class NotificationsComponent extends StatefulWidget {
   const NotificationsComponent({super.key});
@@ -11,6 +14,7 @@ class NotificationsComponent extends StatefulWidget {
 class _NotificationsComponentState extends State<NotificationsComponent> {
   List<dynamic> _notifications = [];
   bool _isLoading = true;
+  bool _isExporting = false;
 
   final Color brandBrown = const Color(0xFF4C3C32);
   final Color brandCream = const Color(0xFFFAF2DB);
@@ -35,7 +39,7 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
     } catch (e) {
       debugPrint('Error fetching notifications: $e');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -46,6 +50,86 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
     } catch (e) {
       debugPrint('Error marking as read: $e');
     }
+  }
+
+  Future<void> _deleteNotification(String id) async {
+    try {
+      final response = await ApiService.deleteNotification(id);
+      if (response.statusCode == 200) {
+        _fetchNotifications();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Notification deleted"), behavior: SnackBarBehavior.floating),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error deleting notification: $e');
+    }
+  }
+
+  Future<void> _handleExportExcel() async {
+    setState(() => _isExporting = true);
+    try {
+      final response = await ApiService.exportToExcel(['Scholar Master List']);
+      if (response.statusCode == 200) {
+        final bytes = response.data as List<int>;
+        await FileDownloadService.downloadFile(
+          bytes: bytes,
+          fileName: "Dashboard_Scholar_Export_${DateTime.now().millisecondsSinceEpoch}.xlsx",
+        );
+        _showSuccessSnack("Excel export downloaded.");
+      }
+    } catch (e) {
+      _showErrorSnack("Export failed. Please check connection.");
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
+
+  Future<void> _handleExportPdf() async {
+    setState(() => _isExporting = true);
+    try {
+      final response = await ApiService.exportToPDF(['Scholar Profiles & Summaries']);
+      if (response.statusCode == 200) {
+        final bytes = Uint8List.fromList(response.data as List<int>);
+        await Printing.sharePdf(
+          bytes: bytes,
+          filename: "Dashboard_Report_${DateTime.now().millisecondsSinceEpoch}.pdf",
+        );
+        _showSuccessSnack("PDF report generated.");
+      }
+    } catch (e) {
+      _showErrorSnack("PDF generation failed.");
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
+
+  Future<void> _handleBackup() async {
+    setState(() => _isExporting = true);
+    try {
+      final response = await ApiService.runBackup("Manual Dashboard Backup");
+      if (response.statusCode == 200) {
+        _showSuccessSnack("Database backup completed successfully.");
+      }
+    } catch (e) {
+      _showErrorSnack("Backup process failed.");
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
+
+  void _showSuccessSnack(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: brandOlive, behavior: SnackBarBehavior.floating),
+    );
+  }
+
+  void _showErrorSnack(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.redAccent, behavior: SnackBarBehavior.floating),
+    );
   }
 
   @override
@@ -134,12 +218,13 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
               ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: _notifications.length,
+                itemCount: _notifications.length > 8 ? 8 : _notifications.length,
                 separatorBuilder: (context, index) => const Divider(height: 20, color: Color(0xFFF7F5EE)),
                 itemBuilder: (context, index) {
                   final notification = _notifications[index];
                   final bool isRead = notification['is_read'] ?? false;
                   final String type = notification['type'] ?? 'info';
+                  final String id = notification['id'].toString();
 
                   IconData icon = Icons.info_outline;
                   Color color = brandOlive;
@@ -147,52 +232,63 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
                   if (type == 'warning') { icon = Icons.warning_amber_rounded; color = brandOrange; }
                   if (type == 'error') { icon = Icons.error_outline; color = Colors.red; }
 
-                  return InkWell(
-                    onTap: isRead ? null : () => _markAsRead(notification['id'].toString()),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          CircleAvatar(
-                            radius: 18,
-                            backgroundColor: color.withValues(alpha: 0.12),
-                            child: Icon(icon, color: color, size: 16),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: isRead ? null : () => _markAsRead(id),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                            child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  notification['message'],
-                                  style: TextStyle(
-                                    color: isRead ? Colors.grey : Colors.black87,
-                                    fontSize: 13,
-                                    fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
-                                    height: 1.4,
+                                CircleAvatar(
+                                  radius: 18,
+                                  backgroundColor: color.withOpacity(0.12),
+                                  child: Icon(icon, color: color, size: 16),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        notification['message'],
+                                        style: TextStyle(
+                                          color: isRead ? Colors.grey : Colors.black87,
+                                          fontSize: 13,
+                                          fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        _formatTime(notification['created_at']),
+                                        style: const TextStyle(color: Colors.grey, fontSize: 11),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  _formatTime(notification['created_at']),
-                                  style: const TextStyle(color: Colors.grey, fontSize: 11),
-                                ),
+                                if (!isRead)
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.blue,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
                               ],
                             ),
                           ),
-                          if (!isRead)
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: const BoxDecoration(
-                                color: Colors.blue,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                        ],
+                        ),
                       ),
-                    ),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                        onPressed: () => _deleteNotification(id),
+                        tooltip: "Delete Log",
+                      ),
+                    ],
                   );
                 },
               ),
@@ -238,7 +334,7 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
             ),
             const SizedBox(height: 6),
             const Text(
-              "Generate files, back up directories, and execute processes.",
+              "Execute critical system processes and generate real-time reports.",
               style: TextStyle(color: Colors.grey, fontSize: 12),
             ),
             const Divider(height: 30),
@@ -246,28 +342,32 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
               icon: Icons.table_view,
               label: "Export Scholar Excel",
               btnColor: brandOlive,
-              onPressed: () {},
+              isLoading: _isExporting,
+              onPressed: _handleExportExcel,
             ),
             const SizedBox(height: 12),
             _buildActionRow(
               icon: Icons.picture_as_pdf,
-              label: "Download Q2 Reports",
+              label: "Generate System PDF",
               btnColor: brandOrange,
-              onPressed: () {},
+              isLoading: _isExporting,
+              onPressed: _handleExportPdf,
             ),
             const SizedBox(height: 12),
             _buildActionRow(
               icon: Icons.backup_outlined,
               label: "Run Database Backup",
               btnColor: brandBrown,
-              onPressed: () {},
+              isLoading: _isExporting,
+              onPressed: _handleBackup,
             ),
             const SizedBox(height: 12),
             _buildActionRow(
-              icon: Icons.print,
-              label: "Disbursement Sheets",
+              icon: Icons.notifications_active_outlined,
+              label: "Refresh Notification Feed",
               btnColor: Colors.blueGrey,
-              onPressed: () {},
+              isLoading: _isLoading,
+              onPressed: _fetchNotifications,
             ),
           ],
         ),
@@ -279,12 +379,15 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
     required IconData icon,
     required String label,
     required Color btnColor,
+    required bool isLoading,
     required VoidCallback onPressed,
   }) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
-        icon: Icon(icon, size: 16, color: Colors.white),
+        icon: isLoading
+          ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+          : Icon(icon, size: 16, color: Colors.white),
         label: Align(
           alignment: Alignment.centerLeft,
           child: Text(
@@ -296,7 +399,7 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
             ),
           ),
         ),
-        onPressed: onPressed,
+        onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: btnColor,
           elevation: 1,

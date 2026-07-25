@@ -109,25 +109,44 @@ class _AcademicStatsComponentState extends State<AcademicStatsComponent> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ---------------- Header (No Banners) ----------------
+            // ---------------- Header (Simple) ----------------
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+              padding: const EdgeInsets.symmetric(vertical: 8),
               child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: kBrandBrown.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-                    child: const Icon(Icons.query_stats_rounded, color: kBrandBrown, size: 24),
+                    decoration: BoxDecoration(
+                      color: kBrandBrown.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.query_stats_rounded,
+                      color: kBrandBrown,
+                      size: 28,
+                    ),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 16),
                   const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Academic Statistics', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                        SizedBox(height: 2),
-                        Text('Interactive performance insights and yearly growth analysis.',
-                            style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text(
+                          "Academic Statistics",
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: kBrandBrown,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Performance insights and growth analysis.",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -150,7 +169,7 @@ class _AcademicStatsComponentState extends State<AcademicStatsComponent> {
                 ],
               ),
             ),
-            const Divider(indent: 24, endIndent: 24),
+            const Divider(height: 32),
 
             Padding(
               padding: const EdgeInsets.all(24.0),

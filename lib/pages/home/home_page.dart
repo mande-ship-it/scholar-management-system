@@ -105,11 +105,34 @@ class _HomePageState extends State<HomePage> {
   int _notificationCount = 0;
   IO.Socket? _socket;
 
+  String _fullName = "User";
+  String _userRole = "Staff";
+  String? _profileImageUrl;
+
   @override
   void initState() {
     super.initState();
     _initSocket();
     _fetchNotificationCount();
+    _fetchUserProfile();
+  }
+
+  Future<void> _fetchUserProfile() async {
+    try {
+      final response = await ApiService.getAccountProfile();
+      if (response.statusCode == 200) {
+        final data = response.data['data'];
+        if (data != null && mounted) {
+          setState(() {
+            _fullName = data['full_name'] ?? "User";
+            _userRole = data['role_name'] ?? "Staff";
+            _profileImageUrl = data['profile_picture'];
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching user profile in Home: $e');
+    }
   }
 
   void _initSocket() {
@@ -422,9 +445,9 @@ class _HomePageState extends State<HomePage> {
           const SizedBox(width: 12),
           GestureDetector(
             onTap: () => _navigateToSubItem("User Profile"),
-            child: const Text(
-              "Edward Young Shaba",
-              style: TextStyle(
+            child: Text(
+              _fullName,
+              style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
@@ -439,7 +462,12 @@ class _HomePageState extends State<HomePage> {
               child: CircleAvatar(
                 backgroundColor: brandCream,
                 radius: 18,
-                child: const Icon(Icons.person, color: brandBrown, size: 20),
+                backgroundImage: _profileImageUrl != null
+                  ? NetworkImage('http://localhost:5000${_profileImageUrl}')
+                  : null,
+                child: _profileImageUrl == null
+                  ? Icon(Icons.person, color: brandBrown, size: 20)
+                  : null,
               ),
             ),
           )
@@ -471,25 +499,30 @@ class _HomePageState extends State<HomePage> {
                             CircleAvatar(
                               radius: 40,
                               backgroundColor: brandBrown,
-                              child: const Icon(
-                                Icons.person,
-                                size: 45,
-                                color: brandCream,
-                              ),
+                              backgroundImage: _profileImageUrl != null
+                                ? NetworkImage('http://localhost:5000${_profileImageUrl}')
+                                : null,
+                              child: _profileImageUrl == null
+                                ? const Icon(
+                                    Icons.person,
+                                    size: 45,
+                                    color: brandCream,
+                                  )
+                                : null,
                             ),
                             const SizedBox(height: 12),
-                            const Text(
-                              "Edward Young Shaba",
-                              style: TextStyle(
+                            Text(
+                              _fullName,
+                              style: const TextStyle(
                                 color: brandBrown,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             const SizedBox(height: 4),
-                            const Text(
-                              "Scholar Administrator",
-                              style: TextStyle(
+                            Text(
+                              _userRole,
+                              style: const TextStyle(
                                 color: Colors.black54,
                                 fontSize: 12,
                               ),
@@ -520,8 +553,32 @@ class _HomePageState extends State<HomePage> {
                       Expanded(
                         child: ListView.builder(
                           padding: const EdgeInsets.only(bottom: 20),
-                          itemCount: categories.length,
+                          itemCount: categories.length + 1,
                           itemBuilder: (context, index) {
+                            if (index == categories.length) {
+                              // Logout Button at the bottom
+                              return Column(
+                                children: [
+                                  const Divider(height: 1, color: Color(0xFFDCD1B4)),
+                                  ListTile(
+                                    leading: const Icon(Icons.logout_rounded, color: Colors.redAccent),
+                                    title: const Text(
+                                      "Logout Session",
+                                      style: TextStyle(
+                                        color: Colors.redAccent,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    onTap: () {
+                                      ApiService.logout();
+                                      Navigator.pushReplacementNamed(context, '/login');
+                                    },
+                                  ),
+                                ],
+                              );
+                            }
+
                             final category = categories[index];
                             final isSelectedCategory = activeCategoryIndex == index;
 
@@ -544,7 +601,7 @@ class _HomePageState extends State<HomePage> {
                                     fontSize: 14,
                                   ),
                                 ),
-                                children: category.subItems.asMap().entries.map((entry) {
+                                children: category.subItems.asMap().entries.where((e) => e.value.title != "Notifications").map((entry) {
                                   final subIndex = entry.key;
                                   final subItem = entry.value;
                                   final isSelectedSubItem = isSelectedCategory && activeSubIndex == subIndex;

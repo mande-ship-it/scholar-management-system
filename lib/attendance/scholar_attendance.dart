@@ -19,10 +19,10 @@ enum AttendanceStatus { present, absent, late, excused }
 extension AttendanceStatusData on AttendanceStatus {
   String get label {
     switch (this) {
-      case AttendanceStatus.present: return 'Present';
-      case AttendanceStatus.absent: return 'Absent';
-      case AttendanceStatus.late: return 'Late';
-      case AttendanceStatus.excused: return 'Excused';
+      case AttendanceStatus.present: return 'present';
+      case AttendanceStatus.absent: return 'absent';
+      case AttendanceStatus.late: return 'late';
+      case AttendanceStatus.excused: return 'excused';
     }
   }
 
@@ -93,7 +93,7 @@ class ScholarAttendanceComponent extends StatefulWidget {
 class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent> {
   AttendanceType _attendanceType = AttendanceType.chats;
   SchoolType _schoolType = SchoolType.secondary;
-  String? _selectedSchool;
+  Map<String, dynamic>? _selectedSchool;
   DateTime _selectedDate = DateTime.now();
   final TextEditingController _facilitatorController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
@@ -102,7 +102,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   bool _isSaving = false;
   bool _isLoadingScholars = false;
 
-  List<String> _registeredSchools = [];
+  List<Map<String, dynamic>> _registeredSchools = [];
 
   @override
   void initState() {
@@ -116,7 +116,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data['data'] ?? [];
         setState(() {
-          _registeredSchools = data.map((s) => s['name']?.toString() ?? '').toList();
+          _registeredSchools = data.map((s) => Map<String, dynamic>.from(s)).toList();
         });
       }
     } catch (e) {
@@ -124,9 +124,17 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
     }
   }
 
-  List<String> get _schoolOptions {
-    _registeredSchools.sort();
-    return _registeredSchools;
+  List<Map<String, dynamic>> get _schoolOptions {
+    final filtered = _registeredSchools.where((s) {
+      final level = (s['level'] ?? '').toString().toLowerCase();
+      if (_schoolType == SchoolType.secondary) {
+        return level.contains('secondary') || level.contains('high');
+      } else {
+        return level.contains('university') || level.contains('tertiary');
+      }
+    }).toList();
+    filtered.sort((a, b) => (a['name'] ?? '').compareTo(b['name'] ?? ''));
+    return filtered;
   }
 
   @override
@@ -142,7 +150,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
     setState(() => _isLoadingScholars = true);
     try {
       final response = await ApiService.getScholarsBySchool(
-        schoolName: _selectedSchool,
+        schoolId: _selectedSchool!['id'].toString(),
       );
       
       if (response.statusCode == 200) {
@@ -154,7 +162,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
               scholarNumber: item['scholar_id'] ?? 'N/A',
               name: item['full_name'] ?? 'N/A',
               schoolType: item['school_type'] == 'University' ? SchoolType.university : SchoolType.secondary,
-              schoolName: item['display_school_name'] ?? _selectedSchool!,
+              schoolName: item['display_school_name'] ?? _selectedSchool!['name'],
               programOrGrade: item['academic_year'] ?? 'N/A',
             ),
           )).toList();
@@ -168,20 +176,20 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   }
 
   void _saveRegister() async {
-    if (_entries.isEmpty) return;
+    if (_entries.isEmpty || _selectedSchool == null) return;
     setState(() => _isSaving = true);
     
     try {
       final attendanceData = {
-        'sessionType': _attendanceType.label,
-        'date': _selectedDate.toIso8601String().split('T')[0],
-        'schoolName': _selectedSchool,
+        'type': _attendanceType.label,
+        'sessionDate': _selectedDate.toIso8601String().split('T')[0],
+        'schoolId': _selectedSchool!['id'],
         'facilitator': _facilitatorController.text.trim(),
         'location': _locationController.text.trim(),
-        'records': _entries.map((e) => {
+        'entries': _entries.map((e) => {
           'scholarId': e.scholar.id,
           'status': e.status.label,
-          'note': e.note,
+          'notes': e.note,
         }).toList(),
       };
 
@@ -197,6 +205,12 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
               behavior: SnackBarBehavior.floating,
             ),
           );
+          setState(() {
+            _entries = [];
+            _selectedSchool = null;
+            _facilitatorController.clear();
+            _locationController.clear();
+          });
         }
       }
     } catch (e) {
@@ -319,11 +333,11 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
                       ),
                       SizedBox(
                         width: 250,
-                        child: DropdownButtonFormField<String>(
-                          initialValue: _selectedSchool,
+                        child: DropdownButtonFormField<Map<String, dynamic>>(
+                          value: _selectedSchool,
                           isExpanded: true,
                           decoration: _inputDeco("Select School", Icons.apartment_rounded),
-                          items: _schoolOptions.map((s) => DropdownMenuItem(value: s, child: Text(s, overflow: TextOverflow.ellipsis))).toList(),
+                          items: _schoolOptions.map((s) => DropdownMenuItem(value: s, child: Text(s['name'] ?? '', overflow: TextOverflow.ellipsis))).toList(),
                           onChanged: (v) => setState(() {
                             _selectedSchool = v;
                             _loadRegister();
@@ -487,7 +501,7 @@ class _AttendanceScholarCardState extends State<_AttendanceScholarCard> {
         children: [
           Row(
             children: [
-              CircleAvatar(backgroundColor: kBrandCream, child: Text(entry.scholar.name[0], style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown))),
+              CircleAvatar(backgroundColor: kBrandCream, child: Text(entry.scholar.name.isNotEmpty ? entry.scholar.name[0] : '?', style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown))),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(

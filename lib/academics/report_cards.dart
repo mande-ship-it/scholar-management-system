@@ -703,38 +703,45 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ---------------- Header ----------------
+            // ---------------- Header (Simple) ----------------
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 20, 20, 20),
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
-              ),
+              padding: const EdgeInsets.symmetric(vertical: 8),
               child: Row(
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Container(
-                      width: 48,
-                      height: 48,
-                      color: kBrandBrown.withValues(alpha: 0.1),
-                      padding: const EdgeInsets.all(6),
-                      child: Image.asset(
-                        kAgeLogoAsset,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stack) => const Icon(Icons.picture_as_pdf_rounded, color: kBrandBrown),
-                      ),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: kBrandBrown.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.picture_as_pdf_rounded,
+                      color: kBrandBrown,
+                      size: 28,
                     ),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 16),
                   const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Academic Report Cards', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                        SizedBox(height: 3),
-                        Text('Generate official student transcripts and school summaries.',
-                            style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text(
+                          "Academic Report Cards",
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: kBrandBrown,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "Generate official student transcripts and school summaries.",
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -767,6 +774,7 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
                 ],
               ),
             ),
+            const Divider(height: 32),
 
             Padding(
               padding: const EdgeInsets.all(24.0),

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../academics/academics_utils.dart';
+import '../services/api_service.dart';
+
+import '../services/file_download_service.dart';
 
 class ExportExcelComponent extends StatefulWidget {
   const ExportExcelComponent({super.key});
@@ -25,13 +28,29 @@ class _ExportExcelComponentState extends State<ExportExcelComponent> {
   Future<void> _generateExcel() async {
     if (_selectedItems.isEmpty) return;
     setState(() => _isGenerating = true);
-    await Future.delayed(const Duration(seconds: 2));
-    setState(() => _isGenerating = false);
-    
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Excel Workbook generated and saved.")),
-    );
+    try {
+      final response = await ApiService.exportToExcel(_selectedItems);
+      if (response.statusCode == 200) {
+        final bytes = response.data as List<int>;
+        await FileDownloadService.downloadFile(
+          bytes: bytes,
+          fileName: "Scholar_System_Export_${DateTime.now().millisecondsSinceEpoch}.xlsx",
+        );
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Excel Workbook generated and downloaded.")),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error exporting Excel: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Excel export failed. Please try again.")),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isGenerating = false);
+    }
   }
 
   @override
