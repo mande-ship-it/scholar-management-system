@@ -242,7 +242,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: const Color(0xFFF4F6F5),
+      color: Colors.white,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -379,7 +379,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> {
                       decoration: InputDecoration(
                         isDense: true,
                         filled: true,
-                        fillColor: Colors.grey.shade50,
+                        fillColor: Colors.white,
                         labelText: "Search by Name",
                         hintText: "Enter name...",
                         prefixIcon: const Icon(Icons.search, size: 20),
@@ -410,7 +410,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> {
                       decoration: InputDecoration(
                         isDense: true,
                         filled: true,
-                        fillColor: Colors.grey.shade50,
+                        fillColor: Colors.white,
                         labelText: "School Type",
                         prefixIcon: const Icon(Icons.category_outlined, size: 18),
                         enabledBorder: OutlineInputBorder(
@@ -443,7 +443,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> {
                       decoration: InputDecoration(
                         isDense: true,
                         filled: true,
-                        fillColor: Colors.grey.shade50,
+                        fillColor: Colors.white,
                         labelText: "School Name",
                         prefixIcon: const Icon(Icons.school_outlined, size: 18),
                         enabledBorder: OutlineInputBorder(
@@ -527,7 +527,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> {
                     final isUniversity = student.schoolType == SchoolType.university;
 
                     return Material(
-                      color: index.isEven ? Colors.white : Colors.grey.shade50.withValues(alpha: 0.6),
+                      color: index.isEven ? Colors.white : Colors.white,
                       child: InkWell(
                         onTap: () => _openStudentResults(student),
                         child: Padding(

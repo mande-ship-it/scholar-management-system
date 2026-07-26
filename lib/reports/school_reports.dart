@@ -260,7 +260,7 @@ class _SchoolReportsComponentState extends State<SchoolReportsComponent> {
           const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(value: percent, minHeight: 8, color: color, backgroundColor: Colors.grey.shade50),
+            child: LinearProgressIndicator(value: percent, minHeight: 8, color: color, backgroundColor: Colors.white),
           ),
         ],
       ),
@@ -312,7 +312,7 @@ class _SchoolReportsComponentState extends State<SchoolReportsComponent> {
             Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(s['name'] ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBrandBrown))),
             Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(s['level'] ?? 'N/A', style: const TextStyle(fontSize: 12))),
             Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text("${s['avg_mark'] ?? 0}%", style: const TextStyle(fontWeight: FontWeight.bold))),
-            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: _badge(s['standing'] ?? 'Satisfactory', s['standing'] == "Excellent" ? Colors.green.shade50 : Colors.blue.shade50, s['standing'] == "Excellent" ? Colors.green.shade700 : Colors.blue.shade700)),
+            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: _badge(s['standing'] ?? 'Satisfactory', s['standing'] == "Excellent" ? Colors.green.shade50 : Colors.white, s['standing'] == "Excellent" ? Colors.green.shade700 : Colors.blue.shade700)),
           ],
         )),
       ],

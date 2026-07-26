@@ -141,7 +141,7 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: theme.cardColor,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: theme.dividerColor),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
@@ -331,7 +331,7 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
         labelText: label,
         prefixIcon: Icon(icon, size: 20, color: isDark ? Colors.white70 : kBrandBrown),
         filled: true,
-        fillColor: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.grey.shade50,
+        fillColor: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: theme.dividerColor)),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: theme.dividerColor)),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kBrandOlive, width: 2)),
@@ -356,7 +356,7 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.grey.shade50,
+          color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: theme.dividerColor),
         ),

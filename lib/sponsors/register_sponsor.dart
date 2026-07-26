@@ -337,41 +337,44 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
       builder: (context, constraints) {
         final bool isWide = constraints.maxWidth > 700;
 
-        return SingleChildScrollView(
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (!_isEditing) _buildFormHeader(),
-                  const SizedBox(height: 40),
+        return Container(
+          color: Colors.white,
+          child: SingleChildScrollView(
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (!_isEditing) _buildFormHeader(),
+                    const SizedBox(height: 40),
 
-                  _sectionTitle("1. Sponsor Identity"),
-                  const SizedBox(height: 16),
-                  _buildIdentityCard(isWide),
+                    _sectionTitle("1. Sponsor Identity"),
+                    const SizedBox(height: 16),
+                    _buildIdentityCard(isWide),
 
-                  const SizedBox(height: 32),
-                  _sectionTitle("2. Contact Information"),
-                  const SizedBox(height: 16),
-                  _buildContactCard(isWide),
+                    const SizedBox(height: 32),
+                    _sectionTitle("2. Contact Information"),
+                    const SizedBox(height: 16),
+                    _buildContactCard(isWide),
 
-                  const SizedBox(height: 32),
-                  _sectionTitle("3. Commitment Details"),
-                  const SizedBox(height: 16),
-                  _buildCommitmentCard(isWide),
+                    const SizedBox(height: 32),
+                    _sectionTitle("3. Commitment Details"),
+                    const SizedBox(height: 16),
+                    _buildCommitmentCard(isWide),
 
-                  const SizedBox(height: 32),
-                  _sectionTitle("4. Additional Information"),
-                  const SizedBox(height: 16),
-                  _buildAdditionalInfoCard(),
+                    const SizedBox(height: 32),
+                    _sectionTitle("4. Additional Information"),
+                    const SizedBox(height: 16),
+                    _buildAdditionalInfoCard(),
 
-                  const SizedBox(height: 48),
-                  _buildSubmitButton(),
-                  const SizedBox(height: 60),
-                ],
+                    const SizedBox(height: 48),
+                    _buildSubmitButton(),
+                    const SizedBox(height: 60),
+                  ],
+                ),
               ),
             ),
           ),

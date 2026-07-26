@@ -328,8 +328,9 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
     final filtered = _filteredUsers;
 
     return Card(
-      elevation: 2,
+      elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      color: Colors.white,
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -452,7 +453,7 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
                   prefixIcon: const Icon(Icons.search, size: 20),
                   isDense: true,
                   filled: true,
-                  fillColor: Colors.grey.shade50,
+                  fillColor: Colors.white,
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -535,7 +536,7 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
       prefixIcon: Icon(icon, size: 18),
       isDense: true,
       filled: true,
-      fillColor: Colors.grey.shade50,
+      fillColor: Colors.white,
       contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
@@ -778,7 +779,7 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color: Colors.white,
               shape: BoxShape.circle,
             ),
             child: Icon(Icons.search_off_rounded,

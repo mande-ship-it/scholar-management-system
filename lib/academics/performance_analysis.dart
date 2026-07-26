@@ -224,7 +224,7 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
       prefixIcon: Icon(icon, size: 20),
       isDense: true,
       filled: true,
-      fillColor: Colors.grey.shade50,
+      fillColor: Colors.white,
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kBrandOlive, width: 2)),
     );
@@ -311,7 +311,7 @@ class _SchoolDetailAnalysis extends StatelessWidget {
         Container(
           height: 100,
           width: double.infinity,
-          decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
           child: Center(child: Text("Aggregated analytics for $schoolName", style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.grey))),
         )
       ],

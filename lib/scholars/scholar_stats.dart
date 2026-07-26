@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../academics/academics_utils.dart';
 import '../services/api_service.dart';
@@ -75,119 +76,122 @@ class _ScholarStatsComponentState extends State<ScholarStatsComponent> {
     final sortedSchools = schoolCounts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
     final topSchools = sortedSchools.take(3).toList();
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // ---------------- Header (No Banners) ----------------
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
-            child: Row(
+    return Container(
+      color: Colors.white,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ---------------- Header (No Banners) ----------------
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: kBrandOlive.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                    child: const Icon(Icons.analytics_rounded, color: kBrandOlive, size: 24),
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Scholar Statistics', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                        SizedBox(height: 2),
+                        Text('Demographics and enrollment overview of all program scholars.',
+                            style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(indent: 24, endIndent: 24),
+      
+            // --- Metric Cards ---
+            Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: kBrandOlive.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-                  child: const Icon(Icons.analytics_rounded, color: kBrandOlive, size: 24),
-                ),
-                const SizedBox(width: 14),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Scholar Statistics', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                      SizedBox(height: 2),
-                      Text('Demographics and enrollment overview of all program scholars.',
-                          style: TextStyle(fontSize: 12, color: Colors.grey)),
+                _StatMetric(label: "Total Scholars", value: "$totalScholars", icon: Icons.groups_rounded, color: kBrandBrown),
+                const SizedBox(width: 16),
+                _StatMetric(label: "University", value: "$universityScholars", icon: Icons.account_balance_rounded, color: kBrandOlive),
+                const SizedBox(width: 16),
+                _StatMetric(label: "Secondary", value: "$secondaryScholars", icon: Icons.school_rounded, color: kBrandOrange),
+              ],
+            ),
+            const SizedBox(height: 32),
+      
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _DistributionSection(
+                    title: "Enrollment by Level",
+                    items: [
+                      (label: "Secondary", value: secondaryScholars, color: kBrandOrange),
+                      (label: "University", value: universityScholars, color: kBrandOlive),
                     ],
+                    total: totalScholars,
+                  ),
+                ),
+                const SizedBox(width: 24),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("Program Health", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: 16)),
+                        const SizedBox(height: 24),
+                        _HealthIndicator(label: "Retention Rate", value: 0.94, color: kBrandOlive),
+                        const SizedBox(height: 16),
+                        _HealthIndicator(label: "Attendance Avg", value: 0.88, color: kBrandBrown),
+                        const SizedBox(height: 16),
+                        _HealthIndicator(label: "Academic Growth", value: 0.76, color: kBrandOrange),
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
-          ),
-          const Divider(indent: 24, endIndent: 24),
-
-          // --- Metric Cards ---
-          Row(
-            children: [
-              _StatMetric(label: "Total Scholars", value: "$totalScholars", icon: Icons.groups_rounded, color: kBrandBrown),
-              const SizedBox(width: 16),
-              _StatMetric(label: "University", value: "$universityScholars", icon: Icons.account_balance_rounded, color: kBrandOlive),
-              const SizedBox(width: 16),
-              _StatMetric(label: "Secondary", value: "$secondaryScholars", icon: Icons.school_rounded, color: kBrandOrange),
-            ],
-          ),
-          const SizedBox(height: 32),
-
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _DistributionSection(
-                  title: "Enrollment by Level",
-                  items: [
-                    (label: "Secondary", value: secondaryScholars, color: kBrandOrange),
-                    (label: "University", value: universityScholars, color: kBrandOlive),
-                  ],
-                  total: totalScholars,
-                ),
+      
+            const SizedBox(height: 32),
+            const Text("Top Participating Schools", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kBrandBrown)),
+            const SizedBox(height: 16),
+            
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white, 
+                borderRadius: BorderRadius.circular(16), 
+                border: Border.all(color: Colors.grey.shade200),
               ),
-              const SizedBox(width: 24),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey.shade200),
+              child: topSchools.isEmpty 
+                ? const Padding(padding: EdgeInsets.all(24), child: Text("No school data available.", style: TextStyle(color: Colors.grey)))
+                : Column(
+                    children: List.generate(topSchools.length, (index) {
+                      final item = topSchools[index];
+                      final colors = [kBrandOlive, kBrandBrown, kBrandOrange];
+                      return Column(
+                        children: [
+                          _SchoolListItem(
+                            name: item.key, 
+                            count: item.value, 
+                            color: colors[index % colors.length]
+                          ),
+                          if (index < topSchools.length - 1) const Divider(height: 1),
+                        ],
+                      );
+                    }),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text("Program Health", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: 16)),
-                      const SizedBox(height: 24),
-                      _HealthIndicator(label: "Retention Rate", value: 0.94, color: kBrandOlive),
-                      const SizedBox(height: 16),
-                      _HealthIndicator(label: "Attendance Avg", value: 0.88, color: kBrandBrown),
-                      const SizedBox(height: 16),
-                      _HealthIndicator(label: "Academic Growth", value: 0.76, color: kBrandOrange),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 32),
-          const Text("Top Participating Schools", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kBrandBrown)),
-          const SizedBox(height: 16),
-          
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white, 
-              borderRadius: BorderRadius.circular(16), 
-              border: Border.all(color: Colors.grey.shade200),
             ),
-            child: topSchools.isEmpty 
-              ? const Padding(padding: EdgeInsets.all(24), child: Text("No school data available.", style: TextStyle(color: Colors.grey)))
-              : Column(
-                  children: List.generate(topSchools.length, (index) {
-                    final item = topSchools[index];
-                    final colors = [kBrandOlive, kBrandBrown, kBrandOrange];
-                    return Column(
-                      children: [
-                        _SchoolListItem(
-                          name: item.key, 
-                          count: item.value, 
-                          color: colors[index % colors.length]
-                        ),
-                        if (index < topSchools.length - 1) const Divider(height: 1),
-                      ],
-                    );
-                  }),
-                ),
-          ),
-          const SizedBox(height: 40),
-        ],
+            const SizedBox(height: 40),
+          ],
+        ),
       ),
     );
   }

@@ -262,7 +262,7 @@ class _SponsorReportsComponentState extends State<SponsorReportsComponent> {
           const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(value: percent, minHeight: 8, color: color, backgroundColor: Colors.grey.shade50),
+            child: LinearProgressIndicator(value: percent, minHeight: 8, color: color, backgroundColor: Colors.white),
           ),
         ],
       ),
@@ -314,7 +314,7 @@ class _SponsorReportsComponentState extends State<SponsorReportsComponent> {
             Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(d['donor_name'] ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBrandBrown))),
             Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text("MWK ${d['contribution']}", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kBrandOlive))),
             Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(d['scholars'].toString(), style: const TextStyle(fontWeight: FontWeight.bold))),
-            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: _badge(d['cycle'] ?? 'Annual', Colors.grey.shade50, Colors.grey.shade700)),
+            Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: _badge(d['cycle'] ?? 'Annual', Colors.white, Colors.grey.shade700)),
           ],
         )),
       ],

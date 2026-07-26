@@ -519,41 +519,44 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
       builder: (context, constraints) {
         final bool isWide = constraints.maxWidth > 700;
         
-        return SingleChildScrollView(
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildFormHeader(),
-                  const SizedBox(height: 40),
-                  
-                  _sectionTitle("1. Basic Personal Information"),
-                  const SizedBox(height: 16),
-                  _buildPersonalDetailsCard(isWide),
-                  
-                  const SizedBox(height: 32),
-                  _sectionTitle("2. Parent or Guardian Information"),
-                  const SizedBox(height: 16),
-                  _buildGuardianDetailsCard(isWide),
-                  
-                  const SizedBox(height: 32),
-                  _sectionTitle("3. Academic & Institutional Details"),
-                  const SizedBox(height: 16),
-                  _buildAcademicDetailsCard(isWide),
-                  
-                  const SizedBox(height: 32),
-                  _sectionTitle("4. Demographics & Sponsorship"),
-                  const SizedBox(height: 16),
-                  _buildDemographicsCard(isWide),
-                  
-                  const SizedBox(height: 48),
-                  _buildSubmitButton(),
-                  const SizedBox(height: 60),
-                ],
+        return Container(
+          color: Colors.white,
+          child: SingleChildScrollView(
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildFormHeader(),
+                    const SizedBox(height: 40),
+                    
+                    _sectionTitle("1. Basic Personal Information"),
+                    const SizedBox(height: 16),
+                    _buildPersonalDetailsCard(isWide),
+                    
+                    const SizedBox(height: 32),
+                    _sectionTitle("2. Parent or Guardian Information"),
+                    const SizedBox(height: 16),
+                    _buildGuardianDetailsCard(isWide),
+                    
+                    const SizedBox(height: 32),
+                    _sectionTitle("3. Academic & Institutional Details"),
+                    const SizedBox(height: 16),
+                    _buildAcademicDetailsCard(isWide),
+                    
+                    const SizedBox(height: 32),
+                    _sectionTitle("4. Demographics & Sponsorship"),
+                    const SizedBox(height: 16),
+                    _buildDemographicsCard(isWide),
+                    
+                    const SizedBox(height: 48),
+                    _buildSubmitButton(),
+                    const SizedBox(height: 60),
+                  ],
+                ),
               ),
             ),
           ),

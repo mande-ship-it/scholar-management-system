@@ -90,7 +90,10 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
                     ),
                   ),
                   IconButton(
-                    onPressed: _fetchHistory,
+                    onPressed: () => setState(() {
+                      _filterType = null;
+                      _filterSchool = null;
+                    }),
                     icon: const Icon(Icons.refresh),
                     tooltip: "Refresh History",
                   ),
@@ -225,7 +228,7 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
       prefixIcon: Icon(icon, size: 20, color: kBrandBrown),
       isDense: true,
       filled: true,
-      fillColor: Colors.grey.shade50,
+      fillColor: Colors.white,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
     );

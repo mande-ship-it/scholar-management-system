@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import '../academics/academics_utils.dart';
 import '../services/api_service.dart';
 import '../widgets/custom_loaders.dart';
+import '../services/file_download_service.dart';
+import 'package:syncfusion_flutter_pdf/pdf.dart';
+import 'package:excel/excel.dart' hide Border;
+import 'dart:typed_data';
 
 // Shared validation patterns (kept consistent with Register Scholar).
 final RegExp _kEmailRegex = RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[\w\-]{2,4}$');
@@ -222,6 +228,182 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
       } catch (e) {
         debugPrint('Error deleting scholar: $e');
       }
+    }
+  }
+
+  // ---------------------------------------------------------------------
+  // EXPORT FUNCTIONALITY
+  // ---------------------------------------------------------------------
+
+  Future<void> _exportToPDF() async {
+    final filtered = _getFilteredScholars();
+    if (filtered.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No data to export.")));
+      return;
+    }
+
+    try {
+      final PdfDocument document = PdfDocument();
+      final PdfPage page = document.pages.add();
+      final Size pageSize = page.getClientSize();
+
+      // 1. Add Logo and Header Information
+      try {
+        final ByteData data = await rootBundle.load('assets/images/age-logo.png');
+        final Uint8List logoBytes = data.buffer.asUint8List();
+        final PdfBitmap image = PdfBitmap(logoBytes);
+        page.graphics.drawImage(image, const Rect.fromLTWH(0, 0, 80, 80));
+      } catch (e) {
+        debugPrint("Could not load logo for PDF: $e");
+      }
+
+      final PdfFont headerFont = PdfStandardFont(PdfFontFamily.helvetica, 18, style: PdfFontStyle.bold);
+      final PdfFont subHeaderFont = PdfStandardFont(PdfFontFamily.helvetica, 10);
+      final PdfFont titleFont = PdfStandardFont(PdfFontFamily.helvetica, 14, style: PdfFontStyle.bold);
+
+      // Draw AGE Africa Info
+      PdfTextElement(
+        text: 'AGE AFRICA',
+        font: headerFont,
+        brush: PdfSolidBrush(PdfColor(76, 60, 50)), // kBrandBrown
+      ).draw(
+        page: page,
+        bounds: Rect.fromLTWH(90, 10, pageSize.width - 90, 25),
+      )!;
+
+      PdfTextElement(
+        text: 'Advancing Girls\' Education in Africa\nLilongwe, Malawi | www.ageafrica.org\nOfficial Scholars Registry Report',
+        font: subHeaderFont,
+        brush: PdfBrushes.black,
+      ).draw(
+        page: page,
+        bounds: Rect.fromLTWH(90, 35, pageSize.width - 90, 50),
+      )!;
+
+      // Draw Report Title
+      page.graphics.drawRectangle(
+          pen: PdfPen(PdfColor(154, 179, 52)), // kBrandOlive
+          brush: PdfSolidBrush(PdfColor(250, 242, 219)), // kBrandCream
+          bounds: Rect.fromLTWH(0, 100, pageSize.width, 30));
+
+      PdfTextElement(
+        text: 'SCHOLARS REGISTRY - ${DateFormat('MMMM yyyy').format(DateTime.now()).toUpperCase()}',
+        font: titleFont,
+        brush: PdfSolidBrush(PdfColor(76, 60, 50)),
+        format: PdfStringFormat(alignment: PdfTextAlignment.center),
+      ).draw(
+        page: page,
+        bounds: Rect.fromLTWH(10, 108, pageSize.width - 20, 30),
+      )!;
+
+      // 2. Build the Data Grid
+      final PdfGrid grid = PdfGrid();
+      grid.columns.add(count: 6);
+      
+      final PdfGridRow header = grid.headers.add(1)[0];
+      header.cells[0].value = 'ID';
+      header.cells[1].value = 'Name';
+      header.cells[2].value = 'School Type';
+      header.cells[3].value = 'School';
+      header.cells[4].value = 'Year/Form';
+      header.cells[5].value = 'Status';
+
+      // Style Header
+      final PdfGridCellStyle headerStyle = PdfGridCellStyle();
+      headerStyle.backgroundBrush = PdfSolidBrush(PdfColor(76, 60, 50)); // kBrandBrown
+      headerStyle.textBrush = PdfBrushes.white;
+      headerStyle.font = PdfStandardFont(PdfFontFamily.helvetica, 10, style: PdfFontStyle.bold);
+      
+      for (int i = 0; i < header.cells.count; i++) {
+        header.cells[i].style = headerStyle;
+      }
+
+      for (final s in filtered) {
+        final PdfGridRow row = grid.rows.add();
+        row.cells[0].value = s['scholarId'];
+        row.cells[1].value = s['name'];
+        row.cells[2].value = s['schoolType'];
+        row.cells[3].value = s['school'];
+        row.cells[4].value = s['class'];
+        row.cells[5].value = s['status'];
+      }
+
+      grid.style = PdfGridStyle(
+        cellPadding: PdfPaddings(left: 5, right: 3, top: 5, bottom: 5),
+        font: PdfStandardFont(PdfFontFamily.helvetica, 9),
+      );
+
+      // Draw the grid
+      grid.draw(page: page, bounds: Rect.fromLTWH(0, 150, pageSize.width, pageSize.height - 160));
+
+      // 3. Add Footer
+      final int pageCount = document.pages.count;
+      for (int i = 0; i < pageCount; i++) {
+        final PdfPage footerPage = document.pages[i];
+        PdfTextElement(
+          text: 'Generated on ${DateFormat('dd MMM yyyy, HH:mm').format(DateTime.now())} | Page ${i + 1} of $pageCount',
+          font: subHeaderFont,
+          brush: PdfSolidBrush(PdfColor(128, 128, 128)),
+          format: PdfStringFormat(alignment: PdfTextAlignment.center),
+        ).draw(
+          page: footerPage,
+          bounds: Rect.fromLTWH(0, footerPage.getClientSize().height - 20, footerPage.getClientSize().width, 20),
+        );
+      }
+
+      final List<int> bytes = await document.save();
+      document.dispose();
+
+      await FileDownloadService.downloadFile(
+        bytes: bytes,
+        fileName: 'age_africa_scholars_${DateTime.now().millisecondsSinceEpoch}.pdf',
+      );
+    } catch (e) {
+      debugPrint('Export PDF error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error generating PDF: $e")));
+    }
+  }
+
+  Future<void> _exportToExcel() async {
+    final filtered = _getFilteredScholars();
+    if (filtered.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No data to export.")));
+      return;
+    }
+
+    try {
+      var excel = Excel.createExcel();
+      Sheet sheetObject = excel['Scholars'];
+      excel.delete('Sheet1');
+
+      List<String> headers = ['ID', 'Name', 'School Type', 'School', 'Year/Form', 'Status', 'District', 'Sex', 'Phone', 'Email', 'Donor'];
+      sheetObject.appendRow(headers.map((h) => TextCellValue(h)).toList());
+
+      for (final s in filtered) {
+        sheetObject.appendRow([
+          TextCellValue(s['scholarId'] ?? ''),
+          TextCellValue(s['name'] ?? ''),
+          TextCellValue(s['schoolType'] ?? ''),
+          TextCellValue(s['school'] ?? ''),
+          TextCellValue(s['class'] ?? ''),
+          TextCellValue(s['status'] ?? ''),
+          TextCellValue(s['district'] ?? ''),
+          TextCellValue(s['sex'] ?? ''),
+          TextCellValue(s['phone'] ?? ''),
+          TextCellValue(s['email'] ?? ''),
+          TextCellValue(s['donor'] ?? ''),
+        ]);
+      }
+
+      final bytes = excel.encode();
+      if (bytes != null) {
+        await FileDownloadService.downloadFile(
+          bytes: bytes,
+          fileName: 'scholars_registry_${DateTime.now().millisecondsSinceEpoch}.xlsx',
+        );
+      }
+    } catch (e) {
+      debugPrint('Export Excel error: $e');
     }
   }
 
@@ -637,7 +819,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: const Color(0xFFF4F6F5),
+      color: Colors.white,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -698,6 +880,41 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                   children: [
                     _miniStat(Icons.check_circle_rounded, "$activeCount Active", kBrandOlive),
                     _miniStat(Icons.account_balance_rounded, "$universityCount University", kBrandBrown),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: () => Navigator.pushNamed(context, '/registerScholar'),
+                      icon: const Icon(Icons.person_add_rounded, size: 16),
+                      label: const Text("Register Scholar"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kBrandOlive,
+                        foregroundColor: Colors.white,
+                        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                    ),
+                    // Export Buttons
+                    ElevatedButton.icon(
+                      onPressed: _exportToExcel,
+                      icon: const Icon(Icons.table_view_rounded, size: 16),
+                      label: const Text("Export Excel"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green.shade700,
+                        foregroundColor: Colors.white,
+                        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: _exportToPDF,
+                      icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
+                      label: const Text("Export PDF"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade700,
+                        foregroundColor: Colors.white,
+                        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                    ),
                     IconButton(
                       icon: const Icon(Icons.refresh, color: kBrandBrown, size: 22),
                       tooltip: "Reset Filters",
@@ -746,7 +963,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                       decoration: InputDecoration(
                         isDense: true,
                         filled: true,
-                        fillColor: Colors.grey.shade50,
+                        fillColor: Colors.white,
                         labelText: "Search by Name",
                         hintText: "Enter name...",
                         prefixIcon: const Icon(Icons.search, size: 20),
@@ -780,7 +997,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                       decoration: InputDecoration(
                         isDense: true,
                         filled: true,
-                        fillColor: Colors.grey.shade50,
+                        fillColor: Colors.white,
                         labelText: "School Type",
                         prefixIcon: const Icon(Icons.category_outlined, size: 18),
                         enabledBorder: OutlineInputBorder(
@@ -829,7 +1046,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                       decoration: InputDecoration(
                         isDense: true,
                         filled: true,
-                        fillColor: Colors.grey.shade50,
+                        fillColor: Colors.white,
                         labelText: "School Name",
                         prefixIcon: const Icon(Icons.school_outlined, size: 18),
                         enabledBorder: OutlineInputBorder(
@@ -877,7 +1094,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                       decoration: InputDecoration(
                         isDense: true,
                         filled: true,
-                        fillColor: Colors.grey.shade50,
+                        fillColor: Colors.white,
                         labelText: "Sex",
                         prefixIcon: const Icon(Icons.wc_outlined, size: 18),
                         enabledBorder: OutlineInputBorder(
@@ -1008,7 +1225,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                               if (states.contains(WidgetState.hovered)) {
                                 return kBrandCream.withValues(alpha: 0.6);
                               }
-                              return index.isEven ? Colors.white : Colors.grey.shade50.withValues(alpha: 0.6);
+                              return Colors.white;
                             }),
                             onSelectChanged: (selected) {
                               if (selected != null) {

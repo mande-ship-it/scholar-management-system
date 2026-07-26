@@ -229,7 +229,10 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data['data'];
         _allEvents.clear();
-        _allEvents.addAll(data.map((json) => OrganisationEvent.fromJson(json)).where((e) => !e.isExpired));
+        // Only show approved (Active) or past (History) events. Hide Pending ones.
+        _allEvents.addAll(data
+            .map((json) => OrganisationEvent.fromJson(json))
+            .where((e) => e.status != 'Pending' && !e.isExpired));
 
         _checkAndSendNotifications();
       }
@@ -345,24 +348,27 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
     final historyEvents = _filtered(_allEvents.where((e) => e.isHistory).toList()
       ..sort((a, b) => b.fullDateTime.compareTo(a.fullDateTime)));
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _buildHeader(isDark),
-        _buildStatsBar(isDark),
-        _buildTabBarAndSearch(isDark, upcomingEvents.length, historyEvents.length),
-        Expanded(
-          child: _isLoading
-              ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
-              : TabBarView(
-            controller: _tabController,
-            children: [
-              _buildEventList(upcomingEvents, isDark, _query.isEmpty ? "No upcoming events scheduled" : "No events match your search"),
-              _buildEventList(historyEvents, isDark, _query.isEmpty ? "No past events in history" : "No events match your search"),
-            ],
+    return Container(
+      color: Colors.white,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildHeader(isDark),
+          _buildStatsBar(isDark),
+          _buildTabBarAndSearch(isDark, upcomingEvents.length, historyEvents.length),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
+                : TabBarView(
+              controller: _tabController,
+              children: [
+                _buildEventList(upcomingEvents, isDark, _query.isEmpty ? "No upcoming events scheduled" : "No events match your search"),
+                _buildEventList(historyEvents, isDark, _query.isEmpty ? "No past events in history" : "No events match your search"),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

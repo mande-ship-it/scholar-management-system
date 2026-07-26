@@ -262,7 +262,7 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
           const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(value: percent, minHeight: 8, color: color, backgroundColor: Colors.grey.shade50),
+            child: LinearProgressIndicator(value: percent, minHeight: 8, color: color, backgroundColor: Colors.white),
           ),
         ],
       ),

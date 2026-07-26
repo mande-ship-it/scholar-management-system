@@ -68,39 +68,48 @@ class OrganisationEvent {
     this.status = 'Active',
   });
 
-  DateTime get fullDateTime => DateTime(
+  DateTime get fullDateTime {
+    try {
+      return DateTime(
         date.year,
         date.month,
         date.day,
         time.hour,
         time.minute,
       );
+    } catch (e) {
+      return date; // Fallback to date only if time parsing fails
+    }
+  }
 
+  /// An event is upcoming if it's Active (Approved) AND its date/time hasn't passed yet.
   bool get isUpcoming => status == 'Active' && fullDateTime.isAfter(DateTime.now());
 
-  bool get isHistory => status == 'History';
+  /// An event is history if it's explicitly marked as 'History' OR it's 'Active' but its time has passed.
+  bool get isHistory => status == 'History' || (status == 'Active' && fullDateTime.isBefore(DateTime.now()));
 
-  bool get isExpired => isHistory && DateTime.now().difference(fullDateTime).inDays > 7;
+  bool get isExpired => status == 'History' && DateTime.now().difference(fullDateTime).inDays > 14;
 
   factory OrganisationEvent.fromJson(Map<String, dynamic> json) {
     // Parse time string "HH:mm:ss" or "HH:mm"
-    final timeParts = (json['time'] as String).split(':');
+    final timeStr = json['time']?.toString() ?? '08:00';
+    final timeParts = timeStr.split(':');
     final timeOfDay = TimeOfDay(
       hour: int.parse(timeParts[0]),
       minute: int.parse(timeParts[1]),
     );
 
     return OrganisationEvent(
-      id: json['id'].toString(),
-      title: json['title'],
+      id: json['id']?.toString() ?? '',
+      title: json['title'] ?? 'Untitled Event',
       description: json['description'] ?? '',
       category: EventCategory.values.firstWhere(
         (e) => e.name == json['category'],
         orElse: () => EventCategory.other,
       ),
-      date: DateTime.parse(json['date']),
+      date: json['date'] != null ? DateTime.parse(json['date']) : DateTime.now(),
       time: timeOfDay,
-      location: json['location'],
+      location: json['location'] ?? 'No location',
       organizer: json['organizer'],
       targetedParticipants: json['targetedParticipants'] != null ? List<String>.from(json['targetedParticipants']) : null,
       status: json['status'] ?? 'Active',

@@ -78,7 +78,7 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: theme.cardColor,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: theme.dividerColor),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
@@ -225,7 +225,7 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
         decoration: BoxDecoration(
           color: isSelected 
             ? kBrandOlive.withValues(alpha: 0.1) 
-            : (isDark ? theme.colorScheme.surfaceContainerHighest : Colors.grey.shade50),
+            : (isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? kBrandOlive : theme.dividerColor, 
@@ -265,7 +265,7 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.grey.shade50,
+        color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: theme.dividerColor),
       ),
@@ -295,7 +295,7 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.grey.shade50,
+        color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: theme.dividerColor),
       ),

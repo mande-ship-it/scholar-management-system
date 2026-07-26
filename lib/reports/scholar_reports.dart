@@ -274,7 +274,7 @@ class _ScholarReportsComponentState extends State<ScholarReportsComponent> {
           const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(value: percent, minHeight: 8, color: color, backgroundColor: Colors.grey.shade50),
+            child: LinearProgressIndicator(value: percent, minHeight: 8, color: color, backgroundColor: Colors.white),
           ),
         ],
       ),
@@ -327,7 +327,7 @@ class _ScholarReportsComponentState extends State<ScholarReportsComponent> {
             Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text(s['institution'] ?? 'N/A', style: const TextStyle(fontSize: 12))),
             Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Text("${s['avg_mark'] ?? 0}%", style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandOlive))),
             Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: _badge(s['status'] ?? 'Active',
-              s['status'] == 'Active' ? Colors.green.shade50 : Colors.grey.shade50,
+              s['status'] == 'Active' ? Colors.green.shade50 : Colors.white,
               s['status'] == 'Active' ? Colors.green.shade700 : Colors.grey.shade700)),
           ],
         )),

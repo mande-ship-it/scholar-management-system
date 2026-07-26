@@ -110,19 +110,11 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
   }
 
   // Required fields count for progress bar
-  int _getTotalFieldsCount() => 9;
+  int _getTotalFieldsCount() => 1;
 
   int _getCompletedFieldsCount() {
     int count = 0;
     if (_nameController.text.trim().isNotEmpty) count++;
-    if (_codeController.text.trim().isNotEmpty) count++;
-    if (_selectedLevel != null) count++;
-    if (_selectedType != null) count++;
-    if (_selectedGenderType != null) count++;
-    if (_selectedRegion != null) count++;
-    if (_selectedDistrict != null) count++;
-    if (_phoneController.text.trim().isNotEmpty) count++;
-    if (_emailController.text.trim().isNotEmpty) count++;
     return count;
   }
 
@@ -138,7 +130,6 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
 
       final schoolData = <String, dynamic>{
         'name': _nameController.text.trim(),
-        'code': _codeController.text.trim(),
         'level': _selectedLevel ?? '',
         'type': _selectedType ?? '',
         'genderPolicy': _selectedGenderType ?? '',
@@ -162,7 +153,8 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
         final response = await ApiService.createSchool(schoolData);
         if (response.statusCode == 201) {
           if (mounted) {
-            _showSuccessDialog(_nameController.text.trim(), _codeController.text.trim());
+            final savedSchool = response.data['data'];
+            _showSuccessDialog(savedSchool['name'], savedSchool['code']);
           }
         } else {
           _showErrorSnackBar(response.data['message'] ?? 'Failed to register school.');
@@ -444,12 +436,7 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
       controller: _nameController,
       decoration: _getInputDecoration(labelText: "School Name / Title", prefixIcon: Icons.edit_outlined),
       validator: (v) => (v == null || v.trim().isEmpty) ? "Enter school name" : null,
-    );
-
-    final codeField = TextFormField(
-      controller: _codeController,
-      decoration: _getInputDecoration(labelText: "School Code / ID", prefixIcon: Icons.pin_outlined),
-      validator: (v) => (v == null || v.trim().isEmpty) ? "Enter code" : null,
+      onChanged: (_) => setState(() {}),
     );
 
     final levelField = DropdownButtonFormField<String>(
@@ -458,7 +445,6 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
       decoration: _getInputDecoration(labelText: "Education Level", prefixIcon: Icons.layers_outlined),
       items: _schoolLevels.map((l) => DropdownMenuItem(value: l, child: Text(l))).toList(),
       onChanged: (v) => setState(() => _selectedLevel = v),
-      validator: (v) => v == null ? "Select level" : null,
     );
 
     final typeField = DropdownButtonFormField<String>(
@@ -467,7 +453,6 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
       decoration: _getInputDecoration(labelText: "School Type / Agency", prefixIcon: Icons.account_balance_outlined),
       items: _schoolTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
       onChanged: (v) => setState(() => _selectedType = v),
-      validator: (v) => v == null ? "Select type" : null,
     );
 
     final genderField = DropdownButtonFormField<String>(
@@ -476,7 +461,6 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
       decoration: _getInputDecoration(labelText: "Gender Policy", prefixIcon: Icons.wc_outlined),
       items: _genderTypes.map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
       onChanged: (v) => setState(() => _selectedGenderType = v),
-      validator: (v) => v == null ? "Select policy" : null,
     );
 
     return _buildCardShell(
@@ -484,13 +468,7 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
       icon: Icons.badge_outlined,
       children: [
         if (isWide) ...[
-          Row(
-            children: [
-              Expanded(flex: 2, child: nameField),
-              const SizedBox(width: 16),
-              Expanded(child: codeField),
-            ],
-          ),
+          nameField,
           const SizedBox(height: 16),
           Row(
             children: [
@@ -509,8 +487,6 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
           ),
         ] else ...[
           nameField,
-          const SizedBox(height: 16),
-          codeField,
           const SizedBox(height: 16),
           levelField,
           const SizedBox(height: 16),
@@ -532,7 +508,6 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
         _selectedRegion = v;
         _selectedDistrict = null;
       }),
-      validator: (v) => v == null ? "Select region" : null,
     );
 
     final districtField = DropdownButtonFormField<String>(
@@ -546,7 +521,6 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
       ),
       items: _activeDistricts.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
       onChanged: _selectedRegion == null ? null : (v) => setState(() => _selectedDistrict = v),
-      validator: (v) => v == null ? "Select district" : null,
     );
 
     final addressField = TextFormField(
@@ -585,7 +559,6 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
       controller: _phoneController,
       keyboardType: TextInputType.phone,
       decoration: _getInputDecoration(labelText: "Primary Phone", prefixIcon: Icons.phone_outlined),
-      validator: (v) => (v == null || v.trim().isEmpty) ? "Enter primary phone" : null,
     );
 
     final altPhoneField = TextFormField(
@@ -599,7 +572,7 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
       keyboardType: TextInputType.emailAddress,
       decoration: _getInputDecoration(labelText: "School Email", prefixIcon: Icons.email_outlined),
       validator: (v) {
-        if (v == null || v.trim().isEmpty) return "Enter email";
+        if (v == null || v.trim().isEmpty) return null;
         if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(v.trim())) return "Enter valid email";
         return null;
       },

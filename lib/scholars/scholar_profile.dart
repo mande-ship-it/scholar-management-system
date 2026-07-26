@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../academics/academics_utils.dart';
-import '../finance/finance_utils.dart';
 import '../services/api_service.dart';
 
 class ScholarProfileComponent extends StatefulWidget {
@@ -11,7 +10,7 @@ class ScholarProfileComponent extends StatefulWidget {
 }
 
 class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
-  int _selectedTab = 0; // 0 = Overview, 1 = Statistics, 2 = Finances
+  int _selectedTab = 0; // 0 = Overview, 1 = Academic Stats
   bool _isLoading = true;
   Student? _student;
   Map<String, dynamic>? _extraData;
@@ -97,41 +96,9 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
             }
           });
         }
-
-        // Fetch financial payments
-        final paymentsRes = await ApiService.getPaymentsByScholar(id);
-        if (paymentsRes.statusCode == 200) {
-          final List<dynamic> pData = paymentsRes.data['data'];
-          setState(() {
-            kPayments.removeWhere((p) => p.studentId == id);
-            for (var pItem in pData) {
-              final paymentDate = pItem['payment_date'] != null 
-                  ? DateTime.parse(pItem['payment_date']) 
-                  : DateTime.now();
-              
-              kPayments.add(ScholarshipPayment(
-                id: pItem['id'].toString(),
-                studentId: pItem['scholar_id'].toString(),
-                category: PaymentCategory.values.firstWhere(
-                  (c) => c.label == pItem['category'],
-                  orElse: () => PaymentCategory.tuition,
-                ),
-                amount: double.parse(pItem['amount'].toString()),
-                dueDate: paymentDate,
-                paidDate: pItem['status'] == 'Paid' ? paymentDate : null,
-                status: pItem['status'] == 'Paid' ? PaymentStatus.paid : PaymentStatus.pending,
-                reference: pItem['reference_number'] ?? 'N/A',
-              ));
-            }
-          });
-        }
       }
     } catch (e) {
       debugPrint('Error fetching scholar profile data: $e');
-      // Fallback if error
-      if (_student == null && kStudents.isNotEmpty) {
-        _student = kStudents.firstWhere((s) => s.id == id, orElse: () => kStudents.first);
-      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -147,26 +114,22 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
       return const Center(child: Text("Scholar not found."));
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // 1. Clean Header (No Banners)
-        _buildHeader(_student!, _extraData),
-        
-        const SizedBox(height: 24),
-        
-        // 2. Tab Navigation
-        _buildTabBar(),
-        
-        const SizedBox(height: 24),
-        
-        // 3. Tab Content
-        Expanded(
-          child: SingleChildScrollView(
-            child: _buildTabContent(_student!, _extraData),
+    return Container(
+      color: Colors.white,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildHeader(_student!, _extraData),
+          const SizedBox(height: 24),
+          _buildTabBar(),
+          const SizedBox(height: 24),
+          Expanded(
+            child: SingleChildScrollView(
+              child: _buildTabContent(_student!, _extraData),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -182,7 +145,7 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: kBrandOlive.withValues(alpha: 0.1),
+              color: kBrandOlive.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
@@ -228,7 +191,6 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
     final items = [
       ("Overview", Icons.person_outline_rounded),
       ("Academic Stats", Icons.auto_graph_rounded),
-      ("Financial Record", Icons.payments_outlined),
     ];
 
     return Container(
@@ -250,7 +212,7 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
                 decoration: BoxDecoration(
                   color: isSelected ? Colors.white : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
-                  boxShadow: isSelected ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)] : null,
+                  boxShadow: isSelected ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)] : null,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -279,12 +241,10 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
     switch (_selectedTab) {
       case 0: return _buildOverviewTab(student, args);
       case 1: return _buildStatisticsTab(student);
-      case 2: return _buildFinancialTab(student);
       default: return const SizedBox();
     }
   }
 
-  // --- TAB 1: OVERVIEW ---
   Widget _buildOverviewTab(Student student, Map<String, dynamic>? args) {
     return Column(
       children: [
@@ -378,7 +338,6 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
     );
   }
 
-  // --- TAB 2: ACADEMIC STATISTICS ---
   Widget _buildStatisticsTab(Student student) {
     final records = kResults.where((r) => r.studentId == student.id).toList();
     final double avg = records.isEmpty ? 0.0 : records.map((r) => r.marks).reduce((a, b) => a + b) / records.length;
@@ -386,7 +345,6 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
     
     final bestResult = records.isEmpty ? null : records.reduce((a, b) => a.marks > b.marks ? a : b);
     
-    // Improved Logic: Calculate GPA for University Students
     double totalGpa = 0;
     if (student.schoolType == SchoolType.university && records.isNotEmpty) {
       final gpaRecords = records.where((r) => r.gpa != null).toList();
@@ -397,7 +355,6 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
 
     return Column(
       children: [
-        // Top Stats Row
         Row(
           children: [
             Expanded(child: _statCard("Average Mark", "${avg.toStringAsFixed(1)}%", band.color, Icons.analytics_rounded)),
@@ -462,79 +419,6 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
     );
   }
 
-  // --- TAB 3: FINANCIAL RECORD ---
-  Widget _buildFinancialTab(Student student) {
-    final payments = kPayments.where((p) => p.studentId == student.id).toList();
-    final paid = payments.where((p) => p.status == PaymentStatus.paid).toList();
-    final pending = payments.where((p) => p.status == PaymentStatus.pending).toList();
-    
-    final totalDisbursed = paid.isEmpty ? 0.0 : paid.map((p) => p.amount).reduce((a, b) => a + b);
-    final totalPending = pending.isEmpty ? 0.0 : pending.map((p) => p.amount).reduce((a, b) => a + b);
-
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(child: _statCard("Paid to Date", "MWK ${totalDisbursed.toStringAsFixed(0)}", kBrandOlive, Icons.check_circle_outline)),
-            const SizedBox(width: 16),
-            Expanded(child: _statCard("Pending", "MWK ${totalPending.toStringAsFixed(0)}", kBrandOrange, Icons.hourglass_empty_rounded)),
-          ],
-        ),
-        const SizedBox(height: 24),
-        
-        _infoSection(
-          title: "Payment History",
-          icon: Icons.history_rounded,
-          child: payments.isEmpty 
-            ? const Center(child: Padding(
-                padding: EdgeInsets.symmetric(vertical: 40),
-                child: Text("No financial transactions found.", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)),
-              ))
-            : ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: payments.length,
-                separatorBuilder: (_, _) => const Divider(height: 24),
-                itemBuilder: (context, index) {
-                  final p = payments[index];
-                  return Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(color: kBrandBrown.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(10)),
-                        child: Icon(p.category.icon, size: 20, color: kBrandBrown),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(p.category.label, style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown)),
-                            Text("Ref: ${p.reference}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                          ],
-                        ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text("MWK ${p.amount.toStringAsFixed(0)}", style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown)),
-                          Text(
-                            p.status == PaymentStatus.paid ? "Paid" : "Pending",
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: p.status == PaymentStatus.paid ? Colors.green : kBrandOrange),
-                          ),
-                        ],
-                      ),
-                    ],
-                  );
-                },
-              ),
-        ),
-      ],
-    );
-  }
-
-  // --- REUSABLE COMPONENTS ---
-
   Widget _infoSection({required String title, required IconData icon, required Widget child}) {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -567,7 +451,7 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade100),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

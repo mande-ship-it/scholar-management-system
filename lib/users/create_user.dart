@@ -229,7 +229,7 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
       suffixIcon: suffixIcon,
       isDense: true,
       filled: true,
-      fillColor: Colors.grey.shade50,
+      fillColor: Colors.white,
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide: BorderSide(color: Colors.grey.shade200),
@@ -514,7 +514,7 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(color: Colors.grey.shade200),
                       ),

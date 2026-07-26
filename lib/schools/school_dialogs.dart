@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+import 'package:syncfusion_flutter_pdf/pdf.dart';
+import 'package:excel/excel.dart' hide Border;
 import '../academics/academics_utils.dart';
 import '../services/api_service.dart';
+import '../services/file_download_service.dart';
 
 // ============================================================
 // SCHOOL PROFILE POP-UP
@@ -123,6 +128,181 @@ class _SchoolProfileDialogState extends State<SchoolProfileDialog> {
         ],
       ),
     );
+  }
+
+  // ---------------------------------------------------------------------
+  // INDIVIDUAL SCHOOL PROFILE EXPORT
+  // ---------------------------------------------------------------------
+
+  Future<void> _exportProfileToPDF() async {
+    final school = widget.school;
+    try {
+      final PdfDocument document = PdfDocument();
+      final PdfPage page = document.pages.add();
+      final Size pageSize = page.getClientSize();
+
+      // 1. Header with Logo
+      try {
+        final ByteData data = await rootBundle.load('assets/images/age-logo.png');
+        final Uint8List logoBytes = data.buffer.asUint8List();
+        final PdfBitmap image = PdfBitmap(logoBytes);
+        page.graphics.drawImage(image, const Rect.fromLTWH(0, 0, 80, 80));
+      } catch (e) {
+        debugPrint("Could not load logo for PDF: $e");
+      }
+
+      final PdfFont headerFont = PdfStandardFont(PdfFontFamily.helvetica, 18, style: PdfFontStyle.bold);
+      final PdfFont subHeaderFont = PdfStandardFont(PdfFontFamily.helvetica, 10);
+      final PdfFont labelFont = PdfStandardFont(PdfFontFamily.helvetica, 10, style: PdfFontStyle.bold);
+      final PdfFont valueFont = PdfStandardFont(PdfFontFamily.helvetica, 10);
+
+      PdfTextElement(
+        text: 'AGE AFRICA',
+        font: headerFont,
+        brush: PdfSolidBrush(PdfColor(76, 60, 50)), // kBrandBrown
+      ).draw(
+        page: page,
+        bounds: Rect.fromLTWH(90, 10, pageSize.width - 90, 25),
+      );
+
+      PdfTextElement(
+        text: 'Advancing Girls\' Education in Africa\nBlantyre, Malawi | www.ageafrica.org\nOfficial School Information Profile',
+        font: subHeaderFont,
+        brush: PdfBrushes.black,
+      ).draw(
+        page: page,
+        bounds: Rect.fromLTWH(90, 35, pageSize.width - 90, 50),
+      );
+
+      // 2. School Name Header
+      page.graphics.drawRectangle(
+          pen: PdfPen(PdfColor(154, 179, 52)), // kBrandOlive
+          brush: PdfSolidBrush(PdfColor(250, 242, 219)), // kBrandCream
+          bounds: Rect.fromLTWH(0, 100, pageSize.width, 35));
+
+      PdfTextElement(
+        text: (school['name'] ?? 'School Profile').toUpperCase(),
+        font: PdfStandardFont(PdfFontFamily.helvetica, 14, style: PdfFontStyle.bold),
+        brush: PdfSolidBrush(PdfColor(76, 60, 50)),
+        format: PdfStringFormat(alignment: PdfTextAlignment.center),
+      ).draw(
+        page: page,
+        bounds: Rect.fromLTWH(10, 110, pageSize.width - 20, 30),
+      );
+
+      // 3. Information Grid (Manual Layout)
+      double currentY = 150;
+      void drawInfoRow(String label, String value) {
+        if (value.isEmpty || value == 'N/A') return;
+        PdfTextElement(text: label, font: labelFont).draw(page: page, bounds: Rect.fromLTWH(0, currentY, 150, 20));
+        PdfTextElement(text: ': $value', font: valueFont).draw(page: page, bounds: Rect.fromLTWH(150, currentY, pageSize.width - 150, 20));
+        currentY += 20;
+      }
+
+      drawInfoRow('School Code', school['code'] ?? 'N/A');
+      drawInfoRow('Education Level', school['level'] ?? 'N/A');
+      drawInfoRow('School Type', school['type'] ?? 'N/A');
+      drawInfoRow('Gender Policy', school['genderPolicy'] ?? 'N/A');
+      drawInfoRow('Status', school['status'] ?? 'Active');
+      currentY += 10;
+
+      drawInfoRow('Region', school['region'] ?? 'N/A');
+      drawInfoRow('District', school['district'] ?? 'N/A');
+      drawInfoRow('Address', school['address'] ?? 'N/A');
+      currentY += 10;
+
+      drawInfoRow('Phone', school['phone'] ?? 'N/A');
+      drawInfoRow('Email', school['email'] ?? 'N/A');
+      drawInfoRow('Website', school['website'] ?? 'N/A');
+      currentY += 10;
+
+      drawInfoRow('Contact Person', school['adminName'] ?? 'N/A');
+      drawInfoRow('Admin Role', school['adminRole'] ?? 'N/A');
+      drawInfoRow('Admin Phone', school['adminPhone'] ?? 'N/A');
+
+      if ((school['description'] ?? '').isNotEmpty) {
+        currentY += 20;
+        PdfTextElement(text: 'Description:', font: labelFont).draw(page: page, bounds: Rect.fromLTWH(0, currentY, pageSize.width, 20));
+        currentY += 18;
+        PdfTextElement(
+          text: school['description']!,
+          font: valueFont,
+          brush: PdfBrushes.black,
+        ).draw(
+          page: page,
+          bounds: Rect.fromLTWH(0, currentY, pageSize.width, 100),
+        );
+      }
+
+      // 4. Footer
+      PdfTextElement(
+        text: 'Generated on ${DateFormat('dd MMM yyyy, HH:mm').format(DateTime.now())} | Blantyre Regional Office',
+        font: subHeaderFont,
+        brush: PdfSolidBrush(PdfColor(128, 128, 128)),
+        format: PdfStringFormat(alignment: PdfTextAlignment.center),
+      ).draw(
+        page: page,
+        bounds: Rect.fromLTWH(0, pageSize.height - 20, pageSize.width, 20),
+      );
+
+      final List<int> bytes = await document.save();
+      document.dispose();
+
+      await FileDownloadService.downloadFile(
+        bytes: bytes,
+        fileName: 'school_profile_${school['code']}_${DateTime.now().millisecondsSinceEpoch}.pdf',
+      );
+    } catch (e) {
+      debugPrint('Export PDF error: $e');
+    }
+  }
+
+  Future<void> _exportProfileToExcel() async {
+    final school = widget.school;
+    try {
+      var excel = Excel.createExcel();
+      Sheet sheetObject = excel['School Profile'];
+      excel.delete('Sheet1');
+
+      sheetObject.appendRow([TextCellValue('OFFICIAL SCHOOL PROFILE - AGE AFRICA')]);
+      sheetObject.appendRow([TextCellValue('Location: Blantyre, Malawi')]);
+      sheetObject.appendRow([TextCellValue('')]);
+
+      void addRow(String label, String? value) {
+        sheetObject.appendRow([TextCellValue(label), TextCellValue(value ?? 'N/A')]);
+      }
+
+      addRow('School Name', school['name']);
+      addRow('School Code', school['code']);
+      addRow('Education Level', school['level']);
+      addRow('Agency Type', school['type']);
+      addRow('Gender Policy', school['genderPolicy']);
+      addRow('Status', school['status']);
+      addRow('', '');
+      addRow('Region', school['region']);
+      addRow('District', school['district']);
+      addRow('Physical Address', school['address']);
+      addRow('', '');
+      addRow('Phone', school['phone']);
+      addRow('Email', school['email']);
+      addRow('Website', school['website']);
+      addRow('', '');
+      addRow('Admin Name', school['adminName']);
+      addRow('Admin Role', school['adminRole']);
+      addRow('Admin Phone', school['adminPhone']);
+      addRow('', '');
+      addRow('Description', school['description']);
+
+      final bytes = excel.encode();
+      if (bytes != null) {
+        await FileDownloadService.downloadFile(
+          bytes: bytes,
+          fileName: 'school_profile_${school['code']}.xlsx',
+        );
+      }
+    } catch (e) {
+      debugPrint('Export Excel error: $e');
+    }
   }
 
   @override
@@ -309,28 +489,62 @@ class _SchoolProfileDialogState extends State<SchoolProfileDialog> {
                 ),
                 child: Column(
                   children: [
-                    SizedBox(
-                      width: double.infinity,
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          widget.onToggleStatus();
-                          setState(() {}); // reflect new status immediately in this dialog
-                        },
-                        icon: Icon(
-                          isActive ? Icons.toggle_off_outlined : Icons.toggle_on_outlined,
-                          size: 20,
-                          color: isActive ? kBrandOrange : kBrandOlive,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: _exportProfileToExcel,
+                            icon: const Icon(Icons.table_view_rounded, size: 16),
+                            label: const Text("Excel", style: TextStyle(fontSize: 12)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green.shade700,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              elevation: 0,
+                            ),
+                          ),
                         ),
-                        label: Text(
-                          isActive ? "Deactivate School" : "Activate School",
-                          style: TextStyle(fontWeight: FontWeight.bold, color: isActive ? kBrandOrange : kBrandOlive),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: _exportProfileToPDF,
+                            icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
+                            label: const Text("PDF", style: TextStyle(fontSize: 12)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red.shade700,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              elevation: 0,
+                            ),
+                          ),
                         ),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          side: BorderSide(color: (isActive ? kBrandOrange : kBrandOlive).withValues(alpha: 0.5)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 2,
+                          child: OutlinedButton.icon(
+                            onPressed: () {
+                              widget.onToggleStatus();
+                              setState(() {}); // reflect new status immediately in this dialog
+                            },
+                            icon: Icon(
+                              isActive ? Icons.toggle_off_outlined : Icons.toggle_on_outlined,
+                              size: 18,
+                              color: isActive ? kBrandOrange : kBrandOlive,
+                            ),
+                            label: Text(
+                              isActive ? "Deactivate" : "Activate",
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isActive ? kBrandOrange : kBrandOlive),
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              side: BorderSide(color: (isActive ? kBrandOrange : kBrandOlive).withValues(alpha: 0.5)),
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                     const SizedBox(height: 12),
                     Row(

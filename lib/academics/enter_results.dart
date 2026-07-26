@@ -296,7 +296,11 @@ class _EnterResultsSectionState extends State<_EnterResultsSection> {
         return entry;
       }).toList();
 
-      final capped = (!_isUniversity && imported.length > 12) ? imported.sublist(0, 12) : imported;
+      final capped = (!_isUniversity && imported.length > 12) 
+          ? imported.sublist(0, 12) 
+          : (_isUniversity && imported.length > 8)
+              ? imported.sublist(0, 8)
+              : imported;
 
       setState(() {
         for (var e in _scholarEntries) {
@@ -329,8 +333,8 @@ class _EnterResultsSectionState extends State<_EnterResultsSection> {
         return;
       }
     } else {
-      if (validEntries.isEmpty) {
-        _showSnack('Please enter at least one course result.', isError: true);
+      if (validEntries.length < 6 || validEntries.length > 8) {
+        _showSnack('For university, please enter between 6 and 8 courses.', isError: true);
         return;
       }
     }
@@ -450,23 +454,26 @@ class _EnterResultsSectionState extends State<_EnterResultsSection> {
         ),
       );
     }
-    return SingleChildScrollView(
-      padding: const EdgeInsets.only(bottom: 40),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _StepLabel(step: 1, label: "Select Scholar & Period"),
-          const SizedBox(height: 10),
-          _buildFilterCard(),
-          const SizedBox(height: 22),
-          _StepLabel(step: 2, label: "Add Results"),
-          const SizedBox(height: 10),
-          _buildImportBanner(),
-          const SizedBox(height: 12),
-          _buildEntrySection(),
-          const SizedBox(height: 24),
-          _buildActionRow(),
-        ],
+    return Container(
+      color: Colors.white,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: 40),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _StepLabel(step: 1, label: "Select Scholar & Period"),
+            const SizedBox(height: 10),
+            _buildFilterCard(),
+            const SizedBox(height: 22),
+            _StepLabel(step: 2, label: "Add Results"),
+            const SizedBox(height: 10),
+            _buildImportBanner(),
+            const SizedBox(height: 12),
+            _buildEntrySection(),
+            const SizedBox(height: 24),
+            _buildActionRow(),
+          ],
+        ),
       ),
     );
   }
@@ -697,7 +704,7 @@ class _EnterResultsSectionState extends State<_EnterResultsSection> {
         ),
         const SizedBox(height: 6),
         Text(
-          _isUniversity ? "Enter at least one course for this semester." : "Enter between 6 and 12 subjects for this term.",
+          _isUniversity ? "Enter between 6 and 8 courses for this semester." : "Enter between 6 and 12 subjects for this term.",
           style: TextStyle(fontSize: 11.5, color: Colors.grey.shade500, fontStyle: FontStyle.italic),
         ),
       ],

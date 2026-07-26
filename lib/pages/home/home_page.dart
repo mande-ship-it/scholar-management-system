@@ -39,18 +39,10 @@ import '../attendancePages/attendance_reports.dart';
 // Events
 import '../eventPages/events.dart';
 
-// Finance
-import '../financePages/scholarship_payments.dart';
-import '../financePages/payment_history.dart';
-import '../financePages/expenses.dart';
-import '../financePages/budget.dart';
-import '../financePages/financial_reports.dart';
-
 // Reports
 import '../reportPages/scholar_reports.dart';
 import '../reportPages/school_reports.dart';
 import '../reportPages/sponsor_reports.dart';
-import '../reportPages/finance_reports.dart';
 import '../reportPages/export_pdf.dart';
 import '../reportPages/export_excel.dart';
 
@@ -60,6 +52,9 @@ import '../userPages/manage_users.dart';
 import '../userPages/user_roles.dart';
 import '../userPages/permissions.dart';
 import '../userPages/user_profile.dart';
+
+// Admin
+import '../admin/approvals_page.dart';
 
 // Settings
 import '../settingsPages/organisation_profile.dart';
@@ -98,12 +93,16 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int activeCategoryIndex = 0;
   int activeSubIndex = 0;
   bool _isSidebarVisible = true;
   int _notificationCount = 0;
   IO.Socket? _socket;
+  int? _currentUserId;
+
+  late AnimationController _notificationIconController;
+  late Animation<double> _notificationIconAnimation;
 
   String _fullName = "User";
   String _userRole = "Staff";
@@ -112,6 +111,14 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    _notificationIconController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _notificationIconAnimation = Tween<double>(begin: 1.0, end: 1.5).animate(
+      CurvedAnimation(parent: _notificationIconController, curve: Curves.elasticOut),
+    );
+
     _initSocket();
     _fetchNotificationCount();
     _fetchUserProfile();
@@ -127,7 +134,13 @@ class _HomePageState extends State<HomePage> {
             _fullName = data['full_name'] ?? "User";
             _userRole = data['role_name'] ?? "Staff";
             _profileImageUrl = data['profile_picture'];
+            _currentUserId = data['id'];
           });
+
+          if (_currentUserId != null && _socket != null && _socket!.connected) {
+            debugPrint('Connected and joining socket room for user $_currentUserId');
+            _socket!.emit('join', _currentUserId);
+          }
         }
       }
     } catch (e) {
@@ -146,25 +159,32 @@ class _HomePageState extends State<HomePage> {
 
     _socket!.onConnect((_) {
       debugPrint('Connected to Notification Server');
-      // For testing, join as user 1
-      _socket!.emit('join', 1);
+      if (_currentUserId != null) {
+        debugPrint('Socket connected: joining room for user $_currentUserId');
+        _socket!.emit('join', _currentUserId);
+      } else {
+        _socket!.emit('join', 1); // Fallback join user 1
+      }
     });
 
     _socket!.on('notification', (data) {
-      setState(() {
-        _notificationCount++;
-      });
-      _playNotificationSound();
-      _showNotificationOverlay(data['message']);
+      if (mounted) {
+        setState(() {
+          _notificationCount++;
+        });
+        _notificationIconController.forward(from: 0.0).then((_) => _notificationIconController.reverse());
+        _playNotificationSound();
+        _showNotificationOverlay(
+          message: data['message'] ?? 'New update received',
+          actor: data['actorName'] ?? 'System',
+          type: data['type'] ?? 'info',
+        );
+      }
     });
   }
 
   void _playNotificationSound() {
-    // Play a system click sound as a fallback
     SystemSound.play(SystemSoundType.click);
-
-    // If you have audioplayers installed and an asset:
-    // AudioPlayer().play(AssetSource('sounds/notification.mp3'));
   }
 
   Future<void> _fetchNotificationCount() async {
@@ -172,33 +192,84 @@ class _HomePageState extends State<HomePage> {
       final response = await ApiService.getNotifications();
       if (response.statusCode == 200) {
         final List notifications = response.data['data'];
-        setState(() {
-          _notificationCount = notifications.where((n) => n['is_read'] == false).length;
-        });
+        if (mounted) {
+          final int newCount = notifications.where((n) => n['is_read'] == false).length;
+          if (newCount > _notificationCount) {
+            _notificationIconController.forward(from: 0.0).then((_) => _notificationIconController.reverse());
+          }
+          setState(() {
+            _notificationCount = newCount;
+          });
+        }
       }
     } catch (e) {
       debugPrint('Error fetching notifications: $e');
     }
   }
 
-  void _showNotificationOverlay(String message) {
-    // Show a simple snackbar or overlay for real-time notification
+  void _showNotificationOverlay({required String message, required String actor, String type = 'info'}) {
+    final Color brandOlive = const Color(0xFF9AB334);
+    final Color brandOrange = const Color(0xFFE05B1C);
+
+    IconData icon = Icons.notifications_active;
+    Color color = brandOlive;
+    if (type == 'success') { icon = Icons.check_circle; color = Colors.green; }
+    if (type == 'warning') { icon = Icons.warning; color = brandOrange; }
+    if (type == 'error') { icon = Icons.error; color = Colors.red; }
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Row(
-          children: [
-            const Icon(Icons.notifications_active, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
+        content: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: Colors.white24,
+                child: Icon(icon, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      actor.toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white70,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      message,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-        backgroundColor: const Color(0xFF9AB334), // brandOlive
+        backgroundColor: color,
         behavior: SnackBarBehavior.floating,
-        duration: const Duration(seconds: 4),
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        duration: const Duration(seconds: 5),
         action: SnackBarAction(
-          label: 'VIEW',
+          label: 'OPEN',
           textColor: Colors.white,
-          onPressed: () => _navigateToSubItem("Notifications"),
+          onPressed: () {
+            setState(() => _notificationCount = 0);
+            ApiService.markAllNotificationsRead();
+            _navigateToSubItem("Notifications");
+          },
         ),
       ),
     );
@@ -207,6 +278,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     _socket?.disconnect();
+    _notificationIconController.dispose();
     super.dispose();
   }
 
@@ -284,24 +356,12 @@ class _HomePageState extends State<HomePage> {
       ],
     ),
     SidebarCategory(
-      title: "Finance",
-      icon: Icons.monetization_on,
-      subItems: [
-        SidebarSubItem(title: "Scholarship Payments", page: ScholarshipPaymentsPage(), icon: Icons.payments),
-        SidebarSubItem(title: "Payment History", page: PaymentHistoryPage(), icon: Icons.receipt_long),
-        SidebarSubItem(title: "Expenses", page: ExpensesPage(), icon: Icons.money_off),
-        SidebarSubItem(title: "Budget", page: BudgetPage(), icon: Icons.account_balance_wallet),
-        SidebarSubItem(title: "Financial Reports", page: FinancialReportsPage(), icon: Icons.assessment),
-      ],
-    ),
-    SidebarCategory(
       title: "Reports",
       icon: Icons.analytics,
       subItems: [
         SidebarSubItem(title: "Scholar Reports", page: ScholarReportsPage(), icon: Icons.description),
         SidebarSubItem(title: "School Reports", page: SchoolReportsPage(), icon: Icons.domain_verification),
         SidebarSubItem(title: "Sponsor Reports", page: SponsorReportsPage(), icon: Icons.admin_panel_settings),
-        SidebarSubItem(title: "Finance Reports", page: FinanceReportsPage(), icon: Icons.monetization_on),
         SidebarSubItem(title: "Export PDF", page: ExportPDFPage(), icon: Icons.picture_as_pdf),
         SidebarSubItem(title: "Export Excel", page: ExportExcelPage(), icon: Icons.table_view),
       ],
@@ -325,6 +385,13 @@ class _HomePageState extends State<HomePage> {
         SidebarSubItem(title: "Backup & Restore", page: BackupRestorePage(), icon: Icons.backup),
         SidebarSubItem(title: "System Settings", page: SystemSettingsPage(), icon: Icons.settings_applications),
         SidebarSubItem(title: "Account Settings", page: AccountSettingsPage(), icon: Icons.manage_accounts),
+      ],
+    ),
+    SidebarCategory(
+      title: "Administration",
+      icon: Icons.admin_panel_settings,
+      subItems: [
+        SidebarSubItem(title: "Pending Approvals", page: ApprovalsPage(), icon: Icons.rule_folder),
       ],
     ),
   ];
@@ -400,36 +467,44 @@ class _HomePageState extends State<HomePage> {
           ),
           Stack(
             children: [
-              IconButton(
-                icon: const Icon(Icons.notifications, color: Colors.white),
-                tooltip: "Notifications",
-                onPressed: () {
-                  setState(() => _notificationCount = 0); // Clear count on view
-                  _navigateToSubItem("Notifications");
-                },
+              ScaleTransition(
+                scale: _notificationIconAnimation,
+                child: IconButton(
+                  icon: const Icon(Icons.notifications, color: Colors.white),
+                  tooltip: "Notifications",
+                  onPressed: () {
+                    setState(() => _notificationCount = 0); // Clear count locally
+                    ApiService.markAllNotificationsRead(); // Mark as read in backend
+                    _navigateToSubItem("Notifications");
+                  },
+                ),
               ),
               if (_notificationCount > 0)
                 Positioned(
                   right: 8,
                   top: 8,
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      color: brandOrange,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    constraints: const BoxConstraints(
-                      minWidth: 16,
-                      minHeight: 16,
-                    ),
-                    child: Text(
-                      '$_notificationCount',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
+                  child: ScaleTransition(
+                    scale: _notificationIconAnimation,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: brandOrange,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: brandBrown, width: 1.5),
                       ),
-                      textAlign: TextAlign.center,
+                      constraints: const BoxConstraints(
+                        minWidth: 18,
+                        minHeight: 18,
+                      ),
+                      child: Text(
+                        '$_notificationCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
                   ),
                 ),
@@ -601,7 +676,7 @@ class _HomePageState extends State<HomePage> {
                                     fontSize: 14,
                                   ),
                                 ),
-                                children: category.subItems.asMap().entries.where((e) => e.value.title != "Notifications").map((entry) {
+                                children: category.subItems.asMap().entries.map((entry) {
                                   final subIndex = entry.key;
                                   final subItem = entry.value;
                                   final isSelectedSubItem = isSelectedCategory && activeSubIndex == subIndex;

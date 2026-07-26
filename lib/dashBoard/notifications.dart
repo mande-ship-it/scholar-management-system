@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
-import '../services/file_download_service.dart';
-import 'package:printing/printing.dart';
-import 'dart:typed_data';
+import 'package:intl/intl.dart';
 
 class NotificationsComponent extends StatefulWidget {
   const NotificationsComponent({super.key});
@@ -14,10 +12,10 @@ class NotificationsComponent extends StatefulWidget {
 class _NotificationsComponentState extends State<NotificationsComponent> {
   List<dynamic> _notifications = [];
   bool _isLoading = true;
-  bool _isExporting = false;
+  String _filter = 'all'; // all | unread
+  String? _errorMessage;
 
   final Color brandBrown = const Color(0xFF4C3C32);
-  final Color brandCream = const Color(0xFFFAF2DB);
   final Color brandOlive = const Color(0xFF9AB334);
   final Color brandOrange = const Color(0xFFE05B1C);
 
@@ -28,25 +26,41 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
   }
 
   Future<void> _fetchNotifications() async {
-    setState(() => _isLoading = true);
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    
     try {
       final response = await ApiService.getNotifications();
       if (response.statusCode == 200) {
-        setState(() {
-          _notifications = response.data['data'];
-        });
+        if (mounted) {
+          setState(() {
+            _notifications = response.data['data'] ?? [];
+            _isLoading = false;
+          });
+        }
+      } else {
+        throw Exception("Server returned ${response.statusCode}");
       }
     } catch (e) {
       debugPrint('Error fetching notifications: $e');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = "Could not load notifications. Please check your connection.";
+        });
+      }
     }
   }
 
   Future<void> _markAsRead(String id) async {
     try {
-      await ApiService.markNotificationRead(id);
-      _fetchNotifications();
+      final response = await ApiService.markNotificationRead(id);
+      if (response.statusCode == 200) {
+        _fetchNotifications();
+      }
     } catch (e) {
       debugPrint('Error marking as read: $e');
     }
@@ -57,241 +71,211 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
       final response = await ApiService.deleteNotification(id);
       if (response.statusCode == 200) {
         _fetchNotifications();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Notification deleted"), behavior: SnackBarBehavior.floating),
-          );
-        }
       }
     } catch (e) {
       debugPrint('Error deleting notification: $e');
     }
   }
 
-  Future<void> _handleExportExcel() async {
-    setState(() => _isExporting = true);
+  Future<void> _markAllAsRead() async {
     try {
-      final response = await ApiService.exportToExcel(['Scholar Master List']);
+      final response = await ApiService.markAllNotificationsRead();
       if (response.statusCode == 200) {
-        final bytes = response.data as List<int>;
-        await FileDownloadService.downloadFile(
-          bytes: bytes,
-          fileName: "Dashboard_Scholar_Export_${DateTime.now().millisecondsSinceEpoch}.xlsx",
-        );
-        _showSuccessSnack("Excel export downloaded.");
+        _fetchNotifications();
       }
     } catch (e) {
-      _showErrorSnack("Export failed. Please check connection.");
-    } finally {
-      if (mounted) setState(() => _isExporting = false);
+      debugPrint('Error marking all as read: $e');
     }
   }
 
-  Future<void> _handleExportPdf() async {
-    setState(() => _isExporting = true);
-    try {
-      final response = await ApiService.exportToPDF(['Scholar Profiles & Summaries']);
-      if (response.statusCode == 200) {
-        final bytes = Uint8List.fromList(response.data as List<int>);
-        await Printing.sharePdf(
-          bytes: bytes,
-          filename: "Dashboard_Report_${DateTime.now().millisecondsSinceEpoch}.pdf",
-        );
-        _showSuccessSnack("PDF report generated.");
-      }
-    } catch (e) {
-      _showErrorSnack("PDF generation failed.");
-    } finally {
-      if (mounted) setState(() => _isExporting = false);
+  List<dynamic> get _filteredNotifications {
+    if (_filter == 'unread') {
+      return _notifications.where((n) => !(n['is_read'] ?? false)).toList();
     }
-  }
-
-  Future<void> _handleBackup() async {
-    setState(() => _isExporting = true);
-    try {
-      final response = await ApiService.runBackup("Manual Dashboard Backup");
-      if (response.statusCode == 200) {
-        _showSuccessSnack("Database backup completed successfully.");
-      }
-    } catch (e) {
-      _showErrorSnack("Backup process failed.");
-    } finally {
-      if (mounted) setState(() => _isExporting = false);
-    }
-  }
-
-  void _showSuccessSnack(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: brandOlive, behavior: SnackBarBehavior.floating),
-    );
-  }
-
-  void _showErrorSnack(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: Colors.redAccent, behavior: SnackBarBehavior.floating),
-    );
+    return _notifications;
   }
 
   @override
   Widget build(BuildContext context) {
-    return _isLoading
-        ? const Center(child: CircularProgressIndicator(color: Color(0xFF9AB334)))
-        : SingleChildScrollView(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                if (constraints.maxWidth > 950) {
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: _buildActivityCard(),
-                      ),
-                      const SizedBox(width: 24),
-                      Expanded(
-                        flex: 1,
-                        child: _buildQuickActionsCard(),
-                      ),
-                    ],
-                  );
-                } else {
-                  return Column(
-                    children: [
-                      _buildActivityCard(),
-                      const SizedBox(height: 24),
-                      _buildQuickActionsCard(),
-                    ],
-                  );
-                }
-              },
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator(color: Color(0xFF9AB334)));
+    }
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
+            const SizedBox(height: 16),
+            Text(_errorMessage!, style: const TextStyle(color: Colors.black54)),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: _fetchNotifications,
+              style: ElevatedButton.styleFrom(backgroundColor: brandOlive, foregroundColor: Colors.white),
+              child: const Text("Retry"),
+            )
+          ],
+        ),
+      );
+    }
+
+    final visible = _filteredNotifications;
+
+    return Container(
+      color: Colors.white,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.history_toggle_off, color: brandBrown, size: 24),
+                  const SizedBox(width: 12),
+                  Text(
+                    "Activity & Notifications",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: brandBrown),
+                  ),
+                ],
+              ),
+              Row(
+                children: [
+                  _buildFilterChip("All", 'all'),
+                  const SizedBox(width: 8),
+                  _buildFilterChip("Unread", 'unread'),
+                  const SizedBox(width: 12),
+                  if (_notifications.any((n) => !(n['is_read'] ?? false)))
+                    TextButton.icon(
+                      onPressed: _markAllAsRead,
+                      icon: const Icon(Icons.done_all, size: 18),
+                      label: const Text("MARK ALL READ"),
+                      style: TextButton.styleFrom(foregroundColor: brandOlive, textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                  IconButton(
+                    onPressed: _fetchNotifications,
+                    icon: const Icon(Icons.refresh),
+                    tooltip: "Refresh Feed",
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _fetchNotifications,
+              color: brandOlive,
+              child: visible.isEmpty
+                  ? _buildEmptyState()
+                  : ListView.builder(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      itemCount: visible.length,
+                      itemBuilder: (context, index) => _buildNotificationTile(visible[index]),
+                    ),
             ),
-          );
+          ),
+        ],
+      ),
+    );
   }
 
-  Widget _buildActivityCard() {
-    return Card(
-      elevation: 2,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200, width: 1),
+  Widget _buildFilterChip(String label, String value) {
+    final bool selected = _filter == value;
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (val) {
+        if (val) setState(() => _filter = value);
+      },
+      selectedColor: brandOlive.withOpacity(0.2),
+      labelStyle: TextStyle(
+        color: selected ? brandOlive : Colors.grey,
+        fontWeight: selected ? FontWeight.bold : FontWeight.normal,
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.history_toggle_off, color: brandBrown, size: 28),
-                const SizedBox(width: 12),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.notifications_off_outlined, size: 64, color: Colors.grey.shade300),
+          const SizedBox(height: 16),
+          Text(
+            _filter == 'unread' ? "No unread notifications" : "Your activity log is empty",
+            style: TextStyle(color: Colors.grey.shade500, fontSize: 16),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationTile(dynamic n) {
+    final bool isRead = n['is_read'] ?? false;
+    final String type = n['type'] ?? 'info';
+    final String id = n['id'].toString();
+    final String? actor = n['actor_name'];
+    
+    IconData icon = Icons.info_outline;
+    Color color = brandOlive;
+    if (type == 'success') { icon = Icons.check_circle_outline; color = Colors.green; }
+    if (type == 'warning') { icon = Icons.warning_amber_rounded; color = brandOrange; }
+    if (type == 'error') { icon = Icons.error_outline; color = Colors.red; }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: isRead ? Colors.white : color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isRead ? Colors.grey.shade100 : color.withOpacity(0.1)),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        leading: CircleAvatar(
+          backgroundColor: color.withOpacity(0.1),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        title: Text(
+          n['message'] ?? '',
+          style: TextStyle(
+            fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
+            color: isRead ? Colors.black87 : brandBrown,
+          ),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (actor != null)
                 Text(
-                  "Recent System Activity Log",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: brandBrown,
-                  ),
+                  actor.toUpperCase(),
+                  style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                 ),
-                const Spacer(),
-                TextButton.icon(
-                  onPressed: _fetchNotifications,
-                  icon: const Icon(Icons.refresh, size: 16),
-                  label: const Text("Refresh"),
-                )
-              ],
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              "Audit logs showing updates and inputs made by different department roles.",
-              style: TextStyle(color: Colors.grey, fontSize: 13),
-            ),
-            const Divider(height: 30),
-            if (_notifications.isEmpty)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(40.0),
-                  child: Text("No recent activities found."),
-                ),
-              )
-            else
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _notifications.length > 8 ? 8 : _notifications.length,
-                separatorBuilder: (context, index) => const Divider(height: 20, color: Color(0xFFF7F5EE)),
-                itemBuilder: (context, index) {
-                  final notification = _notifications[index];
-                  final bool isRead = notification['is_read'] ?? false;
-                  final String type = notification['type'] ?? 'info';
-                  final String id = notification['id'].toString();
-
-                  IconData icon = Icons.info_outline;
-                  Color color = brandOlive;
-                  if (type == 'success') { icon = Icons.check_circle_outline; color = Colors.green; }
-                  if (type == 'warning') { icon = Icons.warning_amber_rounded; color = brandOrange; }
-                  if (type == 'error') { icon = Icons.error_outline; color = Colors.red; }
-
-                  return Row(
-                    children: [
-                      Expanded(
-                        child: InkWell(
-                          onTap: isRead ? null : () => _markAsRead(id),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                CircleAvatar(
-                                  radius: 18,
-                                  backgroundColor: color.withOpacity(0.12),
-                                  child: Icon(icon, color: color, size: 16),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        notification['message'],
-                                        style: TextStyle(
-                                          color: isRead ? Colors.grey : Colors.black87,
-                                          fontSize: 13,
-                                          fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
-                                          height: 1.4,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        _formatTime(notification['created_at']),
-                                        style: const TextStyle(color: Colors.grey, fontSize: 11),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                if (!isRead)
-                                  Container(
-                                    width: 8,
-                                    height: 8,
-                                    decoration: const BoxDecoration(
-                                      color: Colors.blue,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                        onPressed: () => _deleteNotification(id),
-                        tooltip: "Delete Log",
-                      ),
-                    ],
-                  );
-                },
+              Text(
+                _formatTime(n['created_at']),
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
               ),
+            ],
+          ),
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!isRead)
+              IconButton(
+                icon: const Icon(Icons.mark_email_read_outlined, size: 20, color: Colors.blueGrey),
+                onPressed: () => _markAsRead(id),
+                tooltip: "Mark as read",
+              ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, size: 20, color: Colors.redAccent),
+              onPressed: () => _deleteNotification(id),
+              tooltip: "Remove",
+            ),
           ],
         ),
       ),
@@ -300,115 +284,20 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
 
   String _formatTime(String? timestamp) {
     if (timestamp == null) return "Unknown time";
-    final date = DateTime.parse(timestamp);
-    final now = DateTime.now();
-    final diff = now.difference(date);
+    try {
+      final date = DateTime.parse(timestamp).toLocal();
+      final now = DateTime.now();
+      final diff = now.difference(date);
 
-    if (diff.inMinutes < 1) return "Just now";
-    if (diff.inMinutes < 60) return "${diff.inMinutes} minutes ago";
-    if (diff.inHours < 24) return "${diff.inHours} hours ago";
-    if (diff.inDays < 7) return "${diff.inDays} days ago";
-    return "${date.day}/${date.month}/${date.year}";
-  }
+      if (diff.inMinutes < 1) return "Just now";
+      if (diff.inMinutes < 60) return "${diff.inMinutes}m ago";
+      if (diff.inHours < 24) return "${diff.inHours}h ago";
+      if (diff.inDays == 1) return "Yesterday at ${DateFormat('HH:mm').format(date)}";
+      if (diff.inDays < 7) return "${diff.inDays} days ago";
 
-  Widget _buildQuickActionsCard() {
-    return Card(
-      elevation: 2,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200, width: 1),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Quick Operations",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: brandBrown,
-              ),
-            ),
-            const SizedBox(height: 6),
-            const Text(
-              "Execute critical system processes and generate real-time reports.",
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            const Divider(height: 30),
-            _buildActionRow(
-              icon: Icons.table_view,
-              label: "Export Scholar Excel",
-              btnColor: brandOlive,
-              isLoading: _isExporting,
-              onPressed: _handleExportExcel,
-            ),
-            const SizedBox(height: 12),
-            _buildActionRow(
-              icon: Icons.picture_as_pdf,
-              label: "Generate System PDF",
-              btnColor: brandOrange,
-              isLoading: _isExporting,
-              onPressed: _handleExportPdf,
-            ),
-            const SizedBox(height: 12),
-            _buildActionRow(
-              icon: Icons.backup_outlined,
-              label: "Run Database Backup",
-              btnColor: brandBrown,
-              isLoading: _isExporting,
-              onPressed: _handleBackup,
-            ),
-            const SizedBox(height: 12),
-            _buildActionRow(
-              icon: Icons.notifications_active_outlined,
-              label: "Refresh Notification Feed",
-              btnColor: Colors.blueGrey,
-              isLoading: _isLoading,
-              onPressed: _fetchNotifications,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionRow({
-    required IconData icon,
-    required String label,
-    required Color btnColor,
-    required bool isLoading,
-    required VoidCallback onPressed,
-  }) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        icon: isLoading
-          ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-          : Icon(icon, size: 16, color: Colors.white),
-        label: Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-            ),
-          ),
-        ),
-        onPressed: isLoading ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: btnColor,
-          elevation: 1,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
-      ),
-    );
+      return DateFormat('dd MMM yyyy, HH:mm').format(date);
+    } catch (e) {
+      return timestamp;
+    }
   }
 }

@@ -116,27 +116,6 @@ class ApiService {
     return await _dio.post('/attendance/record', data: data);
   }
 
-  // Finance
-  static Future<Response> getAllBudgets() async {
-    return await _dio.get('/finance/budgets');
-  }
-
-  static Future<Response> getAllPayments() async {
-    return await _dio.get('/finance/payments');
-  }
-
-  static Future<Response> getPaymentsByScholar(String scholarId) async {
-    return await _dio.get('/finance/payments', queryParameters: {'scholarId': scholarId});
-  }
-
-  static Future<Response> createPayment(Map<String, dynamic> data) async {
-    return await _dio.post('/finance/payments', data: data);
-  }
-
-  static Future<Response> updatePaymentStatus(String id, String status) async {
-    return await _dio.patch('/finance/payments/$id/status', data: {'status': status});
-  }
-
   // Academics
   static Future<Response> getResultsByScholar(String scholarId) async {
     return await _dio.get('/academic/results', queryParameters: {'scholarId': scholarId});
@@ -322,8 +301,25 @@ class ApiService {
     return await _dio.patch('/notifications/$id/read');
   }
 
+  static Future<Response> markAllNotificationsRead() async {
+    return await _dio.patch('/notifications/read-all');
+  }
+
   static Future<Response> deleteNotification(String id) async {
     return await _dio.delete('/notifications/$id');
+  }
+
+  // Approvals
+  static Future<Response> getPendingActivities() async {
+    return await _dio.get('/approvals/pending');
+  }
+
+  static Future<Response> approveActivity(String type, String id) async {
+    return await _dio.patch('/approvals/approve/$type/$id');
+  }
+
+  static Future<Response> rejectActivity(String type, String id) async {
+    return await _dio.delete('/approvals/reject/$type/$id');
   }
 
   // Events
@@ -348,13 +344,13 @@ class ApiService {
     return await _dio.get('/dashboard');
   }
 
+  static Future<Response> getDashboardPredictions() async {
+    return await _dio.get('/dashboard/predictions');
+  }
+
   // Reports
   static Future<Response> getScholarReport({String? period, String? type}) async {
     return await _dio.get('/reports/scholars', queryParameters: {'period': period, 'type': type});
-  }
-
-  static Future<Response> getFinanceReport({String? year}) async {
-    return await _dio.get('/reports/finance', queryParameters: {'year': year});
   }
 
   static Future<Response> getSchoolReport({String? level}) async {

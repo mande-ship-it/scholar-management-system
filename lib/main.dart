@@ -44,18 +44,10 @@ import 'pages/academicPages/academic_stats.dart';
 import 'pages/attendancePages/attendance_history.dart';
 import 'pages/attendancePages/attendance_reports.dart';
 
-// Finance Pages
-import 'pages/financePages/scholarship_payments.dart';
-import 'pages/financePages/payment_history.dart';
-import 'pages/financePages/expenses.dart';
-import 'pages/financePages/budget.dart';
-import 'pages/financePages/financial_reports.dart';
-
 // Report Pages
 import 'pages/reportPages/scholar_reports.dart';
 import 'pages/reportPages/school_reports.dart';
 import 'pages/reportPages/sponsor_reports.dart';
-import 'pages/reportPages/finance_reports.dart';
 import 'pages/reportPages/export_pdf.dart';
 import 'pages/reportPages/export_excel.dart';
 
@@ -65,6 +57,7 @@ import 'pages/userPages/manage_users.dart';
 import 'pages/userPages/user_roles.dart';
 import 'pages/userPages/permissions.dart';
 import 'pages/userPages/user_profile.dart';
+import 'pages/admin/approvals_page.dart';
 
 // Splash Screen
 import 'pages/splash/splash_screen.dart';
@@ -152,18 +145,10 @@ class MyApp extends StatelessWidget {
             '/attendance/attendanceHistory': (context) => AttendanceHistoryPage(),
             '/attendance/attendanceReports': (context) => AttendanceModuleReportsPage(),
 
-            // Finance
-            '/finance/scholarshipPayments': (context) => ScholarshipPaymentsPage(),
-            '/finance/paymentHistory': (context) => PaymentHistoryPage(),
-            '/finance/expenses': (context) => ExpensesPage(),
-            '/finance/budget': (context) => BudgetPage(),
-            '/finance/financialReports': (context) => FinancialReportsPage(),
-
             // Reports
             '/reports/scholar': (context) => ScholarReportsPage(),
             '/reports/school': (context) => SchoolReportsPage(),
             '/reports/sponsor': (context) => SponsorReportsPage(),
-            '/reports/finance': (context) => FinanceReportsPage(),
             '/reports/exportPDF': (context) => ExportPDFPage(),
             '/reports/exportExcel': (context) => ExportExcelPage(),
 
@@ -173,6 +158,7 @@ class MyApp extends StatelessWidget {
             '/users/roles': (context) => UserRolesPage(),
             '/users/permissions': (context) => PermissionsPage(),
             '/users/profile': (context) => UserProfilePage(),
+            '/admin/approvals': (context) => const ApprovalsPage(),
 
             // Settings
             '/settings/organisationProfile': (context) => OrganisationProfilePage(),
