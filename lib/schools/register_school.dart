@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
 class RegisterSchoolComponent extends StatefulWidget {
-  const RegisterSchoolComponent({super.key});
+  final Function(Map<String, dynamic>)? onRegister;
+  const RegisterSchoolComponent({super.key, this.onRegister});
 
   @override
   State<RegisterSchoolComponent> createState() => _RegisterSchoolComponentState();
@@ -235,13 +236,17 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.of(ctx).pop();
-                      _resetForm();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("School registered. Visit the Schools Registry to view details."),
-                          backgroundColor: brandOlive,
-                        ),
-                      );
+                      if (widget.onRegister != null) {
+                        widget.onRegister!({'name': name, 'code': code});
+                      } else {
+                        _resetForm();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("School registered. Visit the Schools Registry to view details."),
+                            backgroundColor: brandOlive,
+                          ),
+                        );
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: brandOlive,

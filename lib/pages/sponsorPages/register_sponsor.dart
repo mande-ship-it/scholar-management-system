@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import '../../sponsors/register_sponsor.dart';
 
 class RegisterSponsorPage extends StatelessWidget {
-  const RegisterSponsorPage({super.key});
+  final VoidCallback? onSuccess;
+  const RegisterSponsorPage({super.key, this.onSuccess});
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       body: Padding(
-        padding: EdgeInsets.all(20),
-        child: RegisterSponsorComponent(),
+        padding: const EdgeInsets.all(20),
+        child: RegisterSponsorComponent(onRegister: onSuccess != null ? (_) async => onSuccess!() : null),
       ),
     );
   }

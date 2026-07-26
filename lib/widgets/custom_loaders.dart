@@ -145,10 +145,11 @@ class _AnimatedBrandLoaderState extends State<_AnimatedBrandLoader>
                 ),
               ),
             ),
-            // Inner Core - Pulse
+            // Inner Core - Logo
             Container(
-              width: 12,
-              height: 12,
+              width: 32,
+              height: 32,
+              padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
                 color: Colors.white,
                 shape: BoxShape.circle,
@@ -159,6 +160,10 @@ class _AnimatedBrandLoaderState extends State<_AnimatedBrandLoader>
                     spreadRadius: 2 * _controller.value,
                   ),
                 ],
+              ),
+              child: Image.asset(
+                'assets/images/age-logo.png',
+                fit: BoxFit.contain,
               ),
             ),
           ],

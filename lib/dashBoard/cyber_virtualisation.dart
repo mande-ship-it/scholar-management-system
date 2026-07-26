@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'dart:math' as math;
+import '../services/api_service.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 // Shared Dashboard Brand Colors
 const Color kVBrown = Color(0xFF4C3C32);
@@ -19,6 +22,42 @@ class CyberVirtualisationComponent extends StatefulWidget {
 
 class _CyberVirtualisationComponentState extends State<CyberVirtualisationComponent> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
+  bool _isLoading = true;
+  List<dynamic> _cohortDensity = [];
+  double _overallSuccess = 0.0;
+  List<dynamic> _milestones = [];
+  List<dynamic> _performanceComparison = [];
+  List<dynamic> _districtDistribution = [];
+
+  final Map<String, LatLng> _districtCoords = {
+    'Lilongwe': const LatLng(-13.9626, 33.7741),
+    'Blantyre': const LatLng(-15.7861, 35.0058),
+    'Mzimba': const LatLng(-11.9000, 33.6000),
+    'Zomba': const LatLng(-15.3875, 35.3181),
+    'Mangochi': const LatLng(-14.4781, 35.2641),
+    'Dowa': const LatLng(-13.6522, 33.9375),
+    'Dedza': const LatLng(-14.3731, 34.3323),
+    'Nkhotakota': const LatLng(-12.9272, 34.2828),
+    'Salima': const LatLng(-13.7808, 34.4587),
+    'Ntcheu': const LatLng(-14.8203, 34.6358),
+    'Machinga': const LatLng(-15.1764, 35.3000),
+    'Chikwawa': const LatLng(-16.0333, 34.8000),
+    'Nsanje': const LatLng(-16.9200, 35.2600),
+    'Mulanje': const LatLng(-16.0264, 35.5072),
+    'Thyolo': const LatLng(-16.0667, 35.1333),
+    'Mwanza': const LatLng(-15.6111, 34.5222),
+    'Neno': const LatLng(-15.4000, 34.6500),
+    'Balaka': const LatLng(-14.9856, 34.9547),
+    'Chiradzulu': const LatLng(-15.6722, 35.1417),
+    'Phalombe': const LatLng(-15.8064, 35.6514),
+    'Nkhata Bay': const LatLng(-11.6067, 34.2917),
+    'Rumphi': const LatLng(-11.0186, 33.8575),
+    'Karonga': const LatLng(-9.9333, 33.9333),
+    'Chitipa': const LatLng(-9.7000, 33.2667),
+    'Likoma': const LatLng(-12.0667, 34.7333),
+    'Kasungu': const LatLng(-13.0333, 33.4833),
+    'Ntchisi': const LatLng(-13.3556, 34.0042),
+  };
 
   @override
   void initState() {
@@ -27,6 +66,35 @@ class _CyberVirtualisationComponentState extends State<CyberVirtualisationCompon
       vsync: this,
       duration: const Duration(seconds: 10),
     )..repeat();
+    _fetchData();
+  }
+
+  Future<void> _fetchData() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
+    try {
+      final statsRes = await ApiService.getDashboardStats();
+      final predRes = await ApiService.getDashboardPredictions();
+
+      if (mounted) {
+        setState(() {
+          if (statsRes.statusCode == 200) {
+            final stats = statsRes.data['data'];
+            _cohortDensity = stats['cohortDensity'] ?? [];
+            _overallSuccess = double.tryParse(stats['pulse']['successRate']?.toString() ?? '0.0') ?? 0.0;
+            _performanceComparison = stats['performanceComparison'] ?? [];
+            _districtDistribution = stats['districtDistribution'] ?? [];
+          }
+          if (predRes.statusCode == 200) {
+            _milestones = predRes.data['data']['milestoneCohorts'] ?? [];
+          }
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching cyber virtualisation data: $e');
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -37,6 +105,15 @@ class _CyberVirtualisationComponentState extends State<CyberVirtualisationCompon
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(40.0),
+          child: CircularProgressIndicator(color: kVOlive),
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -67,7 +144,13 @@ class _CyberVirtualisationComponentState extends State<CyberVirtualisationCompon
       children: [
         const Icon(Icons.hub_rounded, color: kVOlive, size: 28),
         const SizedBox(width: 16),
-
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("System Intelligence", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kVBrown)),
+            Text("Real-time data visualization from database", style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+          ],
+        )
       ],
     );
   }
@@ -88,32 +171,38 @@ class _CyberVirtualisationComponentState extends State<CyberVirtualisationCompon
   }
 
   Widget _buildVerticalBars() {
+    int maxVal = 1;
+    if (_cohortDensity.isNotEmpty) {
+      maxVal = _cohortDensity.map((e) => e['value'] as int).reduce(math.max);
+    }
+
     return _CyberCard(
       title: "COHORT DENSITY",
       child: SizedBox(
         height: 180,
-        child: Row(
+        child: _cohortDensity.isEmpty 
+          ? const Center(child: Text("No data", style: TextStyle(fontSize: 10, color: Colors.grey)))
+          : Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            _verticalBar("01", 0.53, kVOrange),
-            _verticalBar("02", 0.75, kVPurple),
-            _verticalBar("03", 0.24, kVCyan),
-          ],
+          children: _cohortDensity.take(4).map((e) {
+            double percent = (e['value'] as int) / (maxVal == 0 ? 1 : maxVal);
+            return _verticalBar(e['label'].toString(), percent, e['value'] as int, kVOrange);
+          }).toList(),
         ),
       ),
     );
   }
 
-  Widget _verticalBar(String label, double percent, Color color) {
+  Widget _verticalBar(String label, double percent, int count, Color color) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        Text("${(percent * 100).toInt()}%", style: const TextStyle(color: kVBrown, fontWeight: FontWeight.bold, fontSize: 12)),
+        Text("$count", style: const TextStyle(color: kVBrown, fontWeight: FontWeight.bold, fontSize: 12)),
         const SizedBox(height: 8),
         Container(
           width: 40,
-          height: 120 * percent,
+          height: 120 * math.max(0.1, percent),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [color, color.withOpacity(0.3)],
@@ -141,15 +230,15 @@ class _CyberVirtualisationComponentState extends State<CyberVirtualisationCompon
               Center(
                 child: CustomPaint(
                   size: const Size(140, 140),
-                  painter: CyberRadialPainter(percent: 0.82, color: kVOrange),
+                  painter: CyberRadialPainter(percent: _overallSuccess / 100, color: kVOlive),
                 ),
               ),
-              const Center(
+              Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text("82%", style: TextStyle(color: kVBrown, fontSize: 28, fontWeight: FontWeight.w900)),
-                    Text("STEP 1", style: TextStyle(color: kVOrange, fontSize: 10, fontWeight: FontWeight.bold)),
+                    Text("${_overallSuccess.toStringAsFixed(1)}%", style: const TextStyle(color: kVBrown, fontSize: 24, fontWeight: FontWeight.w900)),
+                    const Text("PASS RATE", style: TextStyle(color: kVOlive, fontSize: 10, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
@@ -168,14 +257,15 @@ class _CyberVirtualisationComponentState extends State<CyberVirtualisationCompon
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _smallGauge("37%", "STEP 2", kVCyan),
-                _smallGauge("58%", "STEP 3", kVGold),
-                _smallGauge("18%", "STEP 4", kVOrange),
-              ],
-            ),
+            if (_milestones.isEmpty)
+              const Center(child: Text("No data", style: TextStyle(fontSize: 10, color: Colors.grey)))
+            else
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: _milestones.take(4).map((m) {
+                  return _smallGauge(m['student_count'].toString(), "COHORT ${m['cohort']}", kVCyan);
+                }).toList(),
+              ),
           ],
         ),
       ),
@@ -185,23 +275,19 @@ class _CyberVirtualisationComponentState extends State<CyberVirtualisationCompon
   Widget _smallGauge(String val, String label, Color color) {
     return Column(
       children: [
-        SizedBox(
-          width: 60,
-          height: 60,
-          child: Stack(
-            children: [
-              Center(
-                child: CustomPaint(
-                  size: const Size(50, 50),
-                  painter: CyberRadialPainter(percent: double.parse(val.replaceAll('%', '')) / 100, color: color, thickness: 4),
-                ),
-              ),
-              Center(child: Text(val, style: const TextStyle(color: kVBrown, fontSize: 10, fontWeight: FontWeight.bold))),
-            ],
+        Container(
+          width: 50,
+          height: 50,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: color.withOpacity(0.2), width: 2),
+            color: color.withOpacity(0.05),
           ),
+          child: Text(val, style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.bold)),
         ),
-        const SizedBox(height: 4),
-        Text(label, style: TextStyle(color: color, fontSize: 8, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        Text(label, style: TextStyle(color: kVBrown.withOpacity(0.7), fontSize: 8, fontWeight: FontWeight.bold)),
       ],
     );
   }
@@ -220,10 +306,12 @@ class _CyberVirtualisationComponentState extends State<CyberVirtualisationCompon
 
   Widget _buildWaveChart() {
     return _CyberCard(
-      title: "PERFORMANCE BEZIER WAVES",
+      title: "PROGRAM PERFORMANCE TRENDS",
       child: SizedBox(
         height: 200,
-        child: LineChart(
+        child: _performanceComparison.isEmpty 
+          ? const Center(child: Text("No performance data available", style: TextStyle(fontSize: 12, color: Colors.grey)))
+          : LineChart(
           LineChartData(
             gridData: FlGridData(
               show: true,
@@ -231,11 +319,40 @@ class _CyberVirtualisationComponentState extends State<CyberVirtualisationCompon
               getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey.shade100, strokeWidth: 1),
               getDrawingVerticalLine: (value) => FlLine(color: Colors.grey.shade100, strokeWidth: 1),
             ),
-            titlesData: const FlTitlesData(show: false),
+            titlesData: FlTitlesData(
+              show: true,
+              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              bottomTitles: AxisTitles(
+                sideTitles: SideTitles(
+                  showTitles: true,
+                  getTitlesWidget: (value, meta) {
+                    int index = value.toInt();
+                    if (index >= 0 && index < _performanceComparison.length) {
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Text(_performanceComparison[index]['year'].toString(), style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                      );
+                    }
+                    return const Text("");
+                  }
+                )
+              )
+            ),
             borderData: FlBorderData(show: false),
+            minY: 0,
+            maxY: 100,
             lineBarsData: [
-              _waveBarData([const FlSpot(0, 3), const FlSpot(2, 5), const FlSpot(4, 4), const FlSpot(6, 8), const FlSpot(8, 6)], kVGold),
-              _waveBarData([const FlSpot(0, 2), const FlSpot(2, 4), const FlSpot(4, 6), const FlSpot(6, 5), const FlSpot(8, 7)], kVOrange),
+              _waveBarData(
+                _performanceComparison.asMap().entries.map((e) => FlSpot(e.key.toDouble(), (e.value['CHATs'] ?? 0).toDouble())).toList(),
+                kVOlive,
+                "CHATs"
+              ),
+              _waveBarData(
+                _performanceComparison.asMap().entries.map((e) => FlSpot(e.key.toDouble(), (e.value['Study Circle'] ?? 0).toDouble())).toList(),
+                kVOrange,
+                "Study Circles"
+              ),
             ],
           ),
         ),
@@ -243,17 +360,17 @@ class _CyberVirtualisationComponentState extends State<CyberVirtualisationCompon
     );
   }
 
-  LineChartBarData _waveBarData(List<FlSpot> spots, Color color) {
+  LineChartBarData _waveBarData(List<FlSpot> spots, Color color, String label) {
     return LineChartBarData(
       spots: spots,
       isCurved: true,
       color: color,
       barWidth: 3,
       isStrokeCapRound: true,
-      dotData: const FlDotData(show: false),
+      dotData: const FlDotData(show: true),
       belowBarData: BarAreaData(
         show: true,
-        color: color.withOpacity(0.05),
+        color: color.withOpacity(0.1),
       ),
     );
   }
@@ -314,56 +431,75 @@ class _CyberVirtualisationComponentState extends State<CyberVirtualisationCompon
     return IntrinsicHeight(
       child: Row(
         children: [
-          Expanded(flex: 2, child: _buildCyberWorldMap()),
+          Expanded(flex: 2, child: _buildMalawiMap()),
           const SizedBox(width: 24),
           Expanded(flex: 1, child: _buildBigGauge()),
-          const SizedBox(width: 24),
+          const SizedBox(width: 14),
           Expanded(flex: 1, child: _buildStylizedPie()),
         ],
       ),
     );
   }
 
-  Widget _buildCyberWorldMap() {
+  Widget _buildMalawiMap() {
     return _CyberCard(
-      title: "GLOBAL IMPACT REACH",
+      title: "MALAWI IMPACT REACH",
       child: SizedBox(
         height: 220,
-        child: Stack(
+        child: _districtDistribution.isEmpty 
+          ? const Center(child: Text("Loading map data...", style: TextStyle(fontSize: 10, color: Colors.grey)))
+          : FlutterMap(
+          options: const MapOptions(
+            initialCenter: LatLng(-13.2543, 34.3015), // Center of Malawi
+            initialZoom: 6.0,
+          ),
           children: [
-            Center(
-              child: Opacity(
-                opacity: 0.1,
-                child: CustomPaint(
-                  size: const Size(400, 200),
-                  painter: CyberWorldMapPainter(),
-                ),
-              ),
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.ageafrica.sms',
             ),
-            _mapMarker(100, 50, "82%", kVOlive),
-            _mapMarker(250, 120, "64%", kVOrange),
-            _mapMarker(50, 150, "47%", kVGold),
-            _mapMarker(180, 40, "10%", kVBrown),
+            MarkerLayer(
+              markers: _districtDistribution.map((district) {
+                String name = district['district'];
+                int count = district['count'];
+                LatLng? pos = _districtCoords[name];
+                
+                if (pos == null) return null;
+
+                return Marker(
+                  point: pos,
+                  width: 50,
+                  height: 50,
+                  child: GestureDetector(
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("$name: $count registered scholars"),
+                          backgroundColor: kVOlive,
+                        ),
+                      );
+                    },
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: kVOlive, width: 1),
+                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 2)],
+                          ),
+                          child: Text("$count", style: const TextStyle(color: kVOlive, fontSize: 10, fontWeight: FontWeight.bold)),
+                        ),
+                        const Icon(Icons.location_on, color: kVOlive, size: 24),
+                      ],
+                    ),
+                  ),
+                );
+              }).whereType<Marker>().toList(),
+            ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _mapMarker(double x, double y, String label, Color color) {
-    return Positioned(
-      left: x,
-      top: y,
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4), border: Border.all(color: color, width: 0.5)),
-            child: Text(label, style: TextStyle(color: color, fontSize: 8, fontWeight: FontWeight.bold)),
-          ),
-          Container(width: 2, height: 10, color: color.withOpacity(0.5)),
-          Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle, boxShadow: [BoxShadow(color: color.withOpacity(0.2), blurRadius: 6)])),
-        ],
       ),
     );
   }
@@ -473,7 +609,7 @@ class CyberRadialPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant CyberRadialPainter oldDelegate) => true;
 }
 
 class CyberHalfGaugePainter extends CustomPainter {
@@ -500,36 +636,5 @@ class CyberHalfGaugePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-}
-
-class CyberWorldMapPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = kVOlive
-      ..style = PaintingStyle.fill;
-
-    final rand = math.Random(42); // Fixed seed for consistent dots
-    for (int i = 0; i < 400; i++) {
-      double x = rand.nextDouble() * size.width;
-      double y = rand.nextDouble() * size.height;
-      
-      // Basic world map shape logic (extremely simplified)
-      bool inMap = false;
-      // Americas
-      if (x < size.width * 0.3 && y > size.height * 0.2 && y < size.height * 0.8) inMap = true;
-      // Eurasia + Africa
-      if (x > size.width * 0.4 && x < size.width * 0.9 && y > size.height * 0.1 && y < size.height * 0.7) inMap = true;
-      // Australia
-      if (x > size.width * 0.8 && y > size.height * 0.6 && y < size.height * 0.9) inMap = true;
-
-      if (inMap) {
-        canvas.drawCircle(Offset(x, y), 1.5, paint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant CyberHalfGaugePainter oldDelegate) => true;
 }

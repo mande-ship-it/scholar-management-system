@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import '../../schools/view_schools.dart';
 
 class ViewSchoolsPage extends StatelessWidget {
-  const ViewSchoolsPage({super.key});
+  final VoidCallback? onRegisterSchool;
+  const ViewSchoolsPage({super.key, this.onRegisterSchool});
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       body: Padding(
-        padding: EdgeInsets.all(20),
-        child: ViewSchoolsComponent(),
+        padding: const EdgeInsets.all(20),
+        child: ViewSchoolsComponent(onRegisterSchool: onRegisterSchool),
       ),
     );
   }

@@ -3,7 +3,8 @@ import '../academics/academics_utils.dart';
 import '../services/api_service.dart';
 
 class RegisterScholarComponent extends StatefulWidget {
-  const RegisterScholarComponent({super.key});
+  final Function(Student)? onRegister;
+  const RegisterScholarComponent({super.key, this.onRegister});
 
   @override
   State<RegisterScholarComponent> createState() => _RegisterScholarComponentState();
@@ -372,7 +373,11 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.of(ctx).pop();
-                      _resetForm();
+                      if (widget.onRegister != null) {
+                        widget.onRegister!(student);
+                      } else {
+                        _resetForm();
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: brandOlive,

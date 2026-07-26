@@ -21,7 +21,8 @@ const Color kBrandOrange = Color(0xFFE05B1C);
 // ============================================================
 
 class ViewSchoolsComponent extends StatefulWidget {
-  const ViewSchoolsComponent({super.key});
+  final VoidCallback? onRegisterSchool;
+  const ViewSchoolsComponent({super.key, this.onRegisterSchool});
 
   @override
   State<ViewSchoolsComponent> createState() => _ViewSchoolsComponentState();
@@ -42,36 +43,39 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
   }
 
   Future<void> _fetchSchools() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final response = await ApiService.getAllSchools();
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data['data'];
-        setState(() {
-          _allSchools = data.map((s) => {
-            'id': s['id'].toString(),
-            'name': s['name']?.toString() ?? '',
-            'code': s['code']?.toString() ?? '',
-            'level': s['level']?.toString() ?? '',
-            'type': s['type']?.toString() ?? '',
-            'genderPolicy': s['gender_policy']?.toString() ?? '',
-            'region': s['region']?.toString() ?? '',
-            'district': s['district']?.toString() ?? '',
-            'address': s['address']?.toString() ?? '',
-            'postal': s['postal_address']?.toString() ?? '',
-            'phone': s['phone']?.toString() ?? '',
-            'altPhone': s['alt_phone']?.toString() ?? '',
-            'email': s['email']?.toString() ?? '',
-            'website': s['website']?.toString() ?? '',
-            'adminName': s['admin_name']?.toString() ?? '',
-            'adminRole': s['admin_role']?.toString() ?? '',
-            'adminPhone': s['admin_phone']?.toString() ?? '',
-            'adminEmail': s['admin_email']?.toString() ?? '',
-            'description': s['description']?.toString() ?? '',
-            'notes': s['notes']?.toString() ?? '',
-            'status': s['status']?.toString() ?? 'Active',
-          }).toList();
-        });
+        if (mounted) {
+          setState(() {
+            _allSchools = data.map((s) => {
+              'id': s['id'].toString(),
+              'name': s['name']?.toString() ?? '',
+              'code': s['code']?.toString() ?? '',
+              'level': s['level']?.toString() ?? '',
+              'type': s['type']?.toString() ?? '',
+              'genderPolicy': s['gender_policy']?.toString() ?? '',
+              'region': s['region']?.toString() ?? '',
+              'district': s['district']?.toString() ?? '',
+              'address': s['address']?.toString() ?? '',
+              'postal': s['postal_address']?.toString() ?? '',
+              'phone': s['phone']?.toString() ?? '',
+              'altPhone': s['alt_phone']?.toString() ?? '',
+              'email': s['email']?.toString() ?? '',
+              'website': s['website']?.toString() ?? '',
+              'adminName': s['admin_name']?.toString() ?? '',
+              'adminRole': s['admin_role']?.toString() ?? '',
+              'adminPhone': s['admin_phone']?.toString() ?? '',
+              'adminEmail': s['admin_email']?.toString() ?? '',
+              'description': s['description']?.toString() ?? '',
+              'notes': s['notes']?.toString() ?? '',
+              'status': s['status']?.toString() ?? 'Active',
+            }).toList();
+          });
+        }
       }
     } catch (e) {
       debugPrint('Error fetching schools: $e');
@@ -539,9 +543,13 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
                     ),
                     ElevatedButton.icon(
                       onPressed: () async {
-                        final result = await Navigator.pushNamed(context, '/schools/register');
-                        if (result == true) {
-                          _fetchSchools();
+                        if (widget.onRegisterSchool != null) {
+                          widget.onRegisterSchool!();
+                        } else {
+                          final result = await Navigator.pushNamed(context, '/schools/register');
+                          if (result == true) {
+                            _fetchSchools();
+                          }
                         }
                       },
                       icon: const Icon(Icons.add_business, size: 18),

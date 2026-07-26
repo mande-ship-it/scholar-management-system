@@ -133,11 +133,10 @@ class _OrganisationProfileComponentState
       clipBehavior: Clip.antiAlias,
       child: _isLoading 
         ? const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
-        : SingleChildScrollView(
-        child: Column(
+        : Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ---------------- Clean Header ----------------
+            // ---------------- Fixed Header ----------------
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 32, 24, 8),
               child: Row(
@@ -166,97 +165,100 @@ class _OrganisationProfileComponentState
                 ],
               ),
             ),
+            const Divider(height: 1),
 
-            Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildProfilePreview(),
-                    const SizedBox(height: 32),
-                    
-                    Text("Basic Information", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? theme.colorScheme.primary : kBrandBrown)),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      controller: _nameController,
-                      label: "Organisation Name",
-                      icon: Icons.domain,
-                      validator: (v) => (v == null || v.trim().isEmpty) ? "Name is required" : null,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildDropdownField(
-                      icon: Icons.category_outlined,
-                      label: "Organisation Type",
-                      value: _orgType,
-                      options: _orgTypes,
-                      onChanged: (v) => setState(() => _orgType = v!),
-                    ),
+            // ---------------- Scrollable Content ----------------
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildProfilePreview(),
+                      const SizedBox(height: 32),
 
-                    const SizedBox(height: 32),
-                    Text("Contact Details", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? theme.colorScheme.primary : kBrandBrown)),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      controller: _addressController,
-                      label: "Address / Location",
-                      icon: Icons.location_on_outlined,
-                      validator: (v) => (v == null || v.trim().isEmpty) ? "Address is required" : null,
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildTextField(
-                            controller: _phoneController,
-                            label: "Phone Number",
-                            icon: Icons.phone_outlined,
-                            keyboardType: TextInputType.phone,
+                      Text("Basic Information", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? theme.colorScheme.primary : kBrandBrown)),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        controller: _nameController,
+                        label: "Organisation Name",
+                        icon: Icons.domain,
+                        validator: (v) => (v == null || v.trim().isEmpty) ? "Name is required" : null,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildDropdownField(
+                        icon: Icons.category_outlined,
+                        label: "Organisation Type",
+                        value: _orgType,
+                        options: _orgTypes,
+                        onChanged: (v) => setState(() => _orgType = v!),
+                      ),
+
+                      const SizedBox(height: 32),
+                      Text("Contact Details", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? theme.colorScheme.primary : kBrandBrown)),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        controller: _addressController,
+                        label: "Address / Location",
+                        icon: Icons.location_on_outlined,
+                        validator: (v) => (v == null || v.trim().isEmpty) ? "Address is required" : null,
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _phoneController,
+                              label: "Phone Number",
+                              icon: Icons.phone_outlined,
+                              keyboardType: TextInputType.phone,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildTextField(
-                            controller: _emailController,
-                            label: "Email Address",
-                            icon: Icons.email_outlined,
-                            keyboardType: TextInputType.emailAddress,
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _emailController,
+                              label: "Email Address",
+                              icon: Icons.email_outlined,
+                              keyboardType: TextInputType.emailAddress,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      controller: _websiteController,
-                      label: "Website",
-                      icon: Icons.language,
-                      keyboardType: TextInputType.url,
-                    ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        controller: _websiteController,
+                        label: "Website",
+                        icon: Icons.language,
+                        keyboardType: TextInputType.url,
+                      ),
 
-                    const SizedBox(height: 40),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _isSaving ? null : _saveProfile,
-                        icon: _isSaving 
-                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                            : const Icon(Icons.save_rounded),
-                        label: Text(_isSaving ? "Saving..." : "Save Profile Changes", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          backgroundColor: kBrandOlive,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      const SizedBox(height: 40),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _isSaving ? null : _saveProfile,
+                          icon: _isSaving
+                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : const Icon(Icons.save_rounded),
+                          label: Text(_isSaving ? "Saving..." : "Save Profile Changes", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 18),
+                            backgroundColor: kBrandOlive,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
           ],
         ),
-      ),
     );
   }
 

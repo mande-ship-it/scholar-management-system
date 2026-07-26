@@ -51,66 +51,78 @@ class _ScholarReportsComponentState extends State<ScholarReportsComponent> {
     final regional = _data?['regional'] as List? ?? [];
     final scholars = _data?['scholars'] as List? ?? [];
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // 1. Clean Header
-          _buildHeader(),
-          
-          const SizedBox(height: 24),
-          
-          // 2. Control Row
-          _buildControls(),
-          
-          const SizedBox(height: 24),
-          
-          // 3. Key Metrics
-          Row(
-            children: [
-              _metricCard("Total Active", "${metrics['total_active'] ?? 0}", kBrandOlive, Icons.people_outline_rounded),
-              const SizedBox(width: 16),
-              _metricCard("Average Performance", "${metrics['avg_performance'] ?? 0}%", kBrandBrown, Icons.auto_graph_rounded),
-              const SizedBox(width: 16),
-              _metricCard("Scholarship Disbursed", "MWK ${metrics['total_disbursed'] ?? 0}", kBrandOrange, Icons.payments_outlined),
-            ],
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // 4. Main Report Content
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 2,
-                child: _reportSection(
-                  title: "Performance Distribution",
-                  child: _buildPerformanceChart(distribution),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // 1. Fixed Header
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+          child: _buildHeader(),
+        ),
+
+        const Divider(height: 1),
+
+        // 2. Scrollable Content
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Control Row
+                _buildControls(),
+
+                const SizedBox(height: 24),
+
+                // Key Metrics
+                Row(
+                  children: [
+                    _metricCard("Total Active", "${metrics['total_active'] ?? 0}", kBrandOlive, Icons.people_outline_rounded),
+                    const SizedBox(width: 16),
+                    _metricCard("Average Performance", "${metrics['avg_performance'] ?? 0}%", kBrandBrown, Icons.auto_graph_rounded),
+                    const SizedBox(width: 16),
+                    _metricCard("Scholarship Disbursed", "MWK ${metrics['total_disbursed'] ?? 0}", kBrandOrange, Icons.payments_outlined),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 24),
-              Expanded(
-                flex: 1,
-                child: _reportSection(
-                  title: "Regional Summary",
-                  child: _buildRegionalBreakdown(regional),
+
+                const SizedBox(height: 24),
+
+                // Main Report Content
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: _reportSection(
+                        title: "Performance Distribution",
+                        child: _buildPerformanceChart(distribution),
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    Expanded(
+                      flex: 1,
+                      child: _reportSection(
+                        title: "Regional Summary",
+                        child: _buildRegionalBreakdown(regional),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 24),
+
+                // Detailed Table Preview
+                _reportSection(
+                  title: "Detailed Scholar Performance Preview",
+                  child: _buildScholarTable(scholars),
+                ),
+
+                const SizedBox(height: 40),
+              ],
+            ),
           ),
-          
-          const SizedBox(height: 24),
-          
-          // 5. Recent Report Log / Detailed Table Preview
-          _reportSection(
-            title: "Detailed Scholar Performance Preview",
-            child: _buildScholarTable(scholars),
-          ),
-          
-          const SizedBox(height: 40),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

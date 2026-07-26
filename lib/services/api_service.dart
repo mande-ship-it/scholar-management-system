@@ -4,9 +4,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ApiService {
   static String? _token;
   static const String _tokenKey = 'auth_token';
+  static const String baseUrl = 'http://localhost:5000';
 
   static final Dio _dio = Dio(BaseOptions(
-    baseUrl: 'http://localhost:5000/api', // Use http://10.0.2.2:5000 for Android emulator
+    baseUrl: '$baseUrl/api', // Use http://10.0.2.2:5000 for Android emulator
     connectTimeout: const Duration(seconds: 10),
     receiveTimeout: const Duration(seconds: 10),
   ))..interceptors.add(InterceptorsWrapper(

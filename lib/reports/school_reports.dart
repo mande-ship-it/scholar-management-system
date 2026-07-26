@@ -47,66 +47,78 @@ class _SchoolReportsComponentState extends State<SchoolReportsComponent> {
     final standings = _data?['standings'] as List? ?? [];
     final schools = _data?['schools'] as List? ?? [];
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // 1. Clean Header
-          _buildHeader(),
-          
-          const SizedBox(height: 24),
-          
-          // 2. Control Row
-          _buildControls(),
-          
-          const SizedBox(height: 24),
-          
-          // 3. Key Metrics
-          Row(
-            children: [
-              _metricCard("Partner Schools", "${metrics['partner_schools'] ?? 0}", Colors.blue, Icons.business_rounded),
-              const SizedBox(width: 16),
-              _metricCard("Total Enrollment", "${metrics['total_enrollment'] ?? 0}", kBrandOlive, Icons.groups_rounded),
-              const SizedBox(width: 16),
-              _metricCard("Pending Fees", "MWK ${metrics['pending_fees'] ?? 0}", kBrandOrange, Icons.warning_amber_rounded),
-            ],
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // 4. Main Report Content
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 2,
-                child: _reportSection(
-                  title: "Institution Distribution by Type",
-                  child: _buildTypeChart(types),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // 1. Fixed Header
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+          child: _buildHeader(),
+        ),
+
+        const Divider(height: 1),
+
+        // 2. Scrollable Content
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Control Row
+                _buildControls(),
+
+                const SizedBox(height: 24),
+
+                // Key Metrics
+                Row(
+                  children: [
+                    _metricCard("Partner Schools", "${metrics['partner_schools'] ?? 0}", Colors.blue, Icons.business_rounded),
+                    const SizedBox(width: 16),
+                    _metricCard("Total Enrollment", "${metrics['total_enrollment'] ?? 0}", kBrandOlive, Icons.groups_rounded),
+                    const SizedBox(width: 16),
+                    _metricCard("Pending Fees", "MWK ${metrics['pending_fees'] ?? 0}", kBrandOrange, Icons.warning_amber_rounded),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 24),
-              Expanded(
-                flex: 1,
-                child: _reportSection(
-                  title: "School Standing",
-                  child: _buildStandingDistribution(standings),
+
+                const SizedBox(height: 24),
+
+                // Main Report Content
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: _reportSection(
+                        title: "Institution Distribution by Type",
+                        child: _buildTypeChart(types),
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    Expanded(
+                      flex: 1,
+                      child: _reportSection(
+                        title: "School Standing",
+                        child: _buildStandingDistribution(standings),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 24),
+
+                // School List Preview
+                _reportSection(
+                  title: "School Performance Ranking Preview",
+                  child: _buildSchoolTable(schools),
+                ),
+
+                const SizedBox(height: 40),
+              ],
+            ),
           ),
-          
-          const SizedBox(height: 24),
-          
-          // 5. School List Preview
-          _reportSection(
-            title: "School Performance Ranking Preview",
-            child: _buildSchoolTable(schools),
-          ),
-          
-          const SizedBox(height: 40),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

@@ -50,63 +50,62 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
       ),
       clipBehavior: Clip.antiAlias,
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ---------------- Header (Simple) ----------------
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: kBrandOlive.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.analytics_rounded,
-                      color: kBrandOlive,
-                      size: 28,
-                    ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ---------------- Fixed Header ----------------
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: kBrandOlive.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  const SizedBox(width: 16),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Performance Analysis",
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: kBrandBrown,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          "Academic insights and student rankings.",
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      ],
-                    ),
+                  child: const Icon(
+                    Icons.analytics_rounded,
+                    color: kBrandOlive,
+                    size: 28,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 16),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Performance Analysis",
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: kBrandBrown,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "Academic insights and student rankings.",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const Divider(height: 32),
+          ),
+          const Divider(height: 32),
 
-            Padding(
+          // ---------------- Scrollable Content ----------------
+          Expanded(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ---------------- Quick Stats (Banners Removed) ----------------
-
                   // Mode Toggle
                   SegmentedButton<AnalysisMode>(
                     segments: const [
@@ -170,7 +169,7 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
                   if (_mode == AnalysisMode.scholar && _selectedStudentId != null)
                     _ScholarDetailAnalysis(studentId: _selectedStudentId!)
                   else if (_mode == AnalysisMode.school && _selectedSchool != null)
-                    _SchoolDetailAnalysis(schoolName: _selectedSchool!)
+                    _schoolDetailAnalysis(schoolName: _selectedSchool!)
                   else
                     _PlaceholderView(text: _mode == AnalysisMode.scholar 
                         ? 'Select a scholar to view their progress and performance metrics.' 
@@ -212,8 +211,8 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -282,8 +281,8 @@ class _ScholarDetailAnalysis extends StatelessWidget {
   }
 }
 
-class _SchoolDetailAnalysis extends StatelessWidget {
-  const _SchoolDetailAnalysis({required this.schoolName});
+class _schoolDetailAnalysis extends StatelessWidget {
+  const _schoolDetailAnalysis({required this.schoolName});
   final String schoolName;
 
   @override
@@ -443,7 +442,7 @@ class _PlaceholderView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
-      decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200, style: BorderStyle.solid)),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200, style: BorderStyle.solid)),
       child: Center(child: Column(
         children: [
           Icon(Icons.bar_chart_rounded, size: 40, color: Colors.grey.shade300),

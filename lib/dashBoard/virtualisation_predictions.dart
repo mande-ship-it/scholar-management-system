@@ -33,15 +33,11 @@ class _VirtualisationPredictionsComponentState extends State<VirtualisationPredi
   double _baseCohortScore = 74.2;
   double _baseBudget = 18000000.0;
   double _averageCostPerScholar = 150000.0;
-
-  double _sliderMentorship = 10.0;
-  double _sliderTutorCoverage = 20.0;
-  double _sliderExtraFunding = 0.0;
+  List<dynamic> _milestoneCohorts = [];
 
   final List<MapParticle> _particles = [];
   final List<FlSpot> _heartbeatSpots = [];
   double _heartbeatTimer = 0;
-  Timer? _mockDataTimer;
 
   @override
   void initState() {
@@ -51,13 +47,13 @@ class _VirtualisationPredictionsComponentState extends State<VirtualisationPredi
       _heartbeatTimer = i.toDouble();
     }
     _animationController = AnimationController(vsync: this, duration: const Duration(seconds: 10))..addListener(() {
+        if (!mounted) return;
         _updateParticles();
         _updateHeartbeat();
-        if (mounted) setState(() {});
+        setState(() {});
     })..repeat();
     _fetchPredictions();
     _connectSocket();
-    _startMockTicker();
   }
 
   void _updateHeartbeat() {
@@ -70,7 +66,10 @@ class _VirtualisationPredictionsComponentState extends State<VirtualisationPredi
 
   @override
   void dispose() {
-    _animationController.dispose(); _socket?.disconnect(); _socket?.dispose(); _mockDataTimer?.cancel(); _scrollController.dispose();
+    _animationController.dispose(); 
+    _socket?.disconnect(); 
+    _socket?.dispose(); 
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -81,14 +80,17 @@ class _VirtualisationPredictionsComponentState extends State<VirtualisationPredi
       final response = await ApiService.getDashboardPredictions();
       if (response.statusCode == 200 && response.data != null) {
         final data = response.data['data'];
-        setState(() {
-          _baseGraduationProb = double.parse(data['graduationProbability']?.toString() ?? '88.5');
-          _baseActiveScholars = int.parse(data['activeScholars']?.toString() ?? '120');
-          _baseAtRiskCount = int.parse(data['atRiskCount']?.toString() ?? '8');
-          _baseCohortScore = double.parse(data['predictedCohortScore']?.toString() ?? '74.2');
-          _baseBudget = double.parse(data['projectedBudgetRequired']?.toString() ?? '18000000');
-          _averageCostPerScholar = double.parse(data['averageCostPerScholar']?.toString() ?? '150000');
-        });
+        if (mounted) {
+          setState(() {
+            _baseGraduationProb = double.parse(data['graduationProbability']?.toString() ?? '88.5');
+            _baseActiveScholars = int.parse(data['activeScholars']?.toString() ?? '120');
+            _baseAtRiskCount = int.parse(data['atRiskCount']?.toString() ?? '8');
+            _baseCohortScore = double.parse(data['predictedCohortScore']?.toString() ?? '74.2');
+            _baseBudget = double.parse(data['projectedBudgetRequired']?.toString() ?? '18000000');
+            _averageCostPerScholar = double.parse(data['averageCostPerScholar']?.toString() ?? '150000');
+            _milestoneCohorts = data['milestoneCohorts'] ?? [];
+          });
+        }
       }
     } catch (e) {
       debugPrint('Error fetching predictions: $e');
@@ -102,35 +104,57 @@ class _VirtualisationPredictionsComponentState extends State<VirtualisationPredi
       _socket = socket_io.io('http://localhost:5000', socket_io.OptionBuilder().setTransports(['websocket']).disableAutoConnect().build());
       _socket!.connect();
       _socket!.on('notification', (data) {
-        final msg = data['message'] ?? 'Notification received';
-        _addLiveEvent(LiveEvent(message: msg, timestamp: DateTime.now(), type: LiveEventType.system));
-      });
-    } catch (e) {}
-  }
+        final msg = (data['message'] ?? 'Notification received').toString();
+        
+        LiveEventType type = LiveEventType.system;
+        Color pColor = Colors.grey;
+        ParticleSource pSrc = ParticleSource.hub;
+        ParticleDest pDest = ParticleDest.scholar;
 
-  void _startMockTicker() {
-    _mockDataTimer = Timer.periodic(const Duration(seconds: 6), (timer) {
-      final rand = math.Random();
-      final type = LiveEventType.values[rand.nextInt(LiveEventType.values.length)];
-      LiveEvent event;
-      switch (type) {
-        case LiveEventType.funding:
-          event = LiveEvent(message: "MWK received from sponsor.", timestamp: DateTime.now(), type: type);
-          _spawnParticle(ParticleSource.sponsor, ParticleDest.hub, kP_Gold); break;
-        case LiveEventType.attendance:
-          event = LiveEvent(message: "Live check-in: 95% attendance.", timestamp: DateTime.now(), type: type);
-          _spawnParticle(ParticleSource.school, ParticleDest.hub, Colors.blue); break;
-        case LiveEventType.grade:
-          event = LiveEvent(message: "Academic record added.", timestamp: DateTime.now(), type: type);
-          _spawnParticle(ParticleSource.school, ParticleDest.hub, kP_Olive); break;
-        case LiveEventType.disbursement:
-          event = LiveEvent(message: "Tuition support sent.", timestamp: DateTime.now(), type: type);
-          _spawnParticle(ParticleSource.hub, ParticleDest.scholar, kP_Orange); break;
-        case LiveEventType.system:
-          event = LiveEvent(message: "System sync verified.", timestamp: DateTime.now(), type: type); break;
-      }
-      _addLiveEvent(event);
-    });
+        String lowerMsg = msg.toLowerCase();
+
+        // Categorize notification and spawn appropriate particle
+        if (lowerMsg.contains('scholar') && (lowerMsg.contains('registered') || lowerMsg.contains('approved'))) {
+          type = LiveEventType.system;
+          pColor = kP_Olive;
+          pSrc = ParticleSource.school;
+          pDest = ParticleDest.hub;
+        } else if (lowerMsg.contains('academic') || lowerMsg.contains('results')) {
+          type = LiveEventType.grade;
+          pColor = Colors.blue;
+          pSrc = ParticleSource.school;
+          pDest = ParticleDest.hub;
+        } else if (lowerMsg.contains('sponsor') || lowerMsg.contains('payment') || lowerMsg.contains('mwk')) {
+          type = LiveEventType.funding;
+          pColor = kP_Gold;
+          pSrc = ParticleSource.sponsor;
+          pDest = ParticleDest.hub;
+        } else if (lowerMsg.contains('attendance')) {
+          type = LiveEventType.attendance;
+          pColor = Colors.cyan;
+          pSrc = ParticleSource.school;
+          pDest = ParticleDest.hub;
+        } else if (lowerMsg.contains('event')) {
+          type = LiveEventType.system;
+          pColor = kP_Orange;
+          pSrc = ParticleSource.hub;
+          pDest = ParticleDest.scholar;
+        } else if (lowerMsg.contains('promoted')) {
+          type = LiveEventType.system;
+          pColor = kP_Olive;
+          pSrc = ParticleSource.hub;
+          pDest = ParticleDest.scholar;
+        }
+
+        _addLiveEvent(LiveEvent(message: msg, timestamp: DateTime.now(), type: type));
+        _spawnParticle(pSrc, pDest, pColor);
+        
+        // Refresh stats on new events
+        _fetchPredictions();
+      });
+    } catch (e) {
+      debugPrint('Socket connection error: $e');
+    }
   }
 
   void _addLiveEvent(LiveEvent event) {
@@ -142,16 +166,13 @@ class _VirtualisationPredictionsComponentState extends State<VirtualisationPredi
   }
 
   void _spawnParticle(ParticleSource src, ParticleDest dest, Color color) {
+    if (!mounted) return;
     setState(() { _particles.add(MapParticle(progress: 0.0, color: color, speed: 0.02 + (math.Random().nextDouble() * 0.015), source: src, dest: dest)); });
   }
 
   void _updateParticles() {
     for (int i = _particles.length - 1; i >= 0; i--) { _particles[i].progress += _particles[i].speed; if (_particles[i].progress >= 1.0) _particles.removeAt(i); }
   }
-
-  double get _simulatedGraduationProb { return math.min(99.9, _baseGraduationProb + (_sliderMentorship * 0.22) + ((_sliderTutorCoverage - 20) * 0.05)); }
-  double get _simulatedCohortScore { return math.min(100.0, _baseCohortScore + ((_sliderMentorship - 10) * 0.15) + ((_sliderTutorCoverage - 20) * 0.12)); }
-  int get _simulatedAtRiskCount { return math.max(0, _baseAtRiskCount - (((_sliderTutorCoverage - 20) * 0.15) + ((_sliderMentorship - 10) * 0.1)).round()); }
 
   @override
   Widget build(BuildContext context) {
@@ -172,7 +193,7 @@ class _VirtualisationPredictionsComponentState extends State<VirtualisationPredi
       clipBehavior: Clip.antiAlias,
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Padding(padding: const EdgeInsets.all(28), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text("Relationship Virtual Map", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kP_Brown)), Text("Transaction flows and logs", style: TextStyle(fontSize: 11, color: Colors.grey))]),
+          const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text("Relationship Virtual Map", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kP_Brown)), Text("Real-time transaction flows and logs", style: TextStyle(fontSize: 11, color: Colors.grey))]),
           Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: kP_Olive.withOpacity(0.1), borderRadius: BorderRadius.circular(20)), child: Row(children: [Container(width: 8, height: 8, decoration: const BoxDecoration(color: kP_Olive, shape: BoxShape.circle)), const SizedBox(width: 8), const Text("Live Feed connected", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kP_Olive))])),
         ])),
         Container(height: 280, width: double.infinity, color: Colors.grey.shade50.withOpacity(0.5), child: CustomPaint(painter: ProjectVirtualMapPainter(particles: _particles), child: Stack(children: [
@@ -198,24 +219,35 @@ class _VirtualisationPredictionsComponentState extends State<VirtualisationPredi
     return Container(padding: const EdgeInsets.all(28), decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(32), border: Border.all(color: Colors.grey.shade100)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const Text("Predictive Simulator", style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: kP_Brown)),
       const SizedBox(height: 24),
-      _buildSimIndicator("Graduation Probability", "${_simulatedGraduationProb.toStringAsFixed(1)}%", kP_Olive),
+      _buildSimIndicator("Graduation Probability", "${_baseGraduationProb}%", kP_Olive),
       const SizedBox(height: 16),
-      _buildSimIndicator("Avg Cohort Score", "${_simulatedCohortScore.toStringAsFixed(1)}%", kP_Gold),
+      _buildSimIndicator("Avg Cohort Score", "${_baseCohortScore}%", kP_Gold),
       const SizedBox(height: 16),
-      _buildSimIndicator("At-Risk Scholars", "$_simulatedAtRiskCount", kP_Orange),
+      _buildSimIndicator("At-Risk Scholars", "$_baseAtRiskCount", kP_Orange),
       const SizedBox(height: 24),
       const Divider(),
-      _buildSliderItem("Mentorship", _sliderMentorship, 0, 40, (v) => setState(() => _sliderMentorship = v), kP_Olive),
-      _buildSliderItem("Tutoring", _sliderTutorCoverage, 0, 100, (v) => setState(() => _sliderTutorCoverage = v), kP_Gold),
+      const SizedBox(height: 16),
+      const Text("Milestone Tracking", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: kP_Brown)),
+      const SizedBox(height: 12),
+      if (_milestoneCohorts.isEmpty)
+        const Text("No cohort data available", style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic))
+      else
+        ..._milestoneCohorts.map((c) => Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("Cohort ${c['cohort']}", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kP_Brown)),
+              Text("${c['student_count']} Students", style: const TextStyle(fontSize: 13, color: kP_Olive, fontWeight: FontWeight.bold)),
+            ],
+          ),
+        )).toList(),
+      const SizedBox(height: 16),
     ]));
   }
 
   Widget _buildSimIndicator(String title, String value, Color color) {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey.shade500)), Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kP_Brown))]);
-  }
-
-  Widget _buildSliderItem(String title, double current, double min, double max, ValueChanged<double> onChanged, Color color) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kP_Brown)), Slider(value: current, min: min, max: max, onChanged: onChanged, activeColor: color)]);
   }
 }
 

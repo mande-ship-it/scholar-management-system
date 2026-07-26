@@ -86,124 +86,156 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
       clipBehavior: Clip.antiAlias,
       child: _isLoading 
         ? const Center(child: Padding(padding: EdgeInsets.all(80), child: BeautifulLoader(isOverlay: false, message: "Loading Preferences")))
-        : SingleChildScrollView(
-        child: Column(
+        : Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // ---------------- Fixed Header ----------------
             Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 8),
+              child: Row(
                 children: [
-                  Text("Appearance & Theme", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? theme.colorScheme.primary : kBrandBrown)),
-                  const SizedBox(height: 16),
-                  
-                  ValueListenableBuilder<ThemeMode>(
-                    valueListenable: themeController,
-                    builder: (context, mode, _) {
-                      return Column(
-                        children: [
-                          _buildThemeOption(
-                            title: "System Default",
-                            subtitle: "Matches your device's system theme",
-                            icon: Icons.brightness_auto_rounded,
-                            isSelected: mode == ThemeMode.system,
-                            onTap: () {
-                              themeController.value = ThemeMode.system;
-                              _updateSettings({'theme': 'system'});
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          _buildThemeOption(
-                            title: "Light Mode",
-                            subtitle: "Bright and clear interface",
-                            icon: Icons.light_mode_rounded,
-                            isSelected: mode == ThemeMode.light,
-                            onTap: () {
-                              themeController.value = ThemeMode.light;
-                              _updateSettings({'theme': 'light'});
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          _buildThemeOption(
-                            title: "Dark Mode",
-                            subtitle: "Dark interface to reduce eye strain",
-                            icon: Icons.dark_mode_rounded,
-                            isSelected: mode == ThemeMode.dark,
-                            onTap: () {
-                              themeController.value = ThemeMode.dark;
-                              _updateSettings({'theme': 'dark'});
-                            },
-                          ),
-                        ],
-                      );
-                    },
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: kBrandOlive.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.settings_suggest_rounded, color: kBrandOlive, size: 32),
                   ),
-
-                  const SizedBox(height: 32),
-                  Text("General Preferences", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? theme.colorScheme.primary : kBrandBrown)),
-                  const SizedBox(height: 16),
-                  
-                  _buildSwitchTile(
-                    title: "Push Notifications",
-                    subtitle: "Receive alerts for program activities",
-                    icon: Icons.notifications_active_outlined,
-                    value: _notificationsEnabled,
-                    onChanged: (v) {
-                      setState(() => _notificationsEnabled = v);
-                      _updateSettings({'notificationsEnabled': v});
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  _buildSwitchTile(
-                    title: "Biometric Authentication",
-                    subtitle: "Secure access using Fingerprint/FaceID",
-                    icon: Icons.fingerprint_rounded,
-                    value: _biometricEnabled,
-                    onChanged: (v) {
-                      setState(() => _biometricEnabled = v);
-                      _updateSettings({'biometricEnabled': v});
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  _buildDropdownTile(
-                    title: "Primary Language",
-                    value: _language,
-                    icon: Icons.translate_rounded,
-                    options: ["English (Malawi)", "Chichewa", "English (UK)"],
-                    onChanged: (v) {
-                      setState(() => _language = v!);
-                      _updateSettings({'language': v});
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  _buildDropdownTile(
-                    title: "Regional Currency",
-                    value: _currency,
-                    icon: Icons.monetization_on_outlined,
-                    options: ["Malawian Kwacha (MWK)", "US Dollar (USD)"],
-                    onChanged: (v) {
-                      setState(() => _currency = v!);
-                      _updateSettings({'currency': v});
-                    },
-                  ),
-
-                  const SizedBox(height: 32),
-                  const Divider(),
-                  const SizedBox(height: 16),
-                  const Center(
-                    child: Text(
-                      "App Version: 2.1.0-build.88\nAGE Africa © 2026",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 11, color: Colors.grey),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('System Settings',
+                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kBrandBrown)),
+                        const SizedBox(height: 4),
+                        const Text('Configure application behavior, security and regional preferences.',
+                            style: TextStyle(fontSize: 14, color: Colors.grey)),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
+            const Divider(height: 1),
+
+            // ---------------- Scrollable Content ----------------
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Appearance & Theme", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? theme.colorScheme.primary : kBrandBrown)),
+                    const SizedBox(height: 16),
+
+                    ValueListenableBuilder<ThemeMode>(
+                      valueListenable: themeController,
+                      builder: (context, mode, _) {
+                        return Column(
+                          children: [
+                            _buildThemeOption(
+                              title: "System Default",
+                              subtitle: "Matches your device's system theme",
+                              icon: Icons.brightness_auto_rounded,
+                              isSelected: mode == ThemeMode.system,
+                              onTap: () {
+                                themeController.value = ThemeMode.system;
+                                _updateSettings({'theme': 'system'});
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            _buildThemeOption(
+                              title: "Light Mode",
+                              subtitle: "Bright and clear interface",
+                              icon: Icons.light_mode_rounded,
+                              isSelected: mode == ThemeMode.light,
+                              onTap: () {
+                                themeController.value = ThemeMode.light;
+                                _updateSettings({'theme': 'light'});
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            _buildThemeOption(
+                              title: "Dark Mode",
+                              subtitle: "Dark interface to reduce eye strain",
+                              icon: Icons.dark_mode_rounded,
+                              isSelected: mode == ThemeMode.dark,
+                              onTap: () {
+                                themeController.value = ThemeMode.dark;
+                                _updateSettings({'theme': 'dark'});
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 32),
+                    Text("General Preferences", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? theme.colorScheme.primary : kBrandBrown)),
+                    const SizedBox(height: 16),
+
+                    _buildSwitchTile(
+                      title: "Push Notifications",
+                      subtitle: "Receive alerts for program activities",
+                      icon: Icons.notifications_active_outlined,
+                      value: _notificationsEnabled,
+                      onChanged: (v) {
+                        setState(() => _notificationsEnabled = v);
+                        _updateSettings({'notificationsEnabled': v});
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSwitchTile(
+                      title: "Biometric Authentication",
+                      subtitle: "Secure access using Fingerprint/FaceID",
+                      icon: Icons.fingerprint_rounded,
+                      value: _biometricEnabled,
+                      onChanged: (v) {
+                        setState(() => _biometricEnabled = v);
+                        _updateSettings({'biometricEnabled': v});
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    _buildDropdownTile(
+                      title: "Primary Language",
+                      value: _language,
+                      icon: Icons.translate_rounded,
+                      options: ["English (Malawi)", "Chichewa", "English (UK)"],
+                      onChanged: (v) {
+                        setState(() => _language = v!);
+                        _updateSettings({'language': v});
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDropdownTile(
+                      title: "Regional Currency",
+                      value: _currency,
+                      icon: Icons.monetization_on_outlined,
+                      options: ["Malawian Kwacha (MWK)", "US Dollar (USD)"],
+                      onChanged: (v) {
+                        setState(() => _currency = v!);
+                        _updateSettings({'currency': v});
+                      },
+                    ),
+
+                    const SizedBox(height: 32),
+                    const Divider(),
+                    const SizedBox(height: 16),
+                    const Center(
+                      child: Text(
+                        "App Version: 2.1.0-build.88\nAGE Africa © 2026",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 11, color: Colors.grey),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
-      ),
     );
   }
 

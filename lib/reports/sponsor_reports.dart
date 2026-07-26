@@ -47,66 +47,78 @@ class _SponsorReportsComponentState extends State<SponsorReportsComponent> {
     final types = _data?['types'] as List? ?? [];
     final sponsors = _data?['sponsors'] as List? ?? [];
 
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // 1. Clean Header
-          _buildHeader(),
-          
-          const SizedBox(height: 24),
-          
-          // 2. Control Row
-          _buildControls(),
-          
-          const SizedBox(height: 24),
-          
-          // 3. Key Metrics
-          Row(
-            children: [
-              _metricCard("Active Sponsors", "${metrics['active_sponsors'] ?? 0}", kBrandOrange, Icons.volunteer_activism_rounded),
-              const SizedBox(width: 16),
-              _metricCard("Total Funding", "MWK ${metrics['total_funding'] ?? 0}", kBrandOlive, Icons.account_balance_wallet_rounded),
-              const SizedBox(width: 16),
-              _metricCard("Impacted Scholars", "${metrics['impacted_scholars'] ?? 0}", kBrandBrown, Icons.auto_awesome_rounded),
-            ],
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // 4. Main Report Content
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 2,
-                child: _reportSection(
-                  title: "Funding Distribution by Category",
-                  child: _buildFundingChart(funding),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // 1. Fixed Header
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+          child: _buildHeader(),
+        ),
+
+        const Divider(height: 1),
+
+        // 2. Scrollable Content
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Control Row
+                _buildControls(),
+
+                const SizedBox(height: 24),
+
+                // Key Metrics
+                Row(
+                  children: [
+                    _metricCard("Active Sponsors", "${metrics['active_sponsors'] ?? 0}", kBrandOrange, Icons.volunteer_activism_rounded),
+                    const SizedBox(width: 16),
+                    _metricCard("Total Funding", "MWK ${metrics['total_funding'] ?? 0}", kBrandOlive, Icons.account_balance_wallet_rounded),
+                    const SizedBox(width: 16),
+                    _metricCard("Impacted Scholars", "${metrics['impacted_scholars'] ?? 0}", kBrandBrown, Icons.auto_awesome_rounded),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 24),
-              Expanded(
-                flex: 1,
-                child: _reportSection(
-                  title: "Sponsor Types",
-                  child: _buildTypeDistribution(types),
+
+                const SizedBox(height: 24),
+
+                // Main Report Content
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: _reportSection(
+                        title: "Funding Distribution by Category",
+                        child: _buildFundingChart(funding),
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    Expanded(
+                      flex: 1,
+                      child: _reportSection(
+                        title: "Sponsor Types",
+                        child: _buildTypeDistribution(types),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 24),
+
+                // Sponsor List Preview
+                _reportSection(
+                  title: "Major Donors & Contribution Preview",
+                  child: _buildSponsorTable(sponsors),
+                ),
+
+                const SizedBox(height: 40),
+              ],
+            ),
           ),
-          
-          const SizedBox(height: 24),
-          
-          // 5. Sponsor List Preview
-          _reportSection(
-            title: "Major Donors & Contribution Preview",
-            child: _buildSponsorTable(sponsors),
-          ),
-          
-          const SizedBox(height: 40),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

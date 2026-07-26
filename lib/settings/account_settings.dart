@@ -149,100 +149,132 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
       clipBehavior: Clip.antiAlias,
       child: _isLoading 
         ? const Center(child: Padding(padding: EdgeInsets.all(80), child: BeautifulLoader(isOverlay: false, message: "Fetching Profile")))
-        : SingleChildScrollView(
-        child: Column(
+        : Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // ---------------- Fixed Header ----------------
             Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildAccountPreview(),
-                    const SizedBox(height: 32),
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 8),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: kBrandOlive.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.manage_accounts_rounded, color: kBrandOlive, size: 32),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Account Settings',
+                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kBrandBrown)),
+                        const SizedBox(height: 4),
+                        const Text('Update your personal profile, credentials and preferences.',
+                            style: TextStyle(fontSize: 14, color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
 
-                    Text("Personal Information", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? theme.colorScheme.primary : kBrandBrown)),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      controller: _nameController,
-                      label: "Full Name",
-                      icon: Icons.person_outline_rounded,
-                      validator: (v) => (v == null || v.trim().isEmpty) ? "Name is required" : null,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      controller: _usernameController,
-                      label: "Username",
-                      icon: Icons.alternate_email_rounded,
-                      validator: (v) => (v == null || v.trim().isEmpty) ? "Username is required" : null,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      controller: _emailController,
-                      label: "Email Address",
-                      icon: Icons.email_outlined,
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (v) => (v == null || !v.contains('@')) ? "Valid email required" : null,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      controller: _phoneController,
-                      label: "Phone Number",
-                      icon: Icons.phone_outlined,
-                      keyboardType: TextInputType.phone,
-                    ),
+            // ---------------- Scrollable Content ----------------
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildAccountPreview(),
+                      const SizedBox(height: 32),
 
-                    const SizedBox(height: 32),
-                    Text("Security & Authentication", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? theme.colorScheme.primary : kBrandBrown)),
-                    const SizedBox(height: 16),
-                    _buildActionTile(
-                      icon: Icons.lock_outline_rounded,
-                      title: "Change Password",
-                      subtitle: "Update your account password regularly",
-                      onTap: () => _showChangePasswordDialog(context),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildActionTile(
-                      icon: Icons.shield_outlined,
-                      title: "Two-Factor Authentication",
-                      subtitle: "Add an extra layer of security",
-                      onTap: () {},
-                    ),
-                    const SizedBox(height: 12),
-                    _buildActionTile(
-                      icon: Icons.delete_outline_rounded,
-                      title: "Close Account",
-                      subtitle: "Permanently delete your profile and data",
-                      color: Colors.red,
-                      onTap: () => _confirmDelete(context),
-                    ),
+                      Text("Personal Information", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? theme.colorScheme.primary : kBrandBrown)),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        controller: _nameController,
+                        label: "Full Name",
+                        icon: Icons.person_outline_rounded,
+                        validator: (v) => (v == null || v.trim().isEmpty) ? "Name is required" : null,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        controller: _usernameController,
+                        label: "Username",
+                        icon: Icons.alternate_email_rounded,
+                        validator: (v) => (v == null || v.trim().isEmpty) ? "Username is required" : null,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        controller: _emailController,
+                        label: "Email Address",
+                        icon: Icons.email_outlined,
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (v) => (v == null || !v.contains('@')) ? "Valid email required" : null,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        controller: _phoneController,
+                        label: "Phone Number",
+                        icon: Icons.phone_outlined,
+                        keyboardType: TextInputType.phone,
+                      ),
 
-                    const SizedBox(height: 40),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _isSaving ? null : _saveSettings,
-                        icon: _isSaving 
-                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                            : const Icon(Icons.save_rounded),
-                        label: Text(_isSaving ? "Saving..." : "Save Account Changes", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          backgroundColor: kBrandOlive,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      const SizedBox(height: 32),
+                      Text("Security & Authentication", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? theme.colorScheme.primary : kBrandBrown)),
+                      const SizedBox(height: 16),
+                      _buildActionTile(
+                        icon: Icons.lock_outline_rounded,
+                        title: "Change Password",
+                        subtitle: "Update your account password regularly",
+                        onTap: () => _showChangePasswordDialog(context),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildActionTile(
+                        icon: Icons.shield_outlined,
+                        title: "Two-Factor Authentication",
+                        subtitle: "Add an extra layer of security",
+                        onTap: () {},
+                      ),
+                      const SizedBox(height: 12),
+                      _buildActionTile(
+                        icon: Icons.delete_outline_rounded,
+                        title: "Close Account",
+                        subtitle: "Permanently delete your profile and data",
+                        color: Colors.red,
+                        onTap: () => _confirmDelete(context),
+                      ),
+
+                      const SizedBox(height: 40),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _isSaving ? null : _saveSettings,
+                          icon: _isSaving
+                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                              : const Icon(Icons.save_rounded),
+                          label: Text(_isSaving ? "Saving..." : "Save Account Changes", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 18),
+                            backgroundColor: kBrandOlive,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
           ],
         ),
-      ),
     );
   }
 
@@ -473,4 +505,3 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
     );
   }
 }
-

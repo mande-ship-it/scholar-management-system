@@ -360,8 +360,6 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
   // HEADER CARD (Banner Removed)
   // ---------------------------------------------------------------------
   Widget _buildHeaderCard() {
-    final String baseUrl = 'http://localhost:5000'; // Should be from config
-    
     return Column(
       children: [
         Container(
@@ -386,7 +384,9 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
                       border: Border.all(color: kBrandCream, width: 2),
                       image: (_profilePicture != null) 
                         ? DecorationImage(
-                            image: NetworkImage('$baseUrl$_profilePicture'),
+                            image: NetworkImage(_profilePicture!.startsWith('http') 
+                                ? _profilePicture! 
+                                : '${ApiService.baseUrl}${_profilePicture!.startsWith('/') ? '' : '/'}$_profilePicture'),
                             fit: BoxFit.cover,
                           ) 
                         : null,

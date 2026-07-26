@@ -17,7 +17,8 @@ final RegExp _kEmailRegex = RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[\w\-]{2,4}$');
 // ============================================================
 
 class ViewScholarsComponent extends StatefulWidget {
-  const ViewScholarsComponent({super.key});
+  final VoidCallback? onRegisterScholar;
+  const ViewScholarsComponent({super.key, this.onRegisterScholar});
 
   @override
   State<ViewScholarsComponent> createState() => _ViewScholarsComponentState();
@@ -40,6 +41,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
   List<String> _registeredSchoolNames = [];
 
   Future<void> _fetchScholars() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final response = await ApiService.getAllScholars();
@@ -77,10 +79,14 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
       final schoolsRes = await ApiService.getAllSchools();
       if (schoolsRes.statusCode == 200) {
         final List<dynamic> sData = schoolsRes.data['data'] ?? [];
-        _registeredSchoolNames = sData
-            .map((s) => s['name']?.toString() ?? '')
-            .where((n) => n.isNotEmpty)
-            .toList();
+        if (mounted) {
+          setState(() {
+            _registeredSchoolNames = sData
+                .map((s) => s['name']?.toString() ?? '')
+                .where((n) => n.isNotEmpty)
+                .toList();
+          });
+        }
       }
     } catch (e) {
       debugPrint('Error fetching scholars: $e');
@@ -882,7 +888,13 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                     _miniStat(Icons.account_balance_rounded, "$universityCount University", kBrandBrown),
                     const SizedBox(width: 8),
                     ElevatedButton.icon(
-                      onPressed: () => Navigator.pushNamed(context, '/registerScholar'),
+                      onPressed: () {
+                        if (widget.onRegisterScholar != null) {
+                          widget.onRegisterScholar!();
+                        } else {
+                          Navigator.pushNamed(context, '/registerScholar');
+                        }
+                      },
                       icon: const Icon(Icons.person_add_rounded, size: 16),
                       label: const Text("Register Scholar"),
                       style: ElevatedButton.styleFrom(

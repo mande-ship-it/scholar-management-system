@@ -16,12 +16,14 @@ class ViewSponsorsComponent extends StatefulWidget {
   final OnLoadSponsors? onLoadSponsors;
   final OnSaveSponsor? onSaveSponsor;
   final OnDeleteSponsor? onDeleteSponsor;
+  final VoidCallback? onRegisterSponsor;
 
   const ViewSponsorsComponent({
     super.key,
     this.onLoadSponsors,
     this.onSaveSponsor,
     this.onDeleteSponsor,
+    this.onRegisterSponsor,
   });
 
   @override
@@ -42,6 +44,7 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
   }
 
   Future<void> _loadSponsors() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _loadError = null;
@@ -50,24 +53,26 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
       final response = await ApiService.getAllSponsors();
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data['data'];
-        setState(() {
-          _sponsors = data.map((s) => Sponsor(
-            id: s['id'].toString(),
-            name: s['name'] ?? '',
-            organization: s['organization'] ?? '',
-            email: s['email'] ?? '',
-            phone: s['phone'] ?? '',
-            contactPerson: s['contact_person'] ?? '',
-            sponsorshipType: s['sponsorship_type'] ?? 'Bronze',
-            amount: double.tryParse(s['amount'].toString()) ?? 0,
-            registrationDate: s['registration_date'] != null ? DateTime.parse(s['registration_date']) : DateTime.now(),
-            address: s['address'] ?? '',
-            notes: s['notes'] ?? '',
-            status: s['status'] ?? 'Active',
-          )).toList();
-          _applyFilter();
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _sponsors = data.map((s) => Sponsor(
+              id: s['id'].toString(),
+              name: s['name'] ?? '',
+              organization: s['organization'] ?? '',
+              email: s['email'] ?? '',
+              phone: s['phone'] ?? '',
+              contactPerson: s['contact_person'] ?? '',
+              sponsorshipType: s['sponsorship_type'] ?? 'Bronze',
+              amount: double.tryParse(s['amount'].toString()) ?? 0,
+              registrationDate: s['registration_date'] != null ? DateTime.parse(s['registration_date']) : DateTime.now(),
+              address: s['address'] ?? '',
+              notes: s['notes'] ?? '',
+              status: s['status'] ?? 'Active',
+            )).toList();
+            _applyFilter();
+            _isLoading = false;
+          });
+        }
       }
     } catch (e) {
       if (!mounted) return;
@@ -365,7 +370,13 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton.icon(
-                  onPressed: () => Navigator.pushNamed(context, '/sponsors/register'),
+                  onPressed: () {
+                    if (widget.onRegisterSponsor != null) {
+                      widget.onRegisterSponsor!();
+                    } else {
+                      Navigator.pushNamed(context, '/sponsors/register');
+                    }
+                  },
                   icon: const Icon(Icons.person_add_rounded, size: 18),
                   label: const Text("Register Sponsor"),
                   style: ElevatedButton.styleFrom(

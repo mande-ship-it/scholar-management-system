@@ -105,73 +105,74 @@ class _AcademicStatsComponentState extends State<AcademicStatsComponent> {
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
       ),
       clipBehavior: Clip.antiAlias,
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ---------------- Header (Simple) ----------------
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: kBrandBrown.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.query_stats_rounded,
-                      color: kBrandBrown,
-                      size: 28,
-                    ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ---------------- Fixed Header ----------------
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: kBrandBrown.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  const SizedBox(width: 16),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Academic Statistics",
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            color: kBrandBrown,
-                          ),
+                  child: const Icon(
+                    Icons.query_stats_rounded,
+                    color: kBrandBrown,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Academic Statistics",
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: kBrandBrown,
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          "Performance insights and growth analysis.",
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey,
-                          ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "Performance insights and growth analysis.",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: DropdownButton<String>(
-                      value: _selectedYear,
-                      underline: const SizedBox(),
-                      icon: const Icon(Icons.calendar_month, color: kBrandBrown, size: 18),
-                      style: const TextStyle(color: kBrandBrown, fontWeight: FontWeight.bold),
-                      items: _yearOptions.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
-                      onChanged: (v) => setState(() => _selectedYear = v!),
-                    ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade300),
                   ),
-                ],
-              ),
+                  child: DropdownButton<String>(
+                    value: _selectedYear,
+                    underline: const SizedBox(),
+                    icon: const Icon(Icons.calendar_month, color: kBrandBrown, size: 18),
+                    style: const TextStyle(color: kBrandBrown, fontWeight: FontWeight.bold),
+                    items: _yearOptions.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
+                    onChanged: (v) => setState(() => _selectedYear = v!),
+                  ),
+                ),
+              ],
             ),
-            const Divider(height: 32),
+          ),
+          const Divider(height: 32),
 
-            Padding(
+          // ---------------- Scrollable Content ----------------
+          Expanded(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -305,16 +306,13 @@ class _AcademicStatsComponentState extends State<AcademicStatsComponent> {
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-// ---------------------------------------------------------------------
-// RISK ALERT PANEL
-// ---------------------------------------------------------------------
 class _RiskAlertPanel extends StatelessWidget {
   const _RiskAlertPanel({required this.atRiskScholars});
   final List<({String id, double avg})> atRiskScholars;
@@ -386,9 +384,6 @@ class _RiskAlertPanel extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------
-// PIE CHART COMPONENT
-// ---------------------------------------------------------------------
 class _SmartPieChart extends StatelessWidget {
   const _SmartPieChart({required this.data});
   final List<({String label, int count, Color color})> data;
@@ -438,9 +433,6 @@ class _PieChartPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
-// ---------------------------------------------------------------------
-// LINE GRAPH COMPONENT
-// ---------------------------------------------------------------------
 class _SmartLineGraph extends StatelessWidget {
   const _SmartLineGraph({required this.data});
   final List<({String year, double value})> data;
@@ -529,10 +521,6 @@ class _LineGraphPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
-
-// ---------------------------------------------------------------------
-// UI HELPER WIDGETS
-// ---------------------------------------------------------------------
 
 class _SmartMetricTile extends StatelessWidget {
   const _SmartMetricTile({required this.label, required this.value, required this.icon, required this.color, required this.trend, required this.isUp});

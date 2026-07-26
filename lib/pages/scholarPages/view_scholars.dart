@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import '../../scholars/view_scholars.dart';
 
 class ViewScholarsPage extends StatelessWidget {
-  const ViewScholarsPage({super.key});
+  final VoidCallback? onRegisterScholar;
+  const ViewScholarsPage({super.key, this.onRegisterScholar});
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: ViewScholarsComponent(),
+    return Scaffold(
+      body: ViewScholarsComponent(onRegisterScholar: onRegisterScholar),
     );
   }
 }

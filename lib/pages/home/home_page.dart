@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../services/api_service.dart';
+import '../../academics/academics_utils.dart';
 
 // Dashboard
 import '../dashboardPages/dashboard.dart';
@@ -78,11 +79,13 @@ class SidebarSubItem {
   final String title;
   final Widget page;
   final IconData icon;
+  final Widget Function(VoidCallback onBack, Function(String) onPush)? builder;
 
   const SidebarSubItem({
     required this.title,
     required this.page,
     required this.icon,
+    this.builder,
   });
 }
 
@@ -96,6 +99,8 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   int activeCategoryIndex = 0;
   int activeSubIndex = 0;
+  final List<(int, int)> _navigationHistory = [];
+
   bool _isSidebarVisible = true;
   int _notificationCount = 0;
   IO.Socket? _socket;
@@ -208,13 +213,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   void _showNotificationOverlay({required String message, required String actor, String type = 'info'}) {
-    final Color brandOlive = const Color(0xFF9AB334);
-    final Color brandOrange = const Color(0xFFE05B1C);
-
     IconData icon = Icons.notifications_active;
-    Color color = brandOlive;
+    Color color = kBrandOlive;
     if (type == 'success') { icon = Icons.check_circle; color = Colors.green; }
-    if (type == 'warning') { icon = Icons.warning; color = brandOrange; }
+    if (type == 'warning') { icon = Icons.warning; color = kBrandOrange; }
     if (type == 'error') { icon = Icons.error; color = Colors.red; }
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -287,6 +289,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       for (int j = 0; j < categories[i].subItems.length; j++) {
         if (categories[i].subItems[j].title == title) {
           setState(() {
+            _navigationHistory.clear(); // Top-level menu navigation clears history
             activeCategoryIndex = i;
             activeSubIndex = j;
           });
@@ -296,102 +299,157 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     }
   }
 
-  final List<SidebarCategory> categories = const [
+  void _pushSubItem(String title) {
+    for (int i = 0; i < categories.length; i++) {
+      for (int j = 0; j < categories[i].subItems.length; j++) {
+        if (categories[i].subItems[j].title == title) {
+          setState(() {
+            _navigationHistory.add((activeCategoryIndex, activeSubIndex));
+            activeCategoryIndex = i;
+            activeSubIndex = j;
+          });
+          return;
+        }
+      }
+    }
+  }
+
+  void _popSubItem() {
+    if (_navigationHistory.isNotEmpty) {
+      final prev = _navigationHistory.removeLast();
+      setState(() {
+        activeCategoryIndex = prev.$1;
+        activeSubIndex = prev.$2;
+      });
+    }
+  }
+
+  final List<SidebarCategory> categories = [
     SidebarCategory(
       title: "Dashboard",
       icon: Icons.dashboard,
       subItems: [
-        SidebarSubItem(title: "Overview", page: DashboardPage(), icon: Icons.view_quilt),
-        SidebarSubItem(title: "Events & Programs", page: EventsPage(), icon: Icons.event_available),
-        SidebarSubItem(title: "Recent Activities", page: RecentActivitiesPage(), icon: Icons.history),
-        SidebarSubItem(title: "Notifications", page: NotificationsPage(), icon: Icons.notifications_active),
+        SidebarSubItem(title: "Overview", page: const DashboardPage(), icon: Icons.view_quilt),
+        SidebarSubItem(title: "Events & Programs", page: const EventsPage(), icon: Icons.event_available),
+        SidebarSubItem(title: "Recent Activities", page: const RecentActivitiesPage(), icon: Icons.history),
+        SidebarSubItem(title: "Notifications", page: const NotificationsPage(), icon: Icons.notifications_active),
       ],
     ),
     SidebarCategory(
       title: "Scholars",
       icon: Icons.school,
       subItems: [
-        SidebarSubItem(title: "Register Scholar", page: RegisterScholarPage(), icon: Icons.person_add),
-        SidebarSubItem(title: "View Scholars", page: ViewScholarsPage(), icon: Icons.people),
-        SidebarSubItem(title: "Promote Scholar", page: PromoteScholarsPage(), icon: Icons.upgrade),
-        SidebarSubItem(title: "Scholar Statistics", page: ScholarStatsPage(), icon: Icons.insights_rounded),
+        SidebarSubItem(
+          title: "Register Scholar",
+          page: const RegisterScholarPage(),
+          icon: Icons.person_add,
+          builder: (onBack, onPush) => RegisterScholarPage(onSuccess: onBack),
+        ),
+        SidebarSubItem(
+          title: "View Scholars",
+          page: const ViewScholarsPage(),
+          icon: Icons.people,
+          builder: (onBack, onPush) => ViewScholarsPage(onRegisterScholar: () => onPush("Register Scholar")),
+        ),
+        SidebarSubItem(title: "Promote Scholar", page: const PromoteScholarsPage(), icon: Icons.upgrade),
+        SidebarSubItem(title: "Scholar Statistics", page: const ScholarStatsPage(), icon: Icons.insights_rounded),
       ],
     ),
     SidebarCategory(
       title: "Schools",
       icon: Icons.domain,
       subItems: [
-        SidebarSubItem(title: "Register School", page: RegisterSchoolPage(), icon: Icons.add_business),
-        SidebarSubItem(title: "View Schools", page: ViewSchoolsPage(), icon: Icons.store),
-        SidebarSubItem(title: "School Statistics", page: SchoolStatsPage(), icon: Icons.analytics_outlined),
+        SidebarSubItem(
+          title: "Register School",
+          page: const RegisterSchoolPage(),
+          icon: Icons.add_business,
+          builder: (onBack, onPush) => RegisterSchoolPage(onSuccess: onBack),
+        ),
+        SidebarSubItem(
+          title: "View Schools",
+          page: const ViewSchoolsPage(),
+          icon: Icons.store,
+          builder: (onBack, onPush) => ViewSchoolsPage(onRegisterSchool: () => onPush("Register School")),
+        ),
+        SidebarSubItem(title: "School Statistics", page: const SchoolStatsPage(), icon: Icons.analytics_outlined),
       ],
     ),
     SidebarCategory(
       title: "Sponsors",
       icon: Icons.handshake,
       subItems: [
-        SidebarSubItem(title: "Register Sponsor", page: RegisterSponsorPage(), icon: Icons.add_moderator),
-        SidebarSubItem(title: "View Sponsors", page: ViewSponsorsPage(), icon: Icons.supervisor_account),
-        SidebarSubItem(title: "Sponsor Statistics", page: SponsorStatsPage(), icon: Icons.analytics_rounded),
+        SidebarSubItem(
+          title: "Register Sponsor",
+          page: const RegisterSponsorPage(),
+          icon: Icons.add_moderator,
+          builder: (onBack, onPush) => RegisterSponsorPage(onSuccess: onBack),
+        ),
+        SidebarSubItem(
+          title: "View Sponsors",
+          page: const ViewSponsorsPage(),
+          icon: Icons.supervisor_account,
+          builder: (onBack, onPush) => ViewSponsorsPage(onRegisterSponsor: () => onPush("Register Sponsor")),
+        ),
+        SidebarSubItem(title: "Sponsor Statistics", page: const SponsorStatsPage(), icon: Icons.analytics_rounded),
       ],
     ),
     SidebarCategory(
       title: "Academics",
       icon: Icons.menu_book,
       subItems: [
-        SidebarSubItem(title: "Enter Results", page: EnterResultsPage(), icon: Icons.edit_note),
-        SidebarSubItem(title: "View Results", page: ViewResultsPage(), icon: Icons.pageview),
-        SidebarSubItem(title: "Report Cards", page: ReportCardsPage(), icon: Icons.badge),
-        SidebarSubItem(title: "Performance Analysis", page: PerformanceAnalysisPage(), icon: Icons.analytics),
-        SidebarSubItem(title: "Academic Statistics", page: AcademicStatsPage(), icon: Icons.insights_rounded),
+        SidebarSubItem(title: "Enter Results", page: const EnterResultsPage(), icon: Icons.edit_note),
+        SidebarSubItem(title: "View Results", page: const ViewResultsPage(), icon: Icons.pageview),
+        SidebarSubItem(title: "Report Cards", page: const ReportCardsPage(), icon: Icons.badge),
+        SidebarSubItem(title: "Performance Analysis", page: const PerformanceAnalysisPage(), icon: Icons.analytics),
+        SidebarSubItem(title: "Academic Statistics", page: const AcademicStatsPage(), icon: Icons.insights_rounded),
       ],
     ),
     SidebarCategory(
       title: "Attendance",
       icon: Icons.event_available,
       subItems: [
-        SidebarSubItem(title: "Scholar Attendance", page: ScholarAttendancePage(), icon: Icons.how_to_reg),
-        SidebarSubItem(title: "Attendance History", page: AttendanceHistoryPage(), icon: Icons.calendar_month),
-        SidebarSubItem(title: "Attendance Reports", page: AttendanceModuleReportsPage(), icon: Icons.summarize),
+        SidebarSubItem(title: "Scholar Attendance", page: const ScholarAttendancePage(), icon: Icons.how_to_reg),
+        SidebarSubItem(title: "Attendance History", page: const AttendanceHistoryPage(), icon: Icons.calendar_month),
+        SidebarSubItem(title: "Attendance Reports", page: const AttendanceModuleReportsPage(), icon: Icons.summarize),
       ],
     ),
     SidebarCategory(
       title: "Reports",
       icon: Icons.analytics,
       subItems: [
-        SidebarSubItem(title: "Scholar Reports", page: ScholarReportsPage(), icon: Icons.description),
-        SidebarSubItem(title: "School Reports", page: SchoolReportsPage(), icon: Icons.domain_verification),
-        SidebarSubItem(title: "Sponsor Reports", page: SponsorReportsPage(), icon: Icons.admin_panel_settings),
-        SidebarSubItem(title: "Export PDF", page: ExportPDFPage(), icon: Icons.picture_as_pdf),
-        SidebarSubItem(title: "Export Excel", page: ExportExcelPage(), icon: Icons.table_view),
+        SidebarSubItem(title: "Scholar Reports", page: const ScholarReportsPage(), icon: Icons.description),
+        SidebarSubItem(title: "School Reports", page: const SchoolReportsPage(), icon: Icons.domain_verification),
+        SidebarSubItem(title: "Sponsor Reports", page: const SponsorReportsPage(), icon: Icons.admin_panel_settings),
+        SidebarSubItem(title: "Export PDF", page: const ExportPDFPage(), icon: Icons.picture_as_pdf),
+        SidebarSubItem(title: "Export Excel", page: const ExportExcelPage(), icon: Icons.table_view),
       ],
     ),
     SidebarCategory(
       title: "Users",
       icon: Icons.people_alt,
       subItems: [
-        SidebarSubItem(title: "Create User", page: CreateUserPage(), icon: Icons.person_add_alt_1),
-        SidebarSubItem(title: "Manage Users", page: ManageUsersPage(), icon: Icons.manage_accounts),
-        SidebarSubItem(title: "User Roles", page: UserRolesPage(), icon: Icons.security),
-        SidebarSubItem(title: "Permissions", page: PermissionsPage(), icon: Icons.rule),
-        SidebarSubItem(title: "User Profile", page: UserProfilePage(), icon: Icons.assignment_ind),
+        SidebarSubItem(title: "Create User", page: const CreateUserPage(), icon: Icons.person_add_alt_1),
+        SidebarSubItem(title: "Manage Users", page: const ManageUsersPage(), icon: Icons.manage_accounts),
+        SidebarSubItem(title: "User Roles", page: const UserRolesPage(), icon: Icons.security),
+        SidebarSubItem(title: "Permissions", page: const PermissionsPage(), icon: Icons.rule),
+        SidebarSubItem(title: "User Profile", page: const UserProfilePage(), icon: Icons.assignment_ind),
       ],
     ),
     SidebarCategory(
       title: "Settings",
       icon: Icons.settings,
       subItems: [
-        SidebarSubItem(title: "Organisation Profile", page: OrganisationProfilePage(), icon: Icons.corporate_fare),
-        SidebarSubItem(title: "Backup & Restore", page: BackupRestorePage(), icon: Icons.backup),
-        SidebarSubItem(title: "System Settings", page: SystemSettingsPage(), icon: Icons.settings_applications),
-        SidebarSubItem(title: "Account Settings", page: AccountSettingsPage(), icon: Icons.manage_accounts),
+        SidebarSubItem(title: "Organisation Profile", page: const OrganisationProfilePage(), icon: Icons.corporate_fare),
+        SidebarSubItem(title: "Backup & Restore", page: const BackupRestorePage(), icon: Icons.backup),
+        SidebarSubItem(title: "System Settings", page: const SystemSettingsPage(), icon: Icons.settings_applications),
+        SidebarSubItem(title: "Account Settings", page: const AccountSettingsPage(), icon: Icons.manage_accounts),
       ],
     ),
     SidebarCategory(
       title: "Administration",
       icon: Icons.admin_panel_settings,
       subItems: [
-        SidebarSubItem(title: "Pending Approvals", page: ApprovalsPage(), icon: Icons.rule_folder),
+        SidebarSubItem(title: "Pending Approvals", page: const ApprovalsPage(), icon: Icons.rule_folder),
       ],
     ),
   ];
@@ -418,7 +476,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         leading: Row(
           children: [
             Container(
-              width: 220,
+              width: 200,
               height: double.infinity,
               color: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -427,8 +485,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 fit: BoxFit.contain,
               ),
             ),
+            const SizedBox(width: 8),
             SizedBox(
-              width: 60,
+              width: 40,
               child: IconButton(
                 icon: const Icon(Icons.menu, color: Colors.white),
                 tooltip: "Toggle Sidebar",
@@ -538,10 +597,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 backgroundColor: brandCream,
                 radius: 18,
                 backgroundImage: _profileImageUrl != null
-                  ? NetworkImage('http://localhost:5000${_profileImageUrl}')
+                  ? NetworkImage(_profileImageUrl!.startsWith('http')
+                      ? _profileImageUrl!
+                      : '${ApiService.baseUrl}${_profileImageUrl!.startsWith('/') ? '' : '/'}$_profileImageUrl')
                   : null,
                 child: _profileImageUrl == null
-                  ? Icon(Icons.person, color: brandBrown, size: 20)
+                  ? const Icon(Icons.person, color: brandBrown, size: 20)
                   : null,
               ),
             ),
@@ -575,7 +636,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                               radius: 40,
                               backgroundColor: brandBrown,
                               backgroundImage: _profileImageUrl != null
-                                ? NetworkImage('http://localhost:5000${_profileImageUrl}')
+                                ? NetworkImage(_profileImageUrl!.startsWith('http')
+                                    ? _profileImageUrl!
+                                    : '${ApiService.baseUrl}${_profileImageUrl!.startsWith('/') ? '' : '/'}$_profileImageUrl')
                                 : null,
                               child: _profileImageUrl == null
                                 ? const Icon(
@@ -739,6 +802,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   color: Colors.white,
                   child: Row(
                     children: [
+                      if (_navigationHistory.isNotEmpty) ...[
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+                          onPressed: _popSubItem,
+                        ),
+                        const SizedBox(width: 8),
+                      ],
                       Text(
                         activeCategory.title,
                         style: const TextStyle(
@@ -767,7 +837,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
-                    child: activeSubItem.page,
+                    child: activeSubItem.builder != null
+                        ? activeSubItem.builder!(_popSubItem, _pushSubItem)
+                        : activeSubItem.page,
                   ),
                 ),
               ],
@@ -776,161 +848,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         ],
       ),
     );
-  }
-}
-
-class AgeAfricaHeaderLogo extends StatelessWidget {
-  const AgeAfricaHeaderLogo({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Image.asset(
-          'assets/images/age-logo.png',
-          height: 34,
-          fit: BoxFit.contain,
-        ),
-        const SizedBox(width: 12),
-        Container(
-          height: 20,
-          width: 1.5,
-          color: Colors.white24,
-        ),
-        const SizedBox(width: 12),
-        const Text(
-          "Scholar Management System",
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w500,
-            fontSize: 16,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class AgeAfricaLogo extends StatelessWidget {
-  final Color color;
-  final Color accentColor;
-  final Color textColor;
-  final Color textAccentColor;
-
-  const AgeAfricaLogo({
-    super.key,
-    this.color = const Color(0xFF6E5637),
-    this.accentColor = const Color(0xFF9E8667),
-    this.textColor = const Color(0xFF6E5637),
-    this.textAccentColor = const Color(0xFF9E8667),
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        CustomPaint(
-          size: const Size(26, 26),
-          painter: AgeAfricaLogoPainter(color: color, accentColor: accentColor),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          "age",
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w900,
-            fontFamily: 'serif',
-            color: textColor,
-            height: 0.9,
-          ),
-        ),
-        Text(
-          "AFRICA",
-          style: TextStyle(
-            fontSize: 7,
-            letterSpacing: 0.8,
-            fontFamily: 'serif',
-            color: textAccentColor,
-            height: 0.9,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class AgeAfricaLogoPainter extends CustomPainter {
-  final Color color;
-  final Color accentColor;
-
-  const AgeAfricaLogoPainter({
-    this.color = const Color(0xFF6E5637),
-    this.accentColor = const Color(0xFF9E8667),
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    // 1. Draw head
-    canvas.drawCircle(Offset(size.width * 0.5, size.height * 0.28), size.width * 0.1, paint);
-
-    // 2. Draw mortarboard cap (tilted slightly)
-    final capPath = Path();
-    capPath.moveTo(size.width * 0.5, size.height * 0.05);
-    capPath.lineTo(size.width * 0.72, size.height * 0.14);
-    capPath.lineTo(size.width * 0.5, size.height * 0.23);
-    capPath.lineTo(size.width * 0.28, size.height * 0.14);
-    capPath.close();
-    canvas.drawPath(capPath, paint);
-
-    // Cap tassel
-    final linePaint = Paint()
-      ..color = color
-      ..strokeWidth = 1.2
-      ..style = PaintingStyle.stroke;
-    canvas.drawLine(Offset(size.width * 0.72, size.height * 0.14), Offset(size.width * 0.8, size.height * 0.28), linePaint);
-
-    // 3. Draw active leaping body (gown)
-    final gownPath = Path();
-    gownPath.moveTo(size.width * 0.5, size.height * 0.38);
-    gownPath.quadraticBezierTo(size.width * 0.35, size.height * 0.5, size.width * 0.3, size.height * 0.72);
-    gownPath.lineTo(size.width * 0.65, size.height * 0.68);
-    gownPath.quadraticBezierTo(size.width * 0.6, size.height * 0.5, size.width * 0.5, size.height * 0.38);
-    gownPath.close();
-    canvas.drawPath(gownPath, paint);
-
-    // 4. Draw legs (leaping stance)
-    final legsPaint = Paint()
-      ..color = color
-      ..strokeWidth = 2.0
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-    // Left leg
-    canvas.drawLine(Offset(size.width * 0.4, size.height * 0.7), Offset(size.width * 0.25, size.height * 0.9), legsPaint);
-    // Right leg (bent back)
-    final rightLeg = Path();
-    rightLeg.moveTo(size.width * 0.58, size.height * 0.68);
-    rightLeg.lineTo(size.width * 0.7, size.height * 0.82);
-    rightLeg.lineTo(size.width * 0.6, size.height * 0.92);
-    canvas.drawPath(rightLeg, legsPaint);
-
-    // 5. Draw diploma/book in hand
-    final diplomaPaint = Paint()
-      ..color = accentColor
-      ..style = PaintingStyle.fill;
-    canvas.drawRect(Rect.fromLTWH(size.width * 0.15, size.height * 0.42, size.width * 0.15, size.height * 0.08), diplomaPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant AgeAfricaLogoPainter oldDelegate) {
-    return oldDelegate.color != color || oldDelegate.accentColor != accentColor;
   }
 }
 

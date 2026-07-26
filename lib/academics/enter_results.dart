@@ -39,19 +39,22 @@ class AcademicsManagementComponent extends StatefulWidget {
 class _AcademicsManagementComponentState extends State<AcademicsManagementComponent> {
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _buildHeader(context),
-        const SizedBox(height: 12),
-        const Expanded(child: _EnterResultsSection()),
-      ],
+    return Container(
+      color: Colors.white,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildHeader(context),
+          const Divider(height: 1),
+          const Expanded(child: _EnterResultsSection()),
+        ],
+      ),
     );
   }
 
   Widget _buildHeader(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
       child: Row(
         children: [
           Container(
@@ -239,11 +242,6 @@ class _EnterResultsSectionState extends State<_EnterResultsSection> {
     return '${base}101';
   }
 
-  // ================================================================
-  // IMPORT PIPELINE — any document in → structured candidates →
-  // Review & Correct dialog → applied to the entry rows.
-  // Supported: .csv .txt .xlsx .xls .pdf .docx
-  // ================================================================
   Future<void> _startImportPipeline() async {
     if (_selectedStudent == null) {
       _showSnack('Select a scholar before importing a results document.', isError: true);
@@ -394,39 +392,6 @@ class _EnterResultsSectionState extends State<_EnterResultsSection> {
     }
   }
 
-  void _updateOrAddResult({
-    required String studentId,
-    required String code,
-    required String name,
-    required double marks,
-    required String year,
-    required String period,
-  }) {
-    final graded = gradeFromMarks(marks, isUniversity: _isUniversity);
-
-    final index = kResults.indexWhere(
-          (r) => r.studentId == studentId && r.subject.toLowerCase() == name.toLowerCase() && r.year == year && (_isUniversity ? r.semester == period : r.term == period),
-    );
-
-    final record = ResultRecord(
-      studentId: studentId,
-      code: code,
-      subject: name,
-      marks: marks,
-      gpa: _isUniversity ? graded.point : null,
-      points: !_isUniversity ? graded.point : null,
-      year: year,
-      term: !_isUniversity ? period : null,
-      semester: _isUniversity ? period : null,
-    );
-
-    if (index != -1) {
-      kResults[index] = record;
-    } else {
-      kResults.add(record);
-    }
-  }
-
   void _showSnack(String message, {required bool isError}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -454,26 +419,23 @@ class _EnterResultsSectionState extends State<_EnterResultsSection> {
         ),
       );
     }
-    return Container(
-      color: Colors.white,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 40),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _StepLabel(step: 1, label: "Select Scholar & Period"),
-            const SizedBox(height: 10),
-            _buildFilterCard(),
-            const SizedBox(height: 22),
-            _StepLabel(step: 2, label: "Add Results"),
-            const SizedBox(height: 10),
-            _buildImportBanner(),
-            const SizedBox(height: 12),
-            _buildEntrySection(),
-            const SizedBox(height: 24),
-            _buildActionRow(),
-          ],
-        ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 40),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _StepLabel(step: 1, label: "Select Scholar & Period"),
+          const SizedBox(height: 10),
+          _buildFilterCard(),
+          const SizedBox(height: 22),
+          _StepLabel(step: 2, label: "Add Results"),
+          const SizedBox(height: 10),
+          _buildImportBanner(),
+          const SizedBox(height: 12),
+          _buildEntrySection(),
+          const SizedBox(height: 24),
+          _buildActionRow(),
+        ],
       ),
     );
   }
@@ -810,9 +772,6 @@ class _EnterResultsSectionState extends State<_EnterResultsSection> {
   }
 }
 
-// ============================================================
-// Small "Step N" label used above each section
-// ============================================================
 class _StepLabel extends StatelessWidget {
   const _StepLabel({required this.step, required this.label});
   final int step;
@@ -946,12 +905,6 @@ class _ScholarEntryRow extends StatelessWidget {
   }
 }
 
-// ================================================================================
-// DOCUMENT IMPORT — extraction layer
-// Every supported format is normalized down to a flat List<String> of lines
-// (or "subject <sep> marks" rows), which SmartResultParser then reads.
-// ================================================================================
-
 class ExtractedDocument {
   final List<String> lines;
   final String sourceType;
@@ -1012,11 +965,6 @@ class ResultDocumentImporter {
   }
 }
 
-// ================================================================================
-// SMART PARSER — turns raw lines/rows into (subject, marks) candidates
-// with a confidence rating, so the reviewer knows what to double-check.
-// ================================================================================
-
 enum ImportConfidence { high, medium, low }
 
 class ImportCandidate {
@@ -1040,7 +988,6 @@ class ImportCandidate {
 class SmartResultParser {
   static final _headerWords = {'subject', 'course', 'marks', 'mark', 'score', 'grade', 'title', 'name', 'total', 'points', 'gpa'};
 
-  // Matches "Subject Name  <sep>  85"  or  "Subject Name 85%"  at end of line.
   static final _trailingNumberPattern = RegExp(r'^(.*?)[\s\-:|,]{1,4}(\d{1,3}(?:\.\d+)?)\s*%?$');
 
   static List<ImportCandidate> parse(List<String> lines, List<Subject> knownSubjects) {
@@ -1059,7 +1006,7 @@ class SmartResultParser {
 
       var subjectRaw = match.group(1)!.trim();
       final marksRaw = match.group(2)!.trim();
-      subjectRaw = subjectRaw.replaceAll(RegExp(r'^[\d\.\)\-\s]+'), '').trim(); // strip leading row numbers
+      subjectRaw = subjectRaw.replaceAll(RegExp(r'^[\d\.\)\-\s]+'), '').trim();
 
       if (subjectRaw.isEmpty) continue;
       final marks = double.tryParse(marksRaw);
@@ -1091,7 +1038,6 @@ class SmartResultParser {
       ));
     }
 
-    // De-duplicate on subject name, keeping the highest-confidence hit.
     final seen = <String, ImportCandidate>{};
     for (final c in candidates) {
       final key = c.subjectRaw.toLowerCase();
@@ -1114,12 +1060,6 @@ class SmartResultParser {
     return null;
   }
 }
-
-// ================================================================================
-// REVIEW & CORRECT DIALOG
-// A dedicated, professional data-correction surface shown after every
-// document import — nothing reaches the entry list without passing through here.
-// ================================================================================
 
 class ImportReviewDialog extends StatefulWidget {
   const ImportReviewDialog({

@@ -3,6 +3,7 @@ import '../services/api_service.dart';
 import '../events/events_utils.dart';
 import 'package:intl/intl.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:table_calendar/table_calendar.dart';
 import 'dart:async';
 
 class RecentActivitiesComponent extends StatefulWidget {
@@ -15,12 +16,16 @@ class RecentActivitiesComponent extends StatefulWidget {
 class _RecentActivitiesComponentState extends State<RecentActivitiesComponent> {
   bool _isLoading = true;
   List<OrganisationEvent> _events = [];
+  CalendarFormat _calendarFormat = CalendarFormat.month;
+  DateTime _focusedDay = DateTime.now();
+  DateTime? _selectedDay;
   IO.Socket? _socket;
   Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
+    _selectedDay = _focusedDay;
     _fetchEvents();
     _initSocket();
     // Auto-remove overdue items by refreshing the filter every minute
@@ -84,7 +89,7 @@ class _RecentActivitiesComponentState extends State<RecentActivitiesComponent> {
 
         if (mounted) {
           setState(() {
-            _events = filtered.take(5).toList();
+            _events = filtered;
             _isLoading = false;
           });
         }
@@ -95,11 +100,17 @@ class _RecentActivitiesComponentState extends State<RecentActivitiesComponent> {
     }
   }
 
+  List<OrganisationEvent> _getEventsForDay(DateTime day) {
+    return _events.where((event) => isSameDay(event.date, day)).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     const Color brandBrown = Color(0xFF4C3C32);
     const Color brandOlive = Color(0xFF9AB334);
     const Color brandOrange = Color(0xFFE05B1C);
+
+    final selectedEvents = _getEventsForDay(_selectedDay ?? _focusedDay);
 
     return Container(
       decoration: BoxDecoration(
@@ -109,69 +120,116 @@ class _RecentActivitiesComponentState extends State<RecentActivitiesComponent> {
       ),
       child: Padding(
         padding: const EdgeInsets.all(28.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: brandOrange.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-                  child: const Icon(Icons.event_note_rounded, color: brandOrange, size: 22),
-                ),
-                const SizedBox(width: 16),
-                const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Upcoming Schedule", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: brandBrown, letterSpacing: -0.5)),
-                    Text("Key deadlines and programs", style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 32),
-            if (_isLoading)
-              const Center(child: Padding(padding: EdgeInsets.symmetric(vertical: 40), child: CircularProgressIndicator(color: brandOlive)))
-            else if (_events.isEmpty)
-              const Center(child: Text("No upcoming activities", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)))
-            else
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _events.length,
-                itemBuilder: (context, index) {
-                  final event = _events[index];
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(color: Colors.grey.shade100),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: brandOrange.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                    child: const Icon(Icons.event_note_rounded, color: brandOrange, size: 22),
+                  ),
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Activity Calendar", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: brandBrown, letterSpacing: -0.5)),
+                        Text("Manage events and schedules", style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
+                      ],
                     ),
-                    child: ListTile(
-                      onTap: () => _showEventPopup(context, event),
-                      leading: CircleAvatar(
-                        backgroundColor: brandOrange.withOpacity(0.1),
-                        child: Text(
-                          DateFormat('dd').format(event.date),
-                          style: const TextStyle(color: brandOrange, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      title: Text(
-                        event.title,
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: brandBrown),
-                      ),
-                      subtitle: Text(
-                        event.description,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: Colors.grey),
-                    ),
-                  );
-                },
+                  ),
+                ],
               ),
-          ],
+              const SizedBox(height: 20),
+              TableCalendar<OrganisationEvent>(
+                firstDay: DateTime.utc(2020, 1, 1),
+                lastDay: DateTime.utc(2030, 12, 31),
+                focusedDay: _focusedDay,
+                calendarFormat: _calendarFormat,
+                selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                onDaySelected: (selectedDay, focusedDay) {
+                  if (!isSameDay(_selectedDay, selectedDay)) {
+                    setState(() {
+                      _selectedDay = selectedDay;
+                      _focusedDay = focusedDay;
+                    });
+                  }
+                },
+                onFormatChanged: (format) {
+                  if (_calendarFormat != format) {
+                    setState(() {
+                      _calendarFormat = format;
+                    });
+                  }
+                },
+                onPageChanged: (focusedDay) {
+                  _focusedDay = focusedDay;
+                },
+                eventLoader: _getEventsForDay,
+                calendarStyle: const CalendarStyle(
+                  todayDecoration: BoxDecoration(color: Color(0x409AB334), shape: BoxShape.circle),
+                  selectedDecoration: BoxDecoration(color: Color(0xFF9AB334), shape: BoxShape.circle),
+                  markerDecoration: BoxDecoration(color: Color(0xFFE05B1C), shape: BoxShape.circle),
+                ),
+                headerStyle: const HeaderStyle(
+                  formatButtonVisible: true,
+                  titleCentered: true,
+                  formatButtonShowsNext: false,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                "Events for ${DateFormat('MMM dd, yyyy').format(_selectedDay ?? _focusedDay)}",
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: brandBrown),
+              ),
+              const SizedBox(height: 12),
+              if (_isLoading)
+                const Center(child: Padding(padding: EdgeInsets.symmetric(vertical: 40), child: CircularProgressIndicator(color: brandOlive)))
+              else if (selectedEvents.isEmpty)
+                const Center(child: Padding(padding: EdgeInsets.symmetric(vertical: 20), child: Text("No activities scheduled for this day", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic))))
+              else
+                ListView.builder(
+                  shrinkWrap: true,
+                  padding: EdgeInsets.zero,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: selectedEvents.length,
+                  itemBuilder: (context, index) {
+                    final event = selectedEvents[index];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(color: Colors.grey.shade100),
+                      ),
+                      child: ListTile(
+                        onTap: () => _showEventPopup(context, event),
+                        leading: CircleAvatar(
+                          backgroundColor: brandOrange.withOpacity(0.1),
+                          child: Text(
+                            DateFormat('dd').format(event.date),
+                            style: const TextStyle(color: brandOrange, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        title: Text(
+                          event.title,
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: brandBrown),
+                        ),
+                        subtitle: Text(
+                          event.description,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: Colors.grey),
+                      ),
+                    );
+                  },
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -242,12 +300,14 @@ class _RecentActivitiesComponentState extends State<RecentActivitiesComponent> {
       children: [
         Icon(icon, size: 18, color: color),
         const SizedBox(width: 12),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label, style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.bold)),
-            Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4C3C32))),
-          ],
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.bold)),
+              Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4C3C32))),
+            ],
+          ),
         ),
       ],
     );

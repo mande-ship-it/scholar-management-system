@@ -28,15 +28,11 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
   double _avgAcademicScore = 0.0;
   double _retentionRate = 0.0;
   double _attendanceRate = 0.0;
+  double _successRate = 0.0;
 
   List<dynamic> _academicTrends = [];
   List<dynamic> _sponsorDistribution = [];
-
-  Map<String, int> _regionalCounts = {
-    'Northern Region': 0,
-    'Central Region': 0,
-    'Southern Region': 0,
-  };
+  List<dynamic> _cohortDensity = [];
 
   @override
   void initState() {
@@ -51,19 +47,23 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
       final response = await ApiService.getDashboardStats();
       if (response.statusCode == 200) {
         final stats = response.data['data'] ?? {};
-        setState(() {
-          _totalScholars = stats['scholars'] ?? 0;
-          _partnerSchools = stats['schools'] ?? 0;
-          _totalSponsors = stats['sponsors'] ?? 0;
-          _graduatedCount = stats['graduated'] ?? 0;
-          _atRiskCount = stats['atRisk'] ?? 0;
-          _academicTrends = stats['academicTrends'] ?? [];
-          _sponsorDistribution = stats['sponsorDistribution'] ?? [];
-          final pulse = stats['pulse'] ?? {};
-          _retentionRate = double.parse(pulse['retention']?.toString() ?? '0.0');
-          _avgAcademicScore = double.parse(pulse['avgScore']?.toString() ?? '0.0');
-          _attendanceRate = double.parse(pulse['attendance']?.toString() ?? '0.0');
-        });
+        if (mounted) {
+          setState(() {
+            _totalScholars = stats['scholars'] ?? 0;
+            _partnerSchools = stats['schools'] ?? 0;
+            _totalSponsors = stats['sponsors'] ?? 0;
+            _graduatedCount = stats['graduated'] ?? 0;
+            _atRiskCount = stats['atRisk'] ?? 0;
+            _academicTrends = stats['academicTrends'] ?? [];
+            _sponsorDistribution = stats['sponsorDistribution'] ?? [];
+            _cohortDensity = stats['cohortDensity'] ?? [];
+            final pulse = stats['pulse'] ?? {};
+            _retentionRate = double.parse(pulse['retention']?.toString() ?? '0.0');
+            _avgAcademicScore = double.parse(pulse['avgScore']?.toString() ?? '0.0');
+            _attendanceRate = double.parse(pulse['attendance']?.toString() ?? '0.0');
+            _successRate = double.parse(pulse['successRate']?.toString() ?? '0.0');
+          });
+        }
       }
     } catch (e) {
       debugPrint('Error fetching dashboard stats: $e');
@@ -75,9 +75,9 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Center(
+      return const Center(
         child: Padding(
-          padding: const EdgeInsets.all(60),
+          padding: EdgeInsets.all(60),
           child: CircularProgressIndicator(color: kS_Olive),
         ),
       );
@@ -99,9 +99,9 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
               mainAxisSpacing: 16,
               childAspectRatio: 2.2,
               children: [
-                _buildKpiCard("Total Scholars", "$_totalScholars", "Active", Icons.people_alt_rounded, kS_Olive),
+                _buildKpiCard("Total Scholars", "$_totalScholars", "Registered", Icons.people_alt_rounded, kS_Olive),
                 _buildKpiCard("Partner Schools", "$_partnerSchools", "Total", Icons.account_balance_rounded, kS_Brown),
-                _buildKpiCard("Active Sponsors", "$_totalSponsors", "Gold/Silver", Icons.volunteer_activism_rounded, kS_Gold),
+                _buildKpiCard("Active Sponsors", "$_totalSponsors", "Total", Icons.volunteer_activism_rounded, kS_Gold),
                 _buildKpiCard("Graduated", "$_graduatedCount", "Completed", Icons.school_rounded, Colors.green),
                 _buildKpiCard("At-Risk Scholars", "$_atRiskCount", "Action Required", Icons.warning_amber_rounded, kS_Orange),
               ],
@@ -124,6 +124,24 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
               _buildAcademicBezierCard(),
               const SizedBox(height: 20),
               _buildRadialPulseCard(),
+            ],
+          ),
+        const SizedBox(height: 24),
+        if (isWide)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: _buildCohortDensityCard()),
+              const SizedBox(width: 20),
+              Expanded(child: _buildSponsorTiersCard()),
+            ],
+          )
+        else
+          Column(
+            children: [
+              _buildCohortDensityCard(),
+              const SizedBox(height: 20),
+              _buildSponsorTiersCard(),
             ],
           ),
       ],
@@ -193,17 +211,17 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
   Widget _buildRadialPulseCard() {
     return _DashboardCardFrame(
       title: "Core Operations Pulse",
-      subtitle: "Aggregated status rates and retention targets",
+      subtitle: "Aggregated status rates and overall success",
       child: Column(
         children: [
           const SizedBox(height: 16),
-          SizedBox(height: 180, child: CustomPaint(painter: ConcentricPulseRingsPainter(retention: _retentionRate / 100, attendance: _attendanceRate / 100, score: _avgAcademicScore / 100))),
+          SizedBox(height: 180, child: CustomPaint(painter: ConcentricPulseRingsPainter(retention: _retentionRate / 100, attendance: _attendanceRate / 100, score: _successRate / 100))),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _ringLegendItem("Retention", "${_retentionRate.toStringAsFixed(1)}%", kS_Orange),
-              _ringLegendItem("Avg Score", "${_avgAcademicScore.toStringAsFixed(1)}%", kS_Gold),
+              _ringLegendItem("Overall Success", "${_successRate.toStringAsFixed(1)}%", kS_Gold),
               _ringLegendItem("Attendance", "${_attendanceRate.toStringAsFixed(1)}%", kS_Olive),
             ],
           ),
@@ -246,16 +264,27 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
     );
   }
 
-  Widget _buildRegionalDensityCard() {
+  Widget _buildCohortDensityCard() {
+    int maxVal = 1;
+    if (_cohortDensity.isNotEmpty) {
+      maxVal = _cohortDensity.map((e) => e['value'] as int).reduce(math.max);
+    }
+    
     return _DashboardCardFrame(
-      title: "Regional Density Index",
-      subtitle: "Geographic concentrations of partner schools",
+      title: "Cohort Density Index",
+      subtitle: "Number of students registered per year",
       child: Column(
         children: [
           const SizedBox(height: 16),
-          _densityRow("Central Region", (_regionalCounts['Central Region'] ?? 0) / 10.0, kS_Olive, _regionalCounts['Central Region'] ?? 0),
-          _densityRow("Northern Region", (_regionalCounts['Northern Region'] ?? 0) / 10.0, Colors.blueAccent, _regionalCounts['Northern Region'] ?? 0),
-          _densityRow("Southern Region", (_regionalCounts['Southern Region'] ?? 0) / 10.0, kS_Brown, _regionalCounts['Southern Region'] ?? 0),
+          if (_cohortDensity.isEmpty) 
+            const Center(child: Text("No cohort data available", style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey)))
+          else
+            ..._cohortDensity.map((e) => _densityRow(
+              "Cohort ${e['label']}", 
+              (e['value'] as int) / (maxVal == 0 ? 1 : maxVal).toDouble(), 
+              kS_Olive, 
+              e['value'] as int
+            )).toList(),
         ],
       ),
     );
@@ -265,7 +294,7 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kS_Brown)), Text("$count Schools", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color))]),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kS_Brown)), Text("$count Scholars", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color))]),
         const SizedBox(height: 6),
         Container(height: 8, width: double.infinity, decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(4)), child: FractionallySizedBox(alignment: Alignment.centerLeft, widthFactor: val.clamp(0, 1), child: Container(decoration: BoxDecoration(gradient: LinearGradient(colors: [color.withOpacity(0.6), color]), borderRadius: BorderRadius.circular(4))))),
       ]),
