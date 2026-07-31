@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../academics/academics_utils.dart';
-import '../services/api_service.dart';
+import 'package:scholar_management_system/services/api_service.dart';
 import 'sponsors_utils.dart';
 import 'register_sponsor.dart';
 
@@ -36,11 +36,27 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
   bool _isLoading = true;
   String? _loadError;
   String _searchQuery = '';
+  String _userRole = 'User';
 
   @override
   void initState() {
     super.initState();
     _loadSponsors();
+    _fetchUserRole();
+  }
+
+  Future<void> _fetchUserRole() async {
+    try {
+      final response = await ApiService.getAccountProfile();
+      if (response.statusCode == 200) {
+        final data = response.data['data'];
+        if (data != null && mounted) {
+          setState(() {
+            _userRole = data['role_name'] ?? 'User';
+          });
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadSponsors() async {
@@ -62,7 +78,7 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
               email: s['email'] ?? '',
               phone: s['phone'] ?? '',
               contactPerson: s['contact_person'] ?? '',
-              sponsorshipType: s['sponsorship_type'] ?? 'Bronze',
+              sponsorshipType: s['sponsorship_type'] ?? 'Standard',
               amount: double.tryParse(s['amount'].toString()) ?? 0,
               registrationDate: s['registration_date'] != null ? DateTime.parse(s['registration_date']) : DateTime.now(),
               address: s['address'] ?? '',
@@ -91,26 +107,9 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
           : _sponsors.where((s) {
         return s.name.toLowerCase().contains(query) ||
             s.organization.toLowerCase().contains(query) ||
-            s.email.toLowerCase().contains(query) ||
-            s.sponsorshipType.toLowerCase().contains(query);
+            s.email.toLowerCase().contains(query);
       }).toList();
     });
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/'
-        '${date.month.toString().padLeft(2, '0')}/'
-        '${date.year}';
-  }
-
-  String _formatAmount(double amount) {
-    final fixed = amount.toStringAsFixed(0);
-    final parts = fixed.split('.');
-    final whole = parts[0].replaceAllMapped(
-      RegExp(r'\B(?=(\d{3})+(?!\d))'),
-          (m) => ',',
-    );
-    return 'MWK $whole';
   }
 
   Future<void> _openEditForm(Sponsor sponsor) async {
@@ -227,20 +226,9 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
                             children: [
                               Text(sponsor.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: kBrandBrown)),
                               const SizedBox(height: 4),
-                              Text(sponsor.organization, style: TextStyle(fontSize: 16, color: Colors.grey.shade600)),
+                              Text(sponsor.organization.isEmpty ? 'Individual Sponsor' : sponsor.organization,
+                                style: TextStyle(fontSize: 16, color: Colors.grey.shade600)),
                             ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: getSponsorshipTypeColor(sponsor.sponsorshipType).withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: getSponsorshipTypeColor(sponsor.sponsorshipType).withValues(alpha: 0.3)),
-                          ),
-                          child: Text(
-                            sponsor.sponsorshipType,
-                            style: TextStyle(color: getSponsorshipTypeColor(sponsor.sponsorshipType), fontWeight: FontWeight.bold),
                           ),
                         ),
                       ],
@@ -252,12 +240,6 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
                           icon: Icons.circle,
                           label: sponsor.status,
                           color: sponsor.status == 'Active' ? Colors.green : Colors.grey,
-                        ),
-                        const SizedBox(width: 12),
-                        _DetailBadge(
-                          icon: Icons.calendar_today_rounded,
-                          label: 'Since ${_formatDate(sponsor.registrationDate)}',
-                          color: kBrandOlive,
                         ),
                       ],
                     ),
@@ -271,48 +253,51 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
                         _DetailRow(icon: Icons.location_on_outlined, label: 'Address', value: sponsor.address.isEmpty ? '—' : sponsor.address),
                       ],
                     ),
-                    const SizedBox(height: 32),
-                    _DetailSection(
-                      title: 'Sponsorship Details',
-                      children: [
-                        _DetailRow(icon: Icons.payments_outlined, label: 'Commitment', value: _formatAmount(sponsor.amount)),
-                        _DetailRow(icon: Icons.notes_rounded, label: 'Additional Notes', value: sponsor.notes.isEmpty ? 'No notes recorded.' : sponsor.notes),
-                      ],
-                    ),
-                    const SizedBox(height: 40),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                              _openEditForm(sponsor);
-                            },
-                            icon: const Icon(Icons.edit_outlined),
-                            label: const Text('Edit Profile'),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              foregroundColor: kBrandBrown,
+                    if (sponsor.notes.isNotEmpty) ...[
+                      const SizedBox(height: 32),
+                      _DetailSection(
+                        title: 'Additional Information',
+                        children: [
+                          _DetailRow(icon: Icons.notes_rounded, label: 'Notes', value: sponsor.notes),
+                        ],
+                      ),
+                    ],
+                    if (_userRole == 'Administrator') ...[
+                      const SizedBox(height: 40),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                                _openEditForm(sponsor);
+                              },
+                              icon: const Icon(Icons.edit_outlined),
+                              label: const Text('Edit Profile'),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                foregroundColor: kBrandBrown,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.red.shade600,
-                              side: BorderSide(color: Colors.red.shade200),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.red.shade600,
+                                side: BorderSide(color: Colors.red.shade200),
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              onPressed: () => _confirmDelete(sponsor),
+                              icon: const Icon(Icons.delete_outline),
+                              label: const Text('Delete'),
                             ),
-                            onPressed: () => _confirmDelete(sponsor),
-                            icon: const Icon(Icons.delete_outline),
-                            label: const Text('Delete'),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -369,24 +354,25 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
                   tooltip: 'Refresh',
                 ),
                 const SizedBox(width: 8),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    if (widget.onRegisterSponsor != null) {
-                      widget.onRegisterSponsor!();
-                    } else {
-                      Navigator.pushNamed(context, '/sponsors/register');
-                    }
-                  },
-                  icon: const Icon(Icons.person_add_rounded, size: 18),
-                  label: const Text("Register Sponsor"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kBrandOlive,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    elevation: 0,
+                if (_userRole == 'Administrator')
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      if (widget.onRegisterSponsor != null) {
+                        widget.onRegisterSponsor!();
+                      } else {
+                        Navigator.pushNamed(context, '/sponsors/register');
+                      }
+                    },
+                    icon: const Icon(Icons.person_add_rounded, size: 18),
+                    label: const Text("Register Sponsor"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kBrandOlive,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      elevation: 0,
+                    ),
                   ),
-                ),
               ],
             ),
           ),
@@ -442,11 +428,6 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
 
     final totalSponsors = _sponsors.length;
     final activeSponsors = _sponsors.where((s) => s.status == 'Active').length;
-    final totalFunding = _sponsors.fold<double>(0, (sum, s) => sum + s.amount);
-    
-    // Tier distribution
-    final platinum = _sponsors.where((s) => s.sponsorshipType == 'Platinum').length;
-    final gold = _sponsors.where((s) => s.sponsorshipType == 'Gold').length;
 
     return Row(
       children: [
@@ -456,22 +437,6 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
           icon: Icons.handshake_rounded,
           color: kBrandOlive,
           subtitle: "Total registered: $totalSponsors",
-        ),
-        const SizedBox(width: 16),
-        _StatTile(
-          label: "Total Committed",
-          value: _formatAmount(totalFunding),
-          icon: Icons.account_balance_wallet_rounded,
-          color: kBrandBrown,
-          subtitle: "Across all tiers",
-        ),
-        const SizedBox(width: 16),
-        _StatTile(
-          label: "Top Tiers",
-          value: "${platinum + gold}",
-          icon: Icons.workspace_premium_rounded,
-          color: kBrandOrange,
-          subtitle: "Platinum & Gold",
         ),
       ],
     );
@@ -523,32 +488,23 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
         separatorBuilder: (context, index) => const Divider(height: 1),
         itemBuilder: (context, index) {
           final sponsor = _filteredSponsors[index];
-          final typeColor = getSponsorshipTypeColor(sponsor.sponsorshipType);
           return ListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             leading: CircleAvatar(
               radius: 22,
-              backgroundColor: typeColor.withValues(alpha: 0.1),
+              backgroundColor: kBrandOlive.withValues(alpha: 0.1),
               child: Text(
                 sponsor.name.isNotEmpty ? sponsor.name[0].toUpperCase() : '?',
-                style: TextStyle(color: typeColor, fontWeight: FontWeight.bold),
+                style: const TextStyle(color: kBrandOlive, fontWeight: FontWeight.bold),
               ),
             ),
             title: Text(sponsor.name, style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown)),
-            subtitle: Row(
-              children: [
-                Text(sponsor.sponsorshipType, style: TextStyle(fontSize: 12, color: typeColor, fontWeight: FontWeight.w600)),
-                const SizedBox(width: 8),
-                const Icon(Icons.circle, size: 4, color: Colors.grey),
-                const SizedBox(width: 8),
-                Text(sponsor.organization, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-              ],
-            ),
+            subtitle: Text(sponsor.organization.isEmpty ? 'Individual Sponsor' : sponsor.organization,
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
             trailing: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(_formatAmount(sponsor.amount), style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown)),
                 Text(sponsor.status, style: TextStyle(fontSize: 11, color: sponsor.status == 'Active' ? Colors.green : Colors.grey, fontWeight: FontWeight.bold)),
               ],
             ),

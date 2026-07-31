@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/api_service.dart';
+import 'package:scholar_management_system/services/api_service.dart';
+import '../academics/academics_utils.dart';
 
 class CreateUserComponent extends StatefulWidget {
   const CreateUserComponent({super.key});
@@ -17,33 +18,25 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-  TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
 
   // Dropdown / toggle state
   String? _selectedRole;
-  String? _selectedDepartment;
+  dynamic _selectedDepartmentId;
   bool _isActive = true;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isSubmitting = false;
 
   final List<String> _roles = [];
-  final List<String> _departments = [
-    'Programs',
-    'Finance & Administration',
-    'Human Resources',
-    'Procurement',
-    'Information Technology',
-    'Field Operations',
-    'Monitoring & Evaluation',
-  ];
+  final List<dynamic> _departments = [];
 
   @override
   void initState() {
     super.initState();
     _fetchRoles();
+    _fetchDepartments();
   }
 
   Future<void> _fetchRoles() async {
@@ -56,7 +49,6 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
             _roles.clear();
             _roles.addAll(data.map((r) => r['name'].toString()).toList());
             
-            // Auto-select "Administrator" or first role if none selected
             if (_roles.isNotEmpty && _selectedRole == null) {
               if (_roles.contains('Administrator')) {
                 _selectedRole = 'Administrator';
@@ -69,11 +61,23 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
       }
     } catch (e) {
       debugPrint('Error fetching roles: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to load roles: $e")),
-        );
+    }
+  }
+
+  Future<void> _fetchDepartments() async {
+    try {
+      final response = await ApiService.getAllDepartments();
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data['data'] ?? [];
+        if (mounted) {
+          setState(() {
+            _departments.clear();
+            _departments.addAll(data);
+          });
+        }
       }
+    } catch (e) {
+      debugPrint('Error fetching departments: $e');
     }
   }
 
@@ -100,7 +104,6 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
         .toUpperCase();
   }
 
-  // Simple password strength estimation (0-4)
   int _passwordStrength(String password) {
     int score = 0;
     if (password.length >= 8) score++;
@@ -113,28 +116,20 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
   Color _strengthColor(int strength) {
     switch (strength) {
       case 0:
-      case 1:
-        return Colors.red.shade400;
-      case 2:
-        return Colors.orange.shade600;
-      case 3:
-        return Colors.amber.shade700;
-      default:
-        return Colors.green.shade600;
+      case 1: return Colors.red;
+      case 2: return Colors.orange;
+      case 3: return Colors.amber;
+      default: return kBrandOlive;
     }
   }
 
   String _strengthLabel(int strength) {
     switch (strength) {
       case 0:
-      case 1:
-        return "Weak";
-      case 2:
-        return "Fair";
-      case 3:
-        return "Good";
-      default:
-        return "Strong";
+      case 1: return "Weak";
+      case 2: return "Fair";
+      case 3: return "Good";
+      default: return "Strong";
     }
   }
 
@@ -149,10 +144,8 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
       _confirmPasswordController.clear();
       _notesController.clear();
       _selectedRole = null;
-      _selectedDepartment = null;
+      _selectedDepartmentId = null;
       _isActive = true;
-      _obscurePassword = true;
-      _obscureConfirmPassword = true;
     });
   }
 
@@ -167,7 +160,7 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
         'phone': _phoneController.text.trim(),
         'password': _passwordController.text.trim(),
         'roleName': _selectedRole,
-        'department': _selectedDepartment,
+        'departmentId': _selectedDepartmentId,
         'isActive': _isActive,
         'notes': _notesController.text.trim(),
       };
@@ -179,36 +172,18 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                "User '${_fullNameController.text.trim()}' created successfully! Notification email sent.",
-              ),
-              backgroundColor: Colors.green.shade700,
+              content: Text("User account created successfully. Activation email sent."),
+              backgroundColor: kBrandOlive,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              duration: const Duration(seconds: 4),
             ),
           );
           _resetForm();
-        } else {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(response.data['message'] ?? "Failed to create user."),
-              backgroundColor: Colors.redAccent,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-          );
         }
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text("Connection error. Please try again."),
-            backgroundColor: Colors.redAccent,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
+          const SnackBar(content: Text("Account creation failed. Please check connection."), backgroundColor: Colors.redAccent),
         );
       } finally {
         if (mounted) setState(() => _isSubmitting = false);
@@ -216,504 +191,274 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
     }
   }
 
-  InputDecoration _fieldDecoration({
-    required String label,
-    required IconData icon,
-    String? helperText,
-    Widget? suffixIcon,
-  }) {
-    return InputDecoration(
-      labelText: label,
-      helperText: helperText,
-      prefixIcon: Icon(icon, size: 20),
-      suffixIcon: suffixIcon,
-      isDense: true,
-      filled: true,
-      fillColor: Colors.white,
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.grey.shade200),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.green.shade400, width: 1.4),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.red.shade300),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.red.shade400, width: 1.4),
-      ),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-    );
-  }
-
-  Widget _sectionHeader(String title, IconData icon) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(7),
-            decoration: BoxDecoration(
-              color: Colors.green.shade50,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, size: 16, color: Colors.green.shade700),
-          ),
-          const SizedBox(width: 10),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: Colors.green.shade900,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(child: Divider(color: Colors.grey.shade200, thickness: 1)),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final strength = _passwordStrength(_passwordController.text);
 
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 3))],
+      ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
         children: [
-          // ---------------- Clean Header ----------------
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
-            child: Row(
-              children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.green.shade100, width: 1.5),
-                  ),
-                  alignment: Alignment.center,
-                  child: AnimatedBuilder(
-                    animation: _fullNameController,
-                    builder: (context, _) {
-                      final initials = _initialsOf(_fullNameController.text);
-                      return Text(
-                        initials.isEmpty ? '?' : initials,
-                        style: TextStyle(
-                          color: Colors.green.shade800,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Create New User",
-                        style: TextStyle(
-                          color: Color(0xFF4C3C32),
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        "Provision a new system account with role-based access.",
-                        style: TextStyle(fontSize: 13, color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.person_add_alt_1_rounded,
-                          size: 14, color: Colors.green.shade700),
-                      const SizedBox(width: 6),
-                      Text(
-                        "New Account",
-                        style: TextStyle(
-                          color: Colors.green.shade800,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Divider(indent: 20, endIndent: 20, height: 32),
-
-          // ---------------- Form body (scrollable, fills remaining space) ----------------
+          // 1. Header
+          _buildHeader(),
+          
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(28, 22, 28, 8),
+              padding: const EdgeInsets.all(32),
               child: Form(
                 key: _formKey,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // SECTION 1: Personal Information
-                    _sectionHeader("Personal Information", Icons.person_outline),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: TextFormField(
-                            controller: _fullNameController,
-                            decoration: _fieldDecoration(
-                              label: "Full Name *",
-                              icon: Icons.badge_outlined,
-                            ),
-                            onChanged: (_) => setState(() {}),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return "Enter the user's full name";
-                              }
-                              if (value.trim().length < 3) {
-                                return "Name is too short";
-                              }
-                              return null;
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: TextFormField(
-                            controller: _phoneController,
-                            keyboardType: TextInputType.phone,
-                            decoration: _fieldDecoration(
-                              label: "Phone Number",
-                              icon: Icons.phone_outlined,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    _sectionTitle("1. Identity & Profile"),
                     const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: _fieldDecoration(
-                        label: "Email Address *",
-                        icon: Icons.email_outlined,
-                        helperText: "Used for login notifications and password resets",
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return "Enter an email address";
-                        }
-                        final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
-                        if (!emailRegex.hasMatch(value.trim())) {
-                          return "Enter a valid email address";
-                        }
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // SECTION 2: Account & Access
-                    _sectionHeader("Account & Access", Icons.admin_panel_settings_outlined),
-                    TextFormField(
-                      controller: _usernameController,
-                      decoration: _fieldDecoration(
-                        label: "Username *",
-                        icon: Icons.alternate_email,
-                        helperText: "Must be unique; used to sign in to the system",
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return "Enter a username";
-                        }
-                        if (value.trim().contains(' ')) {
-                          return "Username cannot contain spaces";
-                        }
-                        if (value.trim().length < 4) {
-                          return "Username must be at least 4 characters";
-                        }
-                        return null;
-                      },
-                    ),
+                    _buildIdentityCard(),
+                    
+                    const SizedBox(height: 32),
+                    _sectionTitle("2. System Access & Permissions"),
                     const SizedBox(height: 16),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: _selectedRole,
-                            isExpanded: true,
-                            decoration: _fieldDecoration(
-                              label: "Role *",
-                              icon: Icons.shield_outlined,
-                              suffixIcon: _roles.isEmpty 
-                                ? IconButton(
-                                    icon: const Icon(Icons.refresh, size: 18),
-                                    onPressed: _fetchRoles,
-                                    tooltip: "Retry loading roles",
-                                  )
-                                : null,
-                            ),
-                            items: _roles.map((role) {
-                              return DropdownMenuItem(
-                                value: role,
-                                child: Text(role, overflow: TextOverflow.ellipsis),
-                              );
-                            }).toList(),
-                            onChanged: (val) => setState(() => _selectedRole = val),
-                            validator: (val) => val == null ? "Select a role" : null,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            initialValue: _selectedDepartment,
-                            isExpanded: true,
-                            decoration: _fieldDecoration(
-                              label: "Department",
-                              icon: Icons.apartment_outlined,
-                            ),
-                            items: _departments.map((dept) {
-                              return DropdownMenuItem(
-                                value: dept,
-                                child: Text(dept, overflow: TextOverflow.ellipsis),
-                              );
-                            }).toList(),
-                            onChanged: (val) => setState(() => _selectedDepartment = val),
-                          ),
-                        ),
-                      ],
-                    ),
+                    _buildAccessCard(),
+
+                    const SizedBox(height: 32),
+                    _sectionTitle("3. Security Credentials"),
                     const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.grey.shade200),
-                      ),
-                      child: SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text(
-                          "Account Status",
-                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                        ),
-                        subtitle: Text(
-                          _isActive
-                              ? "Active — user can sign in immediately"
-                              : "Inactive — user access is disabled",
-                          style: TextStyle(
-                            fontSize: 12.5,
-                            color: _isActive ? Colors.green.shade700 : Colors.grey.shade600,
-                          ),
-                        ),
-                        value: _isActive,
-                        activeThumbColor: Colors.green.shade700,
-                        onChanged: (val) => setState(() => _isActive = val),
-                        secondary: Icon(
-                          _isActive ? Icons.check_circle_outline : Icons.pause_circle_outline,
-                          color: _isActive ? Colors.green.shade700 : Colors.grey.shade500,
-                        ),
-                      ),
-                    ),
+                    _buildSecurityCard(strength),
 
-                    const SizedBox(height: 24),
-
-                    // SECTION 3: Security
-                    _sectionHeader("Security", Icons.lock_outline),
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      decoration: _fieldDecoration(
-                        label: "Password *",
-                        icon: Icons.lock_outline,
-                        helperText: "At least 8 characters, with a number and a symbol",
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                            size: 20,
-                          ),
-                          onPressed: () =>
-                              setState(() => _obscurePassword = !_obscurePassword),
-                        ),
-                      ),
-                      onChanged: (_) => setState(() {}),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return "Enter a password";
-                        }
-                        if (value.length < 8) {
-                          return "Password must be at least 8 characters";
-                        }
-                        return null;
-                      },
-                    ),
-                    if (_passwordController.text.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(6),
-                              child: LinearProgressIndicator(
-                                value: strength / 4,
-                                minHeight: 6,
-                                backgroundColor: Colors.grey.shade200,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  _strengthColor(strength),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Text(
-                            _strengthLabel(strength),
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: _strengthColor(strength),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _confirmPasswordController,
-                      obscureText: _obscureConfirmPassword,
-                      decoration: _fieldDecoration(
-                        label: "Confirm Password *",
-                        icon: Icons.lock_reset_outlined,
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscureConfirmPassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                            size: 20,
-                          ),
-                          onPressed: () => setState(
-                                  () => _obscureConfirmPassword = !_obscureConfirmPassword),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return "Confirm the password";
-                        }
-                        if (value != _passwordController.text) {
-                          return "Passwords do not match";
-                        }
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // SECTION 4: Additional Notes
-                    _sectionHeader("Additional Information", Icons.info_outline),
-                    TextFormField(
-                      controller: _notesController,
-                      maxLines: 3,
-                      decoration: _fieldDecoration(
-                        label: "Additional Notes",
-                        icon: Icons.notes_outlined,
-                        helperText: "Optional — any extra context about this user",
-                      ),
-                    ),
-
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 48),
+                    _buildSubmitButton(),
+                    const SizedBox(height: 40),
                   ],
                 ),
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
 
-          // ---------------- Footer actions ----------------
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 20, 20, 20),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Row(
+        children: [
           Container(
-            padding: const EdgeInsets.fromLTRB(28, 14, 28, 18),
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
-              border: Border(top: BorderSide(color: Colors.grey.shade200)),
+              color: kBrandOlive.withOpacity(0.15),
+              shape: BoxShape.circle,
             ),
-            child: Row(
+            alignment: Alignment.center,
+            child: Text(
+              _initialsOf(_fullNameController.text),
+              style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: 18),
+            ),
+          ),
+          const SizedBox(width: 16),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _isSubmitting ? null : _resetForm,
-                    icon: const Icon(Icons.refresh, size: 18),
-                    label: const Text("Clear Form"),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      foregroundColor: Colors.grey.shade700,
-                      side: BorderSide(color: Colors.grey.shade300),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: ElevatedButton.icon(
-                    onPressed: _isSubmitting ? null : _submitForm,
-                    icon: _isSubmitting
-                        ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor:
-                        AlwaysStoppedAnimation<Color>(Colors.white),
-                      ),
-                    )
-                        : const Icon(Icons.save, size: 18),
-                    label: Text(
-                      _isSubmitting ? "Creating User..." : "Save User",
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor: Colors.green.shade700,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-                ),
+                Text("Create User Account", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                Text("Provision a new system user with specialized role permissions.", style: TextStyle(fontSize: 12, color: Colors.grey)),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _sectionTitle(String text) {
+    return Text(
+      text.toUpperCase(),
+      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.1, color: Colors.grey),
+    );
+  }
+
+  Widget _buildIdentityCard() {
+    return _cardShell(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _buildTextField(_fullNameController, "Full Name", Icons.badge_outlined, onChanged: (v) => setState(() {})),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: _buildTextField(_phoneController, "Phone Number", Icons.phone_outlined, keyboardType: TextInputType.phone),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        _buildTextField(_emailController, "Email Address", Icons.email_outlined, keyboardType: TextInputType.emailAddress, helper: "Notifications and password resets will be sent here."),
+      ],
+    );
+  }
+
+  Widget _buildAccessCard() {
+    return _cardShell(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _buildDropdown("Assigned Role", _selectedRole, _roles, Icons.shield_outlined, (v) => setState(() => _selectedRole = v)),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: DropdownButtonFormField<dynamic>(
+                value: _selectedDepartmentId,
+                isExpanded: true,
+                decoration: _inputDeco("Department", Icons.apartment_rounded),
+                items: _departments.map((d) => DropdownMenuItem(value: d['id'], child: Text(d['name'], overflow: TextOverflow.ellipsis))).toList(),
+                onChanged: (v) => setState(() => _selectedDepartmentId = v),
+                validator: (v) => v == null ? "Required" : null,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        _buildTextField(_usernameController, "System Username", Icons.alternate_email_rounded, helper: "Must be unique. Used for signing in."),
+        const SizedBox(height: 24),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
+          child: SwitchListTile(
+            title: const Text("Enable Account", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            subtitle: const Text("Allow this user to sign in immediately upon registration.", style: TextStyle(fontSize: 12)),
+            value: _isActive,
+            activeColor: kBrandOlive,
+            onChanged: (v) => setState(() => _isActive = v),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSecurityCard(int strength) {
+    return _cardShell(
+      children: [
+        TextFormField(
+          controller: _passwordController,
+          obscureText: _obscurePassword,
+          onChanged: (_) => setState(() {}),
+          decoration: _inputDeco("Secure Password", Icons.lock_outline_rounded).copyWith(
+            suffixIcon: IconButton(
+              icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 20),
+              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+            ),
+          ),
+        ),
+        if (_passwordController.text.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(value: strength / 4, minHeight: 6, color: _strengthColor(strength), backgroundColor: Colors.grey.shade100),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(_strengthLabel(strength), style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _strengthColor(strength))),
+            ],
+          ),
+        ],
+        const SizedBox(height: 20),
+        TextFormField(
+          controller: _confirmPasswordController,
+          obscureText: _obscureConfirmPassword,
+          decoration: _inputDeco("Confirm Password", Icons.lock_reset_rounded).copyWith(
+            suffixIcon: IconButton(
+              icon: Icon(_obscureConfirmPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 20),
+              onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSubmitButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: _isSubmitting ? null : _submitForm,
+        icon: _isSubmitting 
+            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+            : const Icon(Icons.person_add_rounded, size: 20),
+        label: Text(_isSubmitting ? "CREATING ACCOUNT..." : "REGISTER USER ACCOUNT", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 22),
+          backgroundColor: kBrandOlive,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+    );
+  }
+
+  Widget _cardShell({required List<Widget> children}) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
+    );
+  }
+
+  Widget _buildTextField(TextEditingController controller, String label, IconData icon, {TextInputType? keyboardType, String? helper, Function(String)? onChanged}) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      onChanged: onChanged,
+      decoration: _inputDeco(label, icon).copyWith(helperText: helper),
+      validator: (v) => (v == null || v.isEmpty) ? "Field is required" : null,
+    );
+  }
+
+  Widget _buildDropdown(String label, String? value, List<String> items, IconData icon, Function(String?) onChanged) {
+    return DropdownButtonFormField<String>(
+      value: value,
+      isExpanded: true,
+      decoration: _inputDeco(label, icon),
+      items: items.map((i) => DropdownMenuItem(value: i, child: Text(i, overflow: TextOverflow.ellipsis))).toList(),
+      onChanged: onChanged,
+      validator: (v) => v == null ? "Required" : null,
+    );
+  }
+
+  InputDecoration _inputDeco(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, size: 20, color: kBrandBrown.withOpacity(0.6)),
+      isDense: true,
+      filled: true,
+      fillColor: Colors.grey.shade50,
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kBrandOlive, width: 2)),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+      helperStyle: const TextStyle(fontSize: 10),
     );
   }
 }

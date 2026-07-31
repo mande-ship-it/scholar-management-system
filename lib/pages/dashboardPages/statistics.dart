@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../dashBoard/statistics.dart';
+import '../../dashboard/statistics.dart';
 
 class StatisticsPage extends StatelessWidget {
   const StatisticsPage({super.key});
@@ -9,7 +9,7 @@ class StatisticsPage extends StatelessWidget {
     return const Scaffold(
       body: Padding(
         padding: EdgeInsets.all(20),
-        child: StatisticsComponent(),
+        child: StatisticsComponent(level: 'University'),
       ),
     );
   }

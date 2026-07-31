@@ -8,10 +8,8 @@ class RegisterScholarPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: RegisterScholarComponent(onRegister: onSuccess != null ? (_) async => onSuccess!() : null),
-      ),
+      backgroundColor: Colors.white,
+      body: RegisterScholarComponent(onRegister: onSuccess != null ? (_) async => onSuccess!() : null),
     );
   }
 }

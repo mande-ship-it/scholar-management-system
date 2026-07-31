@@ -2,7 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../academics/academics_utils.dart';
-import '../services/api_service.dart';
+import 'package:scholar_management_system/services/api_service.dart';
 
 /// ---------------------------------------------------------------------
 /// SUPPORT MODELS
@@ -384,9 +384,7 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
                       border: Border.all(color: kBrandCream, width: 2),
                       image: (_profilePicture != null) 
                         ? DecorationImage(
-                            image: NetworkImage(_profilePicture!.startsWith('http') 
-                                ? _profilePicture! 
-                                : '${ApiService.baseUrl}${_profilePicture!.startsWith('/') ? '' : '/'}$_profilePicture'),
+                            image: NetworkImage(ApiService.getFullUrl(_profilePicture)),
                             fit: BoxFit.cover,
                           ) 
                         : null,

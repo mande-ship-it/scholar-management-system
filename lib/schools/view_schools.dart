@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:excel/excel.dart' hide Border;
-import '../services/api_service.dart';
+import 'package:scholar_management_system/services/api_service.dart';
 import '../services/file_download_service.dart';
 import 'school_dialogs.dart';
 
@@ -33,6 +33,7 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
   String _selectedLevel = 'All';
   String _selectedRegion = 'All';
   bool _isLoading = true;
+  String _userRole = 'User';
 
   List<Map<String, dynamic>> _allSchools = [];
 
@@ -40,6 +41,21 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
   void initState() {
     super.initState();
     _fetchSchools();
+    _fetchUserRole();
+  }
+
+  Future<void> _fetchUserRole() async {
+    try {
+      final response = await ApiService.getAccountProfile();
+      if (response.statusCode == 200) {
+        final data = response.data['data'];
+        if (data != null && mounted) {
+          setState(() {
+            _userRole = data['role_name'] ?? 'User';
+          });
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> _fetchSchools() async {
@@ -541,27 +557,28 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                     ),
-                    ElevatedButton.icon(
-                      onPressed: () async {
-                        if (widget.onRegisterSchool != null) {
-                          widget.onRegisterSchool!();
-                        } else {
-                          final result = await Navigator.pushNamed(context, '/schools/register');
-                          if (result == true) {
-                            _fetchSchools();
+                    if (_userRole == 'Administrator')
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          if (widget.onRegisterSchool != null) {
+                            widget.onRegisterSchool!();
+                          } else {
+                            final result = await Navigator.pushNamed(context, '/schools/register');
+                            if (result == true) {
+                              _fetchSchools();
+                            }
                           }
-                        }
-                      },
-                      icon: const Icon(Icons.add_business, size: 18),
-                      label: const Text("Register School"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: kBrandOlive,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        elevation: 0,
+                        },
+                        icon: const Icon(Icons.add_business, size: 18),
+                        label: const Text("Register School"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: kBrandOlive,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          elevation: 0,
+                        ),
                       ),
-                    ),
                     IconButton(
                       icon: const Icon(Icons.refresh, color: kBrandBrown, size: 22),
                       tooltip: "Reset Filters",
@@ -844,40 +861,42 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
                                   ],
                                 ),
                               ),
-                              const SizedBox(width: 4),
-                              IconButton(
-                                icon: Icon(
-                                  isActive ? Icons.toggle_on_rounded : Icons.toggle_off_rounded,
-                                  color: isActive ? kBrandOlive : Colors.grey.shade500,
-                                  size: 26,
+                              if (_userRole == 'Administrator') ...[
+                                const SizedBox(width: 4),
+                                IconButton(
+                                  icon: Icon(
+                                    isActive ? Icons.toggle_on_rounded : Icons.toggle_off_rounded,
+                                    color: isActive ? kBrandOlive : Colors.grey.shade500,
+                                    size: 26,
+                                  ),
+                                  onPressed: () => _toggleSchoolStatus(school),
+                                  tooltip: isActive ? "Deactivate" : "Activate",
                                 ),
-                                onPressed: () => _toggleSchoolStatus(school),
-                                tooltip: isActive ? "Deactivate" : "Activate",
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.edit_note, color: kBrandBrown),
-                                onPressed: () async {
-                                  final updatedSchool = await showDialog<Map<String, dynamic>>(
-                                    context: context,
-                                    barrierDismissible: false,
-                                    builder: (editContext) => EditSchoolDialog(school: school),
-                                  );
-                                  if (updatedSchool != null) {
-                                    setState(() {
-                                      final idx = _allSchools.indexWhere((s) => s['id'] == school['id']);
-                                      if (idx != -1) {
-                                        _allSchools[idx] = updatedSchool;
-                                      }
-                                    });
-                                  }
-                                },
-                                tooltip: "Edit School",
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                                onPressed: () => _deleteSchool(school),
-                                tooltip: "Delete School",
-                              ),
+                                IconButton(
+                                  icon: const Icon(Icons.edit_note, color: kBrandBrown),
+                                  onPressed: () async {
+                                    final updatedSchool = await showDialog<Map<String, dynamic>>(
+                                      context: context,
+                                      barrierDismissible: false,
+                                      builder: (editContext) => EditSchoolDialog(school: school),
+                                    );
+                                    if (updatedSchool != null) {
+                                      setState(() {
+                                        final idx = _allSchools.indexWhere((s) => s['id'] == school['id']);
+                                        if (idx != -1) {
+                                          _allSchools[idx] = updatedSchool;
+                                        }
+                                      });
+                                    }
+                                  },
+                                  tooltip: "Edit School",
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                                  onPressed: () => _deleteSchool(school),
+                                  tooltip: "Delete School",
+                                ),
+                              ],
                               const SizedBox(width: 2),
                               Icon(Icons.chevron_right, color: Colors.grey.shade400),
                             ],

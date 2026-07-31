@@ -1,18 +1,9 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:dio/dio.dart';
-import '../services/api_service.dart';
+import 'package:scholar_management_system/services/api_service.dart';
+import '../academics/academics_utils.dart';
 import '../widgets/custom_loaders.dart';
-
-// ============================================================
-// Shared Brand Color Palette
-// ============================================================
-const Color kBrandBrown = Color(0xFF4C3C32);
-const Color kBrandCream = Color(0xFFFAF2DB);
-const Color kBrandOlive = Color(0xFF9AB334);
-const Color kBrandOrange = Color(0xFFE05B1C);
 
 class AccountSettingsComponent extends StatefulWidget {
   const AccountSettingsComponent({super.key});
@@ -30,7 +21,7 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
 
   bool _isSaving = false;
   bool _isLoading = false;
-  String _userRole = "Staff";
+  String _userRole = "Staff Member";
   String? _profileImageUrl;
 
   @override
@@ -51,13 +42,13 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
             _usernameController.text = data['username'] ?? '';
             _emailController.text = data['email'] ?? '';
             _phoneController.text = data['phone'] ?? '';
-            _userRole = data['role_name'] ?? 'Staff';
+            _userRole = data['role_name'] ?? 'Staff Member';
             _profileImageUrl = data['profile_picture'];
           });
         }
       }
     } catch (e) {
-      debugPrint('Error fetching profile: $e');
+      debugPrint('Error fetching account profile: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -74,7 +65,7 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
         final bytes = result.files.single.bytes!;
         final fileName = result.files.single.name;
 
-        setState(() => _isSaving = true);
+        setState(() => _isLoading = true);
         final response = await ApiService.uploadProfilePicture(bytes, fileName);
 
         if (response.statusCode == 200) {
@@ -83,15 +74,15 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
           });
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Profile picture updated!"), backgroundColor: kBrandOlive),
+              const SnackBar(content: Text("Profile avatar updated successfully."), backgroundColor: kBrandOlive),
             );
           }
         }
       }
     } catch (e) {
-      debugPrint('Error uploading image: $e');
+      debugPrint('Error uploading profile picture: $e');
     } finally {
-      if (mounted) setState(() => _isSaving = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -119,15 +110,16 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
       if (response.statusCode == 200) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Account settings updated successfully."),
+          SnackBar(
+            content: const Text("Personal settings synchronized successfully."),
             backgroundColor: kBrandOlive,
             behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
       }
     } catch (e) {
-      debugPrint('Error saving settings: $e');
+      debugPrint('Error saving account settings: $e');
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -135,140 +127,70 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.dividerColor),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
-      ),
-      clipBehavior: Clip.antiAlias,
+      height: double.infinity,
+      color: Colors.white,
       child: _isLoading 
-        ? const Center(child: Padding(padding: EdgeInsets.all(80), child: BeautifulLoader(isOverlay: false, message: "Fetching Profile")))
+        ? const Center(child: BeautifulLoader(isOverlay: false, message: "Syncing Profile"))
         : Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ---------------- Fixed Header ----------------
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 32, 24, 8),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: kBrandOlive.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.manage_accounts_rounded, color: kBrandOlive, size: 32),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Account Settings',
-                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kBrandBrown)),
-                        const SizedBox(height: 4),
-                        const Text('Update your personal profile, credentials and preferences.',
-                            style: TextStyle(fontSize: 14, color: Colors.grey)),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-
-            // ---------------- Scrollable Content ----------------
+            _buildProfessionalHeader(),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24.0),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildAccountPreview(),
-                      const SizedBox(height: 32),
+                padding: const EdgeInsets.fromLTRB(40, 32, 40, 40),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 900),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildAccountSummaryCard(),
+                          const SizedBox(height: 40),
 
-                      Text("Personal Information", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? theme.colorScheme.primary : kBrandBrown)),
-                      const SizedBox(height: 16),
-                      _buildTextField(
-                        controller: _nameController,
-                        label: "Full Name",
-                        icon: Icons.person_outline_rounded,
-                        validator: (v) => (v == null || v.trim().isEmpty) ? "Name is required" : null,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildTextField(
-                        controller: _usernameController,
-                        label: "Username",
-                        icon: Icons.alternate_email_rounded,
-                        validator: (v) => (v == null || v.trim().isEmpty) ? "Username is required" : null,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildTextField(
-                        controller: _emailController,
-                        label: "Email Address",
-                        icon: Icons.email_outlined,
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (v) => (v == null || !v.contains('@')) ? "Valid email required" : null,
-                      ),
-                      const SizedBox(height: 16),
-                      _buildTextField(
-                        controller: _phoneController,
-                        label: "Phone Number",
-                        icon: Icons.phone_outlined,
-                        keyboardType: TextInputType.phone,
-                      ),
-
-                      const SizedBox(height: 32),
-                      Text("Security & Authentication", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? theme.colorScheme.primary : kBrandBrown)),
-                      const SizedBox(height: 16),
-                      _buildActionTile(
-                        icon: Icons.lock_outline_rounded,
-                        title: "Change Password",
-                        subtitle: "Update your account password regularly",
-                        onTap: () => _showChangePasswordDialog(context),
-                      ),
-                      const SizedBox(height: 12),
-                      _buildActionTile(
-                        icon: Icons.shield_outlined,
-                        title: "Two-Factor Authentication",
-                        subtitle: "Add an extra layer of security",
-                        onTap: () {},
-                      ),
-                      const SizedBox(height: 12),
-                      _buildActionTile(
-                        icon: Icons.delete_outline_rounded,
-                        title: "Close Account",
-                        subtitle: "Permanently delete your profile and data",
-                        color: Colors.red,
-                        onTap: () => _confirmDelete(context),
-                      ),
-
-                      const SizedBox(height: 40),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: _isSaving ? null : _saveSettings,
-                          icon: _isSaving
-                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                              : const Icon(Icons.save_rounded),
-                          label: Text(_isSaving ? "Saving..." : "Save Account Changes", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 18),
-                            backgroundColor: kBrandOlive,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          _sectionLabel("PERSONAL IDENTITY"),
+                          const SizedBox(height: 20),
+                          Row(
+                            children: [
+                              Expanded(child: _buildTextField(controller: _nameController, label: "Full Name", icon: Icons.person_rounded)),
+                              const SizedBox(width: 24),
+                              Expanded(child: _buildTextField(controller: _usernameController, label: "Username Handle", icon: Icons.alternate_email_rounded)),
+                            ],
                           ),
-                        ),
+                          const SizedBox(height: 24),
+                          Row(
+                            children: [
+                              Expanded(child: _buildTextField(controller: _emailController, label: "Email Address", icon: Icons.email_rounded, keyboardType: TextInputType.emailAddress)),
+                              const SizedBox(width: 24),
+                              Expanded(child: _buildTextField(controller: _phoneController, label: "Contact Phone", icon: Icons.phone_android_rounded, keyboardType: TextInputType.phone)),
+                            ],
+                          ),
+
+                          const SizedBox(height: 40),
+                          _sectionLabel("SECURITY & CREDENTIALS"),
+                          const SizedBox(height: 20),
+                          _buildActionTile(
+                            icon: Icons.lock_reset_rounded,
+                            title: "Change Account Password",
+                            subtitle: "Maintain account security with a strong, unique password.",
+                            onTap: () => _showChangePasswordDialog(context),
+                          ),
+                          const SizedBox(height: 12),
+                          _buildActionTile(
+                            icon: Icons.fingerprint_rounded,
+                            title: "Biometric Integration",
+                            subtitle: "Configure hardware-level security for faster logins.",
+                            onTap: () {},
+                          ),
+
+                          const SizedBox(height: 48),
+                          _buildSubmitSection(),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -278,36 +200,66 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
     );
   }
 
-  Widget _buildAccountPreview() {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+  Widget _buildProfessionalHeader() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(40, 32, 40, 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: kBrandOlive.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(Icons.manage_accounts_rounded, color: kBrandOlive, size: 30),
+          ),
+          const SizedBox(width: 20),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Account Preferences",
+                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                SizedBox(height: 4),
+                Text("Update your personal digital identity, security settings and contact information.",
+                  style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAccountSummaryCard() {
     final initials = _nameController.text.isNotEmpty 
         ? _nameController.text.trim().split(' ').map((e) => e[0]).take(2).join().toUpperCase()
         : "U";
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: isDark ? theme.colorScheme.surfaceContainerHighest : kBrandCream.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? theme.dividerColor : kBrandCream),
+        color: kBrandOlive.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: kBrandOlive.withValues(alpha: 0.1)),
       ),
       child: Row(
         children: [
           Stack(
             children: [
-              GestureDetector(
-                onTap: _pickAndUploadImage,
-                child: CircleAvatar(
-                  radius: 40,
-                  backgroundColor: kBrandOlive,
-                  backgroundImage: _profileImageUrl != null
-                    ? NetworkImage('http://localhost:5000${_profileImageUrl}')
-                    : null,
-                  child: _profileImageUrl == null
-                    ? Text(initials, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white))
-                    : null,
-                ),
+              CircleAvatar(
+                radius: 48,
+                backgroundColor: kBrandBrown,
+                backgroundImage: _profileImageUrl != null
+                  ? NetworkImage(ApiService.getFullUrl(_profileImageUrl))
+                  : null,
+                child: _profileImageUrl == null
+                  ? Text(initials, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white))
+                  : null,
               ),
               Positioned(
                 bottom: 0,
@@ -315,27 +267,29 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
                 child: GestureDetector(
                   onTap: _pickAndUploadImage,
                   child: Container(
-                    padding: const EdgeInsets.all(4),
+                    padding: const EdgeInsets.all(8),
                     decoration: const BoxDecoration(color: kBrandOrange, shape: BoxShape.circle),
-                    child: const Icon(Icons.camera_alt, size: 14, color: Colors.white),
+                    child: const Icon(Icons.edit_rounded, size: 16, color: Colors.white),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(width: 20),
+          const SizedBox(width: 32),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(_nameController.text, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kBrandBrown)),
-                const SizedBox(height: 4),
-                Text("@${_usernameController.text}", style: const TextStyle(fontSize: 13, color: kBrandOrange, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 4),
+                Text(_nameController.text.isEmpty ? "User Profile" : _nameController.text,
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kBrandBrown)),
+                const SizedBox(height: 6),
+                Text("@${_usernameController.text}", style: const TextStyle(fontSize: 14, color: kBrandOrange, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(color: kBrandBrown.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
-                  child: Text(_userRole, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : kBrandBrown)),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(color: kBrandBrown, borderRadius: BorderRadius.circular(8)),
+                  child: Text(_userRole.toUpperCase(),
+                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.5)),
                 ),
               ],
             ),
@@ -350,23 +304,20 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
     required String label,
     required IconData icon,
     TextInputType? keyboardType,
-    String? Function(String?)? validator,
   }) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
-      validator: validator,
+      onChanged: (v) => setState(() {}),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, size: 20, color: isDark ? Colors.white70 : kBrandBrown),
+        prefixIcon: Icon(icon, size: 20, color: kBrandBrown.withValues(alpha: 0.5)),
         filled: true,
-        fillColor: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: theme.dividerColor)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: theme.dividerColor)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: kBrandOlive, width: 2)),
+        fillColor: Colors.grey.shade50,
+        labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBrandBrown),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade200)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade200)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: kBrandOlive, width: 2)),
       ),
     );
   }
@@ -376,40 +327,68 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
-    Color? color,
   }) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final activeColor = color ?? (isDark ? Colors.white70 : kBrandBrown);
-
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: theme.dividerColor),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade100),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.01), blurRadius: 10, offset: const Offset(0, 4))],
         ),
         child: Row(
           children: [
-            Icon(icon, color: activeColor),
-            const SizedBox(width: 16),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: kBrandBrown.withValues(alpha: 0.05), shape: BoxShape.circle),
+              child: Icon(icon, color: kBrandBrown, size: 20),
+            ),
+            const SizedBox(width: 20),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: activeColor, fontSize: 14)),
-                  Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.w900, color: kBrandBrown, fontSize: 15)),
+                  const SizedBox(height: 2),
+                  Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded, color: activeColor.withValues(alpha: 0.5)),
+            const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildSubmitSection() {
+    return Center(
+      child: SizedBox(
+        width: 300,
+        height: 56,
+        child: ElevatedButton.icon(
+          onPressed: _isSaving ? null : _saveSettings,
+          icon: _isSaving
+            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+            : const Icon(Icons.cloud_upload_rounded),
+          label: Text(_isSaving ? "SYNCING..." : "SAVE SETTINGS",
+            style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: kBrandBrown,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _sectionLabel(String text) {
+    return Text(text, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.2));
   }
 
   void _showChangePasswordDialog(BuildContext context) {
@@ -421,86 +400,59 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Change Password"),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Reset Security Password", style: TextStyle(fontWeight: FontWeight.w900, color: kBrandBrown)),
         content: Form(
           key: formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextFormField(
-                controller: currentPasswordController,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: "Current Password"),
-                validator: (v) => (v == null || v.isEmpty) ? "Required" : null,
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: newPasswordController,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: "New Password"),
-                validator: (v) => (v == null || v.length < 6) ? "Min 6 chars" : null,
-              ),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: confirmPasswordController,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: "Confirm New Password"),
-                validator: (v) => v != newPasswordController.text ? "Passwords match failed" : null,
-              ),
+              _buildPopupTextField(controller: currentPasswordController, label: "Current Password"),
+              const SizedBox(height: 16),
+              _buildPopupTextField(controller: newPasswordController, label: "New Password"),
+              const SizedBox(height: 16),
+              _buildPopupTextField(controller: confirmPasswordController, label: "Confirm Password",
+                  validator: (v) => v != newPasswordController.text ? "Passwords do not match" : null),
             ],
           ),
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
           ElevatedButton(
             onPressed: () async {
               if (formKey.currentState!.validate()) {
                 try {
-                  final response = await ApiService.changePassword(
-                    currentPasswordController.text,
-                    newPasswordController.text,
-                  );
+                  final response = await ApiService.changePassword(currentPasswordController.text, newPasswordController.text);
                   if (response.statusCode == 200) {
                     if (!context.mounted) return;
                     Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Password changed successfully")),
-                    );
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Security credentials updated.")));
                   }
                 } catch (e) {
-                  if (mounted) {
-                    String msg = "Error changing password";
-                    if (e is DioException && e.response?.statusCode == 401) {
-                      msg = "Current password is incorrect";
-                    }
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(msg), backgroundColor: Colors.red),
-                    );
-                  }
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Failed to update password."), backgroundColor: Colors.red));
                 }
               }
             },
-            child: const Text("Update Password"),
+            style: ElevatedButton.styleFrom(backgroundColor: kBrandOlive, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+            child: const Text("UPDATE CREDENTIALS"),
           ),
         ],
       ),
     );
   }
 
-  void _confirmDelete(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Delete Account"),
-        content: const Text("Are you sure you want to permanently delete your account? This action cannot be undone."),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
-            child: const Text("Delete Account"),
-          ),
-        ],
+  Widget _buildPopupTextField({required TextEditingController controller, required String label, String? Function(String?)? validator}) {
+    return TextFormField(
+      controller: controller,
+      obscureText: true,
+      validator: validator ?? (v) => (v == null || v.isEmpty) ? "Required field" : null,
+      decoration: InputDecoration(
+        labelText: label,
+        isDense: true,
+        filled: true,
+        fillColor: Colors.grey.shade50,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
       ),
     );
   }

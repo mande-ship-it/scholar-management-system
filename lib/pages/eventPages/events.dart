@@ -6,8 +6,6 @@ class EventsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: EventsComponent(),
-    );
+    return const EventsComponent();
   }
 }

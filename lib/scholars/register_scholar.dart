@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import '../academics/academics_utils.dart';
-import '../services/api_service.dart';
+import 'package:scholar_management_system/services/api_service.dart';
 
 class RegisterScholarComponent extends StatefulWidget {
   final Function(Student)? onRegister;
@@ -13,7 +14,7 @@ class RegisterScholarComponent extends StatefulWidget {
 class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
   final _formKey = GlobalKey<FormState>();
 
-  // Brand Color Palette (consistent with HomePage)
+  // Brand Color Palette
   static const Color brandBrown = Color(0xFF4C3C32);
   static const Color brandCream = Color(0xFFFAF2DB);
   static const Color brandCreamDark = Color(0xFFF3E7C4);
@@ -54,10 +55,8 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
 
   // Validation patterns
   static final RegExp _malawiPhoneRegex = RegExp(r'^(?:\+265|0)[0-9]{9}$');
-  static final RegExp _emailRegex =
-  RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[\w\-]{2,4}$');
+  static final RegExp _emailRegex = RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[\w\-]{2,4}$');
 
-  // Data lists (Standard geographic data is kept)
   final List<String> _districts = [
     'Balaka', 'Blantyre', 'Chikwawa', 'Chiradzulu', 'Chitipa',
     'Dedza', 'Dowa', 'Karonga', 'Kasungu', 'Likoma',
@@ -70,7 +69,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
   final List<String> _schoolTypes = ['Secondary', 'University'];
   final List<String> _sexOptions = ['Female', 'Male', 'Other'];
 
-  // Backend Registered Schools and Sponsors state
+  // Backend state
   List<Map<String, dynamic>> _registeredSchools = [];
   List<String> _registeredSponsors = [];
   bool _isLoadingSchools = false;
@@ -82,16 +81,6 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
     super.initState();
     _fetchRegisteredSchools();
     _fetchRegisteredSponsors();
-    _fullNameController.addListener(_updatePreview);
-    _yearController.addListener(_updatePreview);
-    _homeVillageController.addListener(_updatePreview);
-    _phoneController.addListener(_updatePreview);
-    _emailController.addListener(_updatePreview);
-    _dobController.addListener(_updatePreview);
-    _previousSchoolController.addListener(_updatePreview);
-    _programNameController.addListener(_updatePreview);
-    _guardianNameController.addListener(_updatePreview);
-    _guardianPhoneController.addListener(_updatePreview);
   }
 
   Future<void> _fetchRegisteredSchools() async {
@@ -133,28 +122,17 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
   }
 
   List<Map<String, dynamic>> _getAvailableSchoolsForScholar() {
-    if (_selectedSchoolType == null) {
-      return _registeredSchools;
-    }
-
+    if (_selectedSchoolType == null) return _registeredSchools;
     final typeLower = _selectedSchoolType!.toLowerCase();
-    final filtered = _registeredSchools.where((school) {
+    return _registeredSchools.where((school) {
       final level = (school['level'] ?? '').toString().toLowerCase();
-      final type = (school['type'] ?? '').toString().toLowerCase();
-
       if (typeLower == 'secondary') {
-        return level.contains('secondary') || level.contains('high') || type.contains('cdss') || level.contains('primary');
+        return level.contains('secondary') || level.contains('high') || level.contains('primary');
       } else if (typeLower == 'university') {
-        return level.contains('university') || level.contains('tertiary') || level.contains('vocational') || type.contains('university');
+        return level.contains('university') || level.contains('tertiary') || level.contains('vocational');
       }
       return true;
     }).toList();
-
-    return filtered;
-  }
-
-  void _updatePreview() {
-    setState(() {});
   }
 
   @override
@@ -175,23 +153,15 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
   }
 
   String? _validateMalawiPhone(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return "Please enter the phone number";
-    }
+    if (value == null || value.trim().isEmpty) return "Phone number is required";
     final cleaned = value.trim().replaceAll(RegExp(r'[\s\-]'), '');
-    if (!_malawiPhoneRegex.hasMatch(cleaned)) {
-      return "Enter a valid Malawi number (e.g. 0888123456 or +265888123456)";
-    }
+    if (!_malawiPhoneRegex.hasMatch(cleaned)) return "Enter a valid Malawi number";
     return null;
   }
 
   String? _validateOptionalEmail(String? value) {
-    if (value == null || value.trim().isEmpty) {
-      return null;
-    }
-    if (!_emailRegex.hasMatch(value.trim())) {
-      return "Please enter a valid email address";
-    }
+    if (value == null || value.trim().isEmpty) return null;
+    if (!_emailRegex.hasMatch(value.trim())) return "Enter a valid email address";
     return null;
   }
 
@@ -201,20 +171,12 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
       initialDate: DateTime(2010),
       firstDate: DateTime(1990),
       lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: brandBrown,
-              onPrimary: Colors.white,
-              onSurface: brandBrown,
-            ),
-          ),
-          child: child!,
-        );
-      },
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(colorScheme: const ColorScheme.light(primary: brandBrown, onPrimary: Colors.white, onSurface: brandBrown)),
+        child: child!,
+      ),
     );
-    if (picked != null && picked != _selectedDateOfBirth) {
+    if (picked != null) {
       setState(() {
         _selectedDateOfBirth = picked;
         _dobController.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
@@ -224,15 +186,13 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
 
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
+      setState(() => _isLoading = true);
 
       final scholarData = {
         'fullName': _fullNameController.text.trim(),
         'schoolType': _selectedSchoolType,
         'schoolName': _selectedSchool,
-        'schoolId': _selectedSchoolId != null ? int.tryParse(_selectedSchoolId!) ?? _selectedSchoolId : null,
+        'schoolId': _selectedSchoolId != null ? int.tryParse(_selectedSchoolId!) : null,
         'sex': _selectedSex,
         'dob': _dobController.text.trim(),
         'currentClass': _yearController.text.trim(),
@@ -246,7 +206,6 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
         'startYear': _selectedStartYear,
         'endYear': _selectedEndYear,
         'previousSchool': _previousSchoolController.text.trim(),
-        // Guardian Details
         'guardianName': _guardianNameController.text.trim(),
         'guardianPhone': _guardianPhoneController.text.trim(),
         'guardianEmail': _guardianEmailController.text.trim(),
@@ -259,7 +218,6 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
 
         if (response.statusCode == 201) {
           final newScholar = response.data['data']['scholar'];
-          
           final student = Student(
             id: newScholar['id'].toString(),
             scholarId: newScholar['scholar_id'].toString(),
@@ -268,7 +226,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
             schoolType: _selectedSchoolType == 'University' ? SchoolType.university : SchoolType.secondary,
             schoolName: _selectedSchool ?? 'N/A',
             currentClass: _yearController.text.trim(),
-            status: 'Active',
+            status: 'Pending',
             district: _selectedDistrict ?? 'Lilongwe',
             village: _homeVillageController.text.trim(),
             donor: _selectedDonor ?? 'General Fund',
@@ -283,35 +241,28 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
             endYear: _selectedEndYear ?? '2030',
           );
 
-          // Add to registry source of truth
           kStudents.add(student);
-
-          if (mounted) {
-            _showSuccessDialog(student);
-          }
-        } else {
-          _showErrorSnackBar(response.data['message'] ?? 'Failed to create scholar.');
+          if (mounted) _showSuccessDialog(student);
         }
       } catch (e) {
-        _showErrorSnackBar('An error occurred. Please check your connection.');
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isLoading = false;
-          });
+        String msg = "An unexpected error occurred.";
+        if (e is DioException) {
+          if (e.response?.data != null && e.response?.data['message'] != null) {
+            msg = e.response?.data['message'];
+          } else {
+            msg = "Connection failed. Please check your network.";
+          }
         }
+        _showErrorSnackBar(msg);
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
       }
     }
   }
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
     );
   }
 
@@ -319,175 +270,72 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext ctx) {
-        return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Container(
-            padding: const EdgeInsets.all(28),
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: brandOlive.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.check_circle_rounded, color: brandOlive, size: 48),
+      builder: (BuildContext ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.all(28),
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(padding: const EdgeInsets.all(16), decoration: BoxDecoration(color: brandOlive.withValues(alpha: 0.12), shape: BoxShape.circle), child: const Icon(Icons.check_circle_rounded, color: brandOlive, size: 48)),
+              const SizedBox(height: 20),
+              const Text("Registration Complete", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: brandBrown)),
+              const SizedBox(height: 8),
+              Text("Scholar ${student.name} has been successfully added.", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
+                child: Column(
+                  children: [
+                    _rowDetail("Scholar ID", student.scholarId),
+                    const Divider(height: 16),
+                    _rowDetail("Institution", student.schoolName),
+                    const Divider(height: 16),
+                    _rowDetail("Class/Form", student.currentClass),
+                  ],
                 ),
-                const SizedBox(height: 20),
-                const Text(
-                  "Registration Complete",
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: brandBrown),
+              ),
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    if (widget.onRegister != null) {
+                      widget.onRegister!(student);
+                    } else {
+                      _resetForm();
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: brandOlive, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), elevation: 0),
+                  child: const Text("Go to Registry", style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  "Scholar ${student.name} has been successfully added to the registry.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                ),
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: Column(
-                    children: [
-                      _rowDetail("Scholar ID", student.scholarId),
-                      const Divider(height: 16),
-                      _rowDetail("Institution", student.schoolName),
-                      const Divider(height: 16),
-                      _rowDetail("Class/Form", student.currentClass),
-                      const Divider(height: 16),
-                      _rowDetail("District", student.district),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 28),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(ctx).pop();
-                      if (widget.onRegister != null) {
-                        widget.onRegister!(student);
-                      } else {
-                        _resetForm();
-                      }
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: brandOlive,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      elevation: 0,
-                    ),
-                    child: const Text("Go to Registry", style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
   Widget _rowDetail(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
-        Text(value, style: const TextStyle(fontSize: 12, color: brandBrown, fontWeight: FontWeight.bold)),
-      ],
-    );
+    return Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)), Text(value, style: const TextStyle(fontSize: 12, color: brandBrown, fontWeight: FontWeight.bold))]);
   }
 
   void _resetForm() {
     _formKey.currentState!.reset();
     setState(() {
-      _selectedDistrict = null;
-      _selectedSchoolType = null;
-      _selectedSchool = null;
-      _selectedSchoolId = null;
-      _selectedProgramType = null;
-      _selectedDonor = null;
-      _selectedSex = null;
-      _selectedDateOfBirth = null;
-      _selectedStartYear = null;
-      _selectedEndYear = null;
-      _fullNameController.clear();
-      _yearController.clear();
-      _homeVillageController.clear();
-      _phoneController.clear();
-      _emailController.clear();
-      _dobController.clear();
-      _previousSchoolController.clear();
-      _programNameController.clear();
-      _guardianNameController.clear();
-      _guardianPhoneController.clear();
-      _guardianEmailController.clear();
-      _selectedGuardianRelation = null;
-      _guardianOccupationController.clear();
+      _selectedDistrict = null; _selectedSchoolType = null; _selectedSchool = null; _selectedSchoolId = null; _selectedProgramType = null;
+      _selectedDonor = null; _selectedSex = null; _selectedDateOfBirth = null; _selectedStartYear = null; _selectedEndYear = null;
+      _fullNameController.clear(); _yearController.clear(); _homeVillageController.clear(); _phoneController.clear(); _emailController.clear();
+      _dobController.clear(); _previousSchoolController.clear(); _programNameController.clear(); _guardianNameController.clear();
+      _guardianPhoneController.clear(); _guardianEmailController.clear(); _selectedGuardianRelation = null; _guardianOccupationController.clear();
     });
   }
 
-  double _calculateCompletionPercentage() {
-    final int total = _getTotalFieldsCount();
-    if (total == 0) return 0.0;
-    return _getCompletedFieldsCount() / total;
-  }
-
-  int _getTotalFieldsCount() {
-    return _selectedSchoolType == 'University' ? 18 : 16;
-  }
-
-  int _getCompletedFieldsCount() {
-    int count = 0;
-    if (_fullNameController.text.trim().isNotEmpty) count++;
-    if (_dobController.text.isNotEmpty) count++;
-    if (_selectedSex != null) count++;
-    if (_phoneController.text.trim().isNotEmpty) count++;
-    if (_homeVillageController.text.trim().isNotEmpty) count++;
-    if (_selectedDistrict != null) count++;
-    if (_selectedDonor != null) count++;
-    if (_selectedSchoolType != null) count++;
-    if (_selectedSchool != null) count++;
-    if (_yearController.text.trim().isNotEmpty) count++;
-    if (_previousSchoolController.text.trim().isNotEmpty) count++;
-    if (_selectedSchoolType == 'University') {
-      if (_selectedProgramType != null) count++;
-      if (_programNameController.text.trim().isNotEmpty) count++;
-    }
-    if (_selectedStartYear != null) count++;
-    if (_selectedEndYear != null) count++;
-    
-    // Guardian fields
-    if (_guardianNameController.text.trim().isNotEmpty) count++;
-    if (_selectedGuardianRelation != null) count++;
-    if (_guardianPhoneController.text.trim().isNotEmpty) count++;
-
-    return count;
-  }
-
-  String _getInitials(String name) {
-    if (name.trim().isEmpty) return "NS";
-    final parts = name.trim().split(RegExp(r'\s+'));
-    if (parts.length == 1) {
-      return parts[0][0].toUpperCase();
-    }
-    return (parts[0][0] + parts[1][0]).toUpperCase();
-  }
-
-  InputDecoration _getInputDecoration({
-    required String labelText,
-    required IconData prefixIcon,
-    String? helperText,
-  }) {
+  InputDecoration _getInputDecoration({required String labelText, required IconData prefixIcon, String? helperText}) {
     return InputDecoration(
       labelText: labelText,
       helperText: helperText,
@@ -495,26 +343,11 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
       filled: true,
       fillColor: Colors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.grey.shade300),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.grey.shade300),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: brandOlive, width: 2),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Colors.red, width: 1.5),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Colors.red, width: 2),
-      ),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade300)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade300)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: brandOlive, width: 2)),
+      errorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.red, width: 1.5)),
+      focusedErrorBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Colors.red, width: 2)),
     );
   }
 
@@ -523,7 +356,6 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final bool isWide = constraints.maxWidth > 700;
-        
         return Container(
           color: Colors.white,
           child: SingleChildScrollView(
@@ -537,26 +369,21 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
                   children: [
                     _buildFormHeader(),
                     const SizedBox(height: 40),
-                    
                     _sectionTitle("1. Basic Personal Information"),
                     const SizedBox(height: 16),
                     _buildPersonalDetailsCard(isWide),
-                    
                     const SizedBox(height: 32),
                     _sectionTitle("2. Parent or Guardian Information"),
                     const SizedBox(height: 16),
                     _buildGuardianDetailsCard(isWide),
-                    
                     const SizedBox(height: 32),
                     _sectionTitle("3. Academic & Institutional Details"),
                     const SizedBox(height: 16),
                     _buildAcademicDetailsCard(isWide),
-                    
                     const SizedBox(height: 32),
                     _sectionTitle("4. Demographics & Sponsorship"),
                     const SizedBox(height: 16),
                     _buildDemographicsCard(isWide),
-                    
                     const SizedBox(height: 48),
                     _buildSubmitButton(),
                     const SizedBox(height: 60),
@@ -571,18 +398,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
   }
 
   Widget _sectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 4),
-      child: Text(
-        title.toUpperCase(),
-        style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.bold,
-          color: brandBrown,
-          letterSpacing: 1.2,
-        ),
-      ),
-    );
+    return Padding(padding: const EdgeInsets.only(left: 4), child: Text(title.toUpperCase(), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: brandBrown, letterSpacing: 1.2)));
   }
 
   Widget _buildFormHeader() {
@@ -590,39 +406,15 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: brandOlive.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.person_add_alt_1_rounded,
-              color: brandOlive,
-              size: 28,
-            ),
-          ),
+          Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: brandOlive.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.person_add_alt_1_rounded, color: brandOlive, size: 28)),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "Register Scholar",
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: brandBrown,
-                  ),
-                ),
+                const Text("Register Scholar", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: brandBrown)),
                 const SizedBox(height: 4),
-                Text(
-                  "Enter details below to create a new scholar record in the database.",
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
+                Text("Enter details below to create a new scholar record.", style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
               ],
             ),
           ),
@@ -632,142 +424,28 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
   }
 
   Widget _buildPersonalDetailsCard(bool isWide) {
-    final Widget nameField = TextFormField(
-      controller: _fullNameController,
-      decoration: _getInputDecoration(
-        labelText: "Full Name",
-        prefixIcon: Icons.person_outline,
-      ),
-      validator: (value) {
-        if (value == null || value.trim().isEmpty) {
-          return "Please enter the scholar's full name";
-        }
-        return null;
-      },
-    );
-
-    final Widget phoneField = TextFormField(
-      controller: _phoneController,
-      keyboardType: TextInputType.phone,
-      decoration: _getInputDecoration(
-        labelText: "Phone Number",
-        prefixIcon: Icons.phone_outlined,
-        helperText: "e.g. 0888123456 or +265888123456",
-      ),
-      validator: _validateMalawiPhone,
-    );
-
-    final Widget emailField = TextFormField(
-      controller: _emailController,
-      keyboardType: TextInputType.emailAddress,
-      decoration: _getInputDecoration(
-        labelText: "Email Address (optional)",
-        prefixIcon: Icons.email_outlined,
-      ),
-      validator: _validateOptionalEmail,
-    );
-
-    final Widget sexField = DropdownButtonFormField<String>(
-      isExpanded: true,
-      initialValue: _selectedSex,
-      decoration: _getInputDecoration(
-        labelText: "Sex",
-        prefixIcon: Icons.wc_outlined,
-      ),
-      items: _sexOptions.map((sex) {
-        return DropdownMenuItem<String>(
-          value: sex,
-          child: Text(sex),
-        );
-      }).toList(),
-      onChanged: (value) {
-        setState(() {
-          _selectedSex = value;
-        });
-      },
-      validator: (value) =>
-      value == null ? "Please select the scholar's sex" : null,
-    );
-
-    final Widget dobField = TextFormField(
-      controller: _dobController,
-      readOnly: true,
-      onTap: () => _selectDateOfBirth(context),
-      decoration: _getInputDecoration(
-        labelText: "Date of Birth",
-        prefixIcon: Icons.cake_outlined,
-      ).copyWith(
-        suffixIcon: Icon(Icons.calendar_month_outlined, color: brandBrown.withValues(alpha: 0.7)),
-      ),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return "Please select a date of birth";
-        }
-        return null;
-      },
-    );
+    final Widget nameField = TextFormField(controller: _fullNameController, decoration: _getInputDecoration(labelText: "Full Name", prefixIcon: Icons.person_outline), validator: (value) => (value == null || value.trim().isEmpty) ? "Name is required" : null);
+    final Widget phoneField = TextFormField(controller: _phoneController, keyboardType: TextInputType.phone, decoration: _getInputDecoration(labelText: "Phone Number", prefixIcon: Icons.phone_outlined, helperText: "e.g. 0888123456"), validator: _validateMalawiPhone);
+    final Widget emailField = TextFormField(controller: _emailController, keyboardType: TextInputType.emailAddress, decoration: _getInputDecoration(labelText: "Email Address (optional)", prefixIcon: Icons.email_outlined), validator: _validateOptionalEmail);
+    final Widget sexField = DropdownButtonFormField<String>(isExpanded: true, initialValue: _selectedSex, decoration: _getInputDecoration(labelText: "Sex", prefixIcon: Icons.wc_outlined), items: _sexOptions.map((sex) => DropdownMenuItem<String>(value: sex, child: Text(sex))).toList(), onChanged: (value) => setState(() => _selectedSex = value), validator: (value) => value == null ? "Select sex" : null);
+    final Widget dobField = TextFormField(controller: _dobController, readOnly: true, onTap: () => _selectDateOfBirth(context), decoration: _getInputDecoration(labelText: "Date of Birth", prefixIcon: Icons.cake_outlined).copyWith(suffixIcon: Icon(Icons.calendar_month_outlined, color: brandBrown.withValues(alpha: 0.7))), validator: (value) => (value == null || value.isEmpty) ? "Required" : null);
 
     return Card(
-      elevation: 1,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200, width: 1),
-      ),
+      elevation: 1, color: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: const [
-                Icon(Icons.badge_outlined, color: brandOrange, size: 20),
-                SizedBox(width: 8),
-                Text(
-                  "Personal Information",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: brandBrown,
-                  ),
-                ),
-              ],
-            ),
+            Row(children: const [Icon(Icons.badge_outlined, color: brandOrange, size: 20), SizedBox(width: 8), Text("Personal Information", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: brandBrown))]),
             const Divider(height: 24),
             if (isWide) ...[
-              Row(
-                children: [
-                  Expanded(child: nameField),
-                  const SizedBox(width: 16),
-                  Expanded(child: phoneField),
-                ],
-              ),
+              Row(children: [Expanded(child: nameField), const SizedBox(width: 16), Expanded(child: phoneField)]),
               const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(child: emailField),
-                  const SizedBox(width: 16),
-                  Expanded(child: sexField),
-                ],
-              ),
+              Row(children: [Expanded(child: emailField), const SizedBox(width: 16), Expanded(child: sexField)]),
               const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(child: dobField),
-                  const SizedBox(width: 16),
-                  const Expanded(child: SizedBox()),
-                ],
-              ),
+              Row(children: [Expanded(child: dobField), const SizedBox(width: 16), const Expanded(child: SizedBox())]),
             ] else ...[
-              nameField,
-              const SizedBox(height: 16),
-              phoneField,
-              const SizedBox(height: 16),
-              emailField,
-              const SizedBox(height: 16),
-              sexField,
-              const SizedBox(height: 16),
-              dobField,
+              nameField, const SizedBox(height: 16), phoneField, const SizedBox(height: 16), emailField, const SizedBox(height: 16), sexField, const SizedBox(height: 16), dobField,
             ]
           ],
         ),
@@ -776,132 +454,28 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
   }
 
   Widget _buildGuardianDetailsCard(bool isWide) {
-    final Widget guardianNameField = TextFormField(
-      controller: _guardianNameController,
-      decoration: _getInputDecoration(
-        labelText: "Guardian Full Name",
-        prefixIcon: Icons.supervisor_account_outlined,
-      ),
-      validator: (value) {
-        if (value == null || value.trim().isEmpty) {
-          return "Please enter the guardian's full name";
-        }
-        return null;
-      },
-    );
-
-    final Widget guardianRelationField = DropdownButtonFormField<String>(
-      isExpanded: true,
-      initialValue: _selectedGuardianRelation,
-      decoration: _getInputDecoration(
-        labelText: "Relationship to Scholar",
-        prefixIcon: Icons.family_restroom_outlined,
-      ),
-      items: _relations.map((rel) {
-        return DropdownMenuItem<String>(
-          value: rel,
-          child: Text(rel),
-        );
-      }).toList(),
-      onChanged: (value) {
-        setState(() {
-          _selectedGuardianRelation = value;
-        });
-      },
-      validator: (value) =>
-      value == null ? "Please select the relationship" : null,
-    );
-
-    final Widget guardianPhoneField = TextFormField(
-      controller: _guardianPhoneController,
-      keyboardType: TextInputType.phone,
-      decoration: _getInputDecoration(
-        labelText: "Guardian Phone Number",
-        prefixIcon: Icons.phone_android_outlined,
-        helperText: "e.g. 0888123456",
-      ),
-      validator: _validateMalawiPhone,
-    );
-
-    final Widget guardianEmailField = TextFormField(
-      controller: _guardianEmailController,
-      keyboardType: TextInputType.emailAddress,
-      decoration: _getInputDecoration(
-        labelText: "Guardian Email (optional)",
-        prefixIcon: Icons.email_outlined,
-      ),
-      validator: _validateOptionalEmail,
-    );
-
-    final Widget guardianOccupationField = TextFormField(
-      controller: _guardianOccupationController,
-      decoration: _getInputDecoration(
-        labelText: "Guardian Occupation (optional)",
-        prefixIcon: Icons.work_outline,
-      ),
-    );
+    final Widget gName = TextFormField(controller: _guardianNameController, decoration: _getInputDecoration(labelText: "Guardian Full Name", prefixIcon: Icons.supervisor_account_outlined), validator: (v) => (v == null || v.trim().isEmpty) ? "Required" : null);
+    final Widget gRel = DropdownButtonFormField<String>(isExpanded: true, initialValue: _selectedGuardianRelation, decoration: _getInputDecoration(labelText: "Relationship", prefixIcon: Icons.family_restroom_outlined), items: _relations.map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(), onChanged: (v) => setState(() => _selectedGuardianRelation = v), validator: (v) => v == null ? "Required" : null);
+    final Widget gPhone = TextFormField(controller: _guardianPhoneController, keyboardType: TextInputType.phone, decoration: _getInputDecoration(labelText: "Guardian Phone", prefixIcon: Icons.phone_android_outlined), validator: _validateMalawiPhone);
+    final Widget gEmail = TextFormField(controller: _guardianEmailController, keyboardType: TextInputType.emailAddress, decoration: _getInputDecoration(labelText: "Guardian Email (optional)", prefixIcon: Icons.email_outlined), validator: _validateOptionalEmail);
+    final Widget gOcc = TextFormField(controller: _guardianOccupationController, decoration: _getInputDecoration(labelText: "Guardian Occupation", prefixIcon: Icons.work_outline));
 
     return Card(
-      elevation: 1,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200, width: 1),
-      ),
+      elevation: 1, color: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: const [
-                Icon(Icons.gite_outlined, color: brandOrange, size: 20),
-                SizedBox(width: 8),
-                Text(
-                  "Parent / Guardian Details",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: brandBrown,
-                  ),
-                ),
-              ],
-            ),
+            Row(children: const [Icon(Icons.gite_outlined, color: brandOrange, size: 20), SizedBox(width: 8), Text("Guardian Details", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: brandBrown))]),
             const Divider(height: 24),
             if (isWide) ...[
-              Row(
-                children: [
-                  Expanded(child: guardianNameField),
-                  const SizedBox(width: 16),
-                  Expanded(child: guardianRelationField),
-                ],
-              ),
+              Row(children: [Expanded(child: gName), const SizedBox(width: 16), Expanded(child: gRel)]),
               const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(child: guardianPhoneField),
-                  const SizedBox(width: 16),
-                  Expanded(child: guardianEmailField),
-                ],
-              ),
+              Row(children: [Expanded(child: gPhone), const SizedBox(width: 16), Expanded(child: gEmail)]),
               const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(child: guardianOccupationField),
-                  const SizedBox(width: 16),
-                  const Expanded(child: SizedBox()),
-                ],
-              ),
+              gOcc,
             ] else ...[
-              guardianNameField,
-              const SizedBox(height: 16),
-              guardianRelationField,
-              const SizedBox(height: 16),
-              guardianPhoneField,
-              const SizedBox(height: 16),
-              guardianEmailField,
-              const SizedBox(height: 16),
-              guardianOccupationField,
+              gName, const SizedBox(height: 16), gRel, const SizedBox(height: 16), gPhone, const SizedBox(height: 16), gEmail, const SizedBox(height: 16), gOcc,
             ]
           ],
         ),
@@ -910,277 +484,68 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
   }
 
   Widget _buildAcademicDetailsCard(bool isWide) {
-    final List<String> yearsList = List.generate(21, (index) => (DateTime.now().year - 5 + index).toString());
+    final List<String> years = academicYearOptions();
 
-    final Widget startYearField = DropdownButtonFormField<String>(
+    final Widget startYear = DropdownButtonFormField<String>(
       isExpanded: true,
       initialValue: _selectedStartYear,
-      decoration: _getInputDecoration(
-        labelText: _selectedSchoolType == 'University' ? "Program Start Year" : "Session Start Year",
-        prefixIcon: Icons.calendar_today,
-      ),
-      items: yearsList.map((year) {
-        return DropdownMenuItem<String>(
-          value: year,
-          child: Text(year),
-        );
-      }).toList(),
-      onChanged: (value) {
-        setState(() {
-          _selectedStartYear = value;
-        });
-      },
-      validator: (value) =>
-      value == null ? "Please select start year" : null,
+      decoration: _getInputDecoration(labelText: "Start Year", prefixIcon: Icons.calendar_today),
+      items: years.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
+      onChanged: (v) => setState(() => _selectedStartYear = v),
+      validator: (v) => v == null ? "Required" : null
     );
 
-    final Widget endYearField = DropdownButtonFormField<String>(
+    final Widget endYear = DropdownButtonFormField<String>(
       isExpanded: true,
       initialValue: _selectedEndYear,
-      decoration: _getInputDecoration(
-        labelText: _selectedSchoolType == 'University' ? "Program End Year" : "Session End Year",
-        prefixIcon: Icons.calendar_today,
-      ),
-      items: yearsList.map((year) {
-        return DropdownMenuItem<String>(
-          value: year,
-          child: Text(year),
-        );
-      }).toList(),
-      onChanged: (value) {
+      decoration: _getInputDecoration(labelText: "End Year", prefixIcon: Icons.calendar_today),
+      items: years.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
+      onChanged: (v) => setState(() => _selectedEndYear = v),
+      validator: (v) => v == null ? "Required" : null
+    );
+    final Widget schoolType = DropdownButtonFormField<String>(isExpanded: true, initialValue: _selectedSchoolType, decoration: _getInputDecoration(labelText: "School Type", prefixIcon: Icons.category_outlined), items: _schoolTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(), onChanged: (v) { setState(() { _selectedSchoolType = v; _selectedSchool = null; _selectedSchoolId = null; }); }, validator: (v) => v == null ? "Required" : null);
+    
+    final schools = _getAvailableSchoolsForScholar();
+    final Widget school = DropdownButtonFormField<String>(
+      isExpanded: true, initialValue: _selectedSchool,
+      decoration: _getInputDecoration(labelText: _isLoadingSchools ? "Loading..." : "Institution", prefixIcon: Icons.school_outlined),
+      items: schools.map((s) => DropdownMenuItem<String>(value: s['name'].toString(), child: Text(s['name'].toString(), overflow: TextOverflow.ellipsis))).toList(),
+      onChanged: (v) {
         setState(() {
-          _selectedEndYear = value;
+          _selectedSchool = v;
+          _selectedSchoolId = schools.firstWhere((s) => s['name'] == v)['id'].toString();
         });
       },
-      validator: (value) {
-        if (value == null) {
-          return "Please select end year";
-        }
-        if (_selectedStartYear != null) {
-          final int start = int.parse(_selectedStartYear!);
-          final int end = int.parse(value);
-          if (end < start) {
-            return "End year must be >= start year";
-          }
-        }
-        return null;
-      },
+      validator: (v) => v == null ? "Required" : null,
     );
 
-    final Widget schoolTypeField = DropdownButtonFormField<String>(
-      isExpanded: true,
-      initialValue: _selectedSchoolType,
-      decoration: _getInputDecoration(
-        labelText: "School Type",
-        prefixIcon: Icons.category_outlined,
-      ),
-      items: _schoolTypes.map((type) {
-        return DropdownMenuItem<String>(
-          value: type,
-          child: Text(type),
-        );
-      }).toList(),
-      onChanged: (value) {
-        setState(() {
-          _selectedSchoolType = value;
-          _selectedSchool = null;
-          _selectedSchoolId = null;
-          _selectedProgramType = null;
-        });
-      },
-      validator: (value) =>
-      value == null ? "Please select a school type" : null,
-    );
-
-    final availableSchools = _getAvailableSchoolsForScholar();
-
-    final Widget schoolField = DropdownButtonFormField<String>(
-      isExpanded: true,
-      key: ValueKey('${_selectedSchoolType}_${_registeredSchools.length}'),
-      initialValue: _selectedSchool,
-      decoration: _getInputDecoration(
-        labelText: _isLoadingSchools
-            ? "Loading Registered Schools..."
-            : (_selectedSchoolType == null
-                ? "School (Select School Type first)"
-                : (_selectedSchoolType == "University"
-                    ? "Registered University"
-                    : "Registered Secondary School")),
-        prefixIcon: Icons.school_outlined,
-        helperText: availableSchools.isEmpty && !_isLoadingSchools
-            ? "No schools registered under School component."
-            : null,
-      ),
-      items: availableSchools.map((school) {
-        final schoolName = school['name']?.toString() ?? 'Unnamed School';
-        return DropdownMenuItem<String>(
-          value: schoolName,
-          child: Text(schoolName, overflow: TextOverflow.ellipsis),
-        );
-      }).toList(),
-      onChanged: _selectedSchoolType == null || availableSchools.isEmpty
-          ? null
-          : (value) {
-              setState(() {
-                _selectedSchool = value;
-                final match = availableSchools.firstWhere(
-                  (s) => s['name']?.toString() == value,
-                  orElse: () => {},
-                );
-                _selectedSchoolId = match['id']?.toString();
-              });
-            },
-      validator: (value) =>
-          value == null ? "Please select a registered school" : null,
-    );
-
-    final Widget yearField = TextFormField(
-      controller: _yearController,
-      decoration: _getInputDecoration(
-        labelText: "Year / Form",
-        prefixIcon: Icons.calendar_today_outlined,
-        helperText: "e.g., Form 3, 2026",
-      ),
-      validator: (value) {
-        if (value == null || value.trim().isEmpty) {
-          return "Please enter the academic year or form";
-        }
-        return null;
-      },
-    );
-
-    final Widget programTypeField = DropdownButtonFormField<String>(
-      isExpanded: true,
-      key: ValueKey('programType_$_selectedSchoolType'),
-      initialValue: _selectedProgramType,
-      decoration: _getInputDecoration(
-        labelText: "Program Qualification",
-        prefixIcon: Icons.bookmark_outline,
-      ),
-      items: const [
-        DropdownMenuItem(value: "Degree", child: Text("Degree")),
-        DropdownMenuItem(value: "Diploma", child: Text("Diploma")),
-        DropdownMenuItem(value: "Certificate", child: Text("Certificate")),
-      ],
-      onChanged: (value) {
-        setState(() {
-          _selectedProgramType = value;
-        });
-      },
-      validator: (value) =>
-      value == null ? "Please select program qualification" : null,
-    );
-
-    final Widget programNameField = TextFormField(
-      controller: _programNameController,
-      decoration: _getInputDecoration(
-        labelText: "Program of Study (e.g. BSc Computer Science)",
-        prefixIcon: Icons.assignment_outlined,
-      ),
-      validator: (value) {
-        if (_selectedSchoolType == 'University' && (value == null || value.trim().isEmpty)) {
-          return "Please enter the program of study";
-        }
-        return null;
-      },
-    );
-
-    final Widget previousSchoolField = TextFormField(
-      controller: _previousSchoolController,
-      decoration: _getInputDecoration(
-        labelText: _selectedSchoolType == 'University' ? "Previous Secondary School" : "Previous Primary School",
-        prefixIcon: Icons.history_edu_outlined,
-      ),
-      validator: (value) {
-        if (value == null || value.trim().isEmpty) {
-          return "Please enter previous school";
-        }
-        return null;
-      },
-    );
+    final Widget year = TextFormField(controller: _yearController, decoration: _getInputDecoration(labelText: "Current Class / Year", prefixIcon: Icons.calendar_today_outlined), validator: (v) => (v == null || v.isEmpty) ? "Required" : null);
+    final Widget prev = TextFormField(controller: _previousSchoolController, decoration: _getInputDecoration(labelText: "Previous Institution", prefixIcon: Icons.history_edu_outlined), validator: (v) => (v == null || v.isEmpty) ? "Required" : null);
+    final Widget progType = DropdownButtonFormField<String>(isExpanded: true, initialValue: _selectedProgramType, decoration: _getInputDecoration(labelText: "Qualification", prefixIcon: Icons.bookmark_outline), items: const [DropdownMenuItem(value: "Degree", child: Text("Degree")), DropdownMenuItem(value: "Diploma", child: Text("Diploma")), DropdownMenuItem(value: "Certificate", child: Text("Certificate"))], onChanged: (v) => setState(() => _selectedProgramType = v));
+    final Widget progName = TextFormField(controller: _programNameController, decoration: _getInputDecoration(labelText: "Program Name", prefixIcon: Icons.assignment_outlined));
 
     return Card(
-      elevation: 1,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200, width: 1),
-      ),
+      elevation: 1, color: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: const [
-                Icon(Icons.school_outlined, color: brandOrange, size: 20),
-                SizedBox(width: 8),
-                Text(
-                  "Academic Details",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: brandBrown,
-                  ),
-                ),
-              ],
-            ),
+            Row(children: const [Icon(Icons.school_outlined, color: brandOrange, size: 20), SizedBox(width: 8), Text("Academic Details", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: brandBrown))]),
             const Divider(height: 24),
             if (isWide) ...[
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: schoolTypeField),
-                  const SizedBox(width: 16),
-                  Expanded(child: schoolField),
-                ],
-              ),
+              Row(children: [Expanded(child: schoolType), const SizedBox(width: 16), Expanded(child: school)]),
               const SizedBox(height: 16),
-              previousSchoolField,
-              const SizedBox(height: 16),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: yearField),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _selectedSchoolType == 'University'
-                        ? programTypeField
-                        : const SizedBox(),
-                  ),
-                ],
-              ),
+              Row(children: [Expanded(child: year), const SizedBox(width: 16), Expanded(child: prev)]),
               if (_selectedSchoolType == 'University') ...[
                 const SizedBox(height: 16),
-                programNameField,
+                Row(children: [Expanded(child: progType), const SizedBox(width: 16), Expanded(child: progName)]),
               ],
               const SizedBox(height: 16),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: startYearField),
-                  const SizedBox(width: 16),
-                  Expanded(child: endYearField),
-                ],
-              ),
+              Row(children: [Expanded(child: startYear), const SizedBox(width: 16), Expanded(child: endYear)]),
             ] else ...[
-              schoolTypeField,
-              const SizedBox(height: 16),
-              schoolField,
-              const SizedBox(height: 16),
-              previousSchoolField,
-              const SizedBox(height: 16),
-              yearField,
-              if (_selectedSchoolType == 'University') ...[
-                const SizedBox(height: 16),
-                programTypeField,
-                const SizedBox(height: 16),
-                programNameField,
-              ],
-              const SizedBox(height: 16),
-              startYearField,
-              const SizedBox(height: 16),
-              endYearField,
+              schoolType, const SizedBox(height: 16), school, const SizedBox(height: 16), year, const SizedBox(height: 16), prev,
+              if (_selectedSchoolType == 'University') ...[ const SizedBox(height: 16), progType, const SizedBox(height: 16), progName ],
+              const SizedBox(height: 16), startYear, const SizedBox(height: 16), endYear,
             ]
           ],
         ),
@@ -1189,115 +554,24 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
   }
 
   Widget _buildDemographicsCard(bool isWide) {
-    final Widget districtField = DropdownButtonFormField<String>(
-      isExpanded: true,
-      initialValue: _selectedDistrict,
-      decoration: _getInputDecoration(
-        labelText: "District",
-        prefixIcon: Icons.map_outlined,
-        helperText: "Select district in Malawi",
-      ),
-      items: _districts.map((district) {
-        return DropdownMenuItem<String>(
-          value: district,
-          child: Text(district),
-        );
-      }).toList(),
-      onChanged: (value) {
-        setState(() {
-          _selectedDistrict = value;
-        });
-      },
-      validator: (value) =>
-      value == null ? "Please select a district" : null,
-    );
-
-    final Widget villageField = TextFormField(
-      controller: _homeVillageController,
-      decoration: _getInputDecoration(
-        labelText: "Home Village",
-        prefixIcon: Icons.home_outlined,
-      ),
-      validator: (value) {
-        if (value == null || value.trim().isEmpty) {
-          return "Please enter the home village";
-        }
-        return null;
-      },
-    );
-
-    final Widget donorField = DropdownButtonFormField<String>(
-      isExpanded: true,
-      initialValue: _selectedDonor,
-      decoration: _getInputDecoration(
-        labelText: _isLoadingSponsors ? "Loading Donors..." : "Donor / Sponsor",
-        prefixIcon: Icons.monetization_on_outlined,
-      ),
-      items: _registeredSponsors.map((donor) {
-        return DropdownMenuItem<String>(
-          value: donor,
-          child: Text(donor),
-        );
-      }).toList(),
-      onChanged: (value) {
-        setState(() {
-          _selectedDonor = value;
-        });
-      },
-      validator: (value) =>
-      value == null ? "Please select a donor" : null,
-    );
+    final Widget district = DropdownButtonFormField<String>(isExpanded: true, initialValue: _selectedDistrict, decoration: _getInputDecoration(labelText: "District", prefixIcon: Icons.map_outlined), items: _districts.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(), onChanged: (v) => setState(() => _selectedDistrict = v), validator: (v) => v == null ? "Required" : null);
+    final Widget village = TextFormField(controller: _homeVillageController, decoration: _getInputDecoration(labelText: "Home Village", prefixIcon: Icons.home_outlined), validator: (v) => (v == null || v.isEmpty) ? "Required" : null);
+    final Widget donor = DropdownButtonFormField<String>(isExpanded: true, initialValue: _selectedDonor, decoration: _getInputDecoration(labelText: "Donor / Sponsor", prefixIcon: Icons.monetization_on_outlined), items: _registeredSponsors.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(), onChanged: (v) => setState(() => _selectedDonor = v), validator: (v) => v == null ? "Required" : null);
 
     return Card(
-      elevation: 1,
-      color: Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200, width: 1),
-      ),
+      elevation: 1, color: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: const [
-                Icon(Icons.place_outlined, color: brandOrange, size: 20),
-                SizedBox(width: 8),
-                Text(
-                  "Demographics & Sponsorship",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: brandBrown,
-                  ),
-                ),
-              ],
-            ),
+            Row(children: const [Icon(Icons.place_outlined, color: brandOrange, size: 20), SizedBox(width: 8), Text("Sponsorship", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: brandBrown))]),
             const Divider(height: 24),
             if (isWide) ...[
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: districtField),
-                  const SizedBox(width: 16),
-                  Expanded(child: villageField),
-                ],
-              ),
+              Row(children: [Expanded(child: district), const SizedBox(width: 16), Expanded(child: village)]),
               const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(child: donorField),
-                  const SizedBox(width: 16),
-                  const Expanded(child: SizedBox()),
-                ],
-              ),
+              donor,
             ] else ...[
-              districtField,
-              const SizedBox(height: 16),
-              villageField,
-              const SizedBox(height: 16),
-              donorField,
+              district, const SizedBox(height: 16), village, const SizedBox(height: 16), donor,
             ]
           ],
         ),
@@ -1306,27 +580,13 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
   }
 
   Widget _buildSubmitButton() {
-    final double completion = _calculateCompletionPercentage();
-    final bool isComplete = completion >= 1.0;
-
-    return ElevatedButton.icon(
-      onPressed: _isLoading ? null : _submitForm,
-      icon: _isLoading 
-          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-          : const Icon(Icons.person_add_rounded, size: 20),
-      label: Text(
-        _isLoading ? "Registering..." : "Complete Scholar Registration",
-        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-      ),
-      style: ElevatedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 18),
-        backgroundColor: isComplete ? brandOlive : brandOrange,
-        foregroundColor: Colors.white,
-        elevation: 2,
-        shadowColor: (isComplete ? brandOlive : brandOrange).withValues(alpha: 0.3),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: _isLoading ? null : _submitForm,
+        icon: _isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.person_add_rounded, size: 20),
+        label: Text(_isLoading ? "Registering..." : "Complete Scholar Registration", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 20), backgroundColor: brandOlive, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
       ),
     );
   }

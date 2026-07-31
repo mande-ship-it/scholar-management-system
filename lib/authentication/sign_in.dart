@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../academics/academics_utils.dart';
-import '../services/api_service.dart';
+import 'package:scholar_management_system/services/api_service.dart';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -89,13 +89,46 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
               return;
             }
 
-            Navigator.pushReplacementNamed(
-              context,
-              '/home',
-              arguments: {
-                'username': userData['fullName'] ?? _usernameController.text.trim(),
-                'role': userData['role'] ?? 'User',
-              },
+            final String role = userData['role'] ?? 'User';
+            final bool hasAdminAccess = ['Administrator', 'Program Coordinator', 'Country Director'].contains(role);
+            
+            if (hasAdminAccess) {
+              Navigator.pushReplacementNamed(
+                context,
+                '/admin/home',
+                arguments: {
+                  'username': userData['fullName'] ?? _usernameController.text.trim(),
+                  'role': role,
+                },
+              );
+            } else {
+              Navigator.pushReplacementNamed(
+                context,
+                '/home',
+                arguments: {
+                  'username': userData['fullName'] ?? _usernameController.text.trim(),
+                  'role': role,
+                },
+              );
+            }
+          }
+        } else {
+          if (mounted) {
+            setState(() => _isLoading = false);
+            final String message = response.data['message'] ?? "Invalid username or password.";
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.error_outline, color: Colors.white),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text("Authentication Failed: $message")),
+                  ],
+                ),
+                backgroundColor: Colors.redAccent,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
             );
           }
         }
@@ -105,8 +138,12 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
           String errorMessage = "Authentication failed. Please check your credentials.";
           
           if (e is DioException) {
-            if (e.response?.statusCode == 401) {
-              errorMessage = "Invalid email or password.";
+            if (e.response?.data != null && e.response?.data['message'] != null) {
+              errorMessage = e.response?.data['message'];
+            } else if (e.response?.statusCode == 401) {
+              errorMessage = "Invalid username/email or password.";
+            } else if (e.response?.statusCode == 403) {
+              errorMessage = "Your account is disabled. Please contact the administrator.";
             } else if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
               errorMessage = "Server connection timed out. Please try again later.";
             } else if (e.type == DioExceptionType.connectionError) {
@@ -135,10 +172,6 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
 
   void _showForgotPasswordDialog() {
     Navigator.pushNamed(context, '/forgot-password');
-  }
-
-  void _showResetPasswordDialog(String email) {
-    // This is now handled by the dedicated ForgotPasswordPage
   }
 
   @override
@@ -209,7 +242,7 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
             child: FadeTransition(
               opacity: _fadeAnimation,
               child: const Text(
-                "© 2025 AGE Africa • Scholar Management System",
+                "© 2026 AGE Africa • AGE Africa System",
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white70,

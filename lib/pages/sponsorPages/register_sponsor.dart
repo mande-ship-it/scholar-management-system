@@ -8,10 +8,8 @@ class RegisterSponsorPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: RegisterSponsorComponent(onRegister: onSuccess != null ? (_) async => onSuccess!() : null),
-      ),
+      backgroundColor: Colors.white,
+      body: RegisterSponsorComponent(onRegister: onSuccess != null ? (_) async => onSuccess!() : null),
     );
   }
 }

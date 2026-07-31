@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 // Home Page
 import 'pages/home/home_page.dart';
+import 'pages/home/admin_home_page.dart';
 
 // Dashboard Pages
 import 'pages/dashboardPages/dashboard.dart';
@@ -18,8 +19,8 @@ import 'authentication/forgot_password.dart';
 import 'pages/scholarPages/register_scholar.dart';
 import 'pages/scholarPages/view_scholars.dart';
 import 'pages/scholarPages/scholar_profile.dart';
-import 'pages/scholarPages/promote_scholars.dart';
 import 'pages/scholarPages/scholar_stats.dart';
+import 'pages/scholarPages/graduates_page.dart';
 import 'pages/attendancePages/scholar_attendance.dart';
 
 // School Pages
@@ -44,20 +45,17 @@ import 'pages/academicPages/academic_stats.dart';
 import 'pages/attendancePages/attendance_history.dart';
 import 'pages/attendancePages/attendance_reports.dart';
 
-// Report Pages
-import 'pages/reportPages/scholar_reports.dart';
-import 'pages/reportPages/school_reports.dart';
-import 'pages/reportPages/sponsor_reports.dart';
-import 'pages/reportPages/export_pdf.dart';
-import 'pages/reportPages/export_excel.dart';
-
 // User Pages
 import 'pages/userPages/create_user.dart';
 import 'pages/userPages/manage_users.dart';
 import 'pages/userPages/user_roles.dart';
 import 'pages/userPages/permissions.dart';
 import 'pages/userPages/user_profile.dart';
+import 'pages/userPages/manage_departments.dart';
 import 'pages/admin/approvals_page.dart';
+
+// Interactive Map
+import 'dashboard/districts_map.dart';
 
 // Splash Screen
 import 'pages/splash/splash_screen.dart';
@@ -69,8 +67,11 @@ import 'pages/settingsPages/system_settings.dart';
 import 'pages/settingsPages/account_settings.dart';
 
 import 'settings/theme_controller.dart';
+import 'package:scholar_management_system/services/api_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await ApiService.init();
   runApp(const MyApp());
 }
 
@@ -84,7 +85,7 @@ class MyApp extends StatelessWidget {
       builder: (context, mode, _) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          title: 'AGE Africa Scholar Management System',
+          title: 'AGE Africa System',
           themeMode: mode,
           theme: ThemeData(
             useMaterial3: true,
@@ -108,20 +109,22 @@ class MyApp extends StatelessWidget {
             '/password-reset': (context) => const PasswordResetPage(),
             '/forgot-password': (context) => const ForgotPasswordPage(),
             '/home': (context) => const HomePage(),
+            '/admin/home': (context) => const AdminHomePage(),
 
             // Dashboard
             '/dashboard': (context) => DashboardPage(),
             '/dashboard/statistics': (context) => StatisticsPage(),
             '/dashboard/recentActivities': (context) => RecentActivitiesPage(),
             '/dashboard/notifications': (context) => NotificationsPage(),
+            '/dashboard/map': (context) => const DistrictsMapPage(),
 
             // Scholars
             '/registerScholar': (context) => RegisterScholarPage(),
             '/viewScholars': (context) => ViewScholarsPage(),
             '/scholarProfile': (context) => ScholarProfilePage(),
             '/scholarAttendance': (context) => ScholarAttendancePage(),
-            '/scholars/promote': (context) => PromoteScholarsPage(),
             '/scholars/stats': (context) => ScholarStatsPage(),
+            '/scholars/graduates': (context) => const UniversityGraduatesPage(),
 
             // Schools
             '/schools/register': (context) => RegisterSchoolPage(),
@@ -145,18 +148,12 @@ class MyApp extends StatelessWidget {
             '/attendance/attendanceHistory': (context) => AttendanceHistoryPage(),
             '/attendance/attendanceReports': (context) => AttendanceModuleReportsPage(),
 
-            // Reports
-            '/reports/scholar': (context) => ScholarReportsPage(),
-            '/reports/school': (context) => SchoolReportsPage(),
-            '/reports/sponsor': (context) => SponsorReportsPage(),
-            '/reports/exportPDF': (context) => ExportPDFPage(),
-            '/reports/exportExcel': (context) => ExportExcelPage(),
-
             // Users
             '/users/create': (context) => CreateUserPage(),
             '/users/manage': (context) => ManageUsersPage(),
             '/users/roles': (context) => UserRolesPage(),
             '/users/permissions': (context) => PermissionsPage(),
+            '/users/departments': (context) => ManageDepartmentsPage(),
             '/users/profile': (context) => UserProfilePage(),
             '/admin/approvals': (context) => const ApprovalsPage(),
 

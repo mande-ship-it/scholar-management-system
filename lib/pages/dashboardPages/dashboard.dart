@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import '../../dashboard/dashboard.dart';
 
 class DashboardPage extends StatelessWidget {
-  const DashboardPage({super.key});
+  final Function(String)? onNavigate;
+  final String? userRole;
+  const DashboardPage({super.key, this.onNavigate, this.userRole});
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: DashboardComponent(),
+    return Scaffold(
+      body: DashboardComponent(onNavigate: onNavigate, userRole: userRole),
     );
   }
 }

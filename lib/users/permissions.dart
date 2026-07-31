@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/api_service.dart';
+import 'package:scholar_management_system/services/api_service.dart';
 
 /// ---------------------------------------------------------------------
 /// PERMISSIONS COMPONENT
@@ -16,8 +16,7 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
   // ---------------------------------------------------------------------
   // CONFIG
   // ---------------------------------------------------------------------
-  final List<String> _roles = [];
-
+  final List<dynamic> _rolesData = [];
   final List<String> _modules = [
     'Dashboard',
     'Scholars',
@@ -61,7 +60,7 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
   };
 
   Map<String, Map<String, Map<String, bool>>> _permissions = {};
-  String _selectedRole = 'Administrator';
+  String? _selectedRoleName;
   String _moduleSearch = '';
   bool _hasUnsavedChanges = false;
   bool _isLoading = false;
@@ -80,11 +79,29 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
         final List<dynamic> data = response.data['data'] ?? [];
         if (mounted) {
           setState(() {
-            _roles.clear();
-            _roles.addAll(data.map((r) => r['name'].toString()).toList());
-            _permissions = _buildDefaultPermissions();
-            if (_roles.isNotEmpty) {
-              _selectedRole = _roles.first;
+            _rolesData.clear();
+            _rolesData.addAll(data);
+            
+            _permissions.clear();
+            for (var role in data) {
+              String name = role['name'];
+              var rawPerms = role['permissions'] ?? {};
+              
+              Map<String, Map<String, bool>> moduleMap = {};
+              for (var module in _modules) {
+                var modulePerms = rawPerms[module] ?? {};
+                moduleMap[module] = {
+                  'view': modulePerms['view'] == true,
+                  'create': modulePerms['create'] == true,
+                  'edit': modulePerms['edit'] == true,
+                  'delete': modulePerms['delete'] == true,
+                };
+              }
+              _permissions[name] = moduleMap;
+            }
+
+            if (_rolesData.isNotEmpty) {
+              _selectedRoleName = _rolesData.first['name'];
             }
           });
         }
@@ -97,73 +114,6 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
   }
 
   // ---------------------------------------------------------------------
-  // DEFAULT PERMISSION SEEDING
-  // ---------------------------------------------------------------------
-  Map<String, Map<String, Map<String, bool>>> _buildDefaultPermissions() {
-    final Map<String, Map<String, Map<String, bool>>> data = {};
-    for (final role in _roles) {
-      final Map<String, Map<String, bool>> modulePerms = {};
-      for (final module in _modules) {
-        modulePerms[module] = _defaultActionsFor(role, module);
-      }
-      data[role] = modulePerms;
-    }
-    return data;
-  }
-
-  Map<String, bool> _defaultActionsFor(String role, String module) {
-    bool v = false, c = false, e = false, d = false;
-
-    switch (role) {
-      case 'Administrator':
-        v = c = e = d = true;
-        break;
-
-      case 'Program Manager':
-        v = true;
-        if (module != 'Users' && module != 'Settings' && module != 'Finance') {
-          c = true;
-          e = true;
-        }
-        break;
-
-      case 'Data Officer':
-        v = true;
-        if (['Scholars', 'Schools', 'Sponsors', 'Academics', 'Attendance']
-            .contains(module)) {
-          c = true;
-          e = true;
-        }
-        break;
-
-      case 'Finance Officer':
-        v = true;
-        if (module == 'Finance') {
-          c = true;
-          e = true;
-          d = true;
-        }
-        break;
-
-      case 'Field Coordinator':
-        v = true;
-        if (['Scholars', 'Attendance'].contains(module)) {
-          c = true;
-          e = true;
-        }
-        break;
-
-      case 'Volunteer':
-        if (module != 'Users' && module != 'Settings' && module != 'Finance') {
-          v = true;
-        }
-        break;
-    }
-
-    return {'view': v, 'create': c, 'edit': e, 'delete': d};
-  }
-
-  // ---------------------------------------------------------------------
   // DERIVED DATA
   // ---------------------------------------------------------------------
   List<String> get _filteredModules {
@@ -173,6 +123,7 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
   }
 
   int _grantedCount(String role) {
+    if (!_permissions.containsKey(role)) return 0;
     int count = 0;
     for (final module in _modules) {
       for (final action in _actions) {
@@ -185,13 +136,15 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
   int get _totalPossible => _modules.length * _actions.length;
 
   bool _isModuleFullyGranted(String module) {
+    if (_selectedRoleName == null) return false;
     return _actions
-        .every((a) => _permissions[_selectedRole]![module]![a] == true);
+        .every((a) => _permissions[_selectedRoleName]![module]![a] == true);
   }
 
   bool _isModulePartiallyGranted(String module) {
+    if (_selectedRoleName == null) return false;
     final anyTrue =
-    _actions.any((a) => _permissions[_selectedRole]![module]![a] == true);
+    _actions.any((a) => _permissions[_selectedRoleName]![module]![a] == true);
     return anyTrue && !_isModuleFullyGranted(module);
   }
 
@@ -199,27 +152,30 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
   // ACTIONS
   // ---------------------------------------------------------------------
   void _toggleAction(String module, String action, bool value) {
+    if (_selectedRoleName == null) return;
     setState(() {
-      _permissions[_selectedRole]![module]![action] = value;
+      _permissions[_selectedRoleName]![module]![action] = value;
       _hasUnsavedChanges = true;
     });
   }
 
   void _toggleModuleAll(String module) {
+    if (_selectedRoleName == null) return;
     final full = _isModuleFullyGranted(module);
     setState(() {
       for (final action in _actions) {
-        _permissions[_selectedRole]![module]![action] = !full;
+        _permissions[_selectedRoleName]![module]![action] = !full;
       }
       _hasUnsavedChanges = true;
     });
   }
 
   void _selectAllModules() {
+    if (_selectedRoleName == null) return;
     setState(() {
       for (final module in _modules) {
         for (final action in _actions) {
-          _permissions[_selectedRole]![module]![action] = true;
+          _permissions[_selectedRoleName]![module]![action] = true;
         }
       }
       _hasUnsavedChanges = true;
@@ -227,27 +183,51 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
   }
 
   void _clearAllModules() {
+    if (_selectedRoleName == null) return;
     setState(() {
       for (final module in _modules) {
         for (final action in _actions) {
-          _permissions[_selectedRole]![module]![action] = false;
+          _permissions[_selectedRoleName]![module]![action] = false;
         }
       }
       _hasUnsavedChanges = true;
     });
   }
 
-  void _saveChanges() {
-    setState(() => _hasUnsavedChanges = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Permissions saved for $_selectedRole"),
-        backgroundColor: Colors.green.shade700,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+  Future<void> _saveChanges() async {
+    if (_selectedRoleName == null) return;
+    
+    setState(() => _isLoading = true);
+    try {
+      final roleId = _rolesData.firstWhere((r) => r['name'] == _selectedRoleName)['id'].toString();
+      final response = await ApiService.updateRolePermissions(roleId, _permissions[_selectedRoleName]!);
+      
+      if (response.statusCode == 200) {
+        setState(() {
+          _hasUnsavedChanges = false;
+          _isLoading = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Permissions saved for $_selectedRoleName"),
+              backgroundColor: Colors.green.shade700,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error saving permissions: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to save permissions"), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   // ---------------------------------------------------------------------
@@ -317,7 +297,6 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
     );
   }
 
-  // ---------------- CLEAN HEADER ----------------
   Widget _buildHeader() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 32, 24, 16),
@@ -382,9 +361,6 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
     );
   }
 
-  // ---------------------------------------------------------------------
-  // LEFT PANEL — ROLES LIST
-  // ---------------------------------------------------------------------
   Widget _buildRolesPanel() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -404,19 +380,19 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 10),
-            itemCount: _roles.length,
+            itemCount: _rolesData.length,
             itemBuilder: (context, index) {
-              final role = _roles[index];
-              final isSelected = role == _selectedRole;
-              final color = _roleColor(role);
-              final granted = _grantedCount(role);
+              final roleName = _rolesData[index]['name'];
+              final isSelected = roleName == _selectedRoleName;
+              final color = _roleColor(roleName);
+              final granted = _grantedCount(roleName);
               final percent = granted / _totalPossible;
 
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 3),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(12),
-                  onTap: () => setState(() => _selectedRole = role),
+                  onTap: () => setState(() => _selectedRoleName = roleName),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
@@ -434,7 +410,7 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
                             color: color.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Icon(_roleIcon(role), size: 16, color: color),
+                          child: Icon(_roleIcon(roleName), size: 16, color: color),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -443,7 +419,7 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                role,
+                                roleName,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 12.8,
@@ -487,12 +463,10 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
     );
   }
 
-  // ---------------------------------------------------------------------
-  // RIGHT PANEL — PERMISSIONS MATRIX
-  // ---------------------------------------------------------------------
   Widget _buildPermissionsPanel() {
+    if (_selectedRoleName == null) return const Center(child: Text("Select a role to view permissions"));
     final modules = _filteredModules;
-    final color = _roleColor(_selectedRole);
+    final color = _roleColor(_selectedRoleName!);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -501,11 +475,11 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
           child: Row(
             children: [
-              Icon(_roleIcon(_selectedRole), size: 18, color: color),
+              Icon(_roleIcon(_selectedRoleName!), size: 18, color: color),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  "$_selectedRole Access",
+                  "$_selectedRoleName Access",
                   style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -591,15 +565,12 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
     );
   }
 
-  // ---------------------------------------------------------------------
-  // MODULE PERMISSION CARD
-  // ---------------------------------------------------------------------
   Widget _buildModuleCard(String module) {
-    final perms = _permissions[_selectedRole]![module]!;
+    final perms = _permissions[_selectedRoleName]![module]!;
     final grantedInModule = perms.values.where((v) => v).length;
     final fullyGranted = _isModuleFullyGranted(module);
     final partiallyGranted = _isModulePartiallyGranted(module);
-    final color = _roleColor(_selectedRole);
+    final color = _roleColor(_selectedRoleName!);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),

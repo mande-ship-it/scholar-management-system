@@ -46,12 +46,15 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
           final response = await ApiService.getAccountProfile();
           if (response.statusCode == 200 && mounted) {
             final userData = response.data['data'];
+            final String role = userData['role_name'] ?? 'Staff';
+            final String targetRoute = (role == 'Administrator') ? '/admin/home' : '/home';
+
             Navigator.pushReplacementNamed(
               context,
-              '/home',
+              targetRoute,
               arguments: {
                 'username': userData['full_name'] ?? 'User',
-                'role': userData['role_name'] ?? 'Staff',
+                'role': role,
               },
             );
             return;
@@ -139,7 +142,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    "SCHOLAR MANAGEMENT SYSTEM",
+                    "AGE AFRICA SYSTEM",
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,

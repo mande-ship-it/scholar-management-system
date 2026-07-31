@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import '../academics/academics_utils.dart';
-import '../services/api_service.dart';
+import 'package:scholar_management_system/services/api_service.dart';
+import 'view_scholars.dart'; // To access showEditScholarDialog
 
 class ScholarProfileComponent extends StatefulWidget {
-  const ScholarProfileComponent({super.key});
+  final String? scholarId;
+  final VoidCallback? onBack;
+  const ScholarProfileComponent({super.key, this.scholarId, this.onBack});
 
   @override
   State<ScholarProfileComponent> createState() => _ScholarProfileComponentState();
@@ -14,11 +17,43 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
   bool _isLoading = true;
   Student? _student;
   Map<String, dynamic>? _extraData;
+  String _userRole = 'User';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserRole();
+    if (widget.scholarId != null) {
+      _fetchScholarData(widget.scholarId!, null);
+    }
+  }
+
+  Future<void> _fetchUserRole() async {
+    try {
+      final response = await ApiService.getAccountProfile();
+      if (response.statusCode == 200) {
+        final data = response.data['data'];
+        if (data != null && mounted) {
+          setState(() {
+            _userRole = data['role_name'] ?? 'User';
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  @override
+  void didUpdateWidget(ScholarProfileComponent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.scholarId != null && widget.scholarId != oldWidget.scholarId) {
+      _fetchScholarData(widget.scholarId!, null);
+    }
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_student == null) {
+    if (_student == null && widget.scholarId == null) {
       final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
       final String id = args?['id'] ?? 's1';
       _fetchScholarData(id, args);
@@ -57,6 +92,9 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
           guardianEmail: item['guardian_email'],
           guardianRelation: item['guardian_relation'],
           guardianOccupation: item['guardian_occupation'],
+          progressionStatus: item['progression_status'] ?? 'Pending',
+          progressionHistory: item['progression_history'] ?? [],
+          yearsRemaining: item['years_remaining'] ?? 0,
         );
         
         _extraData = {
@@ -73,6 +111,8 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
           'guardianName': _student!.guardianName,
           'guardianPhone': _student!.guardianPhone,
           'guardianRelation': _student!.guardianRelation,
+          'progressionStatus': _student!.progressionStatus,
+          'yearsRemaining': _student!.yearsRemaining,
         };
 
         // Fetch academic results
@@ -101,6 +141,53 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
       debugPrint('Error fetching scholar profile data: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _deleteScholar() async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Delete Scholar"),
+        content: Text("Are you sure you want to delete ${_student?.name}? This action cannot be undone."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() => _isLoading = true);
+      try {
+        final response = await ApiService.deleteScholar(_student!.id);
+        if (response.statusCode != null && response.statusCode! < 400) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Scholar deleted successfully."), backgroundColor: Colors.red),
+            );
+            if (widget.onBack != null) {
+              widget.onBack!();
+            } else {
+              Navigator.pop(context, true); // Go back with success flag
+            }
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(response.data['message'] ?? "Failed to delete scholar.")),
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('Error deleting scholar: $e');
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -171,8 +258,62 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
               ],
             ),
           ),
-          ElevatedButton.icon(
-            onPressed: () {},
+          OutlinedButton.icon(
+            onPressed: () {
+              Scaffold.of(context).openEndDrawer();
+            },
+            icon: const Icon(Icons.auto_awesome_rounded, size: 18),
+            label: const Text("Ask AI"),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: kBrandOlive,
+              side: const BorderSide(color: kBrandOlive),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
+          const SizedBox(width: 12),
+          if (['Administrator', 'Program Coordinator', 'Country Director'].contains(_userRole))
+            OutlinedButton.icon(
+              onPressed: _deleteScholar,
+              icon: const Icon(Icons.delete_outline_rounded, size: 18),
+              label: const Text("Delete"),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red,
+                side: const BorderSide(color: Colors.red),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+            ),
+          if (['Administrator', 'Program Coordinator', 'Country Director'].contains(_userRole))
+            const SizedBox(width: 12),
+          if (['Administrator', 'Program Coordinator', 'Country Director'].contains(_userRole))
+            ElevatedButton.icon(
+              onPressed: () {
+              final scholarMap = {
+                'id': student.id,
+                'scholarId': student.scholarId,
+                'name': student.name,
+                'schoolType': student.schoolType == SchoolType.secondary ? 'Secondary' : 'University',
+                'school': student.schoolName,
+                'class': student.currentClass,
+                'status': student.status,
+                'district': student.district,
+                'donor': student.donor,
+                'sex': student.sex,
+                'dob': student.dob,
+                'village': student.village,
+                'phone': student.phone,
+                'email': student.email,
+                'programType': student.programType,
+                'programName': student.programName,
+                'previousSchool': student.previousSchool,
+                'startYear': student.startYear,
+                'endYear': student.endYear,
+              };
+              showEditScholarDialog(context, scholarMap).then((_) {
+                _fetchScholarData(student.id, null);
+              });
+            },
             icon: const Icon(Icons.edit_outlined, size: 18),
             label: const Text("Edit"),
             style: ElevatedButton.styleFrom(
@@ -180,6 +321,7 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
           ),
         ],
@@ -191,6 +333,7 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
     final items = [
       ("Overview", Icons.person_outline_rounded),
       ("Academic Stats", Icons.auto_graph_rounded),
+      ("Progression", Icons.trending_up_rounded),
     ];
 
     return Container(
@@ -241,8 +384,95 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
     switch (_selectedTab) {
       case 0: return _buildOverviewTab(student, args);
       case 1: return _buildStatisticsTab(student);
+      case 2: return _buildProgressionTab(student);
       default: return const SizedBox();
     }
+  }
+
+  Widget _buildProgressionTab(Student student) {
+    return Column(
+      children: [
+        _infoSection(
+          title: "Current Progression Status",
+          icon: Icons.track_changes_rounded,
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(child: _infoTile("Progression State", student.progressionStatus, isBold: true)),
+                  Expanded(child: _infoTile("Years Remaining", "${student.yearsRemaining} Years")),
+                ],
+              ),
+              const Divider(height: 32),
+              const Text(
+                "Note: Scholars are automatically promoted based on their term/semester averages. A minimum of 50% is required to move to the next class.",
+                style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        _infoSection(
+          title: "Academic Milestone History",
+          icon: Icons.history_rounded,
+          child: Column(
+            children: [
+              if (student.progressionHistory.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40),
+                  child: Text("No progression history recorded yet.", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)),
+                )
+              else
+                ...student.progressionHistory.map((h) => Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("Academic Year: ${h['year']}", style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown)),
+                          _badge(
+                            h['result'],
+                            h['result'] == 'Moved' ? Colors.green.shade50 : Colors.red.shade50,
+                            h['result'] == 'Moved' ? Colors.green.shade700 : Colors.red.shade700
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(child: _infoTile("From", h['from_class'])),
+                          Expanded(child: _infoTile("To", h['to_class'])),
+                          Expanded(child: _infoTile("Avg", "${h['average']}%")),
+                        ],
+                      ),
+                      if (h['ai_insight'] != null) ...[
+                        const Divider(height: 24),
+                        Row(
+                          children: [
+                            const Icon(Icons.auto_awesome_rounded, size: 16, color: kBrandOlive),
+                            const SizedBox(width: 8),
+                            const Text("AI Insight", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kBrandOlive)),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(h['ai_insight'], style: const TextStyle(fontSize: 13, color: Colors.black87, height: 1.4)),
+                      ],
+                    ],
+                  ),
+                )),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildOverviewTab(Student student, Map<String, dynamic>? args) {

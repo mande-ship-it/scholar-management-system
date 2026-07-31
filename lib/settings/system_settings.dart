@@ -1,15 +1,8 @@
 import 'package:flutter/material.dart';
 import 'theme_controller.dart';
-import '../services/api_service.dart';
+import 'package:scholar_management_system/services/api_service.dart';
+import '../academics/academics_utils.dart';
 import '../widgets/custom_loaders.dart';
-
-// ============================================================
-// Shared Brand Color Palette
-// ============================================================
-const Color kBrandBrown = Color(0xFF4C3C32);
-const Color kBrandCream = Color(0xFFFAF2DB);
-const Color kBrandOlive = Color(0xFF9AB334);
-const Color kBrandOrange = Color(0xFFE05B1C);
 
 class SystemSettingsComponent extends StatefulWidget {
   const SystemSettingsComponent({super.key});
@@ -44,7 +37,6 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
             _language = data['language'] ?? "English (Malawi)";
             _currency = data['currency'] ?? "Malawian Kwacha (MWK)";
             
-            // Sync theme controller if theme is stored in backend
             if (data['theme'] == 'dark') {
               themeController.value = ThemeMode.dark;
             } else if (data['theme'] == 'light') {
@@ -56,7 +48,7 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
         }
       }
     } catch (e) {
-      debugPrint('Error fetching settings: $e');
+      debugPrint('Error fetching system settings: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -72,165 +64,76 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.dividerColor),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
-      ),
-      clipBehavior: Clip.antiAlias,
+      height: double.infinity,
+      color: Colors.white,
       child: _isLoading 
-        ? const Center(child: Padding(padding: EdgeInsets.all(80), child: BeautifulLoader(isOverlay: false, message: "Loading Preferences")))
+        ? const Center(child: BeautifulLoader(isOverlay: false, message: "Syncing Environment"))
         : Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ---------------- Fixed Header ----------------
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 32, 24, 8),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: kBrandOlive.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.settings_suggest_rounded, color: kBrandOlive, size: 32),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
+            _buildProfessionalHeader(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(40, 32, 40, 40),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1000),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('System Settings',
-                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kBrandBrown)),
-                        const SizedBox(height: 4),
-                        const Text('Configure application behavior, security and regional preferences.',
-                            style: TextStyle(fontSize: 14, color: Colors.grey)),
+                        _sectionLabel("VISUAL ENVIRONMENT"),
+                        const SizedBox(height: 20),
+                        ValueListenableBuilder<ThemeMode>(
+                          valueListenable: themeController,
+                          builder: (context, mode, _) {
+                            return Row(
+                              children: [
+                                Expanded(child: _buildThemeCard("Adaptive", "System Default", Icons.brightness_auto_rounded, mode == ThemeMode.system, () {
+                                  themeController.value = ThemeMode.system;
+                                  _updateSettings({'theme': 'system'});
+                                })),
+                                const SizedBox(width: 20),
+                                Expanded(child: _buildThemeCard("Standard", "Light Mode", Icons.light_mode_rounded, mode == ThemeMode.light, () {
+                                  themeController.value = ThemeMode.light;
+                                  _updateSettings({'theme': 'light'});
+                                })),
+                                const SizedBox(width: 20),
+                                Expanded(child: _buildThemeCard("Contrast", "Dark Mode", Icons.dark_mode_rounded, mode == ThemeMode.dark, () {
+                                  themeController.value = ThemeMode.dark;
+                                  _updateSettings({'theme': 'dark'});
+                                })),
+                              ],
+                            );
+                          },
+                        ),
+
+                        const SizedBox(height: 48),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: _buildInteractionPreferences()),
+                            const SizedBox(width: 40),
+                            Expanded(child: _buildRegionalSettings()),
+                          ],
+                        ),
+
+                        const SizedBox(height: 60),
+                        const Center(
+                          child: Column(
+                            children: [
+                              Text("Scholar Management System (Core Engine)",
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kBrandBrown, letterSpacing: 0.5)),
+                              SizedBox(height: 4),
+                              Text("Deployment v2.4.12 • All rights reserved • 2026",
+                                style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w500)),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-
-            // ---------------- Scrollable Content ----------------
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Appearance & Theme", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? theme.colorScheme.primary : kBrandBrown)),
-                    const SizedBox(height: 16),
-
-                    ValueListenableBuilder<ThemeMode>(
-                      valueListenable: themeController,
-                      builder: (context, mode, _) {
-                        return Column(
-                          children: [
-                            _buildThemeOption(
-                              title: "System Default",
-                              subtitle: "Matches your device's system theme",
-                              icon: Icons.brightness_auto_rounded,
-                              isSelected: mode == ThemeMode.system,
-                              onTap: () {
-                                themeController.value = ThemeMode.system;
-                                _updateSettings({'theme': 'system'});
-                              },
-                            ),
-                            const SizedBox(height: 12),
-                            _buildThemeOption(
-                              title: "Light Mode",
-                              subtitle: "Bright and clear interface",
-                              icon: Icons.light_mode_rounded,
-                              isSelected: mode == ThemeMode.light,
-                              onTap: () {
-                                themeController.value = ThemeMode.light;
-                                _updateSettings({'theme': 'light'});
-                              },
-                            ),
-                            const SizedBox(height: 12),
-                            _buildThemeOption(
-                              title: "Dark Mode",
-                              subtitle: "Dark interface to reduce eye strain",
-                              icon: Icons.dark_mode_rounded,
-                              isSelected: mode == ThemeMode.dark,
-                              onTap: () {
-                                themeController.value = ThemeMode.dark;
-                                _updateSettings({'theme': 'dark'});
-                              },
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-
-                    const SizedBox(height: 32),
-                    Text("General Preferences", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? theme.colorScheme.primary : kBrandBrown)),
-                    const SizedBox(height: 16),
-
-                    _buildSwitchTile(
-                      title: "Push Notifications",
-                      subtitle: "Receive alerts for program activities",
-                      icon: Icons.notifications_active_outlined,
-                      value: _notificationsEnabled,
-                      onChanged: (v) {
-                        setState(() => _notificationsEnabled = v);
-                        _updateSettings({'notificationsEnabled': v});
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    _buildSwitchTile(
-                      title: "Biometric Authentication",
-                      subtitle: "Secure access using Fingerprint/FaceID",
-                      icon: Icons.fingerprint_rounded,
-                      value: _biometricEnabled,
-                      onChanged: (v) {
-                        setState(() => _biometricEnabled = v);
-                        _updateSettings({'biometricEnabled': v});
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    _buildDropdownTile(
-                      title: "Primary Language",
-                      value: _language,
-                      icon: Icons.translate_rounded,
-                      options: ["English (Malawi)", "Chichewa", "English (UK)"],
-                      onChanged: (v) {
-                        setState(() => _language = v!);
-                        _updateSettings({'language': v});
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    _buildDropdownTile(
-                      title: "Regional Currency",
-                      value: _currency,
-                      icon: Icons.monetization_on_outlined,
-                      options: ["Malawian Kwacha (MWK)", "US Dollar (USD)"],
-                      onChanged: (v) {
-                        setState(() => _currency = v!);
-                        _updateSettings({'currency': v});
-                      },
-                    ),
-
-                    const SizedBox(height: 32),
-                    const Divider(),
-                    const SizedBox(height: 16),
-                    const Center(
-                      child: Text(
-                        "App Version: 2.1.0-build.88\nAGE Africa © 2026",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 11, color: Colors.grey),
-                      ),
-                    ),
-                  ],
                 ),
               ),
             ),
@@ -239,124 +142,166 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
     );
   }
 
-  Widget _buildThemeOption({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+  Widget _buildProfessionalHeader() {
+    bool isChichewa = _language == "Chichewa";
+    return Container(
+      padding: const EdgeInsets.fromLTRB(40, 32, 40, 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: kBrandOlive.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(Icons.settings_suggest_rounded, color: kBrandOlive, size: 30),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(isChichewa ? "Makonzedwe a Kachitidwe" : "Environment Settings",
+                  style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                const SizedBox(height: 4),
+                Text(isChichewa ? "Konshani momwe pulogalamuyi ikugwirira ntchito m'derali." : "Configure terminal behavior, visual interfaces and localized financial standards.",
+                  style: const TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
+  Widget _buildThemeCard(String label, String title, IconData icon, bool isSelected, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(20),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: isSelected 
-            ? kBrandOlive.withValues(alpha: 0.1) 
-            : (isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? kBrandOlive : theme.dividerColor, 
-            width: isSelected ? 2 : 1
-          ),
+          color: isSelected ? kBrandBrown : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: isSelected ? kBrandBrown : Colors.grey.shade200),
         ),
-        child: Row(
+        child: Column(
           children: [
-            Icon(icon, color: isSelected ? kBrandOlive : (isDark ? Colors.white70 : Colors.grey)),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: isSelected ? kBrandOlive : (isDark ? Colors.white : kBrandBrown))),
-                  Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                ],
-              ),
-            ),
-            if (isSelected) const Icon(Icons.check_circle_rounded, color: kBrandOlive),
+            Icon(icon, color: isSelected ? Colors.white : Colors.grey, size: 32),
+            const SizedBox(height: 16),
+            Text(label.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isSelected ? Colors.white54 : Colors.grey, letterSpacing: 1.5)),
+            const SizedBox(height: 4),
+            Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : kBrandBrown)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSwitchTile({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+  Widget _buildInteractionPreferences() {
+    bool isChichewa = _language == "Chichewa";
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionLabel(isChichewa ? "KAGWIRIDWE NTCHITO" : "INTERACTION POLICY"),
+        const SizedBox(height: 20),
+        _buildPreferenceTile(
+          title: isChichewa ? "Zidziwitso za Nthawi Pomwepo" : "Real-time Notifications",
+          subtitle: isChichewa ? "Landirani mauthenga a nkhani zaposachedwa." : "Receive telemetry alerts and activity logs.",
+          icon: Icons.notifications_active_outlined,
+          trailing: Switch(
+            value: _notificationsEnabled,
+            activeColor: kBrandOlive,
+            onChanged: (v) { setState(() => _notificationsEnabled = v); _updateSettings({'notifications_enabled': v}); },
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildPreferenceTile(
+          title: isChichewa ? "Chitetezo cha Thupi" : "Biometric Authorization",
+          subtitle: isChichewa ? "Gwiritsani ntchito zala kapena nkhope kutsegula." : "Use hardware keys for sensitive data access.",
+          icon: Icons.fingerprint_rounded,
+          trailing: Switch(
+            value: _biometricEnabled,
+            activeColor: kBrandOlive,
+            onChanged: (v) { setState(() => _biometricEnabled = v); _updateSettings({'biometric_enabled': v}); },
+          ),
+        ),
+      ],
+    );
+  }
 
+  Widget _buildRegionalSettings() {
+    bool isChichewa = _language == "Chichewa";
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionLabel(isChichewa ? "MAYENDEDWE A CHIYANKHULO" : "LOCALIZATION STANDARDS"),
+        const SizedBox(height: 20),
+        _buildPreferenceTile(
+          title: isChichewa ? "Chiyankhulo cha Paface" : "Interface Language",
+          subtitle: isChichewa ? "Sankhani chiyankhulo chomwe mukufuna kugwiritsa ntchito." : "Primary dictionary for standard text elements.",
+          icon: Icons.translate_rounded,
+          trailing: DropdownButton<String>(
+            value: _language,
+            underline: const SizedBox(),
+            items: ["English (Malawi)", "Chichewa", "English (UK)"].map((l) => DropdownMenuItem(value: l, child: Text(l, style: const TextStyle(fontWeight: FontWeight.bold)))).toList(),
+            onChanged: (v) { setState(() => _language = v!); _updateSettings({'language': v}); },
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildPreferenceTile(
+          title: isChichewa ? "Ndalama za M'derali" : "Financial Currency",
+          subtitle: isChichewa ? "Sankhani ndalama zomwe zikuonekera pa ma ripoti." : "Standard denominator for disbursement logs.",
+          icon: Icons.payments_outlined,
+          trailing: DropdownButton<String>(
+            value: _currency,
+            underline: const SizedBox(),
+            items: ["Malawian Kwacha (MWK)", "US Dollar (USD)"].map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontWeight: FontWeight.bold)))).toList(),
+            onChanged: (v) { setState(() => _currency = v!); _updateSettings({'currency': v}); },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPreferenceTile({required String title, required String subtitle, required IconData icon, required Widget trailing}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.dividerColor),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade100),
       ),
-      child: SwitchListTile(
-        contentPadding: EdgeInsets.zero,
-        title: Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : kBrandBrown, fontSize: 14)),
-        subtitle: Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-        secondary: Icon(icon, color: isDark ? Colors.white70 : kBrandBrown, size: 22),
-        value: value,
-        activeThumbColor: kBrandOlive,
-        activeTrackColor: kBrandOlive.withValues(alpha: 0.3),
-        onChanged: onChanged,
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: kBrandBrown.withValues(alpha: 0.05), shape: BoxShape.circle),
+            child: Icon(icon, color: kBrandBrown, size: 20),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontWeight: FontWeight.w900, color: kBrandBrown, fontSize: 14)),
+                const SizedBox(height: 2),
+                Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          trailing,
+        ],
       ),
     );
   }
 
-  Widget _buildDropdownTile({
-    required String title,
-    required String value,
-    required IconData icon,
-    required List<String> options,
-    required ValueChanged<String?> onChanged,
-  }) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.dividerColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: isDark ? Colors.white70 : kBrandBrown, size: 20),
-              const SizedBox(width: 12),
-              Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? Colors.white : kBrandBrown, fontSize: 14)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: value,
-            isExpanded: true,
-            dropdownColor: theme.cardColor,
-            decoration: InputDecoration(
-              isDense: true,
-              border: const OutlineInputBorder(),
-              filled: true,
-              fillColor: theme.cardColor,
-            ),
-            items: options.map((o) => DropdownMenuItem(value: o, child: Text(o, style: const TextStyle(fontSize: 13)))).toList(),
-            onChanged: onChanged,
-          ),
-        ],
-      ),
-    );
+  Widget _sectionLabel(String text) {
+    return Text(text, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.2));
   }
 }

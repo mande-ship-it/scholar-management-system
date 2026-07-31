@@ -1,15 +1,33 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 class ApiService {
   static String? _token;
   static const String _tokenKey = 'auth_token';
-  static const String baseUrl = 'http://localhost:5000';
+
+  static String get baseUrl {
+    if (kIsWeb) return 'http://localhost:5000';
+    try {
+      if (Platform.isAndroid) return 'http://10.0.2.2:5000';
+    } catch (_) {}
+    return 'http://localhost:5000';
+  }
+
+  static String getFullUrl(String? path) {
+    if (path == null || path.isEmpty) return '';
+    if (path.startsWith('http')) return path;
+    // Remove leading slash if present to prevent double slashes
+    final cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    return '$baseUrl/$cleanPath';
+  }
 
   static final Dio _dio = Dio(BaseOptions(
     baseUrl: '$baseUrl/api', // Use http://10.0.2.2:5000 for Android emulator
-    connectTimeout: const Duration(seconds: 10),
-    receiveTimeout: const Duration(seconds: 10),
+    connectTimeout: const Duration(seconds: 20),
+    receiveTimeout: const Duration(seconds: 20),
+    validateStatus: (status) => status != null && status < 500,
   ))..interceptors.add(InterceptorsWrapper(
     onRequest: (options, handler) {
       if (_token != null) {
@@ -30,7 +48,6 @@ class ApiService {
     if (persist) {
       await prefs.setString(_tokenKey, token);
     } else {
-      // Clear any previously saved token if the user doesn't want to be remembered
       await prefs.remove(_tokenKey);
     }
   }
@@ -100,12 +117,53 @@ class ApiService {
     });
   }
 
+  static Future<Response> getUniversityGraduates() async {
+    return await _dio.get('/scholars/graduates');
+  }
+
+  static Future<Response> getAlumni() async {
+    return await _dio.get('/scholars/alumni');
+  }
+
+  static Future<Response> getScholarStats() async {
+    return await _dio.get('/scholars/stats');
+  }
+
   // Attendance
-  static Future<Response> getAttendanceHistory({String? type, String? schoolId, String? schoolName}) async {
+  static Future<Response> getAttendanceHistory({
+    String? type,
+    String? schoolId,
+    String? schoolName,
+    int? month,
+    int? weekNumber,
+    String? term,
+    String? semester,
+  }) async {
     return await _dio.get('/attendance/history', queryParameters: {
       'type': type,
       'schoolId': schoolId,
       'schoolName': schoolName,
+      'month': month,
+      'week_number': weekNumber,
+      'term': term,
+      'semester': semester,
+    });
+  }
+
+  static Future<Response> getSchoolAttendanceReport(
+    String schoolId, {
+    int? month,
+    int? weekNumber,
+    String? term,
+    String? semester,
+    String? year,
+  }) async {
+    return await _dio.get('/attendance/school-report/$schoolId', queryParameters: {
+      'month': month,
+      'week_number': weekNumber,
+      'term': term,
+      'semester': semester,
+      'year': year,
     });
   }
 
@@ -118,12 +176,21 @@ class ApiService {
   }
 
   // Academics
-  static Future<Response> getResultsByScholar(String scholarId) async {
-    return await _dio.get('/academic/results', queryParameters: {'scholarId': scholarId});
+  static Future<Response> getResultsByScholar(String scholarId, {String? year}) async {
+    return await _dio.get('/academic/results', queryParameters: {
+      'scholarId': scholarId,
+      if (year != null) 'year': year,
+    });
   }
 
-  static Future<Response> getResultsBySchool(String schoolName) async {
-    return await _dio.get('/academic/results/by-school', queryParameters: {'schoolName': schoolName});
+  static Future<Response> getResultsBySchool(String? schoolName, {String? schoolId, int? year, String? term, String? semester}) async {
+    return await _dio.get('/academic/results/by-school', queryParameters: {
+      'schoolName': schoolName,
+      'schoolId': schoolId,
+      'year': year,
+      'term': term,
+      'semester': semester,
+    });
   }
 
   static Future<Response> recordResults(Map<String, dynamic> data) async {
@@ -136,6 +203,10 @@ class ApiService {
 
   static Future<Response> getYearlyStats(String year) async {
     return await _dio.get('/academic/stats/$year');
+  }
+
+  static Future<Response> checkResultCompleteness(String scholarId, int year) async {
+    return await _dio.get('/academic/completeness/$scholarId/$year');
   }
 
   // Schools
@@ -163,18 +234,6 @@ class ApiService {
     return await _dio.delete('/schools/$id');
   }
 
-  static Future<Response> getScholarsForPromotion({String? schoolId, String? schoolName, String? year}) async {
-    return await _dio.get('/schools/progression/review', queryParameters: {
-      'schoolId': schoolId,
-      'schoolName': schoolName,
-      'year': year,
-    });
-  }
-
-  static Future<Response> promoteScholarViaSchool(String scholarId) async {
-    return await _dio.post('/schools/promote/$scholarId');
-  }
-
   // Sponsors
   static Future<Response> getAllSponsors() async {
     return await _dio.get('/sponsors');
@@ -200,10 +259,6 @@ class ApiService {
     return await _dio.get('/sponsors/stats');
   }
 
-  static Future<Response> getScholarsBySponsor(String sponsorId) async {
-    return await _dio.get('/sponsors/$sponsorId/scholars');
-  }
-
   // Users
   static Future<Response> getAllUsers() async {
     return await _dio.get('/users');
@@ -221,6 +276,10 @@ class ApiService {
     return await _dio.delete('/users/$id');
   }
 
+  static Future<Response> getDirector() async {
+    return await _dio.get('/users/director');
+  }
+
   // Roles
   static Future<Response> getAllRoles() async {
     return await _dio.get('/roles');
@@ -236,6 +295,35 @@ class ApiService {
 
   static Future<Response> deleteRole(String id) async {
     return await _dio.delete('/roles/$id');
+  }
+
+  static Future<Response> updateRolePermissions(String id, Map<String, dynamic> permissions) async {
+    return await _dio.patch('/roles/$id/permissions', data: {'permissions': permissions});
+  }
+
+  // Departments
+  static Future<Response> getAllDepartments() async {
+    return await _dio.get('/departments');
+  }
+
+  static Future<Response> getAllDepartmentsWithCounts() async {
+    return await _dio.get('/departments/with-counts');
+  }
+
+  static Future<Response> getDepartmentUsers(String id) async {
+    return await _dio.get('/departments/$id/users');
+  }
+
+  static Future<Response> createDepartment(Map<String, dynamic> data) async {
+    return await _dio.post('/departments', data: data);
+  }
+
+  static Future<Response> updateDepartment(String id, Map<String, dynamic> data) async {
+    return await _dio.put('/departments/$id', data: data);
+  }
+
+  static Future<Response> deleteDepartment(String id) async {
+    return await _dio.delete('/departments/$id');
   }
 
   // Settings
@@ -310,6 +398,10 @@ class ApiService {
     return await _dio.delete('/notifications/$id');
   }
 
+  static Future<Response> getRecentActivities() async {
+    return await _dio.get('/notifications/recent');
+  }
+
   // Approvals
   static Future<Response> getPendingActivities() async {
     return await _dio.get('/approvals/pending');
@@ -341,45 +433,32 @@ class ApiService {
   }
 
   // Dashboard
-  static Future<Response> getDashboardStats() async {
-    return await _dio.get('/dashboard');
+  static Future<Response> getDashboardStats({String? level, String? schoolId}) async {
+    return await _dio.get('/dashboard', queryParameters: {
+      if (level != null) 'level': level,
+      if (schoolId != null) 'schoolId': schoolId,
+    });
   }
 
-  static Future<Response> getDashboardPredictions() async {
-    return await _dio.get('/dashboard/predictions');
+  static Future<Response> getDistrictsMapData() async {
+    return await _dio.get('/dashboard/districts-map');
   }
 
-  // Reports
-  static Future<Response> getScholarReport({String? period, String? type}) async {
-    return await _dio.get('/reports/scholars', queryParameters: {'period': period, 'type': type});
+  // AI Assistant
+  static Future<Response> chatWithAI(String message, {String? currentPage, String? targetId}) async {
+    return await _dio.post('/ai/chat', data: {
+      'message': message,
+      'currentPage': currentPage ?? 'Global Navigation',
+      if (targetId != null) 'targetId': targetId,
+    });
   }
 
-  static Future<Response> getSchoolReport({String? level}) async {
-    return await _dio.get('/reports/schools', queryParameters: {'level': level});
+  // Internships
+  static Future<Response> getAllInternships() async {
+    return await _dio.get('/internships');
   }
 
-  static Future<Response> getSponsorReport({String? region}) async {
-    return await _dio.get('/reports/sponsors', queryParameters: {'region': region});
-  }
-
-  static Future<Response> getAttendanceReport({String? month}) async {
-    return await _dio.get('/reports/attendance', queryParameters: {'month': month});
-  }
-
-  // Reports / Exports
-  static Future<Response> exportToExcel(List<String> datasets) async {
-    return await _dio.post(
-      '/reports/export/excel',
-      data: {'datasets': datasets},
-      options: Options(responseType: ResponseType.bytes),
-    );
-  }
-
-  static Future<Response> exportToPDF(List<String> modules) async {
-    return await _dio.post(
-      '/reports/export/pdf',
-      data: {'modules': modules},
-      options: Options(responseType: ResponseType.bytes),
-    );
+  static Future<Response> allocateInternship(Map<String, dynamic> data) async {
+    return await _dio.post('/internships/allocate', data: data);
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../services/api_service.dart';
+import 'package:scholar_management_system/services/api_service.dart';
 import 'package:intl/intl.dart';
+import '../academics/academics_utils.dart';
 
 class NotificationsComponent extends StatefulWidget {
   const NotificationsComponent({super.key});
@@ -14,10 +15,6 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
   bool _isLoading = true;
   String _filter = 'all'; // all | unread
   String? _errorMessage;
-
-  final Color brandBrown = const Color(0xFF4C3C32);
-  final Color brandOlive = const Color(0xFF9AB334);
-  final Color brandOrange = const Color(0xFFE05B1C);
 
   @override
   void initState() {
@@ -41,15 +38,12 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
             _isLoading = false;
           });
         }
-      } else {
-        throw Exception("Server returned ${response.statusCode}");
       }
     } catch (e) {
-      debugPrint('Error fetching notifications: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage = "Could not load notifications. Please check your connection.";
+          _errorMessage = "Synchronisation interrupted. Retrying...";
         });
       }
     }
@@ -58,33 +52,27 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
   Future<void> _markAsRead(String id) async {
     try {
       final response = await ApiService.markNotificationRead(id);
-      if (response.statusCode == 200) {
-        _fetchNotifications();
-      }
+      if (response.statusCode == 200) _fetchNotifications();
     } catch (e) {
-      debugPrint('Error marking as read: $e');
+      debugPrint('Read error: $e');
     }
   }
 
   Future<void> _deleteNotification(String id) async {
     try {
       final response = await ApiService.deleteNotification(id);
-      if (response.statusCode == 200) {
-        _fetchNotifications();
-      }
+      if (response.statusCode == 200) _fetchNotifications();
     } catch (e) {
-      debugPrint('Error deleting notification: $e');
+      debugPrint('Delete error: $e');
     }
   }
 
   Future<void> _markAllAsRead() async {
     try {
       final response = await ApiService.markAllNotificationsRead();
-      if (response.statusCode == 200) {
-        _fetchNotifications();
-      }
+      if (response.statusCode == 200) _fetchNotifications();
     } catch (e) {
-      debugPrint('Error marking all as read: $e');
+      debugPrint('Read all error: $e');
     }
   }
 
@@ -97,102 +85,168 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFF9AB334)));
-    }
-
-    if (_errorMessage != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.redAccent),
-            const SizedBox(height: 16),
-            Text(_errorMessage!, style: const TextStyle(color: Colors.black54)),
-            const SizedBox(height: 12),
-            ElevatedButton(
-              onPressed: _fetchNotifications,
-              style: ElevatedButton.styleFrom(backgroundColor: brandOlive, foregroundColor: Colors.white),
-              child: const Text("Retry"),
-            )
-          ],
-        ),
-      );
-    }
-
-    final visible = _filteredNotifications;
-
     return Container(
+      width: double.infinity,
+      height: double.infinity,
       color: Colors.white,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.history_toggle_off, color: brandBrown, size: 24),
-                  const SizedBox(width: 12),
-                  Text(
-                    "Activity & Notifications",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: brandBrown),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  _buildFilterChip("All", 'all'),
-                  const SizedBox(width: 8),
-                  _buildFilterChip("Unread", 'unread'),
-                  const SizedBox(width: 12),
-                  if (_notifications.any((n) => !(n['is_read'] ?? false)))
-                    TextButton.icon(
-                      onPressed: _markAllAsRead,
-                      icon: const Icon(Icons.done_all, size: 18),
-                      label: const Text("MARK ALL READ"),
-                      style: TextButton.styleFrom(foregroundColor: brandOlive, textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                    ),
-                  IconButton(
-                    onPressed: _fetchNotifications,
-                    icon: const Icon(Icons.refresh),
-                    tooltip: "Refresh Feed",
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
+          _buildProfessionalHeader(),
           Expanded(
-            child: RefreshIndicator(
-              onRefresh: _fetchNotifications,
-              color: brandOlive,
-              child: visible.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.builder(
-                      padding: const EdgeInsets.only(bottom: 20),
-                      itemCount: visible.length,
-                      itemBuilder: (context, index) => _buildNotificationTile(visible[index]),
-                    ),
-            ),
+            child: _isLoading 
+              ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
+              : _errorMessage != null
+                ? _buildErrorState()
+                : _buildNotificationList(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFilterChip(String label, String value) {
-    final bool selected = _filter == value;
-    return ChoiceChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: (val) {
-        if (val) setState(() => _filter = value);
-      },
-      selectedColor: brandOlive.withOpacity(0.2),
-      labelStyle: TextStyle(
-        color: selected ? brandOlive : Colors.grey,
-        fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+  Widget _buildProfessionalHeader() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(32, 28, 32, 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(color: kBrandBrown.withOpacity(0.08), borderRadius: BorderRadius.circular(16)),
+            child: const Icon(Icons.history_toggle_off_rounded, color: kBrandBrown, size: 28),
+          ),
+          const SizedBox(width: 20),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("System Activity Log", 
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                Text("Real-time telemetry and administrative audit trails.", 
+                  style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
+              ],
+            ),
+          ),
+          _buildHeaderActions(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderActions() {
+    return Row(
+      children: [
+        _filterToggle("All Activity", 'all'),
+        const SizedBox(width: 12),
+        _filterToggle("Action Required", 'unread'),
+        const SizedBox(width: 24),
+        const VerticalDivider(width: 1, indent: 10, endIndent: 10),
+        const SizedBox(width: 12),
+        IconButton(
+          onPressed: _fetchNotifications,
+          icon: const Icon(Icons.refresh_rounded, color: kBrandOlive),
+          tooltip: "Refresh Audit",
+        ),
+        if (_notifications.any((n) => !(n['is_read'] ?? false)))
+          IconButton(
+            onPressed: _markAllAsRead,
+            icon: const Icon(Icons.done_all_rounded, color: kBrandOlive),
+            tooltip: "Mark all as read",
+          ),
+      ],
+    );
+  }
+
+  Widget _filterToggle(String label, String value) {
+    final isSelected = _filter == value;
+    return GestureDetector(
+      onTap: () => setState(() => _filter = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? kBrandBrown : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: isSelected ? kBrandBrown : Colors.grey.shade200),
+        ),
+        child: Text(label.toUpperCase(), 
+          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isSelected ? Colors.white : Colors.grey, letterSpacing: 0.5)),
+      ),
+    );
+  }
+
+  Widget _buildNotificationList() {
+    final visible = _filteredNotifications;
+    if (visible.isEmpty) return _buildEmptyState();
+
+    return RefreshIndicator(
+      onRefresh: _fetchNotifications,
+      color: kBrandOlive,
+      child: ListView.builder(
+        padding: const EdgeInsets.all(32),
+        itemCount: visible.length,
+        itemBuilder: (context, index) => _buildAuditTile(visible[index]),
+      ),
+    );
+  }
+
+  Widget _buildAuditTile(dynamic n) {
+    final bool isRead = n['is_read'] ?? false;
+    final String type = n['type'] ?? 'info';
+    final String id = n['id'].toString();
+    final String? actor = n['actor_name'];
+    final DateTime createdAt = DateTime.parse(n['created_at']).toLocal();
+    
+    Color accentColor = kBrandOlive;
+    IconData icon = Icons.info_outline_rounded;
+    if (type == 'success') { accentColor = Colors.green; icon = Icons.check_circle_outline_rounded; }
+    if (type == 'warning') { accentColor = kBrandOrange; icon = Icons.warning_amber_rounded; }
+    if (type == 'error') { accentColor = Colors.red; icon = Icons.error_outline_rounded; }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: isRead ? Colors.white : accentColor.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isRead ? Colors.grey.shade100 : accentColor.withOpacity(0.15)),
+        boxShadow: isRead ? [] : [BoxShadow(color: accentColor.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        leading: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(color: accentColor.withOpacity(0.1), shape: BoxShape.circle),
+          child: Icon(icon, color: accentColor, size: 20),
+        ),
+        title: Text(n['message'] ?? '', 
+          style: TextStyle(fontWeight: isRead ? FontWeight.w500 : FontWeight.w900, color: kBrandBrown, fontSize: 15)),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Row(
+            children: [
+              if (actor != null) ...[
+                Text(actor.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: accentColor, letterSpacing: 0.5)),
+                const SizedBox(width: 12),
+                const Text("•", style: TextStyle(color: Colors.grey)),
+                const SizedBox(width: 12),
+              ],
+              Text(DateFormat('dd MMM yyyy, HH:mm:ss').format(createdAt), 
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+            ],
+          ),
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!isRead)
+              IconButton(icon: const Icon(Icons.mark_chat_read_outlined, size: 20), onPressed: () => _markAsRead(id), tooltip: "Mark as read"),
+            IconButton(icon: const Icon(Icons.delete_outline_rounded, size: 20, color: Colors.redAccent), onPressed: () => _deleteNotification(id), tooltip: "Delete log"),
+          ],
+        ),
       ),
     );
   }
@@ -202,102 +256,27 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.notifications_off_outlined, size: 64, color: Colors.grey.shade300),
-          const SizedBox(height: 16),
-          Text(
-            _filter == 'unread' ? "No unread notifications" : "Your activity log is empty",
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 16),
-          ),
+          Icon(Icons.auto_awesome_motion_rounded, size: 80, color: Colors.grey.shade100),
+          const SizedBox(height: 24),
+          Text(_filter == 'unread' ? "Zero pending actions" : "Activity log clear", 
+            style: TextStyle(color: Colors.grey.shade300, fontSize: 20, fontWeight: FontWeight.bold)),
         ],
       ),
     );
   }
 
-  Widget _buildNotificationTile(dynamic n) {
-    final bool isRead = n['is_read'] ?? false;
-    final String type = n['type'] ?? 'info';
-    final String id = n['id'].toString();
-    final String? actor = n['actor_name'];
-    
-    IconData icon = Icons.info_outline;
-    Color color = brandOlive;
-    if (type == 'success') { icon = Icons.check_circle_outline; color = Colors.green; }
-    if (type == 'warning') { icon = Icons.warning_amber_rounded; color = brandOrange; }
-    if (type == 'error') { icon = Icons.error_outline; color = Colors.red; }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: isRead ? Colors.white : color.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isRead ? Colors.grey.shade100 : color.withOpacity(0.1)),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        leading: CircleAvatar(
-          backgroundColor: color.withOpacity(0.1),
-          child: Icon(icon, color: color, size: 20),
-        ),
-        title: Text(
-          n['message'] ?? '',
-          style: TextStyle(
-            fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
-            color: isRead ? Colors.black87 : brandBrown,
-          ),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (actor != null)
-                Text(
-                  actor.toUpperCase(),
-                  style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-                ),
-              Text(
-                _formatTime(n['created_at']),
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-              ),
-            ],
-          ),
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (!isRead)
-              IconButton(
-                icon: const Icon(Icons.mark_email_read_outlined, size: 20, color: Colors.blueGrey),
-                onPressed: () => _markAsRead(id),
-                tooltip: "Mark as read",
-              ),
-            IconButton(
-              icon: const Icon(Icons.delete_outline, size: 20, color: Colors.redAccent),
-              onPressed: () => _deleteNotification(id),
-              tooltip: "Remove",
-            ),
-          ],
-        ),
+  Widget _buildErrorState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.cloud_off_rounded, size: 60, color: Colors.redAccent),
+          const SizedBox(height: 16),
+          Text(_errorMessage!, style: const TextStyle(color: Colors.grey)),
+          const SizedBox(height: 24),
+          ElevatedButton(onPressed: _fetchNotifications, child: const Text("Reconnect")),
+        ],
       ),
     );
-  }
-
-  String _formatTime(String? timestamp) {
-    if (timestamp == null) return "Unknown time";
-    try {
-      final date = DateTime.parse(timestamp).toLocal();
-      final now = DateTime.now();
-      final diff = now.difference(date);
-
-      if (diff.inMinutes < 1) return "Just now";
-      if (diff.inMinutes < 60) return "${diff.inMinutes}m ago";
-      if (diff.inHours < 24) return "${diff.inHours}h ago";
-      if (diff.inDays == 1) return "Yesterday at ${DateFormat('HH:mm').format(date)}";
-      if (diff.inDays < 7) return "${diff.inDays} days ago";
-
-      return DateFormat('dd MMM yyyy, HH:mm').format(date);
-    } catch (e) {
-      return timestamp;
-    }
   }
 }

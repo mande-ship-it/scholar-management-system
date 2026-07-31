@@ -2,20 +2,30 @@ import 'package:flutter/material.dart';
 import '../../users/manage_users.dart';
 
 class ManageUsersPage extends StatelessWidget {
-  const ManageUsersPage({super.key});
+  final VoidCallback? onAddUser;
+  final VoidCallback? onViewRoles;
+  final VoidCallback? onViewPermissions;
+  final VoidCallback? onViewDepartments;
+  final VoidCallback? onViewProfile;
+
+  const ManageUsersPage({
+    super.key,
+    this.onAddUser,
+    this.onViewRoles,
+    this.onViewPermissions,
+    this.onViewDepartments,
+    this.onViewProfile,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("User Administration"),
-        centerTitle: false,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: ManageUsersComponent(
-          onAddUser: () => Navigator.pushNamed(context, '/users/create'),
-        ),
+      body: ManageUsersComponent(
+        onAddUser: onAddUser,
+        onViewRoles: onViewRoles,
+        onViewPermissions: onViewPermissions,
+        onViewDepartments: onViewDepartments,
+        onViewProfile: onViewProfile,
       ),
     );
   }

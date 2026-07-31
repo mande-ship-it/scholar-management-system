@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/api_service.dart';
+import 'package:scholar_management_system/services/api_service.dart';
 import 'sponsors_utils.dart';
 
 typedef OnSponsorRegistered = Future<void> Function(Sponsor sponsor);
@@ -30,22 +30,11 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _contactPersonController = TextEditingController();
-  final TextEditingController _amountController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
 
   // State
-  String? _selectedSponsorshipType;
-  DateTime _registrationDate = DateTime.now();
   bool _isLoading = false;
-
-  final List<String> _sponsorshipTypes = const [
-    'Platinum',
-    'Gold',
-    'Silver',
-    'Bronze',
-    'In-Kind'
-  ];
 
   bool get _isEditing => widget.existingSponsor != null;
 
@@ -59,11 +48,8 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
       _emailController.text = existing.email;
       _phoneController.text = existing.phone;
       _contactPersonController.text = existing.contactPerson;
-      _amountController.text = existing.amount.toStringAsFixed(0);
       _addressController.text = existing.address;
       _notesController.text = existing.notes;
-      _selectedSponsorshipType = existing.sponsorshipType;
-      _registrationDate = existing.registrationDate;
     }
   }
 
@@ -74,32 +60,9 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
     _emailController.dispose();
     _phoneController.dispose();
     _contactPersonController.dispose();
-    _amountController.dispose();
     _addressController.dispose();
     _notesController.dispose();
     super.dispose();
-  }
-
-  Future<void> _pickRegistrationDate() async {
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _registrationDate,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: brandBrown,
-              onPrimary: Colors.white,
-              onSurface: brandBrown,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-    if (picked != null) setState(() => _registrationDate = picked);
   }
 
   void _submitForm() async {
@@ -112,9 +75,9 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
         'email': _emailController.text.trim(),
         'phone': _phoneController.text.trim(),
         'contactPerson': _contactPersonController.text.trim(),
-        'sponsorshipType': _selectedSponsorshipType!,
-        'amount': double.tryParse(_amountController.text.trim()) ?? 0,
-        'registrationDate': _registrationDate.toIso8601String(),
+        'sponsorshipType': 'Standard', // Default type
+        'amount': 0, // Default amount if removed from UI
+        'registrationDate': DateTime.now().toIso8601String(), // Automatically added
         'address': _addressController.text.trim(),
         'notes': _notesController.text.trim(),
         'status': widget.existingSponsor?.status ?? 'Active',
@@ -132,7 +95,7 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
               phone: sponsorData['phone'] as String,
               contactPerson: sponsorData['contactPerson'] as String,
               sponsorshipType: sponsorData['sponsorshipType'] as String,
-              amount: sponsorData['amount'] as double,
+              amount: (sponsorData['amount'] as num).toDouble(),
               registrationDate: DateTime.parse(sponsorData['registrationDate'] as String),
               address: sponsorData['address'] as String,
               notes: sponsorData['notes'] as String,
@@ -151,12 +114,15 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
               phone: sponsorData['phone'] as String,
               contactPerson: sponsorData['contactPerson'] as String,
               sponsorshipType: sponsorData['sponsorshipType'] as String,
-              amount: sponsorData['amount'] as double,
+              amount: (sponsorData['amount'] as num).toDouble(),
               registrationDate: DateTime.parse(sponsorData['registrationDate'] as String),
               address: sponsorData['address'] as String,
               notes: sponsorData['notes'] as String,
               status: sponsorData['status'] as String,
             );
+          } else {
+            // Handle logical errors (like duplicate sponsor)
+            _showErrorSnackBar(response.data['message'] ?? "Failed to register sponsor.");
           }
         }
 
@@ -224,9 +190,9 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
                   ),
                   child: Column(
                     children: [
-                      _rowDetail("Tier", sponsor.sponsorshipType),
+                      _rowDetail("Name", sponsor.name),
                       const Divider(height: 16),
-                      _rowDetail("Amount", "MWK ${sponsor.amount.toStringAsFixed(0)}"),
+                      _rowDetail("Organization", sponsor.organization.isEmpty ? "N/A" : sponsor.organization),
                       const Divider(height: 16),
                       _rowDetail("Contact", sponsor.contactPerson),
                     ],
@@ -238,19 +204,23 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
                   child: ElevatedButton(
                     onPressed: () async {
                       Navigator.of(ctx).pop();
+                      _resetForm(); // Empty the fields
+                      
                       if (widget.onRegister != null) {
                         await widget.onRegister!(sponsor);
                       } else {
                         if (_isEditing) {
                           Navigator.of(context).pop(true);
                         } else {
-                          _resetForm();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Sponsor registered. Visit the Sponsors Registry to view details."),
-                              backgroundColor: brandOlive,
-                            ),
-                          );
+                          // Try to find the View Sponsors tab if possible or navigate back
+                          if (Navigator.of(context).canPop()) {
+                            Navigator.of(context).pop();
+                          } else {
+                            // This depends on the app structure. 
+                            // If it's a sub-page in HomePage, we might need a better way.
+                            // But usually, popping or triggering onRegister handles it.
+                            _showSuccessSnackBar("Sponsor registered successfully.");
+                          }
                         }
                       }
                     },
@@ -272,6 +242,17 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
     );
   }
 
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: brandOlive,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
   Widget _rowDetail(String label, String value) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -283,19 +264,16 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
   }
 
   void _resetForm() {
-    _formKey.currentState!.reset();
-    setState(() {
-      _selectedSponsorshipType = null;
-      _registrationDate = DateTime.now();
-      _nameController.clear();
-      _organizationController.clear();
-      _emailController.clear();
-      _phoneController.clear();
-      _contactPersonController.clear();
-      _amountController.clear();
-      _addressController.clear();
-      _notesController.clear();
-    });
+    _nameController.clear();
+    _organizationController.clear();
+    _emailController.clear();
+    _phoneController.clear();
+    _contactPersonController.clear();
+    _addressController.clear();
+    _notesController.clear();
+    if (_formKey.currentState != null) {
+      _formKey.currentState!.reset();
+    }
   }
 
   // --- UI COMPONENTS ---
@@ -361,12 +339,7 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
                     _buildContactCard(isWide),
 
                     const SizedBox(height: 32),
-                    _sectionTitle("3. Commitment Details"),
-                    const SizedBox(height: 16),
-                    _buildCommitmentCard(isWide),
-
-                    const SizedBox(height: 32),
-                    _sectionTitle("4. Additional Information"),
+                    _sectionTitle("3. Additional Information"),
                     const SizedBox(height: 16),
                     _buildAdditionalInfoCard(),
 
@@ -476,27 +449,14 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
       decoration: _getInputDecoration(labelText: "Parent Organization (if any)", prefixIcon: Icons.business_outlined),
     );
 
-    final tierField = DropdownButtonFormField<String>(
-      isExpanded: true,
-      initialValue: _selectedSponsorshipType,
-      decoration: _getInputDecoration(labelText: "Sponsorship Tier", prefixIcon: Icons.workspace_premium_outlined),
-      items: _sponsorshipTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
-      onChanged: (v) => setState(() => _selectedSponsorshipType = v),
-      validator: (v) => v == null ? "Select tier" : null,
-    );
-
     return _buildCardShell(
       title: "Sponsor Identity",
       icon: Icons.person_outline,
       children: [
         if (isWide) ...[
-          Row(children: [Expanded(flex: 2, child: nameField), const SizedBox(width: 16), Expanded(child: tierField)]),
-          const SizedBox(height: 16),
-          orgField,
+          Row(children: [Expanded(child: nameField), const SizedBox(width: 16), Expanded(child: orgField)]),
         ] else ...[
           nameField,
-          const SizedBox(height: 16),
-          tierField,
           const SizedBox(height: 16),
           orgField,
         ]
@@ -549,37 +509,6 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
           emailField,
           const SizedBox(height: 16),
           addressField,
-        ]
-      ],
-    );
-  }
-
-  Widget _buildCommitmentCard(bool isWide) {
-    final amountField = TextFormField(
-      controller: _amountController,
-      keyboardType: TextInputType.number,
-      decoration: _getInputDecoration(labelText: "Committed Amount (MWK)", prefixIcon: Icons.payments_outlined),
-      validator: (v) => (v == null || v.trim().isEmpty) ? "Enter amount" : null,
-    );
-
-    final dateField = InkWell(
-      onTap: _pickRegistrationDate,
-      child: InputDecorator(
-        decoration: _getInputDecoration(labelText: "Registration Date", prefixIcon: Icons.calendar_today_rounded),
-        child: Text("${_registrationDate.day}/${_registrationDate.month}/${_registrationDate.year}"),
-      ),
-    );
-
-    return _buildCardShell(
-      title: "Commitment Details",
-      icon: Icons.monetization_on_outlined,
-      children: [
-        if (isWide) ...[
-          Row(children: [Expanded(child: amountField), const SizedBox(width: 16), Expanded(child: dateField)]),
-        ] else ...[
-          amountField,
-          const SizedBox(height: 16),
-          dateField,
         ]
       ],
     );

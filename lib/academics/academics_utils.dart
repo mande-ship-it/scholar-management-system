@@ -52,6 +52,15 @@ class Student {
   final String? guardianRelation;
   final String? guardianOccupation;
 
+  // Progression Tracking (New Fields)
+  final String progressionStatus; // Moved, Failed, Pending
+  final List<dynamic> progressionHistory;
+  final int yearsRemaining;
+
+  // Additional Data
+  final List<dynamic> documents;
+  final List<dynamic> payments;
+
   const Student({
     required this.id,
     required this.scholarId,
@@ -79,6 +88,11 @@ class Student {
     this.guardianEmail,
     this.guardianRelation,
     this.guardianOccupation,
+    this.progressionStatus = 'Pending',
+    this.progressionHistory = const [],
+    this.yearsRemaining = 0,
+    this.documents = const [],
+    this.payments = const [],
   });
 
   Student copyWith({
@@ -108,6 +122,11 @@ class Student {
     String? guardianEmail,
     String? guardianRelation,
     String? guardianOccupation,
+    String? progressionStatus,
+    List<dynamic>? progressionHistory,
+    int? yearsRemaining,
+    List<dynamic>? documents,
+    List<dynamic>? payments,
   }) {
     return Student(
       id: id ?? this.id,
@@ -136,6 +155,11 @@ class Student {
       guardianEmail: guardianEmail ?? this.guardianEmail,
       guardianRelation: guardianRelation ?? this.guardianRelation,
       guardianOccupation: guardianOccupation ?? this.guardianOccupation,
+      progressionStatus: progressionStatus ?? this.progressionStatus,
+      progressionHistory: progressionHistory ?? this.progressionHistory,
+      yearsRemaining: yearsRemaining ?? this.yearsRemaining,
+      documents: documents ?? this.documents,
+      payments: payments ?? this.payments,
     );
   }
 }
@@ -292,12 +316,17 @@ const List<String> kSemesters = ['Semester 1', 'Semester 2'];
 /// ---------------------------------------------------------------------
 /// ACADEMIC YEAR OPTIONS
 /// ---------------------------------------------------------------------
-/// Real academic years counting back from the current calendar year
-/// (most recent first) — driven by the device clock, never a fixed
-/// or arbitrary list, and never includes years in the future.
-List<String> academicYearOptions({int pastYears = 6}) {
+/// Returns academic year strings from 2005 (AGE Africa foundation)
+/// up to a reasonable future buffer (e.g., current year + 20).
+List<String> academicYearOptions() {
   final currentYear = DateTime.now().year;
-  return List.generate(pastYears + 1, (i) => (currentYear - i).toString());
+  const foundationYear = 2005;
+  const futureBuffer = 50; // High buffer for future-proofing
+  
+  return List.generate(
+    (currentYear + futureBuffer) - foundationYear + 1,
+    (i) => (foundationYear + i).toString()
+  ).reversed.toList();
 }
 
 /// Combines a scholar's Semester 1 and Semester 2 university results

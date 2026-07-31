@@ -1,81 +1,71 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../services/api_service.dart';
 import '../../academics/academics_utils.dart';
-import 'package:intl/intl.dart';
 
-// Dashboard
-import '../dashboardPages/dashboard.dart';
-import '../dashboardPages/notifications.dart';
+// Admin Dashboard Component
+import '../../dashboard/admin_dashboard.dart';
 
-// Scholars
-import '../scholarPages/register_scholar.dart';
-import '../scholarPages/view_scholars.dart';
-import '../../scholars/scholar_profile.dart'; 
-import '../scholarPages/graduates_page.dart';
-import '../attendancePages/scholar_attendance.dart';
-
-// Schools
+// School Components
 import '../schoolPages/register_school.dart';
 import '../schoolPages/view_schools.dart';
 
-// Sponsors
+// Scholar Components
+import '../scholarPages/view_scholars.dart';
+import '../scholarPages/register_scholar.dart';
+import '../scholarPages/graduates_page.dart';
+
+// Sponsor Components
 import '../sponsorPages/register_sponsor.dart';
 import '../sponsorPages/view_sponsors.dart';
 
-// Academics
-import '../academicPages/enter_results.dart';
+// Academic Components
 import '../academicPages/view_results.dart';
+import '../academicPages/enter_results.dart';
 import '../academicPages/report_cards.dart';
 import '../academicPages/performance_analysis.dart';
+import '../academicPages/academic_stats.dart';
 
-// Attendance
-import '../attendancePages/attendance_history.dart';
-import '../attendancePages/attendance_reports.dart';
-
-// Events
-import '../eventPages/events.dart';
-
-// Users
+// User Components
 import '../userPages/create_user.dart';
 import '../userPages/manage_users.dart';
 import '../userPages/user_roles.dart';
 import '../userPages/permissions.dart';
 import '../userPages/user_profile.dart';
+import '../userPages/manage_departments.dart';
 
-// Admin
+// Admin Approvals
 import '../admin/approvals_page.dart';
-import '../aiPages/ai_assistant.dart';
-import '../../scholars/internship_allocation.dart';
 
-// Settings
+// Settings Components
 import '../settingsPages/organisation_profile.dart';
 import '../settingsPages/backup_restore.dart';
 import '../settingsPages/system_settings.dart';
 import '../settingsPages/account_settings.dart';
 
-class SidebarCategory {
+import '../dashboardPages/notifications.dart';
+
+class AdminSidebarCategory {
   final String title;
   final IconData icon;
-  final List<SidebarSubItem> subItems;
+  final List<AdminSidebarSubItem> subItems;
 
-  const SidebarCategory({
+  const AdminSidebarCategory({
     required this.title,
     required this.icon,
     required this.subItems,
   });
 }
 
-class SidebarSubItem {
+class AdminSidebarSubItem {
   final String title;
   final Widget page;
   final IconData icon;
   final bool isVisible;
-  final Widget Function(VoidCallback onBack, Function(String) onPush, Function(String) onPushProfile)? builder;
+  final Widget Function(VoidCallback onBack, Function(String) onPush)? builder;
 
-  const SidebarSubItem({
+  const AdminSidebarSubItem({
     required this.title,
     required this.page,
     required this.icon,
@@ -84,18 +74,18 @@ class SidebarSubItem {
   });
 }
 
-class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+class AdminHomePage extends StatefulWidget {
+  const AdminHomePage({super.key});
 
   @override
-  State<HomePage> createState() => _HomePageState();
+  State<AdminHomePage> createState() => _AdminHomePageState();
 }
 
-class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
+class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateMixin {
   int activeCategoryIndex = 0;
   int activeSubIndex = 0;
-  final List<(int, int, String?)> _navigationHistory = [];
-  String? _currentDetailScholarId;
+  final List<(int, int)> _navigationHistory = [];
+  bool _isLoading = true;
 
   bool _isSidebarVisible = true;
   int _notificationCount = 0;
@@ -106,17 +96,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   bool _isSearching = false;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
-  List<SidebarSubItem> _searchResults = [];
+  List<AdminSidebarSubItem> _searchResults = [];
   final LayerLink _searchLayerLink = LayerLink();
   OverlayEntry? _searchOverlayEntry;
 
   late AnimationController _notificationIconController;
   late Animation<double> _notificationIconAnimation;
 
-  String _fullName = "User";
-  String _userRole = "Staff";
+  String _fullName = "Admin";
+  String _userRole = "Administrator";
   String? _profileImageUrl;
-  Map<String, dynamic> _userPermissions = {};
 
   @override
   void initState() {
@@ -129,63 +118,48 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       CurvedAnimation(parent: _notificationIconController, curve: Curves.elasticOut),
     );
 
+    _checkAccess();
     _initSocket();
     _fetchNotificationCount();
-    _fetchUserProfile();
   }
 
-  Future<void> _fetchUserProfile() async {
+  Future<void> _checkAccess() async {
     try {
       final response = await ApiService.getAccountProfile();
       if (response.statusCode == 200) {
         final data = response.data['data'];
         if (data != null && mounted) {
-          setState(() {
-            _fullName = data['full_name'] ?? "User";
-            _userRole = data['role_name'] ?? "Staff";
-            _profileImageUrl = data['profile_picture'];
-            _currentUserId = data['id'];
-            _userPermissions = data['permissions'] ?? {};
-          });
-
-          _joinUserRoom();
+          final String role = data['role_name'] ?? "";
+          if (!['Administrator', 'Program Coordinator', 'Country Director'].contains(role)) {
+            _redirectToHome();
+          } else {
+            setState(() {
+              _fullName = data['full_name'] ?? "Admin User";
+              _userRole = role;
+              _profileImageUrl = data['profile_picture'];
+              _currentUserId = data['id'];
+              _isLoading = false;
+            });
+            _joinUserRoom();
+          }
+          return;
         }
       }
     } catch (e) {
-      debugPrint('Error fetching user profile in Home: $e');
+      debugPrint('Access check error: $e');
     }
+    _redirectToHome();
   }
 
-  Future<void> _pickAndUploadImage() async {
-    try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.image,
-        allowMultiple: false,
+  void _redirectToHome() {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Access Denied: Administrators Only"),
+          backgroundColor: Colors.redAccent,
+        ),
       );
-
-      if (result != null && result.files.single.bytes != null) {
-        final bytes = result.files.single.bytes!;
-        final fileName = result.files.single.name;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Uploading new profile picture..."), behavior: SnackBarBehavior.floating),
-        );
-
-        final response = await ApiService.uploadProfilePicture(bytes, fileName);
-
-        if (response.statusCode == 200) {
-          setState(() {
-            _profileImageUrl = response.data['data']['profilePicture'];
-          });
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Profile avatar updated successfully."), backgroundColor: Color(0xFF9AB334)),
-            );
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint('Error uploading profile picture: $e');
+      Navigator.pushReplacementNamed(context, '/home');
     }
   }
 
@@ -198,7 +172,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _socket!.connect();
 
     _socket!.onConnect((_) {
-      debugPrint('Connected to Notification Server');
+      debugPrint('Admin connected to Notification Server');
       _joinUserRoom();
     });
 
@@ -208,24 +182,25 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           _notificationCount++;
         });
         _notificationIconController.forward(from: 0.0).then((_) => _notificationIconController.reverse());
+        SystemSound.play(SystemSoundType.click);
         
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             duration: const Duration(seconds: 5),
             behavior: SnackBarBehavior.floating,
-            backgroundColor: const Color(0xFF4C3C32),
+            backgroundColor: kBrandBrown,
             margin: const EdgeInsets.all(20),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             content: Row(
               children: [
-                const Icon(Icons.bolt_rounded, color: Color(0xFF9AB334), size: 20),
+                const Icon(Icons.security, color: kBrandOlive, size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(data['message'] ?? 'Real-time update received', 
+                      Text(data['message'] ?? 'Administrative update received', 
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white)),
                       Text("Synced at: ${DateTime.now().toString().split(' ')[1].split('.')[0]}",
                         style: const TextStyle(fontSize: 10, color: Colors.white70)),
@@ -238,9 +213,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         );
       }
     });
-
-    _socket!.onDisconnect((_) => debugPrint('Disconnected from Notification Server'));
-    _socket!.onConnectError((err) => debugPrint('Socket Connection Error: $err'));
   }
 
   void _joinUserRoom() {
@@ -313,7 +285,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         child: Row(
                           children: [
                             Text(
-                              "SEARCH RESULTS",
+                              "ADMIN FEATURES",
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w900,
@@ -336,7 +308,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                 children: [
                                   Icon(Icons.search_off_rounded, size: 40, color: Colors.grey.shade300),
                                   const SizedBox(height: 12),
-                                  const Text("No features found matching your search.", style: TextStyle(color: Colors.grey, fontSize: 13)),
+                                  const Text("No admin features found matching your search.", style: TextStyle(color: Colors.grey, fontSize: 13)),
                                 ],
                               ),
                             )
@@ -351,12 +323,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                   leading: Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF9AB334).withOpacity(0.1),
+                                      color: kBrandOlive.withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
-                                    child: Icon(item.icon, color: const Color(0xFF4C3C32), size: 18),
+                                    child: Icon(item.icon, color: kBrandBrown, size: 18),
                                   ),
-                                  title: Text(item.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4C3C32))),
+                                  title: Text(item.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBrandBrown)),
                                   trailing: const Icon(Icons.chevron_right, size: 16),
                                   onTap: () {
                                     _navigateToSubItem(item.title);
@@ -409,8 +381,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       return;
     }
 
-    final allCategories = _getRawCategories();
-    final allSubItems = allCategories.expand((c) => c.subItems).toList();
+    final allSubItems = _getAdminCategories().expand((c) => c.subItems).toList();
     final filtered = allSubItems.where((item) => 
       item.title.toLowerCase().contains(query.toLowerCase())
     ).toList();
@@ -427,13 +398,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   void _navigateToSubItem(String title) {
-    final allCategories = _getRawCategories();
-    for (int i = 0; i < allCategories.length; i++) {
-      for (int j = 0; j < allCategories[i].subItems.length; j++) {
-        if (allCategories[i].subItems[j].title == title) {
+    final categories = _getAdminCategories();
+    for (int i = 0; i < categories.length; i++) {
+      for (int j = 0; j < categories[i].subItems.length; j++) {
+        if (categories[i].subItems[j].title == title) {
           setState(() {
             _navigationHistory.clear();
-            _currentDetailScholarId = null;
             activeCategoryIndex = i;
             activeSubIndex = j;
           });
@@ -444,17 +414,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   void _pushSubItem(String title) {
-    if (title == "AI Assistant" || title == "AI Analyst") {
-      _scaffoldKey.currentState?.openEndDrawer();
-      return;
-    }
-    final allCategories = _getRawCategories();
-    for (int i = 0; i < allCategories.length; i++) {
-      for (int j = 0; j < allCategories[i].subItems.length; j++) {
-        if (allCategories[i].subItems[j].title == title) {
+    final categories = _getAdminCategories();
+    for (int i = 0; i < categories.length; i++) {
+      for (int j = 0; j < categories[i].subItems.length; j++) {
+        if (categories[i].subItems[j].title == title) {
           setState(() {
-            _navigationHistory.add((activeCategoryIndex, activeSubIndex, _currentDetailScholarId));
-            _currentDetailScholarId = null;
+            _navigationHistory.add((activeCategoryIndex, activeSubIndex));
             activeCategoryIndex = i;
             activeSubIndex = j;
           });
@@ -464,237 +429,181 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     }
   }
 
-  void _pushScholarProfile(String id) {
-    setState(() {
-      _navigationHistory.add((activeCategoryIndex, activeSubIndex, _currentDetailScholarId));
-      _currentDetailScholarId = id;
-    });
-  }
-
   void _popSubItem() {
     if (_navigationHistory.isNotEmpty) {
       final prev = _navigationHistory.removeLast();
       setState(() {
         activeCategoryIndex = prev.$1;
         activeSubIndex = prev.$2;
-        _currentDetailScholarId = prev.$3;
       });
     }
   }
 
-  List<SidebarCategory> _getRawCategories() {
+  List<AdminSidebarCategory> _getAdminCategories() {
     return [
-      SidebarCategory(
+      AdminSidebarCategory(
         title: "Dashboard",
         icon: Icons.dashboard,
         subItems: [
-          SidebarSubItem(
-            title: "Overview", 
-            page: DashboardPage(),
-            icon: Icons.view_quilt,
-            builder: (onBack, onPush, onPushProfile) => DashboardPage(onNavigate: onPush, userRole: _userRole),
+          AdminSidebarSubItem(
+            title: "Admin Overview",
+            page: AdminDashboardComponent(onNavigate: _pushSubItem),
+            icon: Icons.admin_panel_settings_rounded,
           ),
-          SidebarSubItem(title: "Events & Programs", page: const EventsPage(), icon: Icons.event_available),
-          SidebarSubItem(title: "Notifications", page: const NotificationsPage(), icon: Icons.notifications_active),
+          AdminSidebarSubItem(title: "Notifications", page: const NotificationsPage(), icon: Icons.notifications_active),
         ],
       ),
-      SidebarCategory(
+      AdminSidebarCategory(
         title: "Scholars",
         icon: Icons.school,
         subItems: [
-          SidebarSubItem(
+          AdminSidebarSubItem(
             title: "View Scholars",
             page: const ViewScholarsPage(),
             icon: Icons.people,
-            builder: (onBack, onPush, onPushProfile) => ViewScholarsPage(
+            builder: (onBack, onPush) => ViewScholarsPage(
               onRegisterScholar: () => onPush("Register Scholar"),
-              onViewProfile: onPushProfile,
               onViewGraduates: () => onPush("University Graduates"),
             ),
           ),
-          const SidebarSubItem(
-            title: "Register Scholar", 
-            page: RegisterScholarPage(), 
+          AdminSidebarSubItem(
+            title: "Register Scholar",
+            page: const RegisterScholarPage(),
             icon: Icons.person_add,
             isVisible: false,
           ),
-          SidebarSubItem(title: "University Graduates", page: const UniversityGraduatesPage(), icon: Icons.workspace_premium_rounded),
-          SidebarSubItem(title: "Internship Allocation", page: const InternshipAllocationComponent(), icon: Icons.handshake_rounded),
+          AdminSidebarSubItem(title: "University Graduates", page: const UniversityGraduatesPage(), icon: Icons.workspace_premium_rounded),
         ],
       ),
-      SidebarCategory(
-        title: "Schools",
-        icon: Icons.domain,
-        subItems: [
-          SidebarSubItem(
-            title: "View Schools", 
-            page: const ViewSchoolsPage(), 
-            icon: Icons.store,
-            builder: (onBack, onPush, onPushProfile) => ViewSchoolsPage(onRegisterSchool: () => onPush("Register School")),
-          ),
-          SidebarSubItem(
-            title: "Register School", 
-            page: const RegisterSchoolPage(), 
-            icon: Icons.add_business,
-            isVisible: false,
-            builder: (onBack, onPush, onPushProfile) => RegisterSchoolPage(onSuccess: onBack),
-          ),
-        ],
-      ),
-      SidebarCategory(
-        title: "Sponsors",
-        icon: Icons.handshake,
-        subItems: [
-          SidebarSubItem(
-            title: "View Sponsors", 
-            page: const ViewSponsorsPage(), 
-            icon: Icons.supervisor_account,
-            builder: (onBack, onPush, onPushProfile) => ViewSponsorsPage(onRegisterSponsor: () => onPush("Register Sponsor")),
-          ),
-          SidebarSubItem(
-            title: "Register Sponsor", 
-            page: const RegisterSponsorPage(), 
-            icon: Icons.add_moderator,
-            isVisible: false,
-            builder: (onBack, onPush, onPushProfile) => RegisterSponsorPage(onSuccess: onBack),
-          ),
-        ],
-      ),
-      SidebarCategory(
+      AdminSidebarCategory(
         title: "Academics",
         icon: Icons.menu_book,
         subItems: [
-          SidebarSubItem(
+          AdminSidebarSubItem(
             title: "View Results",
             page: const ViewResultsPage(),
             icon: Icons.pageview,
-            builder: (onBack, onPush, onPushProfile) => ViewResultsPage(
+            builder: (onBack, onPush) => ViewResultsPage(
               onEnterResults: () => onPush("Enter Results"),
-              onViewPerformance: () => onPush("Performance Analysis"),
-              onViewReports: () => onPush("Report Cards"),
             ),
           ),
-          const SidebarSubItem(
-            title: "Enter Results", 
-            page: EnterResultsPage(), 
+          AdminSidebarSubItem(
+            title: "Enter Results",
+            page: const EnterResultsPage(),
             icon: Icons.edit_note,
             isVisible: false,
           ),
-          SidebarSubItem(title: "Report Cards", page: const ReportCardsPage(), icon: Icons.badge),
-          SidebarSubItem(title: "Performance Analysis", page: const PerformanceAnalysisPage(), icon: Icons.analytics),
+          AdminSidebarSubItem(title: "Report Cards", page: const ReportCardsPage(), icon: Icons.badge),
+          AdminSidebarSubItem(title: "Performance Analysis", page: const PerformanceAnalysisPage(), icon: Icons.analytics),
+          AdminSidebarSubItem(title: "Academic Statistics", page: const AcademicStatsPage(), icon: Icons.bar_chart),
         ],
       ),
-      SidebarCategory(
-        title: "Attendance",
-        icon: Icons.event_available,
+      AdminSidebarCategory(
+        title: "Schools",
+        icon: Icons.domain,
         subItems: [
-          SidebarSubItem(
-            title: "View Attendance",
-            page: const AttendanceHistoryPage(),
-            icon: Icons.calendar_month,
-            builder: (onBack, onPush, onPushProfile) => AttendanceHistoryPage(
-              onMarkAttendance: () => onPush("Scholar Attendance"),
-            ),
+          AdminSidebarSubItem(
+            title: "Manage Institutions",
+            page: const ViewSchoolsPage(),
+            icon: Icons.domain_verification_rounded,
+            builder: (onBack, onPush) => ViewSchoolsPage(onRegisterSchool: () => onPush("Register School")),
           ),
-          SidebarSubItem(title: "Scholar Attendance", page: const ScholarAttendancePage(), icon: Icons.how_to_reg),
+          AdminSidebarSubItem(
+            title: "Register School",
+            page: const RegisterSchoolPage(),
+            icon: Icons.add_business_rounded,
+            isVisible: false,
+            builder: (onBack, onPush) => RegisterSchoolPage(onSuccess: onBack),
+          ),
         ],
       ),
-      SidebarCategory(
-        title: "AI Strategy",
-        icon: Icons.auto_awesome,
+      AdminSidebarCategory(
+        title: "Sponsorship & Funds",
+        icon: Icons.volunteer_activism_rounded,
         subItems: [
-          const SidebarSubItem(title: "AI Analyst", page: AIAssistantPage(), icon: Icons.bolt),
+          AdminSidebarSubItem(
+            title: "Sponsors Directory",
+            page: const ViewSponsorsPage(),
+            icon: Icons.supervised_user_circle_rounded,
+            builder: (onBack, onPush) => ViewSponsorsPage(onRegisterSponsor: () => onPush("Register Sponsor")),
+          ),
+          AdminSidebarSubItem(
+            title: "Register Sponsor",
+            page: const RegisterSponsorPage(),
+            icon: Icons.person_add_alt_1_rounded,
+            isVisible: false,
+            builder: (onBack, onPush) => RegisterSponsorPage(onSuccess: () => onPush("Sponsors Directory")),
+          ),
         ],
       ),
-      SidebarCategory(
+      AdminSidebarCategory(
+        title: "Users",
+        icon: Icons.people_alt,
+        subItems: [
+          AdminSidebarSubItem(
+            title: "Manage Users",
+            page: ManageUsersPage(
+              onAddUser: () => _pushSubItem("Create User"),
+              onViewRoles: () => _pushSubItem("User Roles"),
+              onViewDepartments: () => _pushSubItem("Manage Departments"),
+              onViewPermissions: () => _pushSubItem("Permissions"),
+              onViewProfile: () => _pushSubItem("User Profile"),
+            ),
+            icon: Icons.manage_accounts,
+          ),
+          AdminSidebarSubItem(
+            title: "Create User",
+            page: const CreateUserPage(),
+            icon: Icons.person_add_alt_1,
+            isVisible: false,
+          ),
+          AdminSidebarSubItem(title: "User Roles", page: const UserRolesPage(), icon: Icons.security),
+          AdminSidebarSubItem(title: "Manage Departments", page: const ManageDepartmentsPage(), icon: Icons.apartment_rounded),
+          AdminSidebarSubItem(title: "Permissions", page: const PermissionsPage(), icon: Icons.rule),
+          AdminSidebarSubItem(title: "User Profile", page: const UserProfilePage(), icon: Icons.assignment_ind),
+        ],
+      ),
+      AdminSidebarCategory(
+        title: "Administrative Control",
+        icon: Icons.admin_panel_settings_rounded,
+        subItems: [
+          AdminSidebarSubItem(title: "Pending Approvals", page: const ApprovalsPage(), icon: Icons.rule_folder_rounded),
+        ],
+      ),
+      AdminSidebarCategory(
         title: "Settings",
         icon: Icons.settings,
         subItems: [
-          SidebarSubItem(title: "User Profile", page: const UserProfilePage(), icon: Icons.assignment_ind),
-          SidebarSubItem(title: "Organisation Profile", page: const OrganisationProfilePage(), icon: Icons.corporate_fare),
-          SidebarSubItem(title: "System Settings", page: const SystemSettingsPage(), icon: Icons.settings_applications),
-          SidebarSubItem(title: "Account Settings", page: const AccountSettingsPage(), icon: Icons.manage_accounts),
-        ],
-      ),
-      SidebarCategory(
-        title: "Administration",
-        icon: Icons.admin_panel_settings,
-        subItems: [
-          SidebarSubItem(title: "Pending Approvals", page: const ApprovalsPage(), icon: Icons.rule_folder),
-          SidebarSubItem(title: "Backup & Restore", page: const BackupRestorePage(), icon: Icons.backup),
+          AdminSidebarSubItem(title: "User Profile", page: const UserProfilePage(), icon: Icons.assignment_ind),
+          AdminSidebarSubItem(title: "Organisation Profile", page: const OrganisationProfilePage(), icon: Icons.corporate_fare),
+          AdminSidebarSubItem(title: "Backup & Restore", page: const BackupRestorePage(), icon: Icons.backup),
+          AdminSidebarSubItem(title: "System Settings", page: const SystemSettingsPage(), icon: Icons.settings_applications),
+          AdminSidebarSubItem(title: "Account Settings", page: const AccountSettingsPage(), icon: Icons.manage_accounts),
         ],
       ),
     ];
   }
 
-  List<SidebarCategory> _getVisibleCategories(List<SidebarCategory> allCategories) {
-    List<SidebarCategory> filtered = [];
-    final adminRoles = ['Administrator', 'Program Coordinator', 'Country Director'];
-    
-    for (var category in allCategories) {
-      if (category.title == "Administration" && !adminRoles.contains(_userRole)) continue;
-
-      if (_userPermissions.isNotEmpty) {
-        var modulePerms = _userPermissions[category.title];
-        if (modulePerms == null || modulePerms['view'] != true) {
-          if (category.title != "Dashboard" && category.title != "Settings" && category.title != "Administration") {
-             continue;
-          }
-        }
-      }
-      
-      // Deep filter subItems if needed (e.g. Backup & Restore only for Admin)
-      if (category.title == "Administration") {
-        final filteredSubItems = category.subItems.where((item) {
-          if (item.title == "Backup & Restore" && _userRole != 'Administrator') return false;
-          return item.isVisible;
-        }).toList();
-        
-        if (filteredSubItems.isEmpty) continue;
-        
-        filtered.add(SidebarCategory(
-          title: category.title,
-          icon: category.icon,
-          subItems: filteredSubItems,
-        ));
-      } else {
-        filtered.add(category);
-      }
-    }
-    return filtered;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final allCategories = _getRawCategories();
-    final visibleCategories = _getVisibleCategories(allCategories);
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(child: CircularProgressIndicator(color: kBrandOlive)),
+      );
+    }
 
-    if (activeCategoryIndex >= allCategories.length) activeCategoryIndex = 0;
-
-    final activeCategory = allCategories[activeCategoryIndex];
+    final categories = _getAdminCategories();
+    final activeCategory = categories[activeCategoryIndex];
     final activeSubItem = activeCategory.subItems[activeSubIndex];
-
-    const Color brandBrown = Color(0xFF4C3C32);
-    const Color brandCream = Color(0xFFFAF2DB);
-    const Color brandCreamDark = Color(0xFFF3E7C4);
-    const Color brandOlive = Color(0xFF9AB334);
-    const Color brandOrange = Color(0xFFE05B1C);
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: Colors.grey.shade50,
-      endDrawer: Drawer(
-        width: 450,
-        child: AIAssistantPage(
-          isDrawer: true, 
-          currentPage: activeSubItem.title,
-          targetId: _currentDetailScholarId != null ? kStudents.firstWhere((s) => s.id == _currentDetailScholarId).scholarId : null,
-        ),
-      ),
+      backgroundColor: const Color(0xFFF4F7F5),
       appBar: AppBar(
         elevation: 2,
-        shadowColor: brandBrown.withOpacity(0.3),
-        backgroundColor: brandBrown,
+        shadowColor: kBrandBrown.withOpacity(0.3),
+        backgroundColor: kBrandBrown,
         leadingWidth: 280,
         leading: Row(
           children: [
@@ -703,10 +612,24 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               height: double.infinity,
               color: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Image.asset('assets/images/age-logo.png', fit: BoxFit.contain),
+              child: Image.asset(
+                'assets/images/age-logo.png',
+                fit: BoxFit.contain,
+              ),
             ),
             const SizedBox(width: 8),
-            IconButton(icon: const Icon(Icons.menu, color: Colors.white), onPressed: () => setState(() => _isSidebarVisible = !_isSidebarVisible)),
+            SizedBox(
+              width: 40,
+              child: IconButton(
+                icon: const Icon(Icons.menu, color: Colors.white),
+                tooltip: "Toggle Sidebar",
+                onPressed: () {
+                  setState(() {
+                    _isSidebarVisible = !_isSidebarVisible;
+                  });
+                },
+              ),
+            ),
           ],
         ),
         title: _isSearching
@@ -714,37 +637,93 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               alignment: Alignment.centerLeft,
               width: 450,
               height: 42,
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+              ),
               child: CompositedTransformTarget(
                 link: _searchLayerLink,
                 child: TextField(
                   controller: _searchController,
                   focusNode: _searchFocusNode,
                   onChanged: _onSearchChanged,
-                  style: const TextStyle(color: brandBrown, fontSize: 14, fontWeight: FontWeight.w500),
+                  style: const TextStyle(color: kBrandBrown, fontSize: 14, fontWeight: FontWeight.w500),
                   decoration: InputDecoration(
-                    hintText: "Search features...",
-                    prefixIcon: const Icon(Icons.search, color: brandOlive, size: 20),
-                    suffixIcon: IconButton(icon: const Icon(Icons.close, color: Colors.grey, size: 18), onPressed: _stopSearching),
+                    hintText: "Search admin features, pages, controls...",
+                    hintStyle: TextStyle(color: kBrandBrown.withOpacity(0.4)),
+                    prefixIcon: const Icon(Icons.search, color: kBrandOlive, size: 20),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.close, color: Colors.grey, size: 18),
+                      onPressed: _stopSearching,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(vertical: 11),
                   ),
                 ),
               ),
             )
-          : const Text("AGE Africa System", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 16)),
+          : Row(
+              children: [
+                const Text(
+                  "AGE Africa System",
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(width: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: kBrandOrange,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    "SECURE",
+                    style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.8),
+                  ),
+                ),
+              ],
+            ),
         actions: [
-          IconButton(icon: const Icon(Icons.auto_awesome, color: Colors.white), onPressed: () => _scaffoldKey.currentState?.openEndDrawer()),
-          IconButton(icon: const Icon(Icons.search, color: Colors.white), onPressed: _startSearching),
+          if (!_isSearching)
+            IconButton(
+              icon: const Icon(Icons.search, color: Colors.white),
+              tooltip: "Search Portal",
+              onPressed: _startSearching,
+            ),
           Stack(
             children: [
-              IconButton(icon: const Icon(Icons.notifications, color: Colors.white), onPressed: () {
-                setState(() => _notificationCount = 0);
-                ApiService.markAllNotificationsRead();
-                _navigateToSubItem("Notifications");
-              }),
+              ScaleTransition(
+                scale: _notificationIconAnimation,
+                child: IconButton(
+                  icon: const Icon(Icons.notifications_active_rounded, color: Colors.white),
+                  tooltip: "Notifications",
+                  onPressed: () {
+                    setState(() => _notificationCount = 0);
+                    ApiService.markAllNotificationsRead();
+                    _navigateToSubItem("Notifications");
+                  },
+                ),
+              ),
               if (_notificationCount > 0)
-                Positioned(right: 8, top: 8, child: Container(padding: const EdgeInsets.all(2), decoration: BoxDecoration(color: brandOrange, shape: BoxShape.circle), constraints: const BoxConstraints(minWidth: 18, minHeight: 18), child: Text('$_notificationCount', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold), textAlign: TextAlign.center))),
+                Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      color: kBrandOrange,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: kBrandBrown, width: 1.5),
+                    ),
+                    constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                    child: Text(
+                      '$_notificationCount',
+                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
             ],
           ),
           const SizedBox(width: 8),
@@ -779,7 +758,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   value: 'profile',
                   child: Row(
                     children: [
-                      const Icon(Icons.person_outline, size: 20, color: Color(0xFF4C3C32)),
+                      const Icon(Icons.person_outline, size: 20, color: kBrandBrown),
                       const SizedBox(width: 12),
                       const Text("View Profile", style: TextStyle(fontWeight: FontWeight.w600)),
                     ],
@@ -798,10 +777,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 ),
               ],
               child: CircleAvatar(
-                backgroundColor: brandCream,
+                backgroundColor: kBrandCream,
                 radius: 18,
                 backgroundImage: _profileImageUrl != null ? NetworkImage(ApiService.getFullUrl(_profileImageUrl)) : null,
-                child: _profileImageUrl == null ? const Icon(Icons.person, color: brandBrown, size: 20) : null,
+                child: _profileImageUrl == null ? const Icon(Icons.admin_panel_settings_rounded, color: kBrandBrown, size: 20) : null,
               ),
             ),
           )
@@ -811,73 +790,128 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         children: [
           AnimatedContainer(
             duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
             width: _isSidebarVisible ? 280 : 0,
             child: _isSidebarVisible 
               ? Container(
-                  color: brandCream,
+                  color: kBrandCream,
                   child: Column(
                     children: [
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-                        color: brandCreamDark,
+                        color: kBrandCreamDark,
                         child: Column(
                           children: [
-                            GestureDetector(
-                              onTap: _pickAndUploadImage,
-                              child: Stack(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 40, 
-                                    backgroundColor: brandBrown, 
-                                    backgroundImage: _profileImageUrl != null ? NetworkImage(ApiService.getFullUrl(_profileImageUrl)) : null, 
-                                    child: _profileImageUrl == null ? const Icon(Icons.person, size: 45, color: brandCream) : null
-                                  ),
-                                  Positioned(
-                                    bottom: 0,
-                                    right: 0,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: const BoxDecoration(color: Color(0xFFE05B1C), shape: BoxShape.circle),
-                                      child: const Icon(Icons.camera_alt, size: 14, color: Colors.white),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                            CircleAvatar(
+                              radius: 40,
+                              backgroundColor: kBrandBrown,
+                              backgroundImage: _profileImageUrl != null
+                                ? NetworkImage(ApiService.getFullUrl(_profileImageUrl))
+                                : null,
+                              child: _profileImageUrl == null
+                                ? const Icon(Icons.admin_panel_settings_rounded, size: 45, color: kBrandCream)
+                                : null,
                             ),
                             const SizedBox(height: 12),
-                            Text(_fullName, style: const TextStyle(color: brandBrown, fontSize: 16, fontWeight: FontWeight.bold)),
+                            Text(
+                              _fullName,
+                              style: const TextStyle(color: kBrandBrown, fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
                             const SizedBox(height: 4),
-                            Text(_userRole, style: const TextStyle(color: Colors.black54, fontSize: 12)),
+                            Text(
+                              _userRole.toUpperCase(),
+                              style: const TextStyle(color: kBrandOrange, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+                            ),
                           ],
                         ),
                       ),
                       const Divider(height: 1, color: Color(0xFFDCD1B4)),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 16, top: 16, right: 16, bottom: 8),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            "ADMINISTRATIVE SERVICES",
+                            style: TextStyle(
+                              color: kBrandBrown.withOpacity(0.6),
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.1,
+                            ),
+                          ),
+                        ),
+                      ),
                       Expanded(
                         child: ListView.builder(
-                          itemCount: visibleCategories.length + 1,
+                          padding: const EdgeInsets.only(bottom: 20),
+                          itemCount: categories.length + 1,
                           itemBuilder: (context, index) {
-                            if (index == visibleCategories.length) {
-                              return ListTile(leading: const Icon(Icons.logout_rounded, color: Colors.redAccent), title: const Text("Logout Session", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 14)), onTap: () { ApiService.logout(); Navigator.pushReplacementNamed(context, '/login'); });
+                            if (index == categories.length) {
+                              return Column(
+                                children: [
+                                  const Divider(height: 1, color: Color(0xFFDCD1B4)),
+                                  ListTile(
+                                    leading: const Icon(Icons.logout_rounded, color: Colors.redAccent),
+                                    title: const Text(
+                                      "Logout Session",
+                                      style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 14),
+                                    ),
+                                    onTap: () {
+                                      ApiService.logout();
+                                      Navigator.pushReplacementNamed(context, '/login');
+                                    },
+                                  ),
+                                ],
+                              );
                             }
-                            final category = visibleCategories[index];
-                            int originalIdx = allCategories.indexWhere((c) => c.title == category.title);
-                            final isSelected = activeCategoryIndex == originalIdx;
+
+                            final category = categories[index];
+                            final isSelectedCategory = activeCategoryIndex == index;
 
                             return Theme(
                               data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                               child: ExpansionTile(
-                                initiallyExpanded: isSelected,
+                                key: PageStorageKey('admin_cat_${category.title}'),
+                                initiallyExpanded: isSelectedCategory,
+                                collapsedIconColor: kBrandBrown,
+                                iconColor: kBrandOrange,
+                                collapsedTextColor: kBrandBrown,
+                                textColor: kBrandBrown,
                                 leading: Icon(category.icon),
-                                title: Text(category.title, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.w500, fontSize: 14)),
+                                title: Text(
+                                  category.title,
+                                  style: TextStyle(fontWeight: isSelectedCategory ? FontWeight.bold : FontWeight.w500, fontSize: 14),
+                                ),
                                 children: category.subItems.where((s) => s.isVisible).map((subItem) {
-                                  int subIdx = allCategories[originalIdx].subItems.indexWhere((s) => s.title == subItem.title);
-                                  final isSubSelected = isSelected && activeSubIndex == subIdx;
-                                  return ListTile(
-                                    dense: true,
-                                    leading: Icon(subItem.icon, size: 18, color: isSubSelected ? brandOrange : Colors.black54),
-                                    title: Text(subItem.title, style: TextStyle(color: isSubSelected ? brandOrange : Colors.black87, fontWeight: isSubSelected ? FontWeight.bold : FontWeight.normal, fontSize: 13)),
-                                    onTap: () => setState(() { activeCategoryIndex = originalIdx; activeSubIndex = subIdx; }),
+                                  int subIdx = category.subItems.indexOf(subItem);
+                                  final isSelectedSubItem = isSelectedCategory && activeSubIndex == subIdx;
+
+                                  return Container(
+                                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: isSelectedSubItem ? kBrandOlive.withOpacity(0.15) : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: ListTile(
+                                      dense: true,
+                                      leading: Icon(subItem.icon, size: 18, color: isSelectedSubItem ? kBrandOrange : Colors.black54),
+                                      title: Text(
+                                        subItem.title,
+                                        style: TextStyle(
+                                          color: isSelectedSubItem ? kBrandOrange : Colors.black87,
+                                          fontWeight: isSelectedSubItem ? FontWeight.bold : FontWeight.normal,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      trailing: isSelectedSubItem ? const Icon(Icons.circle, size: 8, color: kBrandOrange) : null,
+                                      onTap: () {
+                                        setState(() {
+                                          activeCategoryIndex = index;
+                                          activeSubIndex = subIdx;
+                                        });
+                                      },
+                                    ),
                                   );
                                 }).toList(),
                               ),
@@ -899,9 +933,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   color: Colors.white,
                   child: Row(
                     children: [
-                      if (_navigationHistory.isNotEmpty) IconButton(icon: const Icon(Icons.arrow_back, color: Colors.black87), onPressed: _popSubItem),
+                      if (_navigationHistory.isNotEmpty) ...[
+                        IconButton(icon: const Icon(Icons.arrow_back, color: Colors.black87), onPressed: _popSubItem),
+                        const SizedBox(width: 8),
+                      ],
                       Text(activeCategory.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.black54)),
+                      const SizedBox(width: 8),
                       const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
+                      const SizedBox(width: 8),
                       Text(activeSubItem.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
                     ],
                   ),
@@ -910,11 +949,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(24),
-                    child: _currentDetailScholarId != null
-                      ? ScholarProfileComponent(scholarId: _currentDetailScholarId, onBack: _popSubItem)
-                      : activeSubItem.builder != null
-                        ? activeSubItem.builder!(_popSubItem, _pushSubItem, _pushScholarProfile)
-                        : activeSubItem.page,
+                    child: activeSubItem.builder != null
+                      ? activeSubItem.builder!(_popSubItem, _pushSubItem)
+                      : activeSubItem.page,
                   ),
                 ),
               ],
@@ -923,6 +960,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         ],
       ),
     );
+  }
+
+  bool isSubSelected(bool catSelected, int activeSub, int currentSub) {
+    return catSelected && activeSub == currentSub;
   }
 }
 
@@ -937,19 +978,17 @@ class _MovingText extends StatefulWidget {
 
 class _MovingTextState extends State<_MovingText> with SingleTickerProviderStateMixin {
   late ScrollController _scrollController;
-  late double _scrollPosition;
 
   @override
   void initState() {
     super.initState();
     _scrollController = ScrollController();
-    _scrollPosition = 0.0;
     WidgetsBinding.instance.addPostFrameCallback((_) => _startScrolling());
   }
 
   void _startScrolling() async {
     if (!_scrollController.hasClients) return;
-    
+
     final maxScroll = _scrollController.position.maxScrollExtent;
     if (maxScroll <= 0) return;
 

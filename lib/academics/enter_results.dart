@@ -1,34 +1,12 @@
-
-import 'dart:convert';
-import 'dart:typed_data';
-
-import 'package:csv/csv.dart';
-import 'package:docx_to_text/docx_to_text.dart';
-import 'package:excel/excel.dart' as xls;
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:syncfusion_flutter_pdf/pdf.dart';
+import 'package:intl/intl.dart';
 import 'academics_utils.dart';
-import '../services/api_service.dart';
+import 'package:scholar_management_system/services/api_service.dart';
 
 // ============================================================
-// Brand palette
+// Professional Academic Results Entry Portal
 // ============================================================
-const Color kBrandBrown = Color(0xFF4C3C32);
-const Color kBrandCream = Color(0xFFFAF2DB);
-const Color kBrandCreamDark = Color(0xFFF3E7C4);
-const Color kBrandOlive = Color(0xFF9AB334);
-const Color kBrandOrange = Color(0xFFE05B1C);
-const Color kBrandInk = Color(0xFF2E2620);
-const Color kSurfaceMuted = Color(0xFFF7F6F2);
 
-const Color kConfidenceHigh = Color(0xFF3F8F52);
-const Color kConfidenceMedium = Color(0xFFC98A1E);
-const Color kConfidenceLow = Color(0xFFC94A3A);
-
-// ============================================================
-// AcademicsManagementComponent — shell / header
-// ============================================================
 class AcademicsManagementComponent extends StatefulWidget {
   const AcademicsManagementComponent({super.key});
 
@@ -44,52 +22,37 @@ class _AcademicsManagementComponentState extends State<AcademicsManagementCompon
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildHeader(context),
+          _buildHeader(),
           const Divider(height: 1),
-          const Expanded(child: _EnterResultsSection()),
+          const Expanded(child: EnterResultsComponent()),
         ],
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+      padding: const EdgeInsets.fromLTRB(32, 24, 32, 20),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: kBrandOlive.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
+              color: kBrandOlive.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(
-              Icons.menu_book_rounded,
-              color: kBrandOlive,
-              size: 28,
-            ),
+            child: const Icon(Icons.edit_note_rounded, color: kBrandOlive, size: 28),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 20),
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  "Enter Academic Results",
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: kBrandBrown,
-                  ),
-                ),
+                Text('Academic Results Entry',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: kBrandBrown)),
                 SizedBox(height: 4),
-                Text(
-                  "Record scholar exam results per term or semester.",
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                  ),
-                ),
+                Text('Digitize and record scholar examination scores with automated grading.',
+                    style: TextStyle(fontSize: 13, color: Colors.grey)),
               ],
             ),
           ),
@@ -99,1246 +62,699 @@ class _AcademicsManagementComponentState extends State<AcademicsManagementCompon
   }
 }
 
-// ============================================================
-// SECTION: ENTER RESULTS
-// ============================================================
-
-class _EnterResultsSection extends StatefulWidget {
-  const _EnterResultsSection();
+class EnterResultsComponent extends StatefulWidget {
+  const EnterResultsComponent({super.key});
 
   @override
-  State<_EnterResultsSection> createState() => _EnterResultsSectionState();
+  State<EnterResultsComponent> createState() => _EnterResultsComponentState();
 }
 
-class _EnterResultsSectionState extends State<_EnterResultsSection> {
+class _EnterResultsComponentState extends State<EnterResultsComponent> {
+  bool _isLoading = false;
+  bool _isSaving = false;
+
+  // Selection State
   SchoolType _schoolType = SchoolType.secondary;
-  String? _selectedSchool;
+  Map<String, dynamic>? _selectedSchool;
   Student? _selectedStudent;
 
-  late String _selectedYear;
-  String? _selectedPeriod;
+  // Session State
+  String? _selectedYear;
+  String? _selectedPeriod; // Term or Semester
+  String? _selectedClass; // For Secondary (Form 1, 2, etc.)
+  DateTime _resultsDate = DateTime.now();
 
-  List<_ScholarResultEntry> _scholarEntries = [];
-  bool _isImporting = false;
-  String? _importSourceLabel;
-  bool _isLoading = false;
+  final List<String> _secondaryClasses = ['Form 1', 'Form 2', 'Form 3', 'Form 4'];
+  final List<String> _academicYears = academicYearOptions();
 
-  bool get _isUniversity => _schoolType == SchoolType.university;
+  // Results Table State
+  final List<_ResultInputRow> _rows = [];
+
+  bool get isUniversity => _schoolType == SchoolType.university;
+
+  // Data pools
+  List<Map<String, dynamic>> _registeredSchools = [];
+  List<Student> _allScholars = [];
+  List<Subject> _availableSubjects = [];
 
   @override
   void initState() {
     super.initState();
-    _selectedYear = academicYearOptions().first;
-    _scholarEntries.add(_ScholarResultEntry());
-    _fetchData();
+    _selectedYear = _academicYears.first;
+    _addRow();
+    _fetchBaseData();
   }
 
-  Future<void> _fetchData() async {
+  Future<void> _fetchBaseData() async {
     setState(() => _isLoading = true);
     try {
+      final schoolsRes = await ApiService.getAllSchools();
       final scholarsRes = await ApiService.getAllScholars();
-      if (scholarsRes.statusCode == 200) {
-        final List<dynamic> data = scholarsRes.data['data'];
-        kStudents.clear();
-        for (var item in data) {
-          kStudents.add(Student(
-            id: item['id'].toString(),
-            scholarId: item['scholar_id'] ?? 'N/A',
-            name: item['full_name'] ?? 'N/A',
-            age: item['age'] != null ? int.parse(item['age'].toString()) : 18,
-            schoolType: item['school_type'].toString().toLowerCase() == 'university'
-                ? SchoolType.university
-                : SchoolType.secondary,
-            schoolName: item['school_name'] ?? 'N/A',
-            status: item['status'] ?? 'Active',
-            district: item['district'] ?? '',
-            village: item['village'] ?? '',
-            donor: item['donor'] ?? 'General Fund',
-            phone: item['phone'] ?? '',
-            email: item['email'] ?? '',
-            programType: item['program_type'] ?? '',
-            programName: item['program_name'] ?? '',
-            previousSchool: item['previous_school'] ?? '',
-            startYear: item['start_year'] ?? '2026',
-            endYear: item['end_year'] ?? '2030',
-          ));
-        }
-      }
-
       final subjectsRes = await ApiService.getSubjects();
-      if (subjectsRes.statusCode == 200) {
-        final List<dynamic> data = subjectsRes.data['data'];
-        kSubjects.clear();
-        for (var item in data) {
-          kSubjects.add(Subject(
-            name: item['name'],
-            code: item['code'],
-            details: item['details'] ?? '',
-            notes: item['notes'] ?? '',
-            level: item['level'].toString().toLowerCase() == 'university'
+
+      if (mounted) {
+        setState(() {
+          _registeredSchools = List<Map<String, dynamic>>.from(schoolsRes.data['data'] ?? []);
+          
+          final List<dynamic> scholarData = scholarsRes.data['data'] ?? [];
+          _allScholars = scholarData.map((s) => Student(
+            id: s['id'].toString(),
+            scholarId: s['scholar_id'] ?? 'N/A',
+            name: s['full_name'] ?? 'N/A',
+            age: s['dob'] != null ? DateTime.now().year - DateTime.parse(s['dob']).year : 16,
+            schoolType: s['school_type'] == 'University' ? SchoolType.university : SchoolType.secondary,
+            schoolName: s['display_school_name'] ?? 'N/A',
+            currentClass: s['academic_year'] ?? '',
+          )).toList();
+
+          final List<dynamic> subjectData = subjectsRes.data['data'] ?? [];
+          _availableSubjects = subjectData.map((sub) => Subject(
+            name: sub['name'],
+            code: sub['code'],
+            details: sub['details'] ?? '',
+            notes: sub['notes'] ?? '',
+            level: sub['level'].toString().toLowerCase() == 'university'
                 ? SubjectLevel.university
                 : SubjectLevel.secondary,
-          ));
-        }
+          )).toList();
+        });
       }
     } catch (e) {
-      debugPrint('Error loading data: $e');
+      debugPrint('Error fetching base data: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  @override
-  void dispose() {
-    for (var e in _scholarEntries) {
-      e.dispose();
+  void _onScholarChanged(String? name) async {
+    if (name == null) return;
+    final student = _scholarOptions.firstWhere((s) => s.name == name);
+    setState(() {
+      _selectedStudent = student;
+      _selectedPeriod = null;
+    });
+
+    if (_selectedYear != null) {
+      _checkCompleteness(student.id, int.parse(_selectedYear!));
     }
-    super.dispose();
   }
 
-  void _onSchoolTypeChanged(SchoolType type) {
+  bool _isPeriodDisabled = false;
+  List<String> _recordedPeriods = [];
+
+  Future<void> _checkCompleteness(String scholarId, int year) async {
+    try {
+      final res = await ApiService.checkResultCompleteness(scholarId, year);
+      if (res.statusCode == 200) {
+        final data = res.data['data'];
+        setState(() {
+          _recordedPeriods = List<String>.from(isUniversity ? data['semestersRecorded'] : data['termsRecorded']);
+          if (data['isComplete']) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("All academic results for this year have already been recorded."),
+                backgroundColor: Colors.blue,
+              ),
+            );
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Completeness check error: $e');
+    }
+  }
+
+  void _onTypeChanged(SchoolType? type) {
+    if (type == null) return;
     setState(() {
       _schoolType = type;
       _selectedSchool = null;
       _selectedStudent = null;
       _selectedPeriod = null;
-      _resetData();
+      _selectedClass = null;
+      _rows.clear();
+      _addRow();
+      _recordedPeriods = [];
     });
   }
 
-  void _resetData() {
-    for (var e in _scholarEntries) {
-      e.dispose();
-    }
-    _scholarEntries = [_ScholarResultEntry()];
-    _importSourceLabel = null;
+  void _addRow() {
+    setState(() {
+      _rows.add(_ResultInputRow());
+    });
   }
 
-  List<String> get _schoolOptions {
-    final students = kStudents.where((s) => s.schoolType == _schoolType).toList();
-    return students.map((s) => s.schoolName).toSet().toList()..sort();
+  void _removeRow(int index) {
+    if (_rows.length > 1) {
+      setState(() => _rows.removeAt(index));
+    }
+  }
+
+  List<Map<String, dynamic>> get _schoolOptions {
+    return _registeredSchools.where((s) {
+      final level = (s['level'] ?? '').toString().toLowerCase();
+      if (_schoolType == SchoolType.secondary) {
+        return level.contains('secondary') || level.contains('high');
+      } else {
+        return level.contains('university') || level.contains('tertiary');
+      }
+    }).toList();
+  }
+
+  List<Student> get _scholarOptions {
+    if (_selectedSchool == null) return [];
+    return _allScholars.where((s) => s.schoolName == _selectedSchool!['name']).toList();
   }
 
   List<Subject> get _subjectOptions {
-    final level = _isUniversity ? SubjectLevel.university : SubjectLevel.secondary;
-    return kSubjects.where((s) => s.level == level).toList();
+    final targetLevel = _schoolType == SchoolType.secondary ? SubjectLevel.secondary : SubjectLevel.university;
+    return _availableSubjects.where((s) => s.level == targetLevel).toList();
   }
 
-  List<String> get _periodOptions => _isUniversity ? kSemesters : kTerms;
+  double get _currentAverage {
+    double total = 0;
+    int count = 0;
+    for (var row in _rows) {
+      final score = double.tryParse(row.scoreController.text);
+      if (score != null) {
+        total += score;
+        count++;
+      }
+    }
+    return count > 0 ? total / count : 0;
+  }
 
-  String _codeFromName(String name) {
-    final trimmed = name.trim();
-    if (trimmed.isEmpty) return 'GEN101';
-    final words = trimmed.split(RegExp(r'\s+'));
-    String base;
-    if (words.length >= 2) {
-      base = (words[0].substring(0, 1) + words[1].substring(0, words[1].length < 3 ? words[1].length : 3)).toUpperCase();
+  Color _getScoreColor(double score) {
+    if (_schoolType == SchoolType.secondary) {
+      if (score <= 39) return Colors.red.shade700;
+      if (score <= 59) return Colors.amber.shade900; 
+      return Colors.green.shade700;
     } else {
-      base = trimmed.substring(0, trimmed.length < 4 ? trimmed.length : 4).toUpperCase();
+      if (score <= 49) return Colors.red.shade700;
+      if (score <= 69) return Colors.amber.shade900;
+      return Colors.green.shade700;
     }
-    while (base.length < 3) {
-      base += 'X';
-    }
-    return '${base}101';
   }
 
-  Future<void> _startImportPipeline() async {
-    if (_selectedStudent == null) {
-      _showSnack('Select a scholar before importing a results document.', isError: true);
+  String _getScoreLabel(double score) {
+    if (_schoolType == SchoolType.secondary) {
+      if (score <= 39) return "Fail";
+      if (score <= 59) return "Pass";
+      return "Distinction";
+    } else {
+      if (score <= 49) return "Fail";
+      if (score <= 69) return "Pass";
+      return "Distinction";
+    }
+  }
+
+  Future<void> _save() async {
+    if (_selectedStudent == null || _selectedPeriod == null || _selectedYear == null) {
+      _showError("Please complete the scholar and period selection.");
       return;
     }
-    setState(() => _isImporting = true);
 
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        dialogTitle: 'Select Results Document',
-        type: FileType.custom,
-        allowedExtensions: const ['csv', 'txt', 'xlsx', 'xls', 'pdf', 'docx'],
-        withData: true,
-      );
-      if (result == null || result.files.single.bytes == null) return;
-
-      final file = result.files.single;
-      final extraction = await ResultDocumentImporter.extract(file);
-
-      if (extraction.lines.isEmpty) {
-        _showSnack('Could not find any readable subject/marks data in "${file.name}".', isError: true);
-        return;
-      }
-
-      final candidates = SmartResultParser.parse(extraction.lines, _subjectOptions);
-
-      if (candidates.isEmpty) {
-        _showSnack('"${file.name}" was read, but no subject/marks pairs could be detected. Try Review & Correct manually, or check the file format.', isError: true);
-        return;
-      }
-
-      if (!mounted) return;
-      final approved = await showDialog<List<ImportCandidate>>(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => ImportReviewDialog(
-          candidates: candidates,
-          knownSubjects: _subjectOptions,
-          isUniversity: _isUniversity,
-          sourceFileName: file.name,
-        ),
-      );
-
-      if (approved == null || approved.isEmpty) return;
-
-      final imported = approved.map((c) {
-        final entry = _ScholarResultEntry();
-        entry.subjectController.text = c.matchedSubject?.name ?? c.subjectRaw.trim();
-        entry.marksController.text = c.marksRaw.trim();
-        return entry;
-      }).toList();
-
-      final capped = (!_isUniversity && imported.length > 12) 
-          ? imported.sublist(0, 12) 
-          : (_isUniversity && imported.length > 8)
-              ? imported.sublist(0, 8)
-              : imported;
-
-      setState(() {
-        for (var e in _scholarEntries) {
-          e.dispose();
+    final List<Map<String, dynamic>> validResults = [];
+    for (var row in _rows) {
+      final name = row.subjectController.text.trim();
+      final scoreStr = row.scoreController.text.trim();
+      if (name.isNotEmpty && scoreStr.isNotEmpty) {
+        final score = double.tryParse(scoreStr);
+        if (score == null || score < 0 || score > 100) {
+          _showError("Invalid score for $name. Must be 0-100.");
+          return;
         }
-        _scholarEntries = capped;
-        _importSourceLabel = file.name;
-      });
-      _showSnack('Imported ${capped.length} result(s) from "${file.name}". Review the figures below, then record.', isError: false);
-    } catch (e) {
-      _showSnack('Could not read that document. It may be corrupted, password-protected, or an unsupported layout.', isError: true);
-    } finally {
-      if (mounted) setState(() => _isImporting = false);
+        validResults.add({
+          'subjectName': name,
+          'marks': score,
+        });
+      }
     }
-  }
 
-  Future<void> _saveAll() async {
-    if (_selectedStudent == null || _selectedPeriod == null) {
-      _showSnack('Please select a scholar and a ${_isUniversity ? 'semester' : 'term'}.', isError: true);
+    final int minSubjects = isUniversity ? 5 : 6;
+    final int maxSubjects = isUniversity ? 8 : 12;
+
+    if (validResults.length < minSubjects) {
+      _showError("Please enter at least $minSubjects ${isUniversity ? 'courses' : 'subjects'}.");
       return;
     }
 
-    final validEntries = _scholarEntries
-        .where((e) => e.subjectController.text.trim().isNotEmpty && e.marksController.text.trim().isNotEmpty)
-        .toList();
-
-    if (!_isUniversity) {
-      if (validEntries.length < 6 || validEntries.length > 12) {
-        _showSnack('For secondary school, please enter between 6 and 12 subjects.', isError: true);
-        return;
-      }
-    } else {
-      if (validEntries.length < 6 || validEntries.length > 8) {
-        _showSnack('For university, please enter between 6 and 8 courses.', isError: true);
-        return;
-      }
+    if (validResults.length > maxSubjects) {
+      _showError("Maximum allowed is $maxSubjects ${isUniversity ? 'courses' : 'subjects'}.");
+      return;
     }
 
-    final resultsPayload = validEntries.map((e) {
-      return {
-        'subjectName': e.subjectController.text.trim(),
-        'marks': double.parse(e.marksController.text.trim()),
-      };
-    }).toList();
-
-    final payload = {
-      'scholarId': int.parse(_selectedStudent!.id),
-      'results': resultsPayload,
-      'year': int.parse(_selectedYear),
-      'schoolType': _isUniversity ? 'University' : 'Secondary',
-      if (_isUniversity) 'semester': _selectedPeriod else 'term': _selectedPeriod,
-    };
-
-    setState(() => _isImporting = true);
+    setState(() => _isSaving = true);
     try {
+      final payload = {
+        'scholarId': _selectedStudent!.id,
+        'results': validResults,
+        'year': int.parse(_selectedYear!),
+        'schoolType': _schoolType == SchoolType.secondary ? 'Secondary' : 'University',
+        if (_schoolType == SchoolType.secondary) 'term': _selectedPeriod else 'semester': _selectedPeriod,
+        if (_schoolType == SchoolType.secondary) 'currentClass': _selectedClass,
+        if (_schoolType == SchoolType.university) 'date': _resultsDate.toIso8601String(),
+      };
+
       final response = await ApiService.recordResults(payload);
       if (response.statusCode == 201 || response.statusCode == 200) {
-        int savedCount = validEntries.length;
-        String message = 'Saved $savedCount result(s) for ${_selectedStudent!.name}.';
-        
-        if (_isUniversity && _selectedPeriod == 'Semester 2') {
-          final s1 = kResults.where((r) => r.studentId == _selectedStudent!.id && r.year == _selectedYear && r.semester == 'Semester 1').toList();
-          final s2 = validEntries.map((e) => ResultRecord(
-            studentId: _selectedStudent!.id,
-            code: _codeFromName(e.subjectController.text),
-            subject: e.subjectController.text.trim(),
-            marks: double.parse(e.marksController.text.trim()),
-            gpa: gradeFromMarks(double.parse(e.marksController.text.trim()), isUniversity: true).point,
-            year: _selectedYear,
-            semester: _selectedPeriod,
-          )).toList();
-          if (s1.isNotEmpty && s2.isNotEmpty) {
-            final annual = calculateAnnualGpa(s1, s2);
-            message += ' Annual GPA for $_selectedYear: ${annual.toStringAsFixed(2)}.';
-          }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Academic results recorded for ${_selectedStudent!.name}"),
+              backgroundColor: kBrandOlive,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          );
+          _resetForm();
         }
-        
-        _showSnack(message, isError: false);
-        setState(() {
-          _resetData();
-          _selectedStudent = null;
-          _selectedPeriod = null;
-        });
-      } else {
-        _showSnack('Failed to record results: ${response.data['message'] ?? 'Unknown error'}', isError: true);
       }
     } catch (e) {
-      _showSnack('Failed to record results: $e', isError: true);
+      _showError("Failed to save results. Backend error.");
     } finally {
-      if (mounted) setState(() => _isImporting = false);
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
-  void _showSnack(String message, {required bool isError}) {
+  void _resetForm() {
+    setState(() {
+      _selectedStudent = null;
+      _selectedPeriod = null;
+      _selectedClass = null;
+      _rows.clear();
+      _addRow();
+    });
+  }
+
+  void _showError(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(isError ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded, color: Colors.white, size: 20),
-            const SizedBox(width: 10),
-            Expanded(child: Text(message)),
-          ],
-        ),
-        backgroundColor: isError ? kBrandOrange : kBrandOlive,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
+      SnackBar(content: Text(msg), backgroundColor: Colors.redAccent, behavior: SnackBarBehavior.floating),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(40),
-          child: CircularProgressIndicator(color: kBrandOlive),
-        ),
-      );
+      return const Center(child: CircularProgressIndicator(color: kBrandOlive));
     }
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 40),
+      padding: const EdgeInsets.all(32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _StepLabel(step: 1, label: "Select Scholar & Period"),
-          const SizedBox(height: 10),
-          _buildFilterCard(),
-          const SizedBox(height: 22),
-          _StepLabel(step: 2, label: "Add Results"),
-          const SizedBox(height: 10),
-          _buildImportBanner(),
-          const SizedBox(height: 12),
-          _buildEntrySection(),
-          const SizedBox(height: 24),
-          _buildActionRow(),
+          _buildSelectionPanel(),
+          const SizedBox(height: 32),
+          if (_selectedStudent != null && _selectedPeriod != null) ...[
+            _buildResultsTable(),
+            const SizedBox(height: 48),
+            _buildActionFooter(),
+          ] else
+            _buildMissingSelectionHint(),
         ],
       ),
     );
   }
 
-  Widget _buildImportBanner() {
+  Widget _buildSelectionPanel() {
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: kSurfaceMuted,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(9),
-            decoration: BoxDecoration(color: kBrandOlive.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(9)),
-            child: const Icon(Icons.file_present_rounded, color: kBrandOlive, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("Import from a document", style: TextStyle(fontWeight: FontWeight.w700, color: kBrandInk, fontSize: 13.5)),
-                const SizedBox(height: 2),
-                Text(
-                  _importSourceLabel != null
-                      ? 'Last import: $_importSourceLabel'
-                      : 'Upload a marksheet as CSV, Excel, PDF, or Word — we detect subjects and marks, then you review before saving.',
-                  style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          OutlinedButton.icon(
-            onPressed: _isImporting ? null : _startImportPipeline,
-            icon: _isImporting
-                ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: kBrandBrown))
-                : const Icon(Icons.upload_file_rounded, size: 18),
-            label: Text(_isImporting ? 'Reading…' : 'Upload Document'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: kBrandBrown,
-              side: const BorderSide(color: kBrandBrown),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionRow() {
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: _saveAll,
-            icon: const Icon(Icons.save_rounded),
-            label: const Text('Record Results', style: TextStyle(fontSize: 15.5, fontWeight: FontWeight.bold)),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 18),
-              backgroundColor: kBrandOlive,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFilterCard() {
-    final years = academicYearOptions();
-
-    return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 3))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 20, offset: const Offset(0, 10))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const Text("SCHOLAR & SESSION CONFIGURATION", 
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
+          const SizedBox(height: 24),
           Row(
             children: [
-              const Icon(Icons.person_search_rounded, size: 18, color: kBrandOlive),
-              const SizedBox(width: 8),
-              const Text("Scholar Selection", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: kBrandBrown)),
-            ],
-          ),
-          const Divider(height: 24),
-          Wrap(
-            spacing: 16,
-            runSpacing: 16,
-            children: [
-              SizedBox(
-                width: 200,
-                child: DropdownButtonFormField<SchoolType>(
-                  initialValue: _schoolType,
-                  decoration: _inputDeco("School Type", Icons.category_outlined),
-                  items: const [
-                    DropdownMenuItem(value: SchoolType.secondary, child: Text('Secondary')),
-                    DropdownMenuItem(value: SchoolType.university, child: Text('University')),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Institution Level", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                    const SizedBox(height: 12),
+                    SegmentedButton<SchoolType>(
+                      segments: const [
+                        ButtonSegment(value: SchoolType.secondary, label: Text("Secondary"), icon: Icon(Icons.school_outlined, size: 18)),
+                        ButtonSegment(value: SchoolType.university, label: Text("University"), icon: Icon(Icons.account_balance_outlined, size: 18)),
+                      ],
+                      selected: {_schoolType},
+                      onSelectionChanged: (s) => _onTypeChanged(s.first),
+                      style: SegmentedButton.styleFrom(
+                        selectedBackgroundColor: kBrandOlive,
+                        selectedForegroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
                   ],
-                  onChanged: (v) => _onSchoolTypeChanged(v!),
                 ),
               ),
-              SizedBox(
-                width: 240,
-                child: DropdownButtonFormField<String>(
-                  initialValue: _selectedSchool,
-                  isExpanded: true,
-                  decoration: _inputDeco("Select School", Icons.apartment_rounded),
-                  items: _schoolOptions.map((s) => DropdownMenuItem(value: s, child: Text(s, overflow: TextOverflow.ellipsis))).toList(),
-                  onChanged: (v) => setState(() {
-                    _selectedSchool = v;
-                    _selectedStudent = null;
-                  }),
-                ),
-              ),
-              SizedBox(
-                width: 240,
-                child: DropdownButtonFormField<Student>(
-                  initialValue: _selectedStudent,
-                  isExpanded: true,
-                  decoration: _inputDeco("Select Scholar", Icons.badge_outlined),
-                  items: kStudents
-                      .where((s) => s.schoolType == _schoolType && (_selectedSchool == null || s.schoolName == _selectedSchool))
-                      .map((s) => DropdownMenuItem(value: s, child: Text(s.name, overflow: TextOverflow.ellipsis)))
-                      .toList(),
-                  onChanged: (v) => setState(() => _selectedStudent = v),
-                ),
-              ),
-              SizedBox(
-                width: 140,
-                child: DropdownButtonFormField<String>(
-                  initialValue: years.contains(_selectedYear) ? _selectedYear : years.first,
-                  decoration: _inputDeco("Academic Year", Icons.calendar_today_rounded),
-                  items: years.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
-                  onChanged: (v) => setState(() => _selectedYear = v!),
-                ),
-              ),
-              SizedBox(
-                width: 180,
-                child: DropdownButtonFormField<String>(
-                  initialValue: _selectedPeriod,
-                  decoration: _inputDeco(_isUniversity ? "Semester" : "Term", Icons.event_note_rounded),
-                  items: _periodOptions.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
-                  onChanged: (v) => setState(() => _selectedPeriod = v),
-                ),
+              const SizedBox(width: 32),
+              Expanded(
+                child: _dropdownField("Academic Year", _selectedYear, _academicYears, Icons.calendar_today_rounded, (v) => setState(() => _selectedYear = v)),
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEntrySection() {
-    if (_selectedStudent == null) {
-      return _buildPlaceholder(Icons.person_search_rounded, "Select a scholar to enter their results.");
-    }
-    if (_selectedPeriod == null) {
-      return _buildPlaceholder(Icons.event_note_rounded, "Select a ${_isUniversity ? 'semester' : 'term'} to continue.");
-    }
-
-    List<ResultRecord> currentResults = [];
-    for (var entry in _scholarEntries) {
-      final marks = double.tryParse(entry.marksController.text);
-      if (marks != null) {
-        final graded = gradeFromMarks(marks, isUniversity: _isUniversity);
-        currentResults.add(ResultRecord(
-          studentId: _selectedStudent!.id,
-          code: '',
-          subject: entry.subjectController.text,
-          marks: marks,
-          gpa: _isUniversity ? graded.point : null,
-          points: !_isUniversity ? graded.point : null,
-          year: _selectedYear,
-        ));
-      }
-    }
-
-    final outcome = _isUniversity ? calculateUniversityOutcome(currentResults) : calculateSecondaryOutcome(currentResults);
-
-    double? annualGpa;
-    if (_isUniversity && _selectedPeriod == 'Semester 2') {
-      final semester1Saved = kResults.where((r) => r.studentId == _selectedStudent!.id && r.year == _selectedYear && r.semester == 'Semester 1').toList();
-      if (semester1Saved.isNotEmpty) {
-        annualGpa = calculateAnnualGpa(semester1Saved, currentResults);
-      }
-    }
-
-    return Column(
-      children: [
-        _buildOutcomeCard(outcome, annualGpa),
-        const SizedBox(height: 16),
-        ..._scholarEntries.asMap().entries.map((entry) {
-          int index = entry.key;
-          var item = entry.value;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _ScholarEntryRow(
-              entry: item,
-              subjects: _subjectOptions,
-              onRemove: _scholarEntries.length > 1 ? () => setState(() => _scholarEntries.removeAt(index)) : null,
-              isUniversity: _isUniversity,
-              onChanged: () => setState(() {}),
-            ),
-          );
-        }),
-        const SizedBox(height: 6),
-        OutlinedButton.icon(
-          onPressed: () => setState(() => _scholarEntries.add(_ScholarResultEntry())),
-          icon: const Icon(Icons.add, size: 18),
-          label: Text(_isUniversity ? "Add Another Course" : "Add Another Subject"),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: kBrandOlive,
-            side: const BorderSide(color: kBrandOlive),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          _isUniversity ? "Enter between 6 and 8 courses for this semester." : "Enter between 6 and 12 subjects for this term.",
-          style: TextStyle(fontSize: 11.5, color: Colors.grey.shade500, fontStyle: FontStyle.italic),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildOutcomeCard(dynamic outcome, double? annualGpa) {
-    final String statusLabel = _isUniversity ? outcome.status as String : (outcome.passed as bool ? 'PASS' : 'FAIL');
-    final bool isGoodStanding = _isUniversity ? statusLabel != 'Fail' && statusLabel != 'N/A' : outcome.passed as bool;
-
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [kBrandCream, kBrandCreamDark],
-        ),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: kBrandCreamDark),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+          const SizedBox(height: 24),
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(8)),
-                child: const Icon(Icons.analytics_rounded, color: kBrandBrown, size: 18),
+              Expanded(
+                flex: 2,
+                child: _dropdownField("Partner Institution", _selectedSchool?['name'], _schoolOptions.map((s) => s['name'] as String).toList(), Icons.apartment_rounded, (v) {
+                  setState(() {
+                    _selectedSchool = _registeredSchools.firstWhere((s) => s['name'] == v);
+                    _selectedStudent = null;
+                  });
+                }),
               ),
-              const SizedBox(width: 12),
-              if (_isUniversity)
+              const SizedBox(width: 24),
+              Expanded(
+                flex: 2,
+                child: _dropdownField("Selected Scholar", _selectedStudent?.name, _scholarOptions.map((s) => s.name).toList(), Icons.person_search_rounded, _onScholarChanged),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: _dropdownField(
+                  _schoolType == SchoolType.secondary ? "Academic Term" : "Academic Semester",
+                  _selectedPeriod,
+                  _schoolType == SchoolType.secondary ? kTerms : kSemesters,
+                  Icons.event_note_rounded,
+                  (v) => setState(() => _selectedPeriod = v),
+                ),
+              ),
+              const SizedBox(width: 24),
+              if (_schoolType == SchoolType.secondary)
                 Expanded(
-                  child: Text(
-                    "Semester Total: ${outcome.totalMarks.toStringAsFixed(0)}  •  Avg GPA: ${outcome.avgGpa.toStringAsFixed(2)}",
-                    style: const TextStyle(fontWeight: FontWeight.w700, color: kBrandBrown, fontSize: 13),
-                  ),
+                  child: _dropdownField("Current Class", _selectedClass, _secondaryClasses, Icons.class_outlined, (v) => setState(() => _selectedClass = v)),
                 )
               else
                 Expanded(
-                  child: Text(
-                    "Best Six: Total Marks ${outcome.totalMarks.toStringAsFixed(0)}  •  Total Points ${outcome.totalPoints.toStringAsFixed(0)}",
-                    style: const TextStyle(fontWeight: FontWeight.w700, color: kBrandBrown, fontSize: 13),
-                  ),
+                  child: _datePickerField("Results Date"),
                 ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                decoration: BoxDecoration(
-                  color: isGoodStanding ? kBrandOlive : Colors.red.shade600,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(statusLabel.toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
-              ),
             ],
           ),
-          if (annualGpa != null) ...[
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                const Icon(Icons.calendar_view_month_rounded, size: 16, color: kBrandBrown),
-                const SizedBox(width: 8),
-                Text(
-                  "Projected Annual GPA (Sem 1 + Sem 2, $_selectedYear): ${annualGpa.toStringAsFixed(2)}",
-                  style: const TextStyle(fontWeight: FontWeight.w700, color: kBrandBrown, fontSize: 12),
-                ),
-              ],
-            ),
-          ],
         ],
       ),
     );
   }
 
-  Widget _buildPlaceholder(IconData icon, String text) {
-    return Container(
-      margin: const EdgeInsets.only(top: 4),
-      padding: const EdgeInsets.all(40),
-      decoration: BoxDecoration(color: kSurfaceMuted, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.grey.shade200)),
-      child: Center(
-        child: Column(
+  Widget _buildResultsTable() {
+    final avg = _currentAverage;
+    final avgColor = _getScoreColor(avg);
+    final avgLabel = _getScoreLabel(avg);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Icon(icon, size: 30, color: Colors.grey.shade400),
-            const SizedBox(height: 10),
-            Text(text, textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade500, fontStyle: FontStyle.italic, fontSize: 13)),
+            const Text("EXAMINATION SCORECARD", 
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: avgColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: avgColor.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  Text(isUniversity ? "SEMESTER AVERAGE: ${avg.toStringAsFixed(1)}%" : "TERM AVERAGE: ${avg.toStringAsFixed(1)}%",
+                    style: TextStyle(fontWeight: FontWeight.w900, color: avgColor, fontSize: 14)),
+                  const SizedBox(width: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(color: avgColor, borderRadius: BorderRadius.circular(6)),
+                    child: Text(avgLabel.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
-      ),
-    );
-  }
-
-  InputDecoration _inputDeco(String label, IconData icon) {
-    return InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(icon, size: 20, color: kBrandBrown),
-      isDense: true,
-      filled: true,
-      fillColor: kSurfaceMuted,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kBrandOlive, width: 2)),
-    );
-  }
-}
-
-class _StepLabel extends StatelessWidget {
-  const _StepLabel({required this.step, required this.label});
-  final int step;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
+        const SizedBox(height: 20),
         Container(
-          width: 22,
-          height: 22,
-          alignment: Alignment.center,
-          decoration: const BoxDecoration(color: kBrandBrown, shape: BoxShape.circle),
-          child: Text('$step', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                color: Colors.grey.shade50,
+                child: Row(
+                  children: [
+                    Expanded(flex: 3, child: _tableHeader("SUBJECT / COURSE")),
+                    const SizedBox(width: 24),
+                    Expanded(flex: 1, child: _tableHeader("SCORE (0-100)")),
+                    const SizedBox(width: 24),
+                    Expanded(flex: 1, child: _tableHeader("STANDING")),
+                    const SizedBox(width: 48), // Space for delete button
+                  ],
+                ),
+              ),
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _rows.length,
+                separatorBuilder: (context, index) => const Divider(height: 1),
+                itemBuilder: (context, index) => _buildRow(_rows[index], index),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: OutlinedButton.icon(
+                  onPressed: _addRow,
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text("Add Subject Row"),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(width: 10),
-        Text(label, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: kBrandInk, letterSpacing: 0.2)),
       ],
     );
   }
-}
 
-class _ScholarResultEntry {
-  final TextEditingController subjectController = TextEditingController();
-  final TextEditingController marksController = TextEditingController();
+  Widget _buildRow(_ResultInputRow row, int index) {
+    final score = double.tryParse(row.scoreController.text) ?? 0;
+    final color = _getScoreColor(score);
+    final label = _getScoreLabel(score);
+    final hasScore = row.scoreController.text.isNotEmpty;
 
-  void dispose() {
-    subjectController.dispose();
-    marksController.dispose();
-  }
-}
-
-class _ScholarEntryRow extends StatelessWidget {
-  const _ScholarEntryRow({required this.entry, required this.subjects, this.onRemove, required this.isUniversity, required this.onChanged});
-
-  final _ScholarResultEntry entry;
-  final List<Subject> subjects;
-  final VoidCallback? onRemove;
-  final bool isUniversity;
-  final VoidCallback onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final marks = double.tryParse(entry.marksController.text);
-    final graded = marks != null ? gradeFromMarks(marks, isUniversity: isUniversity) : null;
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 6, offset: const Offset(0, 2))],
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       child: Row(
         children: [
           Expanded(
             flex: 3,
             child: Autocomplete<Subject>(
               optionsBuilder: (textValue) {
-                if (textValue.text.isEmpty) return subjects;
-                return subjects.where((s) => s.name.toLowerCase().contains(textValue.text.toLowerCase()));
+                if (textValue.text.isEmpty) return _subjectOptions;
+                return _subjectOptions.where((s) => s.name.toLowerCase().contains(textValue.text.toLowerCase()));
               },
               displayStringForOption: (s) => s.name,
-              onSelected: (s) {
-                entry.subjectController.text = s.name;
-                onChanged();
-              },
-              fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                if (controller.text != entry.subjectController.text) {
-                  controller.text = entry.subjectController.text;
-                }
-                return TextFormField(
+              onSelected: (s) => setState(() => row.subjectController.text = s.name),
+              fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
+                if (controller.text != row.subjectController.text) controller.text = row.subjectController.text;
+                return TextField(
                   controller: controller,
                   focusNode: focusNode,
-                  onFieldSubmitted: (v) => onFieldSubmitted(),
-                  decoration: InputDecoration(
-                    labelText: isUniversity ? "Course Name" : "Subject Name",
-                    border: const OutlineInputBorder(),
-                    helperText: "Type the subject name",
-                    isDense: true,
-                  ),
-                  onChanged: (v) {
-                    entry.subjectController.text = v;
-                    onChanged();
-                  },
+                  decoration: const InputDecoration(hintText: "Search or type subject...", border: InputBorder.none),
+                  onChanged: (v) => row.subjectController.text = v,
                 );
               },
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 24),
           Expanded(
             flex: 1,
-            child: TextFormField(
-              controller: entry.marksController,
+            child: TextField(
+              controller: row.scoreController,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: "Marks (0-100)", border: OutlineInputBorder(), isDense: true),
-              onChanged: (_) => onChanged(),
+              textAlign: TextAlign.center,
+              style: TextStyle(fontWeight: FontWeight.bold, color: hasScore ? color : kBrandBrown),
+              decoration: InputDecoration(
+                hintText: "0",
+                filled: true,
+                fillColor: hasScore ? color.withValues(alpha: 0.05) : Colors.transparent,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: color, width: 2)),
+              ),
+              onChanged: (_) => setState(() {}),
             ),
           ),
-          const SizedBox(width: 12),
-          Container(
-            width: 110,
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            decoration: BoxDecoration(color: kBrandCream, borderRadius: BorderRadius.circular(8)),
-            alignment: Alignment.center,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
+          const SizedBox(width: 24),
+          Expanded(
+            flex: 1,
+            child: hasScore 
+                ? Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                    alignment: Alignment.center,
+                    child: Text(label.toUpperCase(), style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
+                  )
+                : const SizedBox(),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            onPressed: () => _removeRow(index),
+            icon: const Icon(Icons.remove_circle_outline_rounded, color: Colors.grey),
+            tooltip: "Remove Row",
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionFooter() {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: kBrandBrown.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline_rounded, color: kBrandBrown, size: 20),
+          const SizedBox(width: 16),
+          const Expanded(child: Text("Ensure all examination data is verified against physical marksheets before authorizing submission to the central database.", 
+            style: TextStyle(fontSize: 13, color: kBrandBrown, fontWeight: FontWeight.w500))),
+          const SizedBox(width: 32),
+          SizedBox(
+            width: 280,
+            child: ElevatedButton.icon(
+              onPressed: _isSaving ? null : _save,
+              icon: _isSaving 
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) 
+                  : const Icon(Icons.verified_user_rounded),
+              label: Text(_isSaving ? "AUTHORIZED SYNC..." : "AUTHORIZE & SAVE", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 0.5)),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                backgroundColor: kBrandOlive,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMissingSelectionHint() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 80),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: Colors.grey.shade100),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.fact_check_rounded, size: 64, color: Colors.grey.shade200),
+          const SizedBox(height: 24),
+          const Text("Select a scholar and academic period to initialize the scorecard.", 
+            style: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+
+  Widget _tableHeader(String text) {
+    return Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1));
+  }
+
+  Widget _dropdownField(String label, String? value, List<String> items, IconData icon, ValueChanged<String?> onChanged) {
+    // If it's Term or Semester selection, filter out recorded ones
+    List<String> filteredItems = items;
+    if (label.contains("Term") || label.contains("Semester")) {
+      filteredItems = items.where((item) => !_recordedPeriods.contains(item)).toList();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: kBrandBrown)),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: DropdownButton<String>(
+            value: filteredItems.contains(value) ? value : null,
+            isExpanded: true,
+            hint: const Text("Select...", style: TextStyle(fontSize: 14)),
+            underline: const SizedBox(),
+            items: filteredItems.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
+            onChanged: onChanged,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _datePickerField(String label) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: kBrandBrown)),
+        const SizedBox(height: 10),
+        InkWell(
+          onTap: () async {
+            final picked = await showDatePicker(context: context, initialDate: _resultsDate, firstDate: DateTime(2020), lastDate: DateTime.now());
+            if (picked != null) setState(() => _resultsDate = picked);
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Row(
               children: [
-                Text(
-                  graded?.letter ?? '—',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: (graded?.letter.length ?? 0) > 6 ? 10 : 12),
-                  textAlign: TextAlign.center,
-                ),
-                if (graded != null)
-                  Text(
-                    isUniversity ? "GPA: ${graded.point.toStringAsFixed(2)}" : "Points: ${graded.point.toStringAsFixed(0)}",
-                    style: const TextStyle(fontSize: 9, color: kBrandBrown, fontWeight: FontWeight.bold),
-                  ),
+                const Icon(Icons.calendar_month_rounded, size: 20, color: kBrandBrown),
+                const SizedBox(width: 12),
+                Text(DateFormat('dd/MM/yyyy').format(_resultsDate), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
               ],
             ),
           ),
-          if (onRemove != null) ...[
-            const SizedBox(width: 8),
-            IconButton(icon: const Icon(Icons.delete_outline, color: kBrandOrange), onPressed: onRemove),
-          ]
-        ],
-      ),
-    );
-  }
-}
-
-class ExtractedDocument {
-  final List<String> lines;
-  final String sourceType;
-  ExtractedDocument(this.lines, this.sourceType);
-}
-
-class ResultDocumentImporter {
-  static Future<ExtractedDocument> extract(PlatformFile file) async {
-    final ext = (file.extension ?? '').toLowerCase();
-    final bytes = file.bytes!;
-
-    switch (ext) {
-      case 'csv':
-      case 'txt':
-        return ExtractedDocument(_fromDelimitedText(bytes), ext);
-      case 'xlsx':
-      case 'xls':
-        return ExtractedDocument(_fromExcel(bytes), 'excel');
-      case 'pdf':
-        return ExtractedDocument(_fromPdf(bytes), 'pdf');
-      case 'docx':
-        return ExtractedDocument(_fromDocx(bytes), 'docx');
-      default:
-        throw UnsupportedError('Unsupported file type: $ext');
-    }
-  }
-
-  static List<String> _fromDelimitedText(Uint8List bytes) {
-    final raw = utf8.decode(bytes, allowMalformed: true);
-    final rows = const CsvToListConverter(eol: '\n', shouldParseNumbers: false).convert(raw);
-    return rows.map((r) => r.map((c) => c.toString().trim()).where((c) => c.isNotEmpty).join('  |  ')).where((l) => l.isNotEmpty).toList();
-  }
-
-  static List<String> _fromExcel(Uint8List bytes) {
-    final book = xls.Excel.decodeBytes(bytes);
-    final lines = <String>[];
-    for (final sheetName in book.tables.keys) {
-      final sheet = book.tables[sheetName];
-      if (sheet == null) continue;
-      for (final row in sheet.rows) {
-        final cells = row.where((c) => c != null).map((c) => c!.value.toString().trim()).where((v) => v.isNotEmpty).toList();
-        if (cells.isNotEmpty) lines.add(cells.join('  |  '));
-      }
-    }
-    return lines;
-  }
-
-  static List<String> _fromPdf(Uint8List bytes) {
-    final doc = PdfDocument(inputBytes: bytes);
-    final text = PdfTextExtractor(doc).extractText();
-    doc.dispose();
-    return text.split(RegExp(r'[\r\n]+')).map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
-  }
-
-  static List<String> _fromDocx(Uint8List bytes) {
-    final text = docxToText(bytes);
-    return text.split(RegExp(r'[\r\n]+')).map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
-  }
-}
-
-enum ImportConfidence { high, medium, low }
-
-class ImportCandidate {
-  String subjectRaw;
-  String marksRaw;
-  Subject? matchedSubject;
-  ImportConfidence confidence;
-  String? issue;
-  bool include;
-
-  ImportCandidate({
-    required this.subjectRaw,
-    required this.marksRaw,
-    this.matchedSubject,
-    required this.confidence,
-    this.issue,
-    this.include = true,
-  });
-}
-
-class SmartResultParser {
-  static final _headerWords = {'subject', 'course', 'marks', 'mark', 'score', 'grade', 'title', 'name', 'total', 'points', 'gpa'};
-
-  static final _trailingNumberPattern = RegExp(r'^(.*?)[\s\-:|,]{1,4}(\d{1,3}(?:\.\d+)?)\s*%?$');
-
-  static List<ImportCandidate> parse(List<String> lines, List<Subject> knownSubjects) {
-    final candidates = <ImportCandidate>[];
-
-    for (final rawLine in lines) {
-      final line = rawLine.replaceAll('|', ' ').trim();
-      if (line.isEmpty) continue;
-
-      final lower = line.toLowerCase();
-      final isLikelyHeader = _headerWords.any((w) => lower == w || lower.startsWith('$w ') || lower == '$w,');
-      if (isLikelyHeader && line.length < 40) continue;
-
-      final match = _trailingNumberPattern.firstMatch(line);
-      if (match == null) continue;
-
-      var subjectRaw = match.group(1)!.trim();
-      final marksRaw = match.group(2)!.trim();
-      subjectRaw = subjectRaw.replaceAll(RegExp(r'^[\d\.\)\-\s]+'), '').trim();
-
-      if (subjectRaw.isEmpty) continue;
-      final marks = double.tryParse(marksRaw);
-      if (marks == null) continue;
-
-      String? issue;
-      ImportConfidence confidence;
-      Subject? matched = _matchSubject(subjectRaw, knownSubjects);
-
-      if (marks < 0 || marks > 100) {
-        confidence = ImportConfidence.low;
-        issue = 'Marks out of expected 0–100 range';
-      } else if (matched != null && matched.name.toLowerCase() == subjectRaw.toLowerCase()) {
-        confidence = ImportConfidence.high;
-      } else if (matched != null) {
-        confidence = ImportConfidence.medium;
-        issue = 'Matched by similarity to "${matched.name}" — please confirm';
-      } else {
-        confidence = ImportConfidence.medium;
-        issue = 'No matching subject on file — will be added as new';
-      }
-
-      candidates.add(ImportCandidate(
-        subjectRaw: subjectRaw,
-        marksRaw: marksRaw,
-        matchedSubject: matched,
-        confidence: confidence,
-        issue: issue,
-      ));
-    }
-
-    final seen = <String, ImportCandidate>{};
-    for (final c in candidates) {
-      final key = c.subjectRaw.toLowerCase();
-      if (!seen.containsKey(key) || c.confidence.index < seen[key]!.confidence.index) {
-        seen[key] = c;
-      }
-    }
-    return seen.values.toList();
-  }
-
-  static Subject? _matchSubject(String raw, List<Subject> known) {
-    final normalized = raw.toLowerCase().trim();
-    for (final s in known) {
-      if (s.name.toLowerCase() == normalized) return s;
-    }
-    for (final s in known) {
-      final sName = s.name.toLowerCase();
-      if (sName.contains(normalized) || normalized.contains(sName)) return s;
-    }
-    return null;
-  }
-}
-
-class ImportReviewDialog extends StatefulWidget {
-  const ImportReviewDialog({
-    super.key,
-    required this.candidates,
-    required this.knownSubjects,
-    required this.isUniversity,
-    required this.sourceFileName,
-  });
-
-  final List<ImportCandidate> candidates;
-  final List<Subject> knownSubjects;
-  final bool isUniversity;
-  final String sourceFileName;
-
-  @override
-  State<ImportReviewDialog> createState() => _ImportReviewDialogState();
-}
-
-class _ImportReviewDialogState extends State<ImportReviewDialog> {
-  late List<ImportCandidate> _rows;
-  late List<TextEditingController> _subjectCtrls;
-  late List<TextEditingController> _marksCtrls;
-
-  @override
-  void initState() {
-    super.initState();
-    _rows = widget.candidates;
-    _subjectCtrls = _rows.map((c) => TextEditingController(text: c.matchedSubject?.name ?? c.subjectRaw)).toList();
-    _marksCtrls = _rows.map((c) => TextEditingController(text: c.marksRaw)).toList();
-  }
-
-  @override
-  void dispose() {
-    for (final c in _subjectCtrls) {
-      c.dispose();
-    }
-    for (final c in _marksCtrls) {
-      c.dispose();
-    }
-    super.dispose();
-  }
-
-  int get _highCount => _rows.where((r) => r.confidence == ImportConfidence.high).length;
-  int get _needsReviewCount => _rows.where((r) => r.confidence != ImportConfidence.high).length;
-
-  void _removeRow(int i) {
-    setState(() {
-      _rows.removeAt(i);
-      _subjectCtrls.removeAt(i).dispose();
-      _marksCtrls.removeAt(i).dispose();
-    });
-  }
-
-  void _apply() {
-    final result = <ImportCandidate>[];
-    for (int i = 0; i < _rows.length; i++) {
-      if (!_rows[i].include) continue;
-      final subject = _subjectCtrls[i].text.trim();
-      final marks = _marksCtrls[i].text.trim();
-      if (subject.isEmpty || marks.isEmpty) continue;
-      final row = _rows[i];
-      row.subjectRaw = subject;
-      row.marksRaw = marks;
-      result.add(row);
-    }
-    Navigator.of(context).pop(result);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 760, maxHeight: 640),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildHeader(context),
-            _buildSummaryBar(),
-            const Divider(height: 1),
-            Expanded(child: _buildList()),
-            const Divider(height: 1),
-            _buildFooter(context),
-          ],
         ),
-      ),
+      ],
     );
   }
+}
 
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(22, 20, 14, 16),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(colors: [kBrandBrown, Color(0xFF3A2E26)]),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.fact_check_rounded, color: Colors.white, size: 22),
-          const SizedBox(width: 12),
-          Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                  const Text("Review & Correct Import", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16.5)),
-              const SizedBox(height: 3),
-              Text("Detected from \"${widget.sourceFileName}\" — edit anything before it's applied.",
-              style: const TextStyle(color: Colors.white70, fontSize: 12)),
-        ],
-      ),
-    ),
-    IconButton(
-    icon: const Icon(Icons.close_rounded, color: Colors.white70),
-    onPressed: () => Navigator.of(context).pop(null),
-    ),
-    ],
-    ),
-    );
-  }
+class _ResultInputRow {
+  final TextEditingController subjectController = TextEditingController();
+  final TextEditingController scoreController = TextEditingController();
 
-  Widget _buildSummaryBar() {
-    return Container(
-      color: kSurfaceMuted,
-      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-      child: Row(
-        children: [
-          _confidenceChip(ImportConfidence.high, '$_highCount look correct'),
-          const SizedBox(width: 10),
-          _confidenceChip(ImportConfidence.medium, '$_needsReviewCount need a check', forceOrange: _needsReviewCount > 0),
-          const Spacer(),
-          Text('${_rows.length} row(s) detected', style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
-        ],
-      ),
-    );
-  }
-
-  Widget _confidenceChip(ImportConfidence level, String label, {bool forceOrange = false}) {
-    final color = forceOrange ? kConfidenceMedium : (level == ImportConfidence.high ? kConfidenceHigh : kConfidenceMedium);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(20)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(width: 7, height: 7, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-          const SizedBox(width: 6),
-          Text(label, style: TextStyle(color: color, fontSize: 11.5, fontWeight: FontWeight.w700)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildList() {
-    if (_rows.isEmpty) {
-      return Center(
-        child: Text('No rows remaining — cancel and re-import if needed.', style: TextStyle(color: Colors.grey.shade500, fontStyle: FontStyle.italic)),
-      );
-    }
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: _rows.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
-      itemBuilder: (context, i) => _buildRow(i),
-    );
-  }
-
-  Widget _buildRow(int i) {
-    final row = _rows[i];
-    final color = row.confidence == ImportConfidence.high
-        ? kConfidenceHigh
-        : row.confidence == ImportConfidence.medium
-        ? kConfidenceMedium
-        : kConfidenceLow;
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: row.include ? Colors.white : Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(10),
-        border: Border(left: BorderSide(color: color, width: 4), top: BorderSide(color: Colors.grey.shade200), right: BorderSide(color: Colors.grey.shade200), bottom: BorderSide(color: Colors.grey.shade200)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Checkbox(
-                value: row.include,
-                activeColor: kBrandOlive,
-                onChanged: (v) => setState(() => row.include = v ?? true),
-              ),
-              Expanded(
-                flex: 3,
-                child: Autocomplete<Subject>(
-                  optionsBuilder: (t) => t.text.isEmpty
-                      ? widget.knownSubjects
-                      : widget.knownSubjects.where((s) => s.name.toLowerCase().contains(t.text.toLowerCase())),
-                  displayStringForOption: (s) => s.name,
-                  onSelected: (s) {
-                    _subjectCtrls[i].text = s.name;
-                    setState(() {
-                      row.matchedSubject = s;
-                      row.confidence = ImportConfidence.high;
-                      row.issue = null;
-                    });
-                  },
-                  fieldViewBuilder: (context, controller, focusNode, onSubmit) {
-                    if (controller.text != _subjectCtrls[i].text) controller.text = _subjectCtrls[i].text;
-                    return TextFormField(
-                      controller: controller,
-                      focusNode: focusNode,
-                      enabled: row.include,
-                      decoration: const InputDecoration(labelText: 'Subject', isDense: true, border: OutlineInputBorder()),
-                      onChanged: (v) => _subjectCtrls[i].text = v,
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                flex: 1,
-                child: TextFormField(
-                  controller: _marksCtrls[i],
-                  enabled: row.include,
-                  keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(labelText: 'Marks', isDense: true, border: OutlineInputBorder()),
-                  onChanged: (v) => setState(() {}),
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline_rounded, color: kBrandOrange, size: 20),
-                onPressed: () => _removeRow(i),
-                tooltip: 'Remove row',
-              ),
-            ],
-          ),
-          if (row.issue != null && row.include) ...[
-            const SizedBox(height: 6),
-            Padding(
-              padding: const EdgeInsets.only(left: 44),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline_rounded, size: 13, color: color),
-                  const SizedBox(width: 5),
-                  Expanded(child: Text(row.issue!, style: TextStyle(fontSize: 11, color: color, fontStyle: FontStyle.italic))),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFooter(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(null),
-            child: const Text('Cancel Import', style: TextStyle(color: Colors.grey)),
-          ),
-          const Spacer(),
-          ElevatedButton.icon(
-            onPressed: _rows.isEmpty ? null : _apply,
-            icon: const Icon(Icons.check_rounded, size: 18),
-            label: Text('Apply ${_rows.where((r) => r.include).length} Result(s)'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kBrandOlive,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
-            ),
-          ),
-        ],
-      ),
-    );
+  void dispose() {
+    subjectController.dispose();
+    scoreController.dispose();
   }
 }

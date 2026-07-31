@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/api_service.dart';
+import 'package:scholar_management_system/services/api_service.dart';
 
 class RegisterSchoolComponent extends StatefulWidget {
   final Function(Map<String, dynamic>)? onRegister;
@@ -307,46 +307,49 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
       builder: (context, constraints) {
         final bool isWide = constraints.maxWidth > 700;
 
-        return SingleChildScrollView(
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildFormHeader(),
-                  const SizedBox(height: 40),
+        return Container(
+          color: Colors.white,
+          child: SingleChildScrollView(
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildFormHeader(),
+                    const SizedBox(height: 40),
 
-                  _sectionTitle("1. School Identity & Classification"),
-                  const SizedBox(height: 16),
-                  _buildIdentityCard(isWide),
+                    _sectionTitle("1. School Identity & Classification"),
+                    const SizedBox(height: 16),
+                    _buildIdentityCard(isWide),
 
-                  const SizedBox(height: 32),
-                  _sectionTitle("2. Geographic Location"),
-                  const SizedBox(height: 16),
-                  _buildLocationCard(isWide),
+                    const SizedBox(height: 32),
+                    _sectionTitle("2. Geographic Location"),
+                    const SizedBox(height: 16),
+                    _buildLocationCard(isWide),
 
-                  const SizedBox(height: 32),
-                  _sectionTitle("3. Contact Information"),
-                  const SizedBox(height: 16),
-                  _buildContactCard(isWide),
+                    const SizedBox(height: 32),
+                    _sectionTitle("3. Contact Information"),
+                    const SizedBox(height: 16),
+                    _buildContactCard(isWide),
 
-                  const SizedBox(height: 32),
-                  _sectionTitle("4. Administration & Management"),
-                  const SizedBox(height: 16),
-                  _buildAdminCard(isWide),
+                    const SizedBox(height: 32),
+                    _sectionTitle("4. Administration & Management"),
+                    const SizedBox(height: 16),
+                    _buildAdminCard(isWide),
 
-                  const SizedBox(height: 32),
-                  _sectionTitle("5. Additional Details"),
-                  const SizedBox(height: 16),
-                  _buildAdditionalInfoCard(),
+                    const SizedBox(height: 32),
+                    _sectionTitle("5. Additional Details"),
+                    const SizedBox(height: 16),
+                    _buildAdditionalInfoCard(),
 
-                  const SizedBox(height: 48),
-                  _buildSubmitButton(),
-                  const SizedBox(height: 60),
-                ],
+                    const SizedBox(height: 48),
+                    _buildSubmitButton(),
+                    const SizedBox(height: 60),
+                  ],
+                ),
               ),
             ),
           ),

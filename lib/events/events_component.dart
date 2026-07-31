@@ -1,21 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import '../services/api_service.dart';
+import 'package:scholar_management_system/services/api_service.dart';
 import '../academics/academics_utils.dart';
 import 'events_utils.dart';
 
 // ---------------------------------------------------------------------------
-// PDF report generation (merged from events_report.dart)
+// PDF report generation
 // ---------------------------------------------------------------------------
 
-/// Converts a Flutter [Color] to a [PdfColor], so the report always matches
-/// the app's live brand colors (kBrandOlive / kBrandBrown / kBrandCream)
-/// without hardcoding hex values here.
 PdfColor _pdf(Color color) => PdfColor.fromInt(color.value);
 
-/// Same color blended toward white, for tinted chip backgrounds.
 PdfColor _tint(Color color, double opacity) {
   final base = _pdf(color);
   return PdfColor(
@@ -25,7 +23,6 @@ PdfColor _tint(Color color, double opacity) {
   );
 }
 
-/// Builds the PDF document for a single event.
 Future<pw.Document> buildEventReportPdf(OrganisationEvent event) async {
   final doc = pw.Document(
     title: '${event.title} - Event Report',
@@ -37,6 +34,15 @@ Future<pw.Document> buildEventReportPdf(OrganisationEvent event) async {
   final olive = _pdf(kBrandOlive);
   final cream = _pdf(kBrandCream);
 
+  // Load logo from assets
+  pw.MemoryImage? logoImage;
+  try {
+    final logoData = await rootBundle.load('assets/images/age-logo.png');
+    logoImage = pw.MemoryImage(logoData.buffer.asUint8List());
+  } catch (e) {
+    debugPrint('Error loading logo for PDF: $e');
+  }
+
   pw.Widget detailBlock(String label, String value) {
     return pw.Expanded(
       child: pw.Column(
@@ -44,10 +50,10 @@ Future<pw.Document> buildEventReportPdf(OrganisationEvent event) async {
         children: [
           pw.Text(
             label.toUpperCase(),
-            style: pw.TextStyle(fontSize: 9, color: PdfColors.grey500, letterSpacing: 0.8, fontWeight: pw.FontWeight.bold),
+            style: pw.TextStyle(fontSize: 8, color: PdfColors.grey500, letterSpacing: 1, fontWeight: pw.FontWeight.bold),
           ),
           pw.SizedBox(height: 4),
-          pw.Text(value, style: pw.TextStyle(fontSize: 13, fontWeight: pw.FontWeight.bold)),
+          pw.Text(value, style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: brown)),
         ],
       ),
     );
@@ -56,107 +62,114 @@ Future<pw.Document> buildEventReportPdf(OrganisationEvent event) async {
   doc.addPage(
     pw.Page(
       pageFormat: PdfPageFormat.a4,
-      margin: const pw.EdgeInsets.all(40),
+      margin: const pw.EdgeInsets.all(50),
       build: (context) {
         return pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            // Header
+            // Professional Header
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    if (logoImage != null)
+                      pw.Image(logoImage, height: 60)
+                    else
+                      pw.Text('AGE AFRICA', style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: brown)),
+                    pw.SizedBox(height: 8),
+                    pw.Text('Advancing Girls\' Education in Africa', style: pw.TextStyle(fontSize: 10, color: olive, fontStyle: pw.FontStyle.italic)),
+                  ],
+                ),
+                pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.end,
+                  children: [
+                    pw.Text('OFFICIAL EVENT REPORT', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600, letterSpacing: 1.5, fontWeight: pw.FontWeight.bold)),
+                    pw.SizedBox(height: 4),
+                    pw.Text('Ref: EVT-${event.id.padLeft(4, '0')}', style: pw.TextStyle(fontSize: 8, color: PdfColors.grey500)),
+                    pw.SizedBox(height: 12),
+                    pw.Container(
+                      padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: pw.BoxDecoration(color: accent, borderRadius: pw.BorderRadius.circular(4)),
+                      child: pw.Text(event.category.label.toUpperCase(),
+                          style: pw.TextStyle(color: PdfColors.white, fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            pw.SizedBox(height: 30),
+            pw.Divider(color: olive, thickness: 2),
+            pw.SizedBox(height: 20),
+
+            // Event Title
+            pw.Text(event.title, style: pw.TextStyle(fontSize: 26, fontWeight: pw.FontWeight.bold, color: brown)),
+            pw.SizedBox(height: 30),
+
+            // Details Grid
             pw.Container(
-              width: double.infinity,
               padding: const pw.EdgeInsets.all(20),
               decoration: pw.BoxDecoration(
-                color: cream,
-                borderRadius: pw.BorderRadius.circular(10),
+                color: _pdf(kBrandCream.withValues(alpha: 0.3)),
+                borderRadius: pw.BorderRadius.circular(8),
+                border: pw.Border.all(color: cream),
               ),
               child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    children: [
-                      pw.Text('AGE AFRICA', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: brown, letterSpacing: 1.2)),
-                      pw.Text('EVENT REPORT', style: pw.TextStyle(fontSize: 10, color: PdfColors.grey600, letterSpacing: 1)),
-                    ],
-                  ),
-                  pw.SizedBox(height: 14),
-                  pw.Row(
-                    children: [
-                      pw.Container(
-                        padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: pw.BoxDecoration(color: accent, borderRadius: pw.BorderRadius.circular(6)),
-                        child: pw.Text(event.category.label.toUpperCase(),
-                            style: pw.TextStyle(color: PdfColors.white, fontSize: 9, fontWeight: pw.FontWeight.bold, letterSpacing: 0.5)),
-                      ),
-                      if (event.isHistory) ...[
-                        pw.SizedBox(width: 8),
-                        pw.Container(
-                          padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          decoration: pw.BoxDecoration(color: PdfColors.grey300, borderRadius: pw.BorderRadius.circular(6)),
-                          child: pw.Text('COMPLETED',
-                              style: pw.TextStyle(color: PdfColors.grey700, fontSize: 9, fontWeight: pw.FontWeight.bold, letterSpacing: 0.5)),
-                        ),
-                      ],
-                    ],
-                  ),
-                  pw.SizedBox(height: 12),
-                  pw.Text(event.title, style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: brown)),
+                  pw.Row(children: [
+                    detailBlock('Scheduled Date', DateFormat('EEEE, dd MMMM yyyy').format(event.date)),
+                    detailBlock('Scheduled Time', '${event.time.hour.toString().padLeft(2, '0')}:${event.time.minute.toString().padLeft(2, '0')}'),
+                  ]),
+                  pw.SizedBox(height: 20),
+                  pw.Row(children: [
+                    detailBlock('Location / Venue', event.location),
+                    detailBlock('Organizing Department', event.organizer ?? 'Program Management'),
+                  ]),
                 ],
               ),
             ),
-            pw.SizedBox(height: 24),
-
-            // Details grid
-            pw.Row(children: [
-              detailBlock('Date', '${event.date.day}/${event.date.month}/${event.date.year}'),
-              detailBlock('Time', '${event.time.hour.toString().padLeft(2, '0')}:${event.time.minute.toString().padLeft(2, '0')}'),
-            ]),
-            pw.SizedBox(height: 18),
-            pw.Row(children: [
-              detailBlock('Location / Venue', event.location),
-              detailBlock('Organized By', event.organizer ?? '-'),
-            ]),
 
             if (event.targetedParticipants != null && event.targetedParticipants!.isNotEmpty) ...[
-              pw.SizedBox(height: 18),
-              pw.Text('TARGETED PARTICIPANTS', style: pw.TextStyle(fontSize: 9, color: PdfColors.grey500, letterSpacing: 0.8, fontWeight: pw.FontWeight.bold)),
-              pw.SizedBox(height: 6),
+              pw.SizedBox(height: 30),
+              pw.Text('TARGETED PARTICIPANTS', style: pw.TextStyle(fontSize: 9, color: PdfColors.grey600, letterSpacing: 1, fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 10),
               pw.Wrap(
-                spacing: 6,
-                runSpacing: 6,
+                spacing: 8,
+                runSpacing: 8,
                 children: event.targetedParticipants!
                     .map((p) => pw.Container(
-                  padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: pw.BoxDecoration(
-                    color: _tint(kBrandOlive, 0.12),
-                    borderRadius: pw.BorderRadius.circular(6),
+                    color: PdfColors.grey100,
+                    borderRadius: pw.BorderRadius.circular(4),
+                    border: pw.Border.all(color: PdfColors.grey300),
                   ),
-                  child: pw.Text(p, style: pw.TextStyle(fontSize: 10, color: olive, fontWeight: pw.FontWeight.bold)),
+                  child: pw.Text(p, style: pw.TextStyle(fontSize: 10, color: brown, fontWeight: pw.FontWeight.bold)),
                 ))
                     .toList(),
               ),
             ],
 
-            pw.SizedBox(height: 24),
-            pw.Divider(color: PdfColors.grey300),
-            pw.SizedBox(height: 20),
-
-            pw.Text('DESCRIPTION', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: olive, letterSpacing: 0.5)),
-            pw.SizedBox(height: 8),
+            pw.SizedBox(height: 40),
+            pw.Text('PROGRAM DESCRIPTION & OBJECTIVES', style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, color: olive, letterSpacing: 0.5)),
+            pw.SizedBox(height: 12),
             pw.Text(
-              event.description.isEmpty ? 'No description provided.' : event.description,
-              style: const pw.TextStyle(fontSize: 12, lineSpacing: 3, color: PdfColors.grey800),
+              event.description.isEmpty ? 'No detailed description provided for this session.' : event.description,
+              style: pw.TextStyle(fontSize: 11, lineSpacing: 5, color: PdfColors.grey900),
+              textAlign: pw.TextAlign.justify,
             ),
 
             pw.Spacer(),
             pw.Divider(color: PdfColors.grey300),
-            pw.SizedBox(height: 8),
+            pw.SizedBox(height: 10),
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                pw.Text('Generated ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
-                    style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey500)),
-                pw.Text('AGE Africa - Scholar Management System', style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey500)),
+                pw.Text('Generated by AGE Africa Management System on ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}',
+                    style: pw.TextStyle(fontSize: 8, color: PdfColors.grey500)),
+                pw.Text('Page 1 of 1', style: pw.TextStyle(fontSize: 8, color: PdfColors.grey500)),
               ],
             ),
           ],
@@ -168,17 +181,14 @@ Future<pw.Document> buildEventReportPdf(OrganisationEvent event) async {
   return doc;
 }
 
-/// Opens the native print dialog (which also offers "Save as PDF") for the
-/// given event's report.
 Future<void> printEventReport(OrganisationEvent event) async {
   final doc = await buildEventReportPdf(event);
   await Printing.layoutPdf(
     onLayout: (format) => doc.save(),
-    name: '${event.title} - Event Report',
+    name: '${event.title.replaceAll(' ', '_')}_Report',
   );
 }
 
-/// Directly downloads / shares the event report as a PDF file.
 Future<void> downloadEventReport(OrganisationEvent event) async {
   final doc = await buildEventReportPdf(event);
   final bytes = await doc.save();
@@ -187,7 +197,6 @@ Future<void> downloadEventReport(OrganisationEvent event) async {
       : event.title.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), '_');
   await Printing.sharePdf(bytes: bytes, filename: '$safeName-report.pdf');
 }
-
 
 // ---------------------------------------------------------------------------
 // UI
@@ -229,32 +238,14 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data['data'];
         _allEvents.clear();
-        // Only show approved (Active) or past (History) events. Hide Pending ones.
         _allEvents.addAll(data
             .map((json) => OrganisationEvent.fromJson(json))
             .where((e) => e.status != 'Pending' && !e.isExpired));
-
-        _checkAndSendNotifications();
       }
     } catch (e) {
       debugPrint('Error fetching events: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  void _checkAndSendNotifications() {
-    final now = DateTime.now();
-    for (var event in _allEvents) {
-      if (event.isUpcoming) {
-        final diff = event.fullDateTime.difference(now);
-        // If event is in less than 24 hours, "send notification" (mock)
-        if (diff.inHours > 0 && diff.inHours <= 24) {
-          debugPrint('NOTIFICATION: Reminder for event "${event.title}" tomorrow at ${event.time.format(context)}');
-        } else if (diff.inMinutes > 0 && diff.inMinutes < 60) {
-          debugPrint('NOTIFICATION: Urgent reminder! "${event.title}" starts in ${diff.inMinutes} minutes!');
-        }
-      }
     }
   }
 
@@ -281,22 +272,19 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
   }
 
   void _viewEventDetails(OrganisationEvent event) {
-    Future.microtask(() {
-      if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => ViewEventDialog(event: event),
-        );
-      }
-    });
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (context) => ViewEventDialog(event: event),
+    );
   }
 
   Future<void> _deleteEvent(OrganisationEvent event) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirm Delete'),
-        content: Text('Are you sure you want to delete the event "${event.title}"?'),
+        title: const Text('Delete Event'),
+        content: Text('Are you sure you want to permanently delete "${event.title}"?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
           TextButton(
@@ -314,18 +302,13 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
         if (response.statusCode == 200) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Event deleted successfully'), backgroundColor: Colors.redAccent),
+              const SnackBar(content: Text('Event removed from system'), backgroundColor: kBrandBrown),
             );
           }
           _fetchEvents();
         }
       } catch (e) {
         debugPrint('Error deleting event: $e');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to delete event'), backgroundColor: Colors.orange),
-          );
-        }
       }
     }
   }
@@ -340,30 +323,22 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    final upcomingEvents = _filtered(_allEvents.where((e) => e.isUpcoming).toList()
-      ..sort((a, b) => a.fullDateTime.compareTo(b.fullDateTime)));
-    final historyEvents = _filtered(_allEvents.where((e) => e.isHistory).toList()
-      ..sort((a, b) => b.fullDateTime.compareTo(a.fullDateTime)));
-
     return Container(
       color: Colors.white,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildHeader(isDark),
-          _buildStatsBar(isDark),
-          _buildTabBarAndSearch(isDark, upcomingEvents.length, historyEvents.length),
+          _buildHeader(),
+          _buildStatsBar(),
+          _buildTabBarAndSearch(),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
                 : TabBarView(
               controller: _tabController,
               children: [
-                _buildEventList(upcomingEvents, isDark, _query.isEmpty ? "No upcoming events scheduled" : "No events match your search"),
-                _buildEventList(historyEvents, isDark, _query.isEmpty ? "No past events in history" : "No events match your search"),
+                _buildEventList(_filtered(_allEvents.where((e) => e.isUpcoming).toList()..sort((a, b) => a.fullDateTime.compareTo(b.fullDateTime))), "No upcoming events found."),
+                _buildEventList(_filtered(_allEvents.where((e) => e.isHistory).toList()..sort((a, b) => b.fullDateTime.compareTo(a.fullDateTime))), "No event history recorded."),
               ],
             ),
           ),
@@ -372,72 +347,63 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
     );
   }
 
-  Widget _buildEventList(List<OrganisationEvent> events, bool isDark, String emptyMessage) {
+  Widget _buildEventList(List<OrganisationEvent> events, String emptyMessage) {
     if (events.isEmpty) {
-      return _buildEmptyState(isDark, emptyMessage);
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.event_note_rounded, size: 64, color: Colors.grey.shade200),
+            const SizedBox(height: 16),
+            Text(emptyMessage, style: TextStyle(color: Colors.grey.shade400, fontSize: 16)),
+          ],
+        ),
+      );
     }
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(32, 8, 32, 24),
+      padding: const EdgeInsets.fromLTRB(32, 20, 32, 40),
       itemCount: events.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 16),
-      itemBuilder: (context, index) => _buildEventCard(events[index], isDark),
+      separatorBuilder: (context, index) => const SizedBox(height: 20),
+      itemBuilder: (context, index) => _buildEventCard(events[index]),
     );
   }
 
-  Widget _buildHeader(bool isDark) {
+  Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(32, 28, 32, 16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isDark
-              ? [Colors.white.withValues(alpha: 0.05), Colors.transparent]
-              : [kBrandCream.withValues(alpha: 0.25), Colors.transparent],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
+      padding: const EdgeInsets.fromLTRB(32, 24, 32, 20),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [kBrandBrown, kBrandBrown.withValues(alpha: 0.75)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(18),
-              boxShadow: [
-                BoxShadow(color: kBrandBrown.withValues(alpha: 0.25), blurRadius: 16, offset: const Offset(0, 6)),
-              ],
+              color: kBrandOlive.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.event_available_rounded, color: Colors.white, size: 28),
+            child: const Icon(Icons.event_available_rounded, color: kBrandOlive, size: 28),
           ),
           const SizedBox(width: 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Events & Programs',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.5)),
-                const SizedBox(height: 2),
-                Text('Organize, manage and track institutional activities and workshops.',
-                    style: TextStyle(fontSize: 14, color: isDark ? Colors.white60 : Colors.grey.shade600)),
+                const Text('Events & Programs',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                const SizedBox(height: 4),
+                Text('Manage workshops, mentorship sessions and institutional activities.',
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600)),
               ],
             ),
           ),
-          const SizedBox(width: 20),
           ElevatedButton.icon(
             onPressed: _showCreateEventDialog,
             icon: const Icon(Icons.add_rounded, size: 18),
-            label: const Text("Create Event"),
+            label: const Text("New Event"),
             style: ElevatedButton.styleFrom(
               backgroundColor: kBrandOlive,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
           ),
         ],
@@ -445,61 +411,41 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
     );
   }
 
-  Widget _buildStatsBar(bool isDark) {
+  Widget _buildStatsBar() {
     final upcoming = _allEvents.where((e) => e.isUpcoming).length;
     final completed = _allEvents.where((e) => e.isHistory).length;
-    final thisWeek = _allEvents
-        .where((e) => e.isUpcoming && e.fullDateTime.difference(DateTime.now()).inDays <= 7)
-        .length;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(32, 0, 32, 20),
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 0),
       child: Row(
         children: [
-          _statCard('Upcoming', upcoming.toString(), Icons.upcoming_rounded, kBrandOlive, isDark),
-          const SizedBox(width: 16),
-          _statCard('This week', thisWeek.toString(), Icons.today_rounded, Colors.blue, isDark),
-          const SizedBox(width: 16),
-          _statCard('Completed', completed.toString(), Icons.task_alt_rounded, kBrandBrown, isDark),
+          _statItem('Scheduled', upcoming.toString(), kBrandOlive),
+          const SizedBox(width: 32),
+          _statItem('Completed', completed.toString(), kBrandBrown),
         ],
       ),
     );
   }
 
-  Widget _statCard(String label, String value, IconData icon, Color color, bool isDark) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(
-          color: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade100),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 12, offset: const Offset(0, 4))],
+  Widget _statItem(String label, String value, Color color) {
+    return Row(
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-              child: Icon(icon, size: 20, color: color),
-            ),
-            const SizedBox(width: 14),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: isDark ? Colors.white : Colors.black87)),
-                Text(label, style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : Colors.grey.shade600, fontWeight: FontWeight.w600)),
-              ],
-            ),
-          ],
-        ),
-      ),
+        const SizedBox(width: 10),
+        Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kBrandBrown)),
+        const SizedBox(width: 6),
+        Text(label, style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+      ],
     );
   }
 
-  Widget _buildTabBarAndSearch(bool isDark, int upcomingCount, int historyCount) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
+  Widget _buildTabBarAndSearch() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
       child: Row(
         children: [
           Expanded(
@@ -507,37 +453,31 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
               controller: _tabController,
               isScrollable: true,
               labelColor: kBrandOlive,
-              unselectedLabelColor: isDark ? Colors.white38 : Colors.grey.shade600,
+              unselectedLabelColor: Colors.grey.shade400,
               indicatorColor: kBrandOlive,
               indicatorWeight: 3,
-              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-              tabs: [
-                Tab(text: 'Upcoming Events ($upcomingCount)'),
-                Tab(text: 'Event History ($historyCount)'),
+              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              tabs: const [
+                Tab(text: 'Upcoming Programs'),
+                Tab(text: 'Archive & History'),
               ],
             ),
           ),
+          const SizedBox(width: 24),
           SizedBox(
-            width: 260,
+            width: 300,
             child: TextField(
               controller: _searchController,
-              style: const TextStyle(fontSize: 14),
               decoration: InputDecoration(
-                hintText: 'Search events...',
-                hintStyle: TextStyle(color: isDark ? Colors.white24 : Colors.grey.shade400, fontSize: 14),
-                prefixIcon: Icon(Icons.search_rounded, size: 20, color: isDark ? Colors.white38 : Colors.grey.shade500),
-                suffixIcon: _query.isEmpty
-                    ? null
-                    : IconButton(
-                  icon: const Icon(Icons.close_rounded, size: 18),
-                  onPressed: () => _searchController.clear(),
-                ),
+                hintText: 'Search by title or venue...',
+                prefixIcon: const Icon(Icons.search_rounded, size: 20),
                 filled: true,
-                fillColor: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.grey.shade50,
+                fillColor: Colors.grey.shade50,
+                isDense: true,
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kBrandOlive, width: 1.5)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kBrandOlive)),
               ),
             ),
           ),
@@ -546,252 +486,107 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
     );
   }
 
-  Widget _buildEmptyState(bool isDark, String message) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.grey.shade50,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(Icons.event_note_outlined, size: 80, color: isDark ? Colors.white12 : Colors.grey.shade200),
-          ),
-          const SizedBox(height: 24),
-          Text(message,
-              style: TextStyle(color: isDark ? Colors.white38 : Colors.grey.shade400, fontSize: 18, fontWeight: FontWeight.w500)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEventCard(OrganisationEvent event, bool isDark) {
+  Widget _buildEventCard(OrganisationEvent event) {
     final isHistory = event.isHistory;
-    final color = isHistory ? Colors.grey : event.category.color;
+    final color = isHistory ? Colors.grey.shade400 : event.category.color;
 
-    return _HoverCard(
-      onTap: () => _viewEventDetails(event),
-      isDark: isDark,
-      child: IntrinsicHeight(
-        child: Row(
-          children: [
-            Container(
-              width: 8,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [color, color.withValues(alpha: 0.7)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: color.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: color.withValues(alpha: 0.2)),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(event.category.icon, size: 12, color: color),
-                              const SizedBox(width: 6),
-                              Text(
-                                event.category.label.toUpperCase(),
-                                style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (isHistory) ...[
-                          const SizedBox(width: 10),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.05),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Text(
-                              'COMPLETED',
-                              style: TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5),
-                            ),
-                          ),
-                        ] else if (event.fullDateTime.difference(DateTime.now()).inHours <= 24) ...[
-                          const SizedBox(width: 10),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.red.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Text(
-                              'STARTING SOON',
-                              style: TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5),
-                            ),
-                          ),
-                        ],
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.calendar_today_rounded, size: 12, color: isDark ? Colors.white38 : Colors.grey),
-                              const SizedBox(width: 6),
-                              Text(
-                                '${event.date.day}/${event.date.month}/${event.date.year}',
-                                style: TextStyle(color: isDark ? Colors.white38 : Colors.grey.shade600, fontSize: 11, fontWeight: FontWeight.w600),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Text(event.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
-                    const SizedBox(height: 6),
-                    Text(event.description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: isDark ? Colors.white60 : Colors.grey.shade600, fontSize: 14, height: 1.4)),
-                    const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        _buildInfoChip(Icons.location_on_rounded, event.location, isDark),
-                        const SizedBox(width: 16),
-                        _buildInfoChip(Icons.access_time_filled_rounded, event.time.format(context), isDark),
-                        if (event.organizer != null) ...[
-                          const SizedBox(width: 16),
-                          _buildInfoChip(Icons.person_rounded, event.organizer!, isDark),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Container(
-              width: 70,
-              decoration: BoxDecoration(
-                color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.grey.shade50,
-                border: Border(left: BorderSide(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade100)),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => _viewEventDetails(event),
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Row(
                 children: [
-                  _buildActionButton(
-                    icon: Icons.visibility_outlined,
-                    color: Colors.blue.shade400,
-                    onPressed: () => _viewEventDetails(event),
-                    tooltip: 'View Details',
-                  ),
-                  if (!isHistory) ...[
-                    const SizedBox(height: 8),
-                    _buildActionButton(
-                      icon: Icons.edit_note_rounded,
-                      color: kBrandOlive,
-                      onPressed: () => _showEditEventDialog(event),
-                      tooltip: 'Edit Event',
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                  ],
-                  const SizedBox(height: 8),
-                  _buildActionButton(
-                    icon: Icons.delete_sweep_rounded,
-                    color: Colors.red.shade400,
-                    onPressed: () => _deleteEvent(event),
-                    tooltip: 'Delete Event',
+                    child: Icon(event.category.icon, color: color, size: 28),
+                  ),
+                  const SizedBox(width: 24),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Text(
+                              DateFormat('MMM dd, yyyy').format(event.date).toUpperCase(),
+                              style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1),
+                            ),
+                            const SizedBox(width: 12),
+                            Container(width: 4, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, shape: BoxShape.circle)),
+                            const SizedBox(width: 12),
+                            Text(
+                              event.time.format(context),
+                              style: TextStyle(color: Colors.grey.shade600, fontSize: 11, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(event.title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Icon(Icons.place_rounded, size: 14, color: Colors.grey.shade400),
+                            const SizedBox(width: 6),
+                            Text(event.location, style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500)),
+                            const SizedBox(width: 24),
+                            Icon(Icons.person_rounded, size: 14, color: Colors.grey.shade400),
+                            const SizedBox(width: 6),
+                            Text(event.organizer ?? 'Admin', style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 24),
+                  Row(
+                    children: [
+                      _cardActionButton(Icons.visibility_outlined, Colors.blue, () => _viewEventDetails(event)),
+                      const SizedBox(width: 8),
+                      if (!isHistory) ...[
+                        _cardActionButton(Icons.edit_note_rounded, kBrandOlive, () => _showEditEventDialog(event)),
+                        const SizedBox(width: 8),
+                      ],
+                      _cardActionButton(Icons.delete_outline_rounded, Colors.redAccent, () => _deleteEvent(event)),
+                    ],
                   ),
                 ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildInfoChip(IconData icon, String label, bool isDark) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 16, color: kBrandOlive.withValues(alpha: 0.7)),
-        const SizedBox(width: 6),
-        Text(label,
-            style: TextStyle(color: isDark ? Colors.white38 : Colors.grey.shade500, fontSize: 13, fontWeight: FontWeight.w500)),
-      ],
-    );
-  }
-
-  Widget _buildActionButton({required IconData icon, required Color color, required VoidCallback onPressed, required String tooltip}) {
-    return IconButton(
-      icon: Icon(icon, size: 26),
-      onPressed: onPressed,
-      color: color.withValues(alpha: 0.8),
-      tooltip: tooltip,
-      hoverColor: color.withValues(alpha: 0.1),
-      splashRadius: 28,
-    );
-  }
-}
-
-/// Wraps an event card with a subtle lift-on-hover effect.
-class _HoverCard extends StatefulWidget {
-  final Widget child;
-  final VoidCallback onTap;
-  final bool isDark;
-  const _HoverCard({required this.child, required this.onTap, required this.isDark});
-
-  @override
-  State<_HoverCard> createState() => _HoverCardState();
-}
-
-class _HoverCardState extends State<_HoverCard> {
-  bool _hovering = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hovering = true),
-      onExit: (_) => setState(() => _hovering = false),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          curve: Curves.easeOut,
-          transform: Matrix4.translationValues(0, _hovering ? -2 : 0, 0),
-          decoration: BoxDecoration(
-            color: widget.isDark ? Colors.white.withValues(alpha: 0.03) : Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: widget.isDark ? Colors.white.withValues(alpha: 0.08) : Colors.grey.shade100),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: _hovering ? 0.08 : 0.03),
-                blurRadius: _hovering ? 24 : 15,
-                offset: Offset(0, _hovering ? 10 : 5),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: widget.child,
-          ),
-        ),
+  Widget _cardActionButton(IconData icon, Color color, VoidCallback onTap) {
+    return Container(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: IconButton(
+        icon: Icon(icon, size: 20, color: color),
+        onPressed: onTap,
+        padding: const EdgeInsets.all(8),
+        constraints: const BoxConstraints(),
+        hoverColor: color.withValues(alpha: 0.1),
       ),
     );
   }
@@ -809,283 +604,144 @@ class _ViewEventDialogState extends State<ViewEventDialog> {
   bool _isPrinting = false;
   bool _isDownloading = false;
 
-  Future<void> _handlePrint() async {
-    setState(() => _isPrinting = true);
-    try {
-      await printEventReport(widget.event);
-    } catch (e) {
-      debugPrint('Error printing report: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to open print dialog'), backgroundColor: Colors.orange),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isPrinting = false);
-    }
-  }
-
-  Future<void> _handleDownload() async {
-    setState(() => _isDownloading = true);
-    try {
-      await downloadEventReport(widget.event);
-    } catch (e) {
-      debugPrint('Error downloading report: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to generate PDF'), backgroundColor: Colors.orange),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isDownloading = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final event = widget.event;
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final color = event.isHistory ? Colors.grey : event.category.color;
 
     return Dialog(
-      backgroundColor: theme.cardColor,
-      elevation: 24,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 800),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Header with Category Color
-            Container(
-              padding: const EdgeInsets.fromLTRB(40, 40, 40, 30),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        constraints: const BoxConstraints(maxWidth: 640),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Header Image/Color Area
+              Container(
+                height: 12,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: color,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(event.category.icon, size: 16, color: Colors.white),
-                            const SizedBox(width: 8),
-                            Text(
-                              event.category.label.toUpperCase(),
-                              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (event.isHistory) ...[
-                        const SizedBox(width: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            'COMPLETED',
-                            style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-                          ),
-                        ),
-                      ],
-                      const Spacer(),
-                      IconButton(
-                        icon: Icon(Icons.close_rounded, color: isDark ? Colors.white38 : Colors.grey.shade500),
-                        onPressed: () => Navigator.pop(context),
-                        tooltip: 'Close',
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    event.title,
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      color: isDark ? Colors.white : kBrandBrown,
-                      letterSpacing: -0.8,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(40, 32, 40, 0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                      child: Text(event.category.label.toUpperCase(), style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                     ),
-                  ),
-                ],
+                    IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close_rounded, color: Colors.grey)),
+                  ],
+                ),
               ),
-            ),
 
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(40),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Timing and Location Section
-                    Row(
-                      children: [
-                        _buildDetailItem(Icons.calendar_month_rounded, "Date", '${event.date.day}/${event.date.month}/${event.date.year}', isDark),
-                        const SizedBox(width: 40),
-                        _buildDetailItem(Icons.schedule_rounded, "Time", event.time.format(context), isDark),
-                      ],
-                    ),
+                    Text(event.title, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: kBrandBrown)),
                     const SizedBox(height: 32),
-                    _buildDetailItem(Icons.place_rounded, "Location / Venue", event.location, isDark),
+                    
+                    // Key Details
+                    _detailItem(Icons.calendar_today_rounded, "Date & Schedule", DateFormat('EEEE, dd MMMM yyyy').format(event.date)),
+                    const SizedBox(height: 20),
+                    _detailItem(Icons.access_time_rounded, "Session Time", event.time.format(context)),
+                    const SizedBox(height: 20),
+                    _detailItem(Icons.location_on_rounded, "Location / Venue", event.location),
+                    const SizedBox(height: 20),
+                    _detailItem(Icons.person_pin_rounded, "Organized By", event.organizer ?? 'Program Office'),
 
-                    if (event.organizer != null) ...[
-                      const SizedBox(height: 32),
-                      _buildDetailItem(Icons.person_rounded, "Organized By", event.organizer!, isDark),
-                    ],
-
-                    if (event.targetedParticipants != null && event.targetedParticipants!.isNotEmpty) ...[
-                      const SizedBox(height: 32),
-                      Text("Targeted Participants",
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            color: isDark ? Colors.white24 : Colors.grey.shade400,
-                            letterSpacing: 0.8,
-                          )),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: event.targetedParticipants!
-                            .map((p) => Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: kBrandOlive.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: kBrandOlive.withValues(alpha: 0.2)),
-                          ),
-                          child: Text(p, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kBrandOlive)),
-                        ))
-                            .toList(),
-                      ),
-                    ],
-
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 32),
                     const Divider(),
                     const SizedBox(height: 32),
 
-                    Text("Description",
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: kBrandOlive,
-                          letterSpacing: 0.5,
-                        )),
+                    const Text("Program Description", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandOlive, fontSize: 13, letterSpacing: 0.5)),
                     const SizedBox(height: 12),
                     Text(
                       event.description.isEmpty ? "No description provided." : event.description,
-                      style: TextStyle(
-                        fontSize: 16,
-                        height: 1.6,
-                        color: isDark ? Colors.white70 : Colors.grey.shade700,
+                      style: TextStyle(fontSize: 15, height: 1.6, color: Colors.grey.shade800),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Actions
+              Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24))),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: _isPrinting ? null : () async {
+                          setState(() => _isPrinting = true);
+                          await printEventReport(event);
+                          setState(() => _isPrinting = false);
+                        },
+                        icon: _isPrinting ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.print_rounded),
+                        label: const Text("Print Report"),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: kBrandBrown,
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _isDownloading ? null : () async {
+                          setState(() => _isDownloading = true);
+                          await downloadEventReport(event);
+                          setState(() => _isDownloading = false);
+                        },
+                        icon: _isDownloading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.download_rounded),
+                        label: const Text("Download PDF"),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: kBrandOlive,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 18),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
-            ),
-
-            // Action Buttons
-            Padding(
-              padding: const EdgeInsets.fromLTRB(40, 0, 40, 40),
-              child: Row(
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: _isPrinting ? null : _handlePrint,
-                    icon: _isPrinting
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.print_rounded, size: 18),
-                    label: const Text('Print Report'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: kBrandBrown,
-                      side: BorderSide(color: kBrandBrown.withValues(alpha: 0.4)),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton.icon(
-                    onPressed: _isDownloading ? null : _handleDownload,
-                    icon: _isDownloading
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Icon(Icons.download_rounded, size: 18),
-                    label: const Text('Download PDF'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: kBrandOlive,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                  ),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    ),
-                    child: Text(
-                      "Close",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? Colors.white38 : Colors.grey.shade600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildDetailItem(IconData icon, String label, String value, bool isDark) {
-    return Expanded(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 16, color: kBrandOlive.withValues(alpha: 0.7)),
-              const SizedBox(width: 8),
-              Text(
-                label.toUpperCase(),
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  color: isDark ? Colors.white24 : Colors.grey.shade400,
-                  letterSpacing: 0.8,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
+  Widget _detailItem(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(color: Colors.grey.shade100, shape: BoxShape.circle),
+          child: Icon(icon, size: 18, color: kBrandOlive),
+        ),
+        const SizedBox(width: 16),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 0.5)),
+            const SizedBox(height: 2),
+            Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: kBrandBrown)),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -1183,11 +839,6 @@ class _EventFormDialogState extends State<EventFormDialog> {
       }
     } catch (e) {
       debugPrint('Error saving event: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Connection error: Failed to save event'), backgroundColor: Colors.orange),
-        );
-      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -1195,17 +846,13 @@ class _EventFormDialogState extends State<EventFormDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final isEdit = widget.event != null;
 
     return Dialog(
-      backgroundColor: theme.cardColor,
-      elevation: 24,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 900),
+        constraints: const BoxConstraints(maxWidth: 560),
         child: Padding(
           padding: const EdgeInsets.all(40),
           child: Form(
@@ -1215,98 +862,34 @@ class _EventFormDialogState extends State<EventFormDialog> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: kBrandOlive.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Icon(isEdit ? Icons.edit_calendar_rounded : Icons.add_task_rounded, color: kBrandOlive, size: 28),
-                      ),
-                      const SizedBox(width: 20),
-                      Text(isEdit ? 'Edit Event Details' : 'Create New Event',
-                          style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.5)),
-                    ],
-                  ),
+                  Text(isEdit ? 'Edit Event' : 'Create New Event', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: kBrandBrown)),
                   const SizedBox(height: 32),
-                  _buildTextField(
-                      controller: _titleController,
-                      label: 'Event Title',
-                      icon: Icons.title_rounded,
-                      isDark: isDark,
-                      theme: theme,
-                      validator: (v) => v!.isEmpty ? 'Event title is required' : null),
+                  _buildTextField(_titleController, 'Event Title', Icons.title_rounded, validator: (v) => v!.isEmpty ? 'Title is required' : null),
                   const SizedBox(height: 20),
-                  _buildTextField(
-                    controller: _descController,
-                    label: 'Description',
-                    icon: Icons.notes_rounded,
-                    isDark: isDark,
-                    theme: theme,
-                    maxLines: 4,
-                    hint: 'Describe the purpose and details of the event...',
-                  ),
+                  _buildTextField(_descController, 'Description', Icons.notes_rounded, maxLines: 3),
                   const SizedBox(height: 20),
                   Row(
                     children: [
-                      Expanded(child: _buildDropdownField(isDark, theme)),
+                      Expanded(child: _buildDropdownField()),
                       const SizedBox(width: 20),
-                      Expanded(
-                        child: _buildTextField(
-                          controller: _organizerController,
-                          label: 'Organizer',
-                          icon: Icons.person_outline_rounded,
-                          isDark: isDark,
-                          theme: theme,
-                        ),
-                      ),
+                      Expanded(child: _buildTextField(_organizerController, 'Organizer', Icons.person_outline_rounded)),
                     ],
                   ),
                   const SizedBox(height: 20),
-                  _buildTextField(
-                      controller: _locationController,
-                      label: 'Location / Venue',
-                      icon: Icons.place_rounded,
-                      isDark: isDark,
-                      theme: theme,
-                      validator: (v) => v!.isEmpty ? 'Location is required' : null),
-                  const SizedBox(height: 24),
+                  _buildTextField(_locationController, 'Location / Venue', Icons.place_rounded, validator: (v) => v!.isEmpty ? 'Location is required' : null),
+                  const SizedBox(height: 32),
                   Row(
                     children: [
-                      Expanded(
-                        child: _buildPickerTile(
-                          icon: Icons.calendar_month_rounded,
-                          label: 'Date',
-                          value: '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                          onTap: _pickDate,
-                          isDark: isDark,
-                        ),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: _buildPickerTile(
-                          icon: Icons.schedule_rounded,
-                          label: 'Time',
-                          value: _selectedTime.format(context),
-                          onTap: _pickTime,
-                          isDark: isDark,
-                        ),
-                      ),
+                      Expanded(child: _pickerTile(Icons.calendar_today_rounded, "Date", DateFormat('dd/MM/yyyy').format(_selectedDate), _pickDate)),
+                      const SizedBox(width: 16),
+                      Expanded(child: _pickerTile(Icons.schedule_rounded, "Time", _selectedTime.format(context), _pickTime)),
                     ],
                   ),
                   const SizedBox(height: 48),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                          child: Text('Discard Changes', style: TextStyle(color: isDark ? Colors.white38 : Colors.grey.shade600, fontWeight: FontWeight.bold))),
+                      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Discard', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
                       const SizedBox(width: 16),
                       ElevatedButton(
                         onPressed: _isSaving ? null : _save,
@@ -1314,13 +897,12 @@ class _EventFormDialogState extends State<EventFormDialog> {
                           backgroundColor: kBrandOlive,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-                          elevation: 8,
-                          shadowColor: kBrandOlive.withValues(alpha: 0.3),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
                         ),
                         child: _isSaving
-                            ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white))
-                            : Text(isEdit ? 'Update Event' : 'Save Event', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : Text(isEdit ? 'Update Details' : 'Register Event', style: const TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),
@@ -1333,90 +915,53 @@ class _EventFormDialogState extends State<EventFormDialog> {
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    required bool isDark,
-    required ThemeData theme,
-    int maxLines = 1,
-    String? hint,
-    String? Function(String?)? validator,
-  }) {
+  Widget _buildTextField(TextEditingController controller, String label, IconData icon, {int maxLines = 1, String? Function(String?)? validator}) {
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
       validator: validator,
-      style: const TextStyle(fontSize: 16),
       decoration: InputDecoration(
         labelText: label,
-        hintText: hint,
-        hintStyle: TextStyle(color: isDark ? Colors.white24 : Colors.grey.shade400, fontSize: 14),
-        prefixIcon: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Icon(icon, size: 22, color: isDark ? Colors.white38 : kBrandBrown.withValues(alpha: 0.5)),
-        ),
+        prefixIcon: Icon(icon, size: 20, color: kBrandOlive),
         filled: true,
-        fillColor: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.grey.shade50,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: theme.dividerColor)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: theme.dividerColor.withValues(alpha: 0.5))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: kBrandOlive, width: 2)),
-        contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+        fillColor: Colors.grey.shade50,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
       ),
     );
   }
 
-  Widget _buildDropdownField(bool isDark, ThemeData theme) {
+  Widget _buildDropdownField() {
     return DropdownButtonFormField<EventCategory>(
       initialValue: _selectedCategory,
-      dropdownColor: theme.cardColor,
-      style: TextStyle(color: isDark ? Colors.white : Colors.black87, fontSize: 16),
       decoration: InputDecoration(
         labelText: 'Category',
-        prefixIcon: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Icon(Icons.category_rounded, size: 22, color: isDark ? Colors.white38 : kBrandBrown.withValues(alpha: 0.5)),
-        ),
+        prefixIcon: const Icon(Icons.category_rounded, size: 20, color: kBrandOlive),
         filled: true,
-        fillColor: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.grey.shade50,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: theme.dividerColor)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: theme.dividerColor.withValues(alpha: 0.5))),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: kBrandOlive, width: 2)),
-        contentPadding: const EdgeInsets.symmetric(vertical: 20),
+        fillColor: Colors.grey.shade50,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
       ),
       items: EventCategory.values.map((cat) => DropdownMenuItem(value: cat, child: Text(cat.label))).toList(),
       onChanged: (val) => setState(() => _selectedCategory = val!),
     );
   }
 
-  Widget _buildPickerTile({required IconData icon, required String label, required String value, required VoidCallback onTap, required bool isDark}) {
+  Widget _pickerTile(IconData icon, String label, String value, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(10),
       child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade200),
-          borderRadius: BorderRadius.circular(16),
-          color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.grey.shade50,
-        ),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.grey.shade200)),
         child: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: kBrandOlive.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, size: 20, color: kBrandOlive),
-            ),
-            const SizedBox(width: 16),
+            Icon(icon, size: 20, color: kBrandOlive),
+            const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : Colors.grey.shade500, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-                const SizedBox(height: 4),
-                Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+                Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
               ],
             ),
           ],
