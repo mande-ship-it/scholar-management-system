@@ -622,20 +622,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         ],
       ),
       SidebarCategory(
-        title: "Administration",
-        icon: Icons.admin_panel_settings,
+        title: "Operations",
+        icon: Icons.settings_suggest_rounded,
         subItems: [
-          SidebarSubItem(
-            title: "Admin Control Panel", 
-            page: const SizedBox(), 
-            icon: Icons.admin_panel_settings_rounded,
-            builder: (onBack, onPush, onPushProfile) {
-              Future.microtask(() => Navigator.pushReplacementNamed(context, '/admin/home'));
-              return const Center(child: CircularProgressIndicator());
-            }
-          ),
           SidebarSubItem(title: "Pending Approvals", page: const ApprovalsPage(), icon: Icons.rule_folder),
-          SidebarSubItem(title: "Backup & Restore", page: const BackupRestorePage(), icon: Icons.backup),
         ],
       ),
     ];
@@ -651,21 +641,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         var modulePerms = _userPermissions[category.title];
         if (modulePerms != null && modulePerms['view'] == false) {
            // Skip if view permission is explicitly denied
-           if (category.title != "Dashboard" && category.title != "Settings" && category.title != "Administration") {
+           if (category.title != "Dashboard" && category.title != "Settings" && category.title != "Operations") {
               continue;
            }
         }
       }
 
-      // 2. Specialized sub-item filtering for "Administration" and others
+      // 2. Specialized sub-item filtering
       final filteredSubItems = category.subItems.where((item) {
         if (!item.isVisible) return false;
-
-        // Restriction: Admin Control Panel only for strict Administrator role
-        if (item.title == "Admin Control Panel" && _userRole != 'Administrator') return false;
-        
-        // Restriction: Backup & Restore only for strict Administrator role
-        if (item.title == "Backup & Restore" && _userRole != 'Administrator') return false;
         
         // Restriction: Pending Approvals for all elevated roles
         if (item.title == "Pending Approvals" && !elevatedRoles.contains(_userRole)) return false;
