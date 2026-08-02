@@ -328,76 +328,74 @@ class _SchoolProfileDialogState extends State<SchoolProfileDialog> {
               // ---------------- Header ----------------
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(24, 28, 20, 24),
+                padding: const EdgeInsets.fromLTRB(32, 40, 24, 32),
                 decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [kBrandBrown, kBrandOlive],
-                  ),
+                  color: Colors.white,
+                  border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0))),
                 ),
                 child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Container(
-                      width: 64,
-                      height: 64,
+                      width: 80,
+                      height: 80,
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.18),
+                        color: kBrandOlive.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
+                        border: Border.all(color: kBrandOlive.withValues(alpha: 0.2), width: 1.5),
                       ),
                       alignment: Alignment.center,
                       child: initials.isNotEmpty
                           ? Text(
                         initials,
-                        style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                        style: const TextStyle(color: kBrandBrown, fontSize: 28, fontWeight: FontWeight.w900),
                       )
                           : Icon(
                         isTertiary ? Icons.account_balance : Icons.school,
-                        color: Colors.white,
-                        size: 26,
+                        color: kBrandBrown,
+                        size: 32,
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 24),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            school['name'] ?? '',
-                            style: const TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.bold),
+                            (school['name'] ?? '').toUpperCase(),
+                            style: const TextStyle(color: kBrandBrown, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
                           const SizedBox(height: 6),
-                          Text(
-                            school['code'] ?? '',
-                            style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 13),
-                          ),
-                          const SizedBox(height: 10),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: isActive ? Colors.white : Colors.red.shade100,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              school['status'] ?? '',
-                              style: TextStyle(
-                                color: isActive ? kBrandOlive : Colors.red.shade900,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
+                          Row(
+                            children: [
+                              Text(
+                                school['code'] ?? '',
+                                style: TextStyle(color: Colors.grey.shade600, fontSize: 14, fontWeight: FontWeight.bold),
                               ),
-                            ),
+                              const SizedBox(width: 12),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: isActive ? kBrandOlive.withValues(alpha: 0.1) : Colors.red.shade50,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: isActive ? kBrandOlive.withValues(alpha: 0.2) : Colors.red.shade100),
+                                ),
+                                child: Text(
+                                  school['status']?.toUpperCase() ?? '',
+                                  style: TextStyle(
+                                    color: isActive ? kBrandOlive : Colors.red.shade800,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close, color: Colors.white),
-                      style: IconButton.styleFrom(backgroundColor: Colors.white.withValues(alpha: 0.15)),
                     ),
                   ],
                 ),
@@ -928,43 +926,47 @@ class _EditSchoolDialogState extends State<EditSchoolDialog> {
           children: [
             // Header
             Container(
-              padding: const EdgeInsets.fromLTRB(24, 20, 12, 20),
+              padding: const EdgeInsets.fromLTRB(32, 32, 16, 24),
               decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [kBrandBrown, kBrandOlive],
-                ),
+                color: Colors.white,
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(16),
                   topRight: Radius.circular(16),
                 ),
+                border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0))),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.edit_note, color: Colors.white, size: 26),
-                  const SizedBox(width: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: kBrandOlive.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.edit_note_rounded, color: kBrandBrown, size: 28),
+                  ),
+                  const SizedBox(width: 20),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          "Edit School Details",
-                          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                          "Update Institution Details",
+                          style: TextStyle(color: kBrandBrown, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5),
                         ),
+                        const SizedBox(height: 2),
                         Text(
-                          "Update details for ${widget.school['name'] ?? 'this school'}",
+                          "Modifying record for ${widget.school['name'] ?? 'this school'}",
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12.5),
+                          style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
                         ),
                       ],
                     ),
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, color: Colors.white),
-                    tooltip: 'Cancel',
+                    icon: const Icon(Icons.close_rounded, color: Colors.grey),
                   ),
                 ],
               ),

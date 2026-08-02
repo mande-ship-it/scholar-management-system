@@ -3,7 +3,8 @@ import '../../services/api_service.dart';
 import 'package:intl/intl.dart';
 
 class ApprovalsPage extends StatefulWidget {
-  const ApprovalsPage({super.key});
+  final String? userRole;
+  const ApprovalsPage({super.key, this.userRole});
 
   @override
   State<ApprovalsPage> createState() => _ApprovalsPageState();
@@ -21,10 +22,19 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
   final Color brandOlive = const Color(0xFF9AB334);
   final Color brandOrange = const Color(0xFFE05B1C);
 
+  bool get _canApproveScholars {
+    final role = widget.userRole?.toLowerCase() ?? '';
+    return role == 'administrator' ||
+           role == 'admin' ||
+           role == 'country director' ||
+           role == 'program coordinator' ||
+           role == 'program manager';
+  }
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: _canApproveScholars ? 2 : 1, vsync: this);
     _fetchPending();
   }
 
@@ -79,6 +89,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text("Pending Approvals", style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         foregroundColor: brandBrown,
@@ -91,9 +102,8 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
           labelColor: brandBrown,
           indicatorColor: brandOlive,
           tabs: [
-            Tab(text: "Scholars (${_pendingScholars.length})"),
+            if (_canApproveScholars) Tab(text: "Scholars (${_pendingScholars.length})"),
             Tab(text: "Events (${_pendingEvents.length})"),
-            Tab(text: "Payments (${_pendingPayments.length})"),
           ],
         ),
       ),
@@ -102,9 +112,8 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
         : TabBarView(
             controller: _tabController,
             children: [
-              _buildScholarsList(),
+              if (_canApproveScholars) _buildScholarsList(),
               _buildEventsList(),
-              _buildPaymentsList(),
             ],
           ),
     );
@@ -118,12 +127,23 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
       itemCount: _pendingScholars.length,
       itemBuilder: (context, index) {
         final scholar = _pendingScholars[index];
+        final id = (scholar['id'] ?? scholar['_id'] ?? '').toString();
+        final name = scholar['fullName'] ?? scholar['full_name'] ?? 'Unknown Scholar';
+        final scholarIdStr = scholar['scholarId'] ?? scholar['scholar_id'] ?? 'Pending';
+        final school = scholar['schoolName'] ?? scholar['school_name'] ?? 'No School';
+
+        String createdStr = 'N/A';
+        try {
+          final date = scholar['createdAt'] ?? scholar['created_at'];
+          if (date != null) createdStr = DateFormat('dd MMM yyyy').format(DateTime.parse(date));
+        } catch (_) {}
+
         return _buildApprovalCard(
-          title: scholar['full_name'] ?? 'Unknown Scholar',
-          subtitle: "ID: ${scholar['scholar_id'] ?? 'Pending'} • ${scholar['display_school_name'] ?? 'No School'}",
-          details: "Registered on: ${DateFormat('dd MMM yyyy').format(DateTime.parse(scholar['created_at']))}",
-          onApprove: () => _processApproval('scholar', scholar['id'].toString(), true),
-          onReject: () => _processApproval('scholar', scholar['id'].toString(), false),
+          title: name,
+          subtitle: "ID: $scholarIdStr • $school",
+          details: "Registered on: $createdStr",
+          onApprove: () => _processApproval('scholar', id, true),
+          onReject: () => _processApproval('scholar', id, false),
         );
       },
     );
@@ -137,31 +157,24 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
       itemCount: _pendingEvents.length,
       itemBuilder: (context, index) {
         final event = _pendingEvents[index];
-        return _buildApprovalCard(
-          title: event['title'] ?? 'Unknown Event',
-          subtitle: "${event['category']} • ${event['location']}",
-          details: "Scheduled for: ${DateFormat('dd MMM yyyy').format(DateTime.parse(event['date']))} at ${event['time']}",
-          onApprove: () => _processApproval('event', event['id'].toString(), true),
-          onReject: () => _processApproval('event', event['id'].toString(), false),
-        );
-      },
-    );
-  }
+        final id = (event['id'] ?? event['_id'] ?? '').toString();
+        final title = event['title'] ?? 'Unknown Event';
+        final category = event['category'] ?? 'General';
+        final location = event['location'] ?? 'N/A';
+        final time = event['eventTime'] ?? event['time'] ?? 'N/A';
 
-  Widget _buildPaymentsList() {
-    if (_pendingPayments.isEmpty) return _buildEmptyState("No payments awaiting approval.");
+        String dateStr = 'N/A';
+        try {
+          final date = event['eventDate'] ?? event['date'];
+          if (date != null) dateStr = DateFormat('dd MMM yyyy').format(DateTime.parse(date));
+        } catch (_) {}
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: _pendingPayments.length,
-      itemBuilder: (context, index) {
-        final payment = _pendingPayments[index];
         return _buildApprovalCard(
-          title: "MWK ${payment['amount']}",
-          subtitle: "Scholar: ${payment['scholar_name']} (${payment['scholar_id_str']})",
-          details: "Purpose: ${payment['purpose']} • Requested: ${DateFormat('dd MMM yyyy').format(DateTime.parse(payment['created_at']))}",
-          onApprove: () => _processApproval('payment', payment['id'].toString(), true),
-          onReject: () => _processApproval('payment', payment['id'].toString(), false),
+          title: title,
+          subtitle: "$category • $location",
+          details: "Scheduled for: $dateStr at $time",
+          onApprove: () => _processApproval('event', id, true),
+          onReject: () => _processApproval('event', id, false),
         );
       },
     );

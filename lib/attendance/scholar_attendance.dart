@@ -142,13 +142,15 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
         final List<dynamic> data = response.data['data'] ?? [];
         if (mounted) {
           setState(() {
-            _entries = data.map((item) => AttendanceEntry(
+            _entries = data
+                .where((item) => (item['status'] ?? 'Active') == 'Active')
+                .map((item) => AttendanceEntry(
               scholar: Student(
                 id: item['id'].toString(),
                 scholarId: item['scholar_id'] ?? 'N/A',
                 name: item['full_name'] ?? 'N/A',
                 age: item['age'] ?? 18,
-                schoolType: item['school_type'] == 'University' ? SchoolType.university : SchoolType.secondary,
+                schoolType: item['school_type'] == 'University' || item['schoolType'] == 'University' ? SchoolType.university : SchoolType.secondary,
                 schoolName: item['display_school_name'] ?? _selectedSchool!['name'],
                 currentClass: item['academic_year'] ?? 'N/A',
               ),

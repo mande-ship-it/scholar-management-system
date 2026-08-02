@@ -90,7 +90,7 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
   bool _isSidebarVisible = true;
   int _notificationCount = 0;
   IO.Socket? _socket;
-  int? _currentUserId;
+  String? _currentUserId;
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _isSearching = false;
@@ -107,6 +107,8 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
   String _userRole = "Administrator";
   String? _profileImageUrl;
 
+  late List<AdminSidebarCategory> _categories;
+
   @override
   void initState() {
     super.initState();
@@ -118,6 +120,7 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
       CurvedAnimation(parent: _notificationIconController, curve: Curves.elasticOut),
     );
 
+    _categories = _getAdminCategories();
     _checkAccess();
     _initSocket();
     _fetchNotificationCount();
@@ -130,7 +133,8 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
         final data = response.data['data'];
         if (data != null && mounted) {
           final String role = data['role_name'] ?? "";
-          if (!['Administrator', 'Program Coordinator', 'Country Director'].contains(role)) {
+          // Strict check: Only "Administrator" can access this portal
+          if (role != 'Administrator') {
             _redirectToHome();
           } else {
             setState(() {
@@ -164,16 +168,18 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
   }
 
   void _initSocket() {
-    _socket = IO.io('http://localhost:5000', IO.OptionBuilder()
-      .setTransports(['websocket'])
-      .disableAutoConnect()
+    _socket = IO.io(ApiService.baseUrl, IO.OptionBuilder()
+      .setTransports(['websocket', 'polling'])
+      .enableAutoConnect()
       .build());
-
-    _socket!.connect();
 
     _socket!.onConnect((_) {
       debugPrint('Admin connected to Notification Server');
       _joinUserRoom();
+    });
+
+    _socket!.onDisconnect((_) {
+      debugPrint('Admin disconnected from Notification Server');
     });
 
     _socket!.on('notification', (data) {
@@ -442,74 +448,29 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
   List<AdminSidebarCategory> _getAdminCategories() {
     return [
       AdminSidebarCategory(
-        title: "Dashboard",
+        title: Translator.translate("Dashboard"),
         icon: Icons.dashboard,
         subItems: [
           AdminSidebarSubItem(
-            title: "Admin Overview",
+            title: Translator.translate("Admin Overview"),
             page: AdminDashboardComponent(onNavigate: _pushSubItem),
             icon: Icons.admin_panel_settings_rounded,
           ),
-          AdminSidebarSubItem(title: "Notifications", page: const NotificationsPage(), icon: Icons.notifications_active),
+          AdminSidebarSubItem(title: Translator.translate("Notifications"), page: const NotificationsPage(), icon: Icons.notifications_active),
         ],
       ),
       AdminSidebarCategory(
-        title: "Scholars",
-        icon: Icons.school,
-        subItems: [
-          AdminSidebarSubItem(
-            title: "View Scholars",
-            page: const ViewScholarsPage(),
-            icon: Icons.people,
-            builder: (onBack, onPush) => ViewScholarsPage(
-              onRegisterScholar: () => onPush("Register Scholar"),
-              onViewGraduates: () => onPush("University Graduates"),
-            ),
-          ),
-          AdminSidebarSubItem(
-            title: "Register Scholar",
-            page: const RegisterScholarPage(),
-            icon: Icons.person_add,
-            isVisible: false,
-          ),
-          AdminSidebarSubItem(title: "University Graduates", page: const UniversityGraduatesPage(), icon: Icons.workspace_premium_rounded),
-        ],
-      ),
-      AdminSidebarCategory(
-        title: "Academics",
-        icon: Icons.menu_book,
-        subItems: [
-          AdminSidebarSubItem(
-            title: "View Results",
-            page: const ViewResultsPage(),
-            icon: Icons.pageview,
-            builder: (onBack, onPush) => ViewResultsPage(
-              onEnterResults: () => onPush("Enter Results"),
-            ),
-          ),
-          AdminSidebarSubItem(
-            title: "Enter Results",
-            page: const EnterResultsPage(),
-            icon: Icons.edit_note,
-            isVisible: false,
-          ),
-          AdminSidebarSubItem(title: "Report Cards", page: const ReportCardsPage(), icon: Icons.badge),
-          AdminSidebarSubItem(title: "Performance Analysis", page: const PerformanceAnalysisPage(), icon: Icons.analytics),
-          AdminSidebarSubItem(title: "Academic Statistics", page: const AcademicStatsPage(), icon: Icons.bar_chart),
-        ],
-      ),
-      AdminSidebarCategory(
-        title: "Schools",
+        title: Translator.translate("Schools"),
         icon: Icons.domain,
         subItems: [
           AdminSidebarSubItem(
-            title: "Manage Institutions",
+            title: Translator.translate("Manage Institutions"),
             page: const ViewSchoolsPage(),
             icon: Icons.domain_verification_rounded,
             builder: (onBack, onPush) => ViewSchoolsPage(onRegisterSchool: () => onPush("Register School")),
           ),
           AdminSidebarSubItem(
-            title: "Register School",
+            title: Translator.translate("Register School"),
             page: const RegisterSchoolPage(),
             icon: Icons.add_business_rounded,
             isVisible: false,
@@ -557,17 +518,22 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
             icon: Icons.person_add_alt_1,
             isVisible: false,
           ),
-          AdminSidebarSubItem(title: "User Roles", page: const UserRolesPage(), icon: Icons.security),
-          AdminSidebarSubItem(title: "Manage Departments", page: const ManageDepartmentsPage(), icon: Icons.apartment_rounded),
-          AdminSidebarSubItem(title: "Permissions", page: const PermissionsPage(), icon: Icons.rule),
-          AdminSidebarSubItem(title: "User Profile", page: const UserProfilePage(), icon: Icons.assignment_ind),
+          AdminSidebarSubItem(title: "User Roles", page: const UserRolesPage(), icon: Icons.security, isVisible: false),
+          AdminSidebarSubItem(title: "Manage Departments", page: const ManageDepartmentsPage(), icon: Icons.apartment_rounded, isVisible: false),
+          AdminSidebarSubItem(title: "Permissions", page: const PermissionsPage(), icon: Icons.rule, isVisible: false),
+          AdminSidebarSubItem(title: "User Profile", page: const UserProfilePage(), icon: Icons.assignment_ind, isVisible: false),
         ],
       ),
       AdminSidebarCategory(
-        title: "Administrative Control",
-        icon: Icons.admin_panel_settings_rounded,
+        title: "System Operations",
+        icon: Icons.settings_system_daydream_rounded,
         subItems: [
-          AdminSidebarSubItem(title: "Pending Approvals", page: const ApprovalsPage(), icon: Icons.rule_folder_rounded),
+          AdminSidebarSubItem(
+            title: "Pending Approvals",
+            page: ApprovalsPage(userRole: _userRole),
+            icon: Icons.rule_folder_rounded,
+            builder: (onBack, onPush) => ApprovalsPage(userRole: _userRole),
+          ),
         ],
       ),
       AdminSidebarCategory(
@@ -593,8 +559,7 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
       );
     }
 
-    final categories = _getAdminCategories();
-    final activeCategory = categories[activeCategoryIndex];
+    final activeCategory = _categories[activeCategoryIndex];
     final activeSubItem = activeCategory.subItems[activeSubIndex];
 
     return Scaffold(
@@ -780,7 +745,7 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
                 backgroundColor: kBrandCream,
                 radius: 18,
                 backgroundImage: _profileImageUrl != null ? NetworkImage(ApiService.getFullUrl(_profileImageUrl)) : null,
-                child: _profileImageUrl == null ? const Icon(Icons.admin_panel_settings_rounded, color: kBrandBrown, size: 20) : null,
+                child: _profileImageUrl == null ? const Icon(Icons.person_rounded, color: kBrandBrown, size: 20) : null,
               ),
             ),
           )
@@ -810,7 +775,7 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
                                 ? NetworkImage(ApiService.getFullUrl(_profileImageUrl))
                                 : null,
                               child: _profileImageUrl == null
-                                ? const Icon(Icons.admin_panel_settings_rounded, size: 45, color: kBrandCream)
+                                ? const Icon(Icons.person_rounded, size: 45, color: kBrandCream)
                                 : null,
                             ),
                             const SizedBox(height: 12),
@@ -845,9 +810,9 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
                       Expanded(
                         child: ListView.builder(
                           padding: const EdgeInsets.only(bottom: 20),
-                          itemCount: categories.length + 1,
+                          itemCount: _categories.length + 1,
                           itemBuilder: (context, index) {
-                            if (index == categories.length) {
+                            if (index == _categories.length) {
                               return Column(
                                 children: [
                                   const Divider(height: 1, color: Color(0xFFDCD1B4)),
@@ -866,7 +831,7 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
                               );
                             }
 
-                            final category = categories[index];
+                            final category = _categories[index];
                             final isSelectedCategory = activeCategoryIndex == index;
 
                             return Theme(

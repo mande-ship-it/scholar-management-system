@@ -71,7 +71,7 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
           scholarId: item['scholar_id'] ?? 'N/A',
           name: item['full_name'],
           age: item['dob'] != null ? DateTime.now().year - DateTime.parse(item['dob']).year : 16,
-          schoolType: item['school_type'] == 'University' ? SchoolType.university : SchoolType.secondary,
+          schoolType: item['school_type'] == 'University' || item['schoolType'] == 'University' ? SchoolType.university : SchoolType.secondary,
           schoolName: item['display_school_name'] ?? 'N/A',
           currentClass: item['academic_year'] ?? 'N/A',
           status: item['status'] ?? 'Active',
@@ -400,7 +400,7 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
               Row(
                 children: [
                   Expanded(child: _infoTile("Progression State", student.progressionStatus, isBold: true)),
-                  Expanded(child: _infoTile("Years Remaining", "${student.yearsRemaining} Years")),
+                  Expanded(child: _infoTile("Years Remaining", "${student.calculatedRemainingYears} Years")),
                 ],
               ),
               const Divider(height: 32),
@@ -488,7 +488,7 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
               Row(
                 children: [
                   Expanded(child: _infoTile("Level", student.schoolType == SchoolType.secondary ? "Secondary" : "University")),
-                  Expanded(child: _infoTile("Class / Year", args?['class'] ?? 'N/A')),
+                  Expanded(child: _infoTile("Class / Year", student.calculatedAcademicYear)),
                 ],
               ),
               const Divider(height: 32),

@@ -54,62 +54,22 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
     setState(() => _isLoading = true);
     
     try {
-      // 1. Fetch Users
-      final usersRes = await ApiService.getAllUsers();
-      if (usersRes.statusCode == 200) {
-        final List users = usersRes.data['data'] ?? [];
-        _totalUsers = users.length;
-        _roleDistribution = {};
-        for (var user in users) {
-          final role = user['role_name'] ?? 'User';
-          _roleDistribution[role] = (_roleDistribution[role] ?? 0) + 1;
-        }
-      }
-
-      // 2. Fetch Pending Activities
-      final pendingRes = await ApiService.getPendingActivities();
-      if (pendingRes.statusCode == 200) {
-        final data = pendingRes.data['data'] ?? {};
-        final List scholars = data['scholars'] ?? [];
-        final List events = data['events'] ?? [];
-        final List payments = data['payments'] ?? [];
-        _pendingScholars = scholars.length;
-        _pendingEvents = events.length;
-        _pendingPayments = payments.length;
-        _pendingApprovals = _pendingScholars + _pendingEvents + _pendingPayments;
-      }
-
-      // 3. Fetch Schools
-      final schoolsRes = await ApiService.getAllSchools();
-      if (schoolsRes.statusCode == 200) {
-        final List schools = schoolsRes.data['data'] ?? [];
-        _totalSchools = schools.length;
-      }
-
-      // 4. Fetch Sponsors
-      final sponsorsRes = await ApiService.getAllSponsors();
-      if (sponsorsRes.statusCode == 200) {
-        final List sponsors = sponsorsRes.data['data'] ?? [];
-        _totalSponsors = sponsors.length;
-      }
-
-      // 5. Fetch Backups info
-      final backupRes = await ApiService.getBackupInfo();
-      if (backupRes.statusCode == 200) {
-        final List backups = backupRes.data['data']?['backups'] ?? [];
-        _backupCount = backups.length;
-      }
-
-      // 6. Fetch Recent activities
-      final activitiesRes = await ApiService.getRecentActivities();
-      if (activitiesRes.statusCode == 200) {
-        _recentActivities = activitiesRes.data['data'] ?? [];
-      }
-
-      // 7. Get institutional risk metrics from dashboard stats
+      // 1. Fetch High-Fidelity Dashboard Metrics (KPIs, Risk Heatmap, and Counts)
       final statsRes = await ApiService.getDashboardStats(level: 'University');
       if (statsRes.statusCode == 200) {
         final data = statsRes.data['data'] ?? {};
+
+        // Use proper counting from backend source of truth
+        _pendingApprovals = data['pendingCount'] ?? 0;
+        _pendingScholars = data['pendingScholarsCount'] ?? 0;
+
+        // System-level actual counts
+        final system = data['system'] ?? {};
+        _totalUsers = system['totalUsers'] ?? 0;
+        _totalSchools = system['totalSchools'] ?? 0;
+        _backupCount = system['backupCount'] ?? 0;
+
+        // Institutional performance data
         final List schoolsStats = data['schools'] ?? [];
         _schoolsRiskData = schoolsStats.map((s) => {
           'name': s['name']?.toString() ?? 'Unknown',
@@ -119,11 +79,44 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
           'atrisk': int.tryParse(s['atrisk']?.toString() ?? '0') ?? 0,
           'reason': s['reason']?.toString() ?? 'General institutional flags',
         }).toList();
+
+        // 2. Fetch User Role Distribution
+        final usersRes = await ApiService.getAllUsers();
+        if (usersRes.statusCode == 200) {
+          final List users = usersRes.data['data'] ?? [];
+          _roleDistribution = {};
+          for (var user in users) {
+            final role = user['role_name'] ?? 'User';
+            _roleDistribution[role] = (_roleDistribution[role] ?? 0) + 1;
+          }
+        }
+
+        // 3. Fetch Detailed Pending Breakdown (for Bar Chart)
+        final pendingRes = await ApiService.getPendingActivities();
+        if (pendingRes.statusCode == 200) {
+          final pData = pendingRes.data['data'] ?? {};
+          final List events = pData['events'] ?? [];
+          final List payments = pData['payments'] ?? [];
+          _pendingEvents = events.length;
+          _pendingPayments = payments.length;
+        }
+
+        // 4. Fetch Sponsors
+        final sponsorsRes = await ApiService.getAllSponsors();
+        if (sponsorsRes.statusCode == 200) {
+          final List sponsors = sponsorsRes.data['data'] ?? [];
+          _totalSponsors = sponsors.length;
+        }
+
+        // 5. Fetch Recent activities
+        final activitiesRes = await ApiService.getRecentActivities();
+        if (activitiesRes.statusCode == 200) {
+          _recentActivities = activitiesRes.data['data'] ?? [];
+        }
       }
 
     } catch (e) {
       debugPrint("Error loading admin dashboard stats: $e");
-      // Populate graceful placeholders if backend is running but offline/mocking
       _loadFallbackMockData();
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -186,42 +179,39 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: kBrandOlive),
-      );
+      return const Center(child: CircularProgressIndicator(color: kBrandOlive));
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7F5),
+      backgroundColor: const Color(0xFFF8FAFB),
       body: SingleChildScrollView(
+        padding: const EdgeInsets.all(32),
         physics: const BouncingScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildAdminHeroHeader(),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             _buildKPISection(),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(flex: 3, child: _buildUserDistributionCard()),
-                const SizedBox(width: 24),
+                const SizedBox(width: 32),
                 Expanded(flex: 3, child: _buildApprovalsDensityCard()),
               ],
             ),
-            const SizedBox(height: 24),
-            _buildSchoolsRiskSection(),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(flex: 4, child: _buildActivityLogCard()),
-                const SizedBox(width: 24),
+                const SizedBox(width: 32),
                 Expanded(flex: 3, child: _buildDatabaseControlsCard()),
               ],
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 48),
           ],
         ),
       ),
@@ -229,107 +219,104 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
   }
 
   Widget _buildAdminHeroHeader() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE1E8E3)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "SYSTEM CONTROL CENTER",
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.grey.shade500,
-                  letterSpacing: 1.5,
-                ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              Translator.translate("ADMINISTRATIVE CONTROL"),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+                color: kBrandBrown.withOpacity(0.5),
+                letterSpacing: 2.0,
               ),
-              const SizedBox(height: 6),
-              const Text(
-                "Administrative System Overview",
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: kBrandBrown,
-                  letterSpacing: -0.5,
-                ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              Translator.translate("System Insights & Operations"),
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+                color: kBrandBrown,
+                letterSpacing: -1.0,
               ),
-            ],
+            ),
+          ],
+        ),
+        ElevatedButton.icon(
+          onPressed: _loadDashboardData,
+          icon: const Icon(Icons.refresh_rounded, size: 20),
+          label: const Text("REFRESH METRICS", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.white,
+            foregroundColor: kBrandOlive,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: kBrandOlive.withOpacity(0.2)),
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.refresh_rounded, color: kBrandOlive, size: 28),
-            tooltip: "Refresh System Metrics",
-            onPressed: _loadDashboardData,
-          )
-        ],
-      ),
+        )
+      ],
     );
   }
 
   Widget _buildKPISection() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      physics: const BouncingScrollPhysics(),
-      child: Row(
-        children: [
-          _buildKPICard("System Users", "$_totalUsers", Icons.people_outline_rounded, kBrandOlive, "Manage Users", () => widget.onNavigate?.call("Manage Users")),
-          const SizedBox(width: 16),
-          _buildKPICard("Pending Actions", "$_pendingApprovals", Icons.gavel_rounded, kBrandOrange, "Approvals Portal", () => widget.onNavigate?.call("Pending Approvals")),
-          const SizedBox(width: 16),
-          _buildKPICard("Schools", "$_totalSchools", Icons.domain_rounded, kBrandBrown, "Register School", () => widget.onNavigate?.call("Register School")),
-          const SizedBox(width: 16),
-          _buildKPICard("Sponsors", "$_totalSponsors", Icons.handshake_rounded, const Color(0xFF1976D2), null, null),
-          const SizedBox(width: 16),
-          _buildKPICard("Backups", "$_backupCount", Icons.backup_rounded, Colors.purple, "Backup Center", () => widget.onNavigate?.call("Backup & Restore")),
-        ],
-      ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(child: _buildKPICard("Total Users", "$_totalUsers", Icons.people_alt_rounded, kBrandOlive, () => widget.onNavigate?.call("Manage Users"))),
+        const SizedBox(width: 24),
+        Expanded(child: _buildKPICard("Pending Actions", "$_pendingApprovals", Icons.gavel_rounded, kBrandOrange, () => widget.onNavigate?.call("Pending Approvals"))),
+        const SizedBox(width: 24),
+        Expanded(child: _buildKPICard("Institutions", "$_totalSchools", Icons.business_rounded, kBrandBrown, () => widget.onNavigate?.call("Manage Institutions"))),
+        const SizedBox(width: 24),
+        Expanded(child: _buildKPICard("Active Sponsors", "$_totalSponsors", Icons.volunteer_activism_rounded, const Color(0xFF1976D2), () => widget.onNavigate?.call("Sponsors Directory"))),
+        const SizedBox(width: 24),
+        Expanded(child: _buildKPICard("System Backups", "$_backupCount", Icons.cloud_done_rounded, Colors.purple, () => widget.onNavigate?.call("Backup & Restore"))),
+      ],
     );
   }
 
-  Widget _buildKPICard(String label, String value, IconData icon, Color color, String? actionLabel, VoidCallback? onTap) {
+  Widget _buildKPICard(String label, String value, IconData icon, Color color, VoidCallback? onTap) {
     return MouseRegion(
       cursor: onTap != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          width: 110,
-          height: 110,
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFFEEEEEE)),
             boxShadow: [
-              BoxShadow(
-                color: color.withOpacity(0.2),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
+              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 15, offset: const Offset(0, 4)),
             ],
           ),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: Colors.white.withOpacity(0.9), size: 16),
-              const SizedBox(height: 4),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  value,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  shape: BoxShape.circle,
                 ),
+                child: Icon(icon, color: color, size: 24),
               ),
+              const SizedBox(height: 16),
+              Text(
+                value,
+                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: kBrandBrown),
+              ),
+              const SizedBox(height: 4),
               Text(
                 label.toUpperCase(),
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 7, color: Colors.white, fontWeight: FontWeight.w800, letterSpacing: 0.2),
+                style: TextStyle(fontSize: 10, color: kBrandBrown.withOpacity(0.5), fontWeight: FontWeight.w800, letterSpacing: 0.5),
               ),
             ],
           ),
@@ -349,9 +336,8 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
         PieChartSectionData(
           color: color,
           value: value,
-          title: '$count',
-          radius: 40,
-          titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+          title: '',
+          radius: 50,
         ),
       );
       index++;
@@ -360,58 +346,56 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
     return _DashboardCard(
       title: "User Composition",
       subtitle: "System profile role mappings & distribution",
-      child: SizedBox(
-        height: 220,
-        child: Row(
-          children: [
-            Expanded(
-              flex: 4,
+      child: Row(
+        children: [
+          Expanded(
+            flex: 4,
+            child: SizedBox(
+              height: 160,
               child: sections.isEmpty
                 ? const Center(child: Text("No users recorded"))
                 : PieChart(
                     PieChartData(
-                      sectionsSpace: 4,
-                      centerSpaceRadius: 35,
+                      sectionsSpace: 2,
+                      centerSpaceRadius: 40,
                       sections: sections,
                     ),
                   ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 5,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: _roleDistribution.keys.toList().asMap().entries.map((e) {
-                    final color = chartColors[e.key % chartColors.length];
-                    final count = _roleDistribution[e.value];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8.0),
-                      child: Row(
-                        children: [
-                          Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              e.value,
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: kBrandBrown),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Text(
-                            "$count",
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kBrandOlive),
-                          )
-                        ],
+          ),
+          const SizedBox(width: 24),
+          Expanded(
+            flex: 5,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: _roleDistribution.keys.toList().asMap().entries.map((e) {
+                final color = chartColors[e.key % chartColors.length];
+                final count = _roleDistribution[e.value];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10.0),
+                  child: Row(
+                    children: [
+                      Container(width: 12, height: 12, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4))),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          e.value,
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kBrandBrown),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                    );
-                  }).toList(),
-                ),
-              ),
+                      Text(
+                        "$count",
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: kBrandOlive),
+                      )
+                    ],
+                  ),
+                );
+              }).toList(),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -421,11 +405,11 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
 
     return _DashboardCard(
       title: "Queue Workloads",
-      subtitle: "Outstanding items requiring administrator sign-off",
+      subtitle: "Outstanding items requiring sign-off",
       child: SizedBox(
-        height: 220,
+        height: 160,
         child: Padding(
-          padding: const EdgeInsets.only(top: 24.0),
+          padding: const EdgeInsets.only(top: 16.0),
           child: BarChart(
             BarChartData(
               alignment: BarChartAlignment.spaceAround,
@@ -437,31 +421,26 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
                   sideTitles: SideTitles(
                     showTitles: true,
                     getTitlesWidget: (value, meta) {
+                      const style = TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey);
                       switch (value.toInt()) {
-                        case 0: return const Padding(padding: EdgeInsets.only(top: 8.0), child: Text("Scholars", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)));
-                        case 1: return const Padding(padding: EdgeInsets.only(top: 8.0), child: Text("Events", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)));
-                        case 2: return const Padding(padding: EdgeInsets.only(top: 8.0), child: Text("Payments", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)));
+                        case 0: return const Padding(padding: EdgeInsets.only(top: 8.0), child: Text("Scholars", style: style));
+                        case 1: return const Padding(padding: EdgeInsets.only(top: 8.0), child: Text("Events", style: style));
+                        case 2: return const Padding(padding: EdgeInsets.only(top: 8.0), child: Text("Payments", style: style));
                         default: return const Text("");
                       }
                     },
                   ),
                 ),
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 28,
-                    getTitlesWidget: (v, _) => Text(v.toInt().toString(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold)),
-                  ),
-                ),
+                leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                 topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                 rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
               ),
               gridData: const FlGridData(show: false),
               borderData: FlBorderData(show: false),
               barGroups: [
-                BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: _pendingScholars.toDouble(), color: kBrandOlive, width: 24, borderRadius: BorderRadius.circular(4))]),
-                BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: _pendingEvents.toDouble(), color: kBrandOrange, width: 24, borderRadius: BorderRadius.circular(4))]),
-                BarChartGroupData(x: 2, barRods: [BarChartRodData(toY: _pendingPayments.toDouble(), color: kBrandBrown, width: 24, borderRadius: BorderRadius.circular(4))]),
+                BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: _pendingScholars.toDouble(), color: kBrandOlive, width: 32, borderRadius: BorderRadius.circular(6))]),
+                BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: _pendingEvents.toDouble(), color: kBrandOrange, width: 32, borderRadius: BorderRadius.circular(6))]),
+                BarChartGroupData(x: 2, barRods: [BarChartRodData(toY: _pendingPayments.toDouble(), color: kBrandBrown, width: 32, borderRadius: BorderRadius.circular(6))]),
               ],
             ),
           ),
@@ -474,11 +453,14 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
     final filtered = _schoolsRiskData.where((s) => s['name'].toString().toLowerCase().contains(_searchQuery.toLowerCase())).toList();
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE1E8E3)),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 15, offset: const Offset(0, 4)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -489,95 +471,89 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
               const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("INSTITUTIONAL INTEGRITY", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.2)),
-                  SizedBox(height: 4),
-                  Text("Performance & Risk Heatmap", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBrandBrown)),
+                  Text("INSTITUTIONAL INTEGRITY", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+                  SizedBox(height: 6),
+                  Text("Performance & Risk Heatmap", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown)),
                 ],
               ),
               Container(
-                width: 250,
-                height: 40,
+                width: 300,
+                height: 44,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(8),
+                  color: const Color(0xFFF5F7F9),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE0E6ED)),
                 ),
                 child: TextField(
                   onChanged: (val) => setState(() => _searchQuery = val),
                   decoration: const InputDecoration(
-                    hintText: "Search school Risk logs...",
-                    hintStyle: TextStyle(fontSize: 12),
-                    prefixIcon: Icon(Icons.search, color: kBrandOlive, size: 18),
+                    hintText: "Filter by institution name...",
+                    hintStyle: TextStyle(fontSize: 13, color: Colors.grey),
+                    prefixIcon: Icon(Icons.search_rounded, color: kBrandOlive, size: 20),
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(vertical: 10),
+                    contentPadding: EdgeInsets.symmetric(vertical: 12),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           if (filtered.isEmpty)
             const Padding(
-              padding: EdgeInsets.all(32.0),
-              child: Center(child: Text("No institutions map this search criteria.")),
+              padding: EdgeInsets.all(48.0),
+              child: Center(child: Text("No institutions map this search criteria.", style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey))),
             )
           else
             Table(
               columnWidths: const {
                 0: FlexColumnWidth(3),
-                1: FlexColumnWidth(1.2),
+                1: FlexColumnWidth(1.5),
                 2: FlexColumnWidth(1.2),
                 3: FlexColumnWidth(1.2),
-                4: FlexColumnWidth(1.5),
+                4: FlexColumnWidth(1.8),
                 5: FlexColumnWidth(4),
               },
               children: [
                 TableRow(
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    border: Border(bottom: BorderSide(color: Colors.grey.shade200, width: 1.5)),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF9FAFB),
+                    border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE), width: 1.5)),
                   ),
                   children: const [
-                    Padding(padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8), child: Text("SCHOOL NAME", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey))),
-                    Padding(padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8), child: Text("RISK STATE", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey))),
-                    Padding(padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8), child: Text("AVG GRADE", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey))),
-                    Padding(padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8), child: Text("PASS RATE", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey))),
-                    Padding(padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8), child: Text("SCHOLAR FLAGS", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey))),
-                    Padding(padding: EdgeInsets.symmetric(vertical: 12, horizontal: 8), child: Text("PRIMARY RISK FACTOR", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey))),
+                    Padding(padding: EdgeInsets.all(16), child: Text("SCHOOL NAME", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey))),
+                    Padding(padding: EdgeInsets.all(16), child: Text("RISK STATE", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey))),
+                    Padding(padding: EdgeInsets.all(16), child: Text("AVG %", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey))),
+                    Padding(padding: EdgeInsets.all(16), child: Text("PASS %", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey))),
+                    Padding(padding: EdgeInsets.all(16), child: Text("FLAGS", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey))),
+                    Padding(padding: EdgeInsets.all(16), child: Text("PRIMARY RISK FACTOR", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey))),
                   ],
                 ),
                 ...filtered.map((s) {
                   final Color riskColor = _getRiskStateColor(s['level']);
                   return TableRow(
-                    decoration: BoxDecoration(
-                      border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+                    decoration: const BoxDecoration(
+                      border: Border(bottom: BorderSide(color: Color(0xFFF4F6F8))),
                     ),
                     children: [
-                      Padding(padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8), child: Text(s['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBrandBrown))),
+                      Padding(padding: const EdgeInsets.all(16), child: Text(s['name'], style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: kBrandBrown))),
                       Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(color: riskColor.withOpacity(0.12), borderRadius: BorderRadius.circular(20)),
-                            child: Text(s['level'].toString().toUpperCase(), style: TextStyle(color: riskColor, fontSize: 9, fontWeight: FontWeight.bold)),
-                          ),
+                        padding: const EdgeInsets.all(16),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(color: riskColor.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                          child: Text(s['level'].toString().toUpperCase(), textAlign: TextAlign.center, style: TextStyle(color: riskColor, fontSize: 9, fontWeight: FontWeight.w900)),
                         ),
                       ),
-                      Padding(padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8), child: Text("${s['avg']}%", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                      Padding(padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8), child: Text("${s['pass_rate']}%", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: s['pass_rate'] < 50 ? Colors.red : kBrandOlive))),
+                      Padding(padding: const EdgeInsets.all(16), child: Text("${s['avg']}%", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBrandBrown))),
+                      Padding(padding: const EdgeInsets.all(16), child: Text("${s['pass_rate']}%", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: s['pass_rate'] < 50 ? Colors.red : kBrandOlive))),
                       Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+                        padding: const EdgeInsets.all(16),
                         child: Text(
                           "${s['atrisk']} scholars",
-                          style: TextStyle(
-                            color: s['atrisk'] > 0 ? Colors.red : Colors.grey,
-                            fontWeight: s['atrisk'] > 0 ? FontWeight.bold : FontWeight.normal,
-                            fontSize: 13,
-                          ),
+                          style: TextStyle(color: s['atrisk'] > 0 ? Colors.red : Colors.grey.shade400, fontWeight: s['atrisk'] > 0 ? FontWeight.w900 : FontWeight.normal, fontSize: 13),
                         ),
                       ),
-                      Padding(padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8), child: Text(s['reason'], style: const TextStyle(fontSize: 12, color: Colors.black54))),
+                      Padding(padding: const EdgeInsets.all(16), child: Text(s['reason'], style: const TextStyle(fontSize: 12, color: Colors.black54))),
                     ],
                   );
                 }).toList(),
@@ -590,15 +566,15 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
 
   Widget _buildActivityLogCard() {
     return _DashboardCard(
-      title: "Security & Operations Log",
-      subtitle: "Chronological ledger of recent administrative changes",
+      title: "Operations Ledger",
+      subtitle: "Chronological audit log of administrative changes",
       child: _recentActivities.isEmpty
-        ? const Padding(padding: EdgeInsets.all(32), child: Center(child: Text("No actions logged in database.")))
+        ? const Padding(padding: EdgeInsets.all(32), child: Center(child: Text("No actions logged in database.", style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey))))
         : ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: _recentActivities.take(5).length,
-            separatorBuilder: (_, __) => const Divider(height: 16),
+            separatorBuilder: (_, __) => const Divider(height: 24, color: Color(0xFFF1F4F8)),
             itemBuilder: (context, idx) {
               final a = _recentActivities[idx];
               String timeStr = "Just now";
@@ -613,28 +589,26 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    margin: const EdgeInsets.only(top: 2),
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(color: kBrandOrange, shape: BoxShape.circle),
+                    margin: const EdgeInsets.only(top: 4),
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(color: kBrandOrange.withOpacity(0.2), shape: BoxShape.circle, border: Border.all(color: kBrandOrange, width: 2)),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 20),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(a['message'] ?? '', style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: kBrandBrown)),
-                        const SizedBox(height: 2),
+                        Text(a['message'] ?? '', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                        const SizedBox(height: 4),
                         Row(
                           children: [
                             Text(
-                              "Actor: ${a['actor'] ?? 'System'}",
-                              style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.bold),
+                              "AUTHORIZED BY: ${a['actor'] ?? 'SYSTEM'}",
+                              style: TextStyle(fontSize: 10, color: kBrandBrown.withOpacity(0.4), fontWeight: FontWeight.w900, letterSpacing: 0.5),
                             ),
-                            const SizedBox(width: 8),
-                            const Text("•", style: TextStyle(color: Colors.grey, fontSize: 10)),
-                            const SizedBox(width: 8),
-                            Text(timeStr, style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
+                            const Spacer(),
+                            Text(timeStr, style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
                           ],
                         ),
                       ],
@@ -649,48 +623,46 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
 
   Widget _buildDatabaseControlsCard() {
     return _DashboardCard(
-      title: "Core Operations",
-      subtitle: "Manual administrative and database actions",
+      title: "System Integrity",
+      subtitle: "Infrastructure and security maintenance",
       child: Column(
         children: [
-          ElevatedButton.icon(
-            onPressed: _isBackingUp ? null : _triggerBackup,
-            icon: _isBackingUp 
-              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : const Icon(Icons.backup_table_rounded, size: 18),
-            label: Text(_isBackingUp ? "Executing..." : "Run Database Backup"),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kBrandOlive,
-              foregroundColor: Colors.white,
-              minimumSize: const Size(double.infinity, 48),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: () => widget.onNavigate?.call("Permissions"),
-            icon: const Icon(Icons.security, size: 18),
-            label: const Text("Configure Permissions"),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: kBrandBrown,
-              side: const BorderSide(color: kBrandBrown),
-              minimumSize: const Size(double.infinity, 48),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: () => widget.onNavigate?.call("Register School"),
-            icon: const Icon(Icons.domain_add, size: 18),
-            label: const Text("Add New Institution"),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: kBrandBrown,
-              side: const BorderSide(color: kBrandBrown),
-              minimumSize: const Size(double.infinity, 48),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-          ),
+          _buildOpButton("Run Database Backup", Icons.backup_rounded, kBrandOlive, _isBackingUp ? null : _triggerBackup, loading: _isBackingUp),
+          const SizedBox(height: 16),
+          _buildOpButton("Access Permissions", Icons.security_rounded, kBrandBrown, () => widget.onNavigate?.call("Permissions")),
+          const SizedBox(height: 16),
+          _buildOpButton("Onboard Institution", Icons.add_business_rounded, kBrandBrown, () => widget.onNavigate?.call("Register School"), outlined: true),
         ],
+      ),
+    );
+  }
+
+  Widget _buildOpButton(String label, IconData icon, Color color, VoidCallback? onTap, {bool loading = false, bool outlined = false}) {
+    if (outlined) {
+      return OutlinedButton.icon(
+        onPressed: onTap,
+        icon: Icon(icon, size: 18),
+        label: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: color,
+          side: BorderSide(color: color.withOpacity(0.5)),
+          minimumSize: const Size(double.infinity, 56),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    }
+    return ElevatedButton.icon(
+      onPressed: onTap,
+      icon: loading 
+        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
+        : Icon(icon, size: 18),
+      label: Text(loading ? "EXECUTING..." : label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        minimumSize: const Size(double.infinity, 56),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -710,25 +682,21 @@ class _DashboardCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         color: Colors.white, 
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: const Color(0xFFE1E8E3)),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.01),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 15, offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.3)),
-          Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-          const SizedBox(height: 24),
+          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+          Text(subtitle, style: TextStyle(fontSize: 12, color: kBrandBrown.withOpacity(0.4), fontWeight: FontWeight.w600)),
+          const SizedBox(height: 32),
           child,
         ],
       ),

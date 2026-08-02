@@ -68,21 +68,32 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
     try {
       final response = await ApiService.getAllRoles();
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data['data'] ?? [];
+        final dynamic raw = response.data;
+        List<dynamic> data = [];
+        if (raw is Map && raw.containsKey('data')) {
+          data = raw['data'] is List ? raw['data'] : [];
+        } else if (raw is List) {
+          data = raw;
+        }
+
         if (mounted) {
           setState(() {
             _roles = data
-                .map((r) => UserRole(
-                      id: r['id'].toString(),
-                      name: r['name'] ?? '',
-                      description: r['description'] ?? '',
-                      icon: _getIconData(r['icon']),
-                      color: _getColor(r['color']),
-                      userCount: r['user_count'] ?? 0,
-                      isSystemRole: r['is_system_role'] ?? false,
-                      createdDate: DateTime.tryParse(r['created_at'] ?? '') ??
-                          DateTime.now(),
-                    ))
+                .map((r) {
+                  if (r is! Map) return null;
+                  return UserRole(
+                    id: (r['id'] ?? r['_id'] ?? '').toString(),
+                    name: r['name'] ?? '',
+                    description: r['description'] ?? '',
+                    icon: _getIconData(r['icon']),
+                    color: _getColor(r['color']),
+                    userCount: r['userCount'] ?? r['user_count'] ?? 0,
+                    isSystemRole: r['isSystemRole'] ?? r['is_system_role'] ?? false,
+                    createdDate: DateTime.tryParse(r['createdAt'] ?? r['created_at'] ?? '') ??
+                        DateTime.now(),
+                  );
+                })
+                .whereType<UserRole>()
                 .toList();
           });
         }

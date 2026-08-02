@@ -36,12 +36,14 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
 
   void _initSocket() {
     try {
-      _socket = IO.io('http://localhost:5000', IO.OptionBuilder()
-          .setTransports(['websocket'])
-          .disableAutoConnect()
+      _socket = IO.io(ApiService.baseUrl, IO.OptionBuilder()
+          .setTransports(['websocket', 'polling'])
+          .enableAutoConnect()
           .build());
-      _socket!.connect();
-      _socket!.on('notification', (_) => _fetchSummary());
+      
+      _socket!.on('notification', (_) {
+        if (mounted) _fetchSummary();
+      });
     } catch (e) {
       debugPrint('Socket error: $e');
     }

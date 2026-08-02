@@ -25,6 +25,7 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
   }
 
   Future<void> _fetchSettings() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final response = await ApiService.getUserSettings();
@@ -35,6 +36,7 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
             _notificationsEnabled = data['notifications_enabled'] ?? true;
             _biometricEnabled = data['biometric_enabled'] ?? false;
             _language = data['language'] ?? "English (Malawi)";
+            Translator.currentLanguage = _language;
             _currency = data['currency'] ?? "Malawian Kwacha (MWK)";
             
             if (data['theme'] == 'dark') {
@@ -67,16 +69,21 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: Colors.white,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: _isLoading 
         ? const Center(child: BeautifulLoader(isOverlay: false, message: "Syncing Environment"))
         : Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildProfessionalHeader(),
+            _buildExecutiveHeader(),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(40, 32, 40, 40),
+                padding: const EdgeInsets.all(40),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 1000),
@@ -84,7 +91,7 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _sectionLabel("VISUAL ENVIRONMENT"),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 24),
                         ValueListenableBuilder<ThemeMode>(
                           valueListenable: themeController,
                           builder: (context, mode, _) {
@@ -94,12 +101,12 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
                                   themeController.value = ThemeMode.system;
                                   _updateSettings({'theme': 'system'});
                                 })),
-                                const SizedBox(width: 20),
+                                const SizedBox(width: 24),
                                 Expanded(child: _buildThemeCard("Standard", "Light Mode", Icons.light_mode_rounded, mode == ThemeMode.light, () {
                                   themeController.value = ThemeMode.light;
                                   _updateSettings({'theme': 'light'});
                                 })),
-                                const SizedBox(width: 20),
+                                const SizedBox(width: 24),
                                 Expanded(child: _buildThemeCard("Contrast", "Dark Mode", Icons.dark_mode_rounded, mode == ThemeMode.dark, () {
                                   themeController.value = ThemeMode.dark;
                                   _updateSettings({'theme': 'dark'});
@@ -125,7 +132,7 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
                             children: [
                               Text("Scholar Management System (Core Engine)",
                                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kBrandBrown, letterSpacing: 0.5)),
-                              SizedBox(height: 4),
+                              const SizedBox(height: 4),
                               Text("Deployment v2.4.12 • All rights reserved • 2026",
                                 style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w500)),
                             ],
@@ -142,23 +149,23 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
     );
   }
 
-  Widget _buildProfessionalHeader() {
+  Widget _buildExecutiveHeader() {
     bool isChichewa = _language == "Chichewa";
     return Container(
-      padding: const EdgeInsets.fromLTRB(40, 32, 40, 24),
-      decoration: BoxDecoration(
+      padding: const EdgeInsets.all(32),
+      decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: kBrandOlive.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
+              color: kBrandBrown.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.settings_suggest_rounded, color: kBrandOlive, size: 30),
+            child: const Icon(Icons.settings_suggest_rounded, color: kBrandBrown, size: 28),
           ),
           const SizedBox(width: 20),
           Expanded(
@@ -166,10 +173,9 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(isChichewa ? "Makonzedwe a Kachitidwe" : "Environment Settings",
-                  style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                const SizedBox(height: 4),
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.8)),
                 Text(isChichewa ? "Konshani momwe pulogalamuyi ikugwirira ntchito m'derali." : "Configure terminal behavior, visual interfaces and localized financial standards.",
-                  style: const TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
+                  style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -181,21 +187,34 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
   Widget _buildThemeCard(String label, String title, IconData icon, bool isSelected, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.all(24),
+      borderRadius: BorderRadius.circular(24),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.all(28),
         decoration: BoxDecoration(
-          color: isSelected ? kBrandBrown : Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? kBrandBrown : Colors.grey.shade200),
+          color: isSelected ? kBrandBrown : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: isSelected ? kBrandBrown : Colors.grey.shade200, width: 1.5),
+          boxShadow: isSelected ? [
+            BoxShadow(color: kBrandBrown.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 10))
+          ] : [
+            BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))
+          ],
         ),
         child: Column(
           children: [
-            Icon(icon, color: isSelected ? Colors.white : Colors.grey, size: 32),
-            const SizedBox(height: 16),
-            Text(label.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isSelected ? Colors.white54 : Colors.grey, letterSpacing: 1.5)),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isSelected ? Colors.white.withValues(alpha: 0.15) : kBrandBrown.withValues(alpha: 0.05),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: isSelected ? Colors.white : kBrandBrown, size: 28),
+            ),
+            const SizedBox(height: 20),
+            Text(label.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isSelected ? Colors.white70 : Colors.grey, letterSpacing: 1.5)),
             const SizedBox(height: 4),
-            Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : kBrandBrown)),
+            Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : kBrandBrown)),
           ],
         ),
       ),
@@ -208,14 +227,14 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionLabel(isChichewa ? "KAGWIRIDWE NTCHITO" : "INTERACTION POLICY"),
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
         _buildPreferenceTile(
           title: isChichewa ? "Zidziwitso za Nthawi Pomwepo" : "Real-time Notifications",
           subtitle: isChichewa ? "Landirani mauthenga a nkhani zaposachedwa." : "Receive telemetry alerts and activity logs.",
           icon: Icons.notifications_active_outlined,
           trailing: Switch(
             value: _notificationsEnabled,
-            activeColor: kBrandOlive,
+            activeThumbColor: kBrandOlive,
             onChanged: (v) { setState(() => _notificationsEnabled = v); _updateSettings({'notifications_enabled': v}); },
           ),
         ),
@@ -226,7 +245,7 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
           icon: Icons.fingerprint_rounded,
           trailing: Switch(
             value: _biometricEnabled,
-            activeColor: kBrandOlive,
+            activeThumbColor: kBrandOlive,
             onChanged: (v) { setState(() => _biometricEnabled = v); _updateSettings({'biometric_enabled': v}); },
           ),
         ),
@@ -240,7 +259,7 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionLabel(isChichewa ? "MAYENDEDWE A CHIYANKHULO" : "LOCALIZATION STANDARDS"),
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
         _buildPreferenceTile(
           title: isChichewa ? "Chiyankhulo cha Paface" : "Interface Language",
           subtitle: isChichewa ? "Sankhani chiyankhulo chomwe mukufuna kugwiritsa ntchito." : "Primary dictionary for standard text elements.",
@@ -249,7 +268,13 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
             value: _language,
             underline: const SizedBox(),
             items: ["English (Malawi)", "Chichewa", "English (UK)"].map((l) => DropdownMenuItem(value: l, child: Text(l, style: const TextStyle(fontWeight: FontWeight.bold)))).toList(),
-            onChanged: (v) { setState(() => _language = v!); _updateSettings({'language': v}); },
+            onChanged: (v) {
+              setState(() {
+                _language = v!;
+                Translator.currentLanguage = v;
+              });
+              _updateSettings({'language': v});
+            },
           ),
         ),
         const SizedBox(height: 16),
@@ -302,6 +327,6 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
   }
 
   Widget _sectionLabel(String text) {
-    return Text(text, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.2));
+    return Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kBrandOlive.withValues(alpha: 0.8), letterSpacing: 1.5));
   }
 }

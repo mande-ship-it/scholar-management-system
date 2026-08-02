@@ -59,7 +59,11 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
 
       if (response.statusCode == 200) {
         setState(() {
-          _reportData = response.data['data'] ?? [];
+          // Filter report data to only show scholars who are currently active
+          // Note: the backend report usually includes scholar status
+          _reportData = (response.data['data'] ?? [])
+              .where((item) => (item['scholar_status'] ?? item['status'] ?? 'Active') == 'Active')
+              .toList();
         });
       }
     } catch (e) {

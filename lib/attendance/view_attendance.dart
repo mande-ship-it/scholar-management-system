@@ -76,7 +76,9 @@ class _ViewAttendanceComponentState extends State<ViewAttendanceComponent> {
       if (response.statusCode == 200) {
         if (mounted) {
           setState(() {
-            _attendanceReport = response.data['data'] ?? [];
+            _attendanceReport = (response.data['data'] ?? [])
+                .where((item) => (item['scholar_status'] ?? item['status'] ?? 'Active') == 'Active')
+                .toList();
             _isGeneratingReport = false;
           });
         }

@@ -329,6 +329,21 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
 
   Widget _allocationCard(dynamic i) {
     final bool isCompleted = i['status'] == 'Completed';
+    final scholarName = i['scholar_name'] ?? (i['scholarId'] != null ? i['scholarId']['fullName'] ?? i['scholarId']['full_name'] : 'N/A');
+    final workplace = i['workplace_name'] ?? i['workplaceName'] ?? 'N/A';
+    final status = i['status'] ?? 'Active';
+
+    String durationStr = "TBD";
+    try {
+      final start = i['start_date'] ?? i['startDate'];
+      final end = i['end_date'] ?? i['endDate'];
+      if (start != null && end != null) {
+        durationStr = "${DateFormat('MMM yyyy').format(DateTime.parse(start.toString()))} - ${DateFormat('MMM yyyy').format(DateTime.parse(end.toString()))}";
+      } else if (start != null) {
+        durationStr = "From ${DateFormat('MMM yyyy').format(DateTime.parse(start.toString()))}";
+      }
+    } catch (_) {}
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
@@ -343,18 +358,23 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(i['scholar_name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-              _statusBadge(i['status']),
+              Expanded(
+                child: Text(scholarName.toString(),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  overflow: TextOverflow.ellipsis),
+              ),
+              _statusBadge(status),
             ],
           ),
           const SizedBox(height: 4),
-          Text(i['workplace_name'], style: TextStyle(color: kBrandOrange, fontWeight: FontWeight.w800, fontSize: 12, letterSpacing: 0.5)),
+          Text(workplace.toString(),
+            style: TextStyle(color: kBrandOrange, fontWeight: FontWeight.w800, fontSize: 12, letterSpacing: 0.5)),
           const Divider(height: 24),
           Row(
             children: [
               const Icon(Icons.access_time_rounded, size: 14, color: Colors.grey),
               const SizedBox(width: 8),
-              Text("${DateFormat('MMM yyyy').format(DateTime.parse(i['start_date']))} - ${DateFormat('MMM yyyy').format(DateTime.parse(i['end_date']))}",
+              Text(durationStr,
                 style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500)),
             ],
           ),

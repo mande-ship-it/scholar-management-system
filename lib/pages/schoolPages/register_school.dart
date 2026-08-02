@@ -135,7 +135,9 @@ class _RegisterSchoolPageState extends State<RegisterSchoolPage> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: RegisterSchoolComponent(onRegister: widget.onSuccess != null ? (_) => widget.onSuccess!() : null),
+      body: SingleChildScrollView(
+        child: RegisterSchoolComponent(onRegister: widget.onSuccess != null ? (_) => widget.onSuccess!() : null),
+      ),
     );
   }
 }

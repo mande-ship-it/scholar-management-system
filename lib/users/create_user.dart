@@ -43,7 +43,9 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
     try {
       final response = await ApiService.getAllRoles();
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data['data'] ?? [];
+        final dynamic rawData = response.data is Map ? response.data['data'] : response.data;
+        final List<dynamic> data = rawData is List ? rawData : [];
+
         if (mounted) {
           setState(() {
             _roles.clear();
@@ -68,7 +70,9 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
     try {
       final response = await ApiService.getAllDepartments();
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data['data'] ?? [];
+        final dynamic rawData = response.data is Map ? response.data['data'] : response.data;
+        final List<dynamic> data = rawData is List ? rawData : [];
+
         if (mounted) {
           setState(() {
             _departments.clear();

@@ -9,7 +9,9 @@ class RegisterScholarPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: RegisterScholarComponent(onRegister: onSuccess != null ? (_) async => onSuccess!() : null),
+      body: SingleChildScrollView(
+        child: RegisterScholarComponent(onRegister: onSuccess != null ? (_) async => onSuccess!() : null),
+      ),
     );
   }
 }

@@ -53,6 +53,8 @@ class OrganisationEvent {
   final String location;
   final String? organizer;
   final List<String>? targetedParticipants;
+  final List<String>? internalParticipants; // List of User IDs
+  final List<Map<String, String>>? externalParticipants; // List of {name, email}
   final String status; // 'Active' or 'History'
 
   OrganisationEvent({
@@ -65,6 +67,8 @@ class OrganisationEvent {
     required this.location,
     this.organizer,
     this.targetedParticipants,
+    this.internalParticipants,
+    this.externalParticipants,
     this.status = 'Active',
   });
 
@@ -88,11 +92,12 @@ class OrganisationEvent {
   /// An event is history if it's explicitly marked as 'History' OR it's 'Active' but its time has passed.
   bool get isHistory => status == 'History' || (status == 'Active' && fullDateTime.isBefore(DateTime.now()));
 
-  bool get isExpired => status == 'History' && DateTime.now().difference(fullDateTime).inDays > 14;
+  /// Auto-delete check for UI: hide from list if it occurred more than 2 days ago
+  bool get isExpired => status == 'History' && DateTime.now().difference(fullDateTime).inDays >= 2;
 
   factory OrganisationEvent.fromJson(Map<String, dynamic> json) {
     // Parse time string "HH:mm:ss" or "HH:mm"
-    final timeStr = json['time']?.toString() ?? '08:00';
+    final timeStr = (json['eventTime'] ?? json['time'] ?? '08:00').toString();
     final timeParts = timeStr.split(':');
     final timeOfDay = TimeOfDay(
       hour: int.parse(timeParts[0]),
@@ -100,18 +105,23 @@ class OrganisationEvent {
     );
 
     return OrganisationEvent(
-      id: json['id']?.toString() ?? '',
+      id: (json['id'] ?? json['_id'] ?? '').toString(),
       title: json['title'] ?? 'Untitled Event',
       description: json['description'] ?? '',
       category: EventCategory.values.firstWhere(
         (e) => e.name == json['category'],
         orElse: () => EventCategory.other,
       ),
-      date: json['date'] != null ? DateTime.parse(json['date']) : DateTime.now(),
+      date: json['eventDate'] != null ? DateTime.parse(json['eventDate']) : 
+            (json['date'] != null ? DateTime.parse(json['date']) : DateTime.now()),
       time: timeOfDay,
       location: json['location'] ?? 'No location',
       organizer: json['organizer'],
       targetedParticipants: json['targetedParticipants'] != null ? List<String>.from(json['targetedParticipants']) : null,
+      internalParticipants: json['internalParticipants'] != null ? List<String>.from(json['internalParticipants']) : null,
+      externalParticipants: json['externalParticipants'] != null 
+          ? (json['externalParticipants'] as List).map((e) => Map<String, String>.from(e)).toList() 
+          : null,
       status: json['status'] ?? 'Active',
     );
   }

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../academics/academics_utils.dart';
 import 'package:scholar_management_system/services/api_service.dart';
+import 'package:scholar_management_system/services/permission_service.dart';
 import '../widgets/custom_loaders.dart';
 import '../services/file_download_service.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
@@ -26,7 +27,7 @@ class ViewScholarsComponent extends StatefulWidget {
   State<ViewScholarsComponent> createState() => _ViewScholarsComponentState();
 }
 
-class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
+class _ViewScholarsComponentState extends State<ViewScholarsComponent> with SingleTickerProviderStateMixin {
   // Search & Filter state variables
   String _searchQuery = '';
   String _selectedSchoolType = 'All';
@@ -34,12 +35,20 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
   String _selectedSex = 'All';
   bool _isLoading = true;
   String _userRole = 'User';
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _fetchScholars();
     _fetchUserRole();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchUserRole() async {
@@ -89,7 +98,8 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                 age: item['dob'] != null && item['dob'].toString().isNotEmpty
                     ? DateTime.now().year - DateTime.parse(item['dob'].toString()).year
                     : 16,
-                schoolType: (item['school_type']?.toString().toLowerCase().contains('university') ?? false)
+                schoolType: (item['school_type']?.toString().toLowerCase().contains('university') ?? false) ||
+                            (item['schoolType']?.toString().toLowerCase().contains('university') ?? false)
                     ? SchoolType.university
                     : SchoolType.secondary,
                 schoolName: item['display_school_name'] ?? 'N/A',
@@ -152,7 +162,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
       'name': s.name,
       'schoolType': s.schoolType == SchoolType.secondary ? 'Secondary' : 'University',
       'school': s.schoolName,
-      'class': s.currentClass,
+      'class': s.calculatedAcademicYear,
       'status': s.status,
       'district': s.district,
       'donor': s.donor,
@@ -172,7 +182,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
       'guardianRelation': s.guardianRelation ?? '',
       'guardianOccupation': s.guardianOccupation ?? '',
       'progressionStatus': s.progressionStatus,
-      'yearsRemaining': s.yearsRemaining.toString(),
+      'yearsRemaining': s.calculatedRemainingYears.toString(),
     }).toList();
   }
 
@@ -198,9 +208,11 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
 
   // Filter scholars list based on current user inputs
   List<Map<String, String>> _getFilteredScholars() {
+    final statusFilter = _tabController.index == 0 ? 'Active' : 'Pending';
+
     return _allScholars.where((scholar) {
-      // 0. Only show active scholars (exclude Graduated, Alumni, and Completed)
-      if (scholar['status'] != 'Active' && scholar['status'] != 'Pending') return false;
+      // 0. Filter by status based on tab
+      if (scholar['status'] != statusFilter) return false;
 
       // 1. Search by name (case-insensitive text search)
       final nameMatches = scholar['name']!
@@ -257,6 +269,21 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
       }
     } catch (e) {
       debugPrint('Error updating scholar status: $e');
+    }
+  }
+
+  void _approveScholar(Map<String, String> scholar) async {
+    try {
+      final response = await ApiService.approveActivity('scholar', scholar['id']!);
+      if (response.statusCode == 200) {
+        _fetchScholars();
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Scholar registration approved!"), backgroundColor: kBrandOlive),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error approving scholar: $e');
     }
   }
 
@@ -841,6 +868,19 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
     );
   }
 
+  Widget _exportAction(IconData icon, String label, Color color, VoidCallback onTap) {
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 16, color: color),
+      label: Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: color, letterSpacing: 0.5)),
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        side: BorderSide(color: color.withOpacity(0.2)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final filteredScholars = _getFilteredScholars();
@@ -858,135 +898,142 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
           // 1. Clean Header (No Banners)
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(24, 20, 20, 20),
+            padding: const EdgeInsets.fromLTRB(24, 20, 20, 10),
             decoration: const BoxDecoration(
               color: Colors.white,
-              border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
             ),
-            child: Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 24,
-              runSpacing: 16,
+            child: Column(
               children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 24,
+                  runSpacing: 16,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: kBrandBrown.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(Icons.groups_rounded, color: kBrandBrown, size: 28),
-                    ),
-                    const SizedBox(width: 14),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text(
-                          "Scholars Registry",
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: kBrandBrown,
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: kBrandBrown.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.groups_rounded, color: kBrandBrown, size: 28),
+                        ),
+                        const SizedBox(width: 14),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              "Scholars Registry",
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: kBrandBrown,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              "${filteredScholars.length} scholars in current selection.",
+                              style: const TextStyle(color: Colors.grey, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 6,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        _miniStat(Icons.check_circle_rounded, "$activeCount Active", kBrandOlive),
+                        _miniStat(Icons.account_balance_rounded, "$universityCount University", kBrandBrown),
+                        const SizedBox(width: 8),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            if (widget.onViewGraduates != null) {
+                              widget.onViewGraduates!();
+                            } else {
+                              Navigator.pushNamed(context, '/scholars/graduates');
+                            }
+                          },
+                          icon: const Icon(Icons.workspace_premium_rounded, size: 20),
+                          label: const Text("VIEW GRADUATES", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: kBrandBrown,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
                         ),
-                        const SizedBox(height: 3),
-                        Text(
-                          "${filteredScholars.length} active scholars enrolled in the program.",
-                          style: const TextStyle(color: Colors.grey, fontSize: 12),
+                        const SizedBox(width: 8),
+                        if (_userRole == 'Administrator' || PermissionService.hasPermission('scholars.create'))
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              if (widget.onRegisterScholar != null) {
+                                widget.onRegisterScholar!();
+                              } else {
+                                Navigator.pushNamed(context, '/registerScholar');
+                              }
+                            },
+                            icon: const Icon(Icons.person_add_rounded, size: 20),
+                            label: const Text("REGISTER SCHOLAR", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: kBrandOlive,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                          ),
+                        // Export Buttons
+                        _exportAction(Icons.table_view_rounded, "EXCEL", Colors.green.shade700, _exportToExcel),
+                        const SizedBox(width: 4),
+                        _exportAction(Icons.picture_as_pdf_rounded, "PDF", Colors.red.shade700, _exportToPDF),
+                        const SizedBox(width: 4),
+                        IconButton(
+                          icon: const Icon(Icons.refresh, color: kBrandBrown, size: 22),
+                          tooltip: "Reset Filters",
+                          onPressed: () {
+                            _fetchScholars();
+                            setState(() {
+                              _searchQuery = '';
+                              _selectedSchoolType = 'All';
+                              _selectedSchoolName = 'All';
+                              _selectedSex = 'All';
+                            });
+                          },
                         ),
                       ],
                     ),
                   ],
                 ),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    _miniStat(Icons.check_circle_rounded, "$activeCount Active", kBrandOlive),
-                    _miniStat(Icons.account_balance_rounded, "$universityCount University", kBrandBrown),
-                    const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        if (widget.onViewGraduates != null) {
-                          widget.onViewGraduates!();
-                        } else {
-                          Navigator.pushNamed(context, '/scholars/graduates');
-                        }
-                      },
-                      icon: const Icon(Icons.workspace_premium_rounded, size: 16),
-                      label: const Text("View Graduates"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: kBrandBrown,
-                        foregroundColor: Colors.white,
-                        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
+                const SizedBox(height: 20),
+                if (PermissionService.hasAnyPermission(['scholars.approve', 'scholars.edit']))
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TabBar(
+                      controller: _tabController,
+                      isScrollable: true,
+                      labelColor: kBrandOlive,
+                      unselectedLabelColor: Colors.grey,
+                      indicatorColor: kBrandOlive,
+                      indicatorWeight: 3,
+                      labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      onTap: (index) => setState(() {}),
+                      tabs: const [
+                        Tab(text: "ACTIVE REGISTRY"),
+                        Tab(text: "PENDING APPROVAL"),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    if (['Administrator', 'Program Coordinator', 'Country Director', 'Data Officer'].contains(_userRole))
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          if (widget.onRegisterScholar != null) {
-                            widget.onRegisterScholar!();
-                          } else {
-                            Navigator.pushNamed(context, '/registerScholar');
-                          }
-                        },
-                        icon: const Icon(Icons.person_add_rounded, size: 16),
-                        label: const Text("Register Scholar"),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: kBrandOlive,
-                          foregroundColor: Colors.white,
-                          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        ),
-                      ),
-                    // Export Buttons
-                    ElevatedButton.icon(
-                      onPressed: _exportToExcel,
-                      icon: const Icon(Icons.table_view_rounded, size: 16),
-                      label: const Text("Export Excel"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green.shade700,
-                        foregroundColor: Colors.white,
-                        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: _exportToPDF,
-                      icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
-                      label: const Text("Export PDF"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red.shade700,
-                        foregroundColor: Colors.white,
-                        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.refresh, color: kBrandBrown, size: 22),
-                      tooltip: "Reset Filters",
-                      onPressed: () {
-                        _fetchScholars();
-                        setState(() {
-                          _searchQuery = '';
-                          _selectedSchoolType = 'All';
-                          _selectedSchoolName = 'All';
-                          _selectedSex = 'All';
-                        });
-                      },
-                    ),
-                  ],
-                ),
+                  ),
               ],
             ),
           ),
+          const Divider(height: 1, color: Color(0xFFEEEEEE)),
 
           // 2. Search & Filter Bar
           Padding(
@@ -1215,7 +1262,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                     ? const BeautifulLoader(isOverlay: false, message: "Syncing Registry...")
                     : filteredScholars.isEmpty
                     ? Center(
-                  child: Padding(
+                  child: SingleChildScrollView(
                     padding: const EdgeInsets.all(32.0),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -1237,6 +1284,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                         Text(
                           "Try loosening your filters or clearing search text.",
                           style: TextStyle(color: Colors.grey.shade600),
+                          textAlign: TextAlign.center,
                         ),
                       ],
                     ),
@@ -1453,6 +1501,12 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                                 Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
+                                    if (_tabController.index == 1 && PermissionService.hasPermission('scholars.approve'))
+                                      IconButton(
+                                        icon: const Icon(Icons.verified_user_rounded, color: kBrandOlive),
+                                        onPressed: () => _approveScholar(scholar),
+                                        tooltip: "Approve Registration",
+                                      ),
                                     IconButton(
                                       icon: const Icon(Icons.person_search_outlined, color: kBrandOlive),
                                       onPressed: () {
@@ -1468,7 +1522,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                                       },
                                       tooltip: "View Profile",
                                     ),
-                                    if (['Administrator', 'Program Coordinator', 'Country Director'].contains(_userRole)) ...[
+                                    if (PermissionService.hasPermission('scholars.edit')) ...[
                                       IconButton(
                                         icon: const Icon(Icons.edit_note, color: kBrandBrown),
                                         onPressed: () {
@@ -1487,12 +1541,13 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> {
                                         onPressed: () => _toggleScholarStatus(scholar),
                                         tooltip: isActive ? "Deactivate" : "Activate",
                                       ),
+                                    ],
+                                    if (PermissionService.hasPermission('scholars.delete'))
                                       IconButton(
                                         icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
                                         onPressed: () => _deleteScholar(scholar),
                                         tooltip: "Delete Scholar",
                                       ),
-                                    ],
                                   ],
                                 ),
                               ),
@@ -1573,7 +1628,10 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
   final _formKey = GlobalKey<FormState>();
   bool _initialized = false;
   bool _isLoadingSponsors = false;
+  bool _isLoadingSchools = false;
   List<String> _registeredSponsors = [];
+  List<Map<String, dynamic>> _registeredSchools = [];
+  String? _selectedSchoolId;
 
   // Form Field States
   String? _selectedDistrict;
@@ -1585,6 +1643,7 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
   DateTime? _selectedDateOfBirth;
   String? _selectedStartYear;
   String? _selectedEndYear;
+  int? _selectedDuration;
 
   // Controllers
   final TextEditingController _fullNameController = TextEditingController();
@@ -1613,6 +1672,7 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
   void initState() {
     super.initState();
     _fetchSponsors();
+    _fetchSchools();
   }
 
   Future<void> _fetchSponsors() async {
@@ -1634,6 +1694,50 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
     }
   }
 
+  Future<void> _fetchSchools() async {
+    setState(() => _isLoadingSchools = true);
+    try {
+      final response = await ApiService.getAllSchools();
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data['data'] ?? [];
+        if (mounted) {
+          setState(() {
+            _registeredSchools = data.map((s) => Map<String, dynamic>.from(s)).toList();
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching schools: $e');
+    } finally {
+      if (mounted) setState(() => _isLoadingSchools = false);
+    }
+  }
+
+  List<Map<String, dynamic>> _getAvailableSchoolsForScholar() {
+    if (_selectedSchoolType == null) return [];
+
+    final typeLower = _selectedSchoolType!.toLowerCase();
+    return _registeredSchools.where((school) {
+      final level = (school['level'] ?? '').toString().toLowerCase();
+
+      if (typeLower == 'secondary') {
+        return level.contains('secondary') || level.contains('high');
+      } else if (typeLower == 'university') {
+        return level.contains('university') || level.contains('tertiary') || level.contains('college');
+      }
+      return false;
+    }).toList();
+  }
+
+  void _updateGraduationYear() {
+    if (_selectedStartYear != null && _selectedDuration != null) {
+      final start = int.parse(_selectedStartYear!);
+      setState(() {
+        _selectedEndYear = (start + _selectedDuration! - 1).toString();
+      });
+    }
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -1651,6 +1755,16 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
         _selectedSex = args['sex'];
         _selectedStartYear = args['startYear'];
         _selectedEndYear = args['endYear'];
+
+        // Calculate initial duration
+        if (_selectedStartYear != null && _selectedEndYear != null) {
+          try {
+            final start = int.parse(_selectedStartYear!);
+            final end = int.parse(_selectedEndYear!);
+            _selectedDuration = (end - start) + 1;
+            if (_selectedDuration! < 1 || _selectedDuration! > 6) _selectedDuration = null;
+          } catch (_) {}
+        }
 
         _fullNameController.text = args['name'] ?? '';
         _yearController.text = args['class'] ?? '';
@@ -1727,6 +1841,7 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
         'fullName': _fullNameController.text.trim(),
         'schoolType': _selectedSchoolType,
         'schoolName': _selectedSchool,
+        'schoolId': _selectedSchoolId,
         'sex': _selectedSex,
         'dob': _dobController.text.trim(),
         'currentClass': _yearController.text.trim(),
@@ -1737,7 +1852,7 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
         'email': _emailController.text.trim(),
         'programType': _selectedProgramType ?? '',
         'programName': _programNameController.text.trim(),
-        'previousPrimarySchool': _previousSchoolController.text.trim(),
+        'previousSchool': _previousSchoolController.text.trim(),
         'startYear': _selectedStartYear,
         'endYear': _selectedEndYear,
       };
@@ -1774,7 +1889,7 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
                   children: [
                     Icon(Icons.check_circle_outline, color: Colors.white),
                     SizedBox(width: 12),
-                    Text("You have saved changes successfully!"),
+                    Text("Scholar profile updated successfully!"),
                   ],
                 ),
                 backgroundColor: kBrandOlive,
@@ -1784,13 +1899,25 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
               ),
             );
           }
+        } else {
+          final errorMsg = response.data['message'] ?? "Unknown validation error.";
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("Failed to save: $errorMsg"),
+                backgroundColor: Colors.redAccent,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Failed to update scholar. Please try again."),
+            SnackBar(
+              content: Text("Critical error: $e"),
               backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
             ),
           );
         }
@@ -1983,12 +2110,29 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
                       validator: (value) => (value == null || value.trim().isEmpty) ? "Required" : null,
                     ),
                     const SizedBox(height: 16),
-                    // For editing, let's just use simple text for school name for now, or you could implement the picker.
-                    TextFormField(
-                      controller: TextEditingController(text: _selectedSchool),
-                      onChanged: (v) => _selectedSchool = v,
-                      decoration: _fieldDecoration(label: "School Name", icon: Icons.school_outlined),
-                      validator: (v) => (v == null || v.isEmpty) ? "Required" : null,
+                    DropdownButtonFormField<String>(
+                      key: ValueKey('school_name_$_selectedSchoolType'),
+                      initialValue: _selectedSchool,
+                      isExpanded: true,
+                      decoration: _fieldDecoration(
+                        label: _isLoadingSchools
+                          ? "Loading Institutions..."
+                          : (_getAvailableSchoolsForScholar().isEmpty && _selectedSchoolType != null ? "No matching schools found" : "School Name"),
+                        icon: Icons.school_outlined
+                      ),
+                      items: _getAvailableSchoolsForScholar().map((s) => DropdownMenuItem(value: s['name'].toString(), child: Text(s['name'].toString(), overflow: TextOverflow.ellipsis))).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedSchool = value;
+                          try {
+                            final found = _registeredSchools.firstWhere((s) => s['name'] == value);
+                            _selectedSchoolId = (found['id'] ?? found['_id']).toString();
+                          } catch (_) {
+                            _selectedSchoolId = null;
+                          }
+                        });
+                      },
+                      validator: (value) => value == null ? "Please select a school" : null,
                     ),
                     if (_selectedSchoolType == 'University') ...[
                       const SizedBox(height: 16),
@@ -2028,13 +2172,33 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
                               icon: Icons.event_outlined,
                             ),
                             items: yearsList.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
-                            onChanged: (value) => setState(() => _selectedStartYear = value),
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedStartYear = value;
+                                _updateGraduationYear();
+                              });
+                            },
                             validator: (value) => value == null ? "Required" : null,
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
+                          child: DropdownButtonFormField<int>(
+                            initialValue: _selectedDuration,
+                            decoration: _fieldDecoration(label: "Duration", icon: Icons.timer_outlined),
+                            items: [1, 2, 3, 4, 5, 6].map((d) => DropdownMenuItem(value: d, child: Text("$d Years"))).toList(),
+                            onChanged: (v) {
+                              setState(() {
+                                _selectedDuration = v;
+                                _updateGraduationYear();
+                              });
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
                           child: DropdownButtonFormField<String>(
+                            key: ValueKey('end_year_${_selectedStartYear}_$_selectedDuration'),
                             initialValue: _selectedEndYear,
                             decoration: _fieldDecoration(
                               label: _selectedSchoolType == 'University' ? "End Year" : "Session End",

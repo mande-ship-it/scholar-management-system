@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:scholar_management_system/services/api_service.dart';
+import 'package:scholar_management_system/services/permission_service.dart';
 import '../academics/academics_utils.dart';
 
 /// ---------------------------------------------------------------------
@@ -70,7 +71,9 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
     try {
       final response = await ApiService.getAllRoles();
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data['data'] ?? [];
+        final dynamic rawData = response.data is Map ? response.data['data'] : response.data;
+        final List<dynamic> data = rawData is List ? rawData : [];
+
         if (mounted) {
           setState(() {
             _roles.clear();
@@ -87,7 +90,9 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
     try {
       final response = await ApiService.getAllDepartments();
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data['data'] ?? [];
+        final dynamic rawData = response.data is Map ? response.data['data'] : response.data;
+        final List<dynamic> data = rawData is List ? rawData : [];
+
         if (mounted) {
           setState(() {
             _departments.clear();
@@ -105,19 +110,21 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
     try {
       final response = await ApiService.getAllUsers();
       if (response.statusCode == 200) {
-        final List<dynamic> data = response.data['data'] ?? [];
+        final dynamic rawData = response.data is Map ? response.data['data'] : response.data;
+        final List<dynamic> data = rawData is List ? rawData : [];
+
         if (mounted) {
           setState(() {
             _users = data.map((u) => AppUser(
-              id: u['id'].toString(),
-              fullName: u['full_name'] ?? '',
+              id: (u['id'] ?? u['_id'] ?? '').toString(),
+              fullName: u['fullName'] ?? u['full_name'] ?? '',
               username: u['username'] ?? '',
               email: u['email'] ?? '',
               phone: u['phone'] ?? '',
-              role: u['role_name'] ?? '',
-              department: u['department_name'] ?? 'Unallocated',
-              isActive: u['is_active'] ?? true,
-              createdDate: DateTime.tryParse(u['created_at'] ?? '') ?? DateTime.now(),
+              role: u['role_name'] ?? 'Staff',
+              department: u['department_name'] ?? u['department'] ?? 'Unallocated',
+              isActive: u['isActive'] ?? u['is_active'] ?? true,
+              createdDate: DateTime.tryParse(u['createdAt'] ?? u['created_at'] ?? '') ?? DateTime.now(),
             )).toList();
           });
         }
@@ -337,19 +344,20 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
               ],
             ),
           ),
-          ElevatedButton.icon(
-            onPressed: widget.onAddUser,
-            icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
-            label: const Text("Register User"),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kBrandOlive,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              textStyle: const TextStyle(fontWeight: FontWeight.bold),
+          if (PermissionService.hasPermission('users.create'))
+            ElevatedButton.icon(
+              onPressed: widget.onAddUser,
+              icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
+              label: const Text("Register User"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kBrandOlive,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                textStyle: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -543,9 +551,12 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
             )),
             DataCell(Text(_formatDate(u.createdDate), style: TextStyle(fontSize: 13, color: Colors.grey.shade700, fontWeight: FontWeight.w600))),
             DataCell(Row(children: [
-              _actionBtn(Icons.edit_note_rounded, Colors.blue, () => _editUser(u)),
-              const SizedBox(width: 8),
-              _actionBtn(Icons.delete_outline_rounded, Colors.redAccent, () => _confirmDelete(u)),
+              if (PermissionService.hasPermission('users.edit'))
+                _actionBtn(Icons.edit_note_rounded, Colors.blue, () => _editUser(u)),
+              if (PermissionService.hasPermission('users.edit') && PermissionService.hasPermission('users.delete'))
+                const SizedBox(width: 8),
+              if (PermissionService.hasPermission('users.delete'))
+                _actionBtn(Icons.delete_outline_rounded, Colors.redAccent, () => _confirmDelete(u)),
             ])),
           ]);
         }).toList(),

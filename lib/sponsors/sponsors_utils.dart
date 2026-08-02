@@ -30,6 +30,25 @@ class Sponsor {
     this.status = 'Active',
   });
 
+  factory Sponsor.fromJson(Map<String, dynamic> json) {
+    return Sponsor(
+      id: (json['id'] ?? json['_id']).toString(),
+      name: json['name'] ?? '',
+      organization: json['organization'] ?? '',
+      email: json['email'] ?? '',
+      phone: json['phone'] ?? '',
+      contactPerson: json['contactPerson'] ?? json['contact_person'] ?? '',
+      sponsorshipType: json['sponsorshipType'] ?? json['sponsorship_type'] ?? 'Standard',
+      amount: double.tryParse(json['amount'].toString()) ?? 0.0,
+      registrationDate: json['registrationDate'] != null 
+          ? DateTime.parse(json['registrationDate']) 
+          : (json['registration_date'] != null ? DateTime.parse(json['registration_date']) : DateTime.now()),
+      address: json['address'] ?? '',
+      notes: json['notes'] ?? '',
+      status: json['status'] ?? 'Active',
+    );
+  }
+
   Sponsor copyWith({
     String? id,
     String? name,

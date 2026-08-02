@@ -100,7 +100,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   bool _isSidebarVisible = true;
   int _notificationCount = 0;
   IO.Socket? _socket;
-  int? _currentUserId;
+  String? _currentUserId;
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _isSearching = false;
@@ -117,6 +117,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   String _userRole = "Staff";
   String? _profileImageUrl;
   Map<String, dynamic> _userPermissions = {};
+  
+  late List<SidebarCategory> _categories;
 
   @override
   void initState() {
@@ -129,6 +131,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       CurvedAnimation(parent: _notificationIconController, curve: Curves.elasticOut),
     );
 
+    _categories = _getRawCategories();
     _initSocket();
     _fetchNotificationCount();
     _fetchUserProfile();
@@ -190,16 +193,18 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   void _initSocket() {
-    _socket = IO.io('http://localhost:5000', IO.OptionBuilder()
-      .setTransports(['websocket'])
-      .disableAutoConnect()
+    _socket = IO.io(ApiService.baseUrl, IO.OptionBuilder()
+      .setTransports(['websocket', 'polling'])
+      .enableAutoConnect()
       .build());
-
-    _socket!.connect();
 
     _socket!.onConnect((_) {
       debugPrint('Connected to Notification Server');
       _joinUserRoom();
+    });
+
+    _socket!.onDisconnect((_) {
+      debugPrint('Disconnected from Notification Server');
     });
 
     _socket!.on('notification', (data) {
@@ -485,11 +490,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   List<SidebarCategory> _getRawCategories() {
     return [
       SidebarCategory(
-        title: "Dashboard",
+        title: Translator.translate("Dashboard"),
         icon: Icons.dashboard,
         subItems: [
           SidebarSubItem(
-            title: "Overview", 
+            title: Translator.translate("Overview"), 
             page: DashboardPage(),
             icon: Icons.view_quilt,
             builder: (onBack, onPush, onPushProfile) => DashboardPage(onNavigate: onPush, userRole: _userRole),
@@ -499,11 +504,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         ],
       ),
       SidebarCategory(
-        title: "Scholars",
+        title: Translator.translate("Scholars"),
         icon: Icons.school,
         subItems: [
           SidebarSubItem(
-            title: "View Scholars",
+            title: Translator.translate("View Scholars"),
             page: const ViewScholarsPage(),
             icon: Icons.people,
             builder: (onBack, onPush, onPushProfile) => ViewScholarsPage(
@@ -620,6 +625,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         title: "Administration",
         icon: Icons.admin_panel_settings,
         subItems: [
+          SidebarSubItem(
+            title: "Admin Control Panel", 
+            page: const SizedBox(), 
+            icon: Icons.admin_panel_settings_rounded,
+            builder: (onBack, onPush, onPushProfile) {
+              Future.microtask(() => Navigator.pushReplacementNamed(context, '/admin/home'));
+              return const Center(child: CircularProgressIndicator());
+            }
+          ),
           SidebarSubItem(title: "Pending Approvals", page: const ApprovalsPage(), icon: Icons.rule_folder),
           SidebarSubItem(title: "Backup & Restore", page: const BackupRestorePage(), icon: Icons.backup),
         ],
@@ -629,49 +643,54 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   List<SidebarCategory> _getVisibleCategories(List<SidebarCategory> allCategories) {
     List<SidebarCategory> filtered = [];
-    final adminRoles = ['Administrator', 'Program Coordinator', 'Country Director'];
+    final elevatedRoles = ['Administrator', 'Program Coordinator', 'Country Director'];
     
     for (var category in allCategories) {
-      if (category.title == "Administration" && !adminRoles.contains(_userRole)) continue;
-
+      // 1. Module-level permission check (if applicable)
       if (_userPermissions.isNotEmpty) {
         var modulePerms = _userPermissions[category.title];
-        if (modulePerms == null || modulePerms['view'] != true) {
-          if (category.title != "Dashboard" && category.title != "Settings" && category.title != "Administration") {
-             continue;
-          }
+        if (modulePerms != null && modulePerms['view'] == false) {
+           // Skip if view permission is explicitly denied
+           if (category.title != "Dashboard" && category.title != "Settings" && category.title != "Administration") {
+              continue;
+           }
         }
       }
-      
-      // Deep filter subItems if needed (e.g. Backup & Restore only for Admin)
-      if (category.title == "Administration") {
-        final filteredSubItems = category.subItems.where((item) {
-          if (item.title == "Backup & Restore" && _userRole != 'Administrator') return false;
-          return item.isVisible;
-        }).toList();
+
+      // 2. Specialized sub-item filtering for "Administration" and others
+      final filteredSubItems = category.subItems.where((item) {
+        if (!item.isVisible) return false;
+
+        // Restriction: Admin Control Panel only for strict Administrator role
+        if (item.title == "Admin Control Panel" && _userRole != 'Administrator') return false;
         
-        if (filteredSubItems.isEmpty) continue;
+        // Restriction: Backup & Restore only for strict Administrator role
+        if (item.title == "Backup & Restore" && _userRole != 'Administrator') return false;
         
-        filtered.add(SidebarCategory(
-          title: category.title,
-          icon: category.icon,
-          subItems: filteredSubItems,
-        ));
-      } else {
-        filtered.add(category);
-      }
+        // Restriction: Pending Approvals for all elevated roles
+        if (item.title == "Pending Approvals" && !elevatedRoles.contains(_userRole)) return false;
+
+        return true;
+      }).toList();
+
+      if (filteredSubItems.isEmpty) continue;
+
+      filtered.add(SidebarCategory(
+        title: category.title,
+        icon: category.icon,
+        subItems: filteredSubItems,
+      ));
     }
     return filtered;
   }
 
   @override
   Widget build(BuildContext context) {
-    final allCategories = _getRawCategories();
-    final visibleCategories = _getVisibleCategories(allCategories);
+    final visibleCategories = _getVisibleCategories(_categories);
 
-    if (activeCategoryIndex >= allCategories.length) activeCategoryIndex = 0;
+    if (activeCategoryIndex >= _categories.length) activeCategoryIndex = 0;
 
-    final activeCategory = allCategories[activeCategoryIndex];
+    final activeCategory = _categories[activeCategoryIndex];
     final activeSubItem = activeCategory.subItems[activeSubIndex];
 
     const Color brandBrown = Color(0xFF4C3C32);
@@ -861,7 +880,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                               return ListTile(leading: const Icon(Icons.logout_rounded, color: Colors.redAccent), title: const Text("Logout Session", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 14)), onTap: () { ApiService.logout(); Navigator.pushReplacementNamed(context, '/login'); });
                             }
                             final category = visibleCategories[index];
-                            int originalIdx = allCategories.indexWhere((c) => c.title == category.title);
+                            int originalIdx = _categories.indexWhere((c) => c.title == category.title);
                             final isSelected = activeCategoryIndex == originalIdx;
 
                             return Theme(
@@ -871,7 +890,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                 leading: Icon(category.icon),
                                 title: Text(category.title, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.w500, fontSize: 14)),
                                 children: category.subItems.where((s) => s.isVisible).map((subItem) {
-                                  int subIdx = allCategories[originalIdx].subItems.indexWhere((s) => s.title == subItem.title);
+                                  int subIdx = _categories[originalIdx].subItems.indexWhere((s) => s.title == subItem.title);
                                   final isSubSelected = isSelected && activeSubIndex == subIdx;
                                   return ListTile(
                                     dense: true,

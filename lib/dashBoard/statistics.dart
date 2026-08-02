@@ -203,7 +203,7 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
   }
 
   Widget _buildCohortCard() {
-    final cohorts = _data!['cohorts'] as List;
+    final cohorts = (_data!['cohorts'] ?? []) as List;
     final total = cohorts.fold(0, (sum, e) => sum + (e['count'] as int));
 
     return _DashboardCard(
@@ -257,10 +257,10 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
   }
 
   Widget _buildRiskIndicatorCard() {
-    final schools = _data!['schools'] as List;
-    final school = schools.firstWhere((s) => s['name'] == _selectedRiskSchool, orElse: () => schools.isNotEmpty ? schools[0] : null);
-
-    if (school == null) return const SizedBox();
+    final schools = (_data!['schools'] ?? []) as List;
+    if (schools.isEmpty) return const SizedBox();
+    
+    final school = schools.firstWhere((s) => s['name'] == _selectedRiskSchool, orElse: () => schools[0]);
 
     final Color rColor = _getRiskColor(school['level']);
     final String rLabel = school['level'].toString().toUpperCase() + " RISK";

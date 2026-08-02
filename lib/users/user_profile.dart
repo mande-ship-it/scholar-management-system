@@ -391,13 +391,10 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
                     ),
                     alignment: Alignment.center,
                     child: (_profilePicture == null) 
-                      ? Text(
-                          _initials(_originalValues['name'] ?? 'U'),
-                          style: const TextStyle(
-                            color: kBrandBrown,
-                            fontSize: 36,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      ? const Icon(
+                          Icons.person_rounded,
+                          color: kBrandBrown,
+                          size: 56,
                         )
                       : null,
                   ),

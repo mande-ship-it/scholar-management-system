@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:dio/dio.dart';
 import 'package:scholar_management_system/services/api_service.dart';
 import '../academics/academics_utils.dart';
 import '../widgets/custom_loaders.dart';
@@ -31,6 +30,7 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
   }
 
   Future<void> _fetchProfile() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final response = await ApiService.getAccountProfile();
@@ -130,16 +130,21 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: Colors.white,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: _isLoading 
         ? const Center(child: BeautifulLoader(isOverlay: false, message: "Syncing Profile"))
         : Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildProfessionalHeader(),
+            _buildExecutiveHeader(),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(40, 32, 40, 40),
+                padding: const EdgeInsets.all(40),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 900),
@@ -148,11 +153,11 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildAccountSummaryCard(),
-                          const SizedBox(height: 40),
+                          _buildAccountSummarySection(),
+                          const SizedBox(height: 48),
 
                           _sectionLabel("PERSONAL IDENTITY"),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 24),
                           Row(
                             children: [
                               Expanded(child: _buildTextField(controller: _nameController, label: "Full Name", icon: Icons.person_rounded)),
@@ -169,9 +174,9 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
                             ],
                           ),
 
-                          const SizedBox(height: 40),
+                          const SizedBox(height: 48),
                           _sectionLabel("SECURITY & CREDENTIALS"),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 24),
                           _buildActionTile(
                             icon: Icons.lock_reset_rounded,
                             title: "Change Account Password",
@@ -186,8 +191,8 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
                             onTap: () {},
                           ),
 
-                          const SizedBox(height: 48),
-                          _buildSubmitSection(),
+                          const SizedBox(height: 60),
+                          _buildSubmitAction(),
                         ],
                       ),
                     ),
@@ -200,22 +205,22 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
     );
   }
 
-  Widget _buildProfessionalHeader() {
+  Widget _buildExecutiveHeader() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(40, 32, 40, 24),
-      decoration: BoxDecoration(
+      padding: const EdgeInsets.all(32),
+      decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: kBrandOlive.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
+              color: kBrandBrown.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.manage_accounts_rounded, color: kBrandOlive, size: 30),
+            child: const Icon(Icons.manage_accounts_rounded, color: kBrandBrown, size: 28),
           ),
           const SizedBox(width: 20),
           const Expanded(
@@ -223,10 +228,9 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Account Preferences",
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                SizedBox(height: 4),
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.8)),
                 Text("Update your personal digital identity, security settings and contact information.",
-                  style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
+                  style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -235,31 +239,43 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
     );
   }
 
-  Widget _buildAccountSummaryCard() {
+  Widget _buildAccountSummarySection() {
     final initials = _nameController.text.isNotEmpty 
         ? _nameController.text.trim().split(' ').map((e) => e[0]).take(2).join().toUpperCase()
         : "U";
 
     return Container(
-      padding: const EdgeInsets.all(28),
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: kBrandOlive.withValues(alpha: 0.04),
+        color: const Color(0xFFF9FAFB),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: kBrandOlive.withValues(alpha: 0.1)),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
       ),
       child: Row(
         children: [
+          // Round Avatar
           Stack(
             children: [
-              CircleAvatar(
-                radius: 48,
-                backgroundColor: kBrandBrown,
-                backgroundImage: _profileImageUrl != null
-                  ? NetworkImage(ApiService.getFullUrl(_profileImageUrl))
-                  : null,
-                child: _profileImageUrl == null
-                  ? Text(initials, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white))
-                  : null,
+              Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 4),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 5))
+                  ],
+                ),
+                child: CircleAvatar(
+                  radius: 48,
+                  backgroundColor: kBrandBrown,
+                  backgroundImage: _profileImageUrl != null
+                    ? NetworkImage(ApiService.getFullUrl(_profileImageUrl))
+                    : null,
+                  child: _profileImageUrl == null
+                    ? const Icon(Icons.person_rounded, size: 48, color: Colors.white)
+                    : null,
+                ),
               ),
               Positioned(
                 bottom: 0,
@@ -269,7 +285,7 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: const BoxDecoration(color: kBrandOrange, shape: BoxShape.circle),
-                    child: const Icon(Icons.edit_rounded, size: 16, color: Colors.white),
+                    child: const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white),
                   ),
                 ),
               ),
@@ -282,14 +298,18 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
               children: [
                 Text(_nameController.text.isEmpty ? "User Profile" : _nameController.text,
                   style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kBrandBrown)),
-                const SizedBox(height: 6),
-                Text("@${_usernameController.text}", style: const TextStyle(fontSize: 14, color: kBrandOrange, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 4),
+                Text("@${_usernameController.text}", style: const TextStyle(fontSize: 14, color: kBrandOrange, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(color: kBrandBrown, borderRadius: BorderRadius.circular(8)),
+                  decoration: BoxDecoration(
+                    color: kBrandBrown.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: kBrandBrown.withValues(alpha: 0.1)),
+                  ),
                   child: Text(_userRole.toUpperCase(),
-                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 0.5)),
+                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: 1.0)),
                 ),
               ],
             ),
@@ -309,15 +329,15 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
       controller: controller,
       keyboardType: keyboardType,
       onChanged: (v) => setState(() {}),
+      style: const TextStyle(fontWeight: FontWeight.w600, color: kBrandBrown),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, size: 20, color: kBrandBrown.withValues(alpha: 0.5)),
+        prefixIcon: Icon(icon, size: 20, color: kBrandBrown.withValues(alpha: 0.4)),
         filled: true,
-        fillColor: Colors.grey.shade50,
-        labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBrandBrown),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade200)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade200)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: kBrandOlive, width: 2)),
+        fillColor: Colors.white,
+        labelStyle: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w500, fontSize: 14),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kBrandOlive, width: 2)),
       ),
     );
   }
@@ -364,31 +384,29 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
     );
   }
 
-  Widget _buildSubmitSection() {
-    return Center(
-      child: SizedBox(
-        width: 300,
-        height: 56,
-        child: ElevatedButton.icon(
-          onPressed: _isSaving ? null : _saveSettings,
-          icon: _isSaving
-            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-            : const Icon(Icons.cloud_upload_rounded),
-          label: Text(_isSaving ? "SYNCING..." : "SAVE SETTINGS",
-            style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2)),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: kBrandBrown,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          ),
+  Widget _buildSubmitAction() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: _isSaving ? null : _saveSettings,
+        icon: _isSaving
+          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+          : const Icon(Icons.verified_user_rounded, size: 20),
+        label: Text(_isSaving ? "SYNCHRONIZING..." : "VERIFY & SAVE PROFILE",
+          style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.0, fontSize: 13)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: kBrandOlive,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 22),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 0,
         ),
       ),
     );
   }
 
   Widget _sectionLabel(String text) {
-    return Text(text, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.2));
+    return Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kBrandOlive.withValues(alpha: 0.8), letterSpacing: 1.5));
   }
 
   void _showChangePasswordDialog(BuildContext context) {

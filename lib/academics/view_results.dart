@@ -49,8 +49,9 @@ class ViewResultsComponent extends StatefulWidget {
   State<ViewResultsComponent> createState() => _ViewResultsComponentState();
 }
 
-class _ViewResultsComponentState extends State<ViewResultsComponent> {
+class _ViewResultsComponentState extends State<ViewResultsComponent> with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
+  late TabController _tabController;
 
   SchoolType? _schoolTypeFilter; // null = All
   String? _schoolNameFilter; // null = All
@@ -63,23 +64,41 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() => setState(() {}));
     _fetchData();
+  }
+  
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchData() async {
     setState(() => _isLoading = true);
     try {
+      final resultsRes = await ApiService.getResultsBySchool(null);
+      if (resultsRes.statusCode != null && resultsRes.statusCode! < 400) {
+        final List<dynamic> data = resultsRes.data['data'] ?? [];
+        kResults.clear();
+        for (var item in data) {
+          kResults.add(ResultRecord.fromMap(item));
+        }
+      }
+
       final scholarsRes = await ApiService.getAllScholars();
       if (scholarsRes.statusCode != null && scholarsRes.statusCode! < 400) {
         final List<dynamic> data = scholarsRes.data['data'] ?? [];
         kStudents.clear();
         for (var item in data) {
           kStudents.add(Student(
-            id: item['id'].toString(),
+            id: (item['id'] ?? item['_id'] ?? '').toString(),
             scholarId: item['scholar_id'] ?? 'N/A',
             name: item['full_name'] ?? 'N/A',
-            age: item['age'] != null ? int.parse(item['age'].toString()) : 18,
-            schoolType: item['school_type'].toString().toLowerCase() == 'university'
+            age: item['age'] != null ? int.tryParse(item['age'].toString()) ?? 18 : 18,
+            schoolType: item['school_type'].toString().toLowerCase() == 'university' || item['schoolType'].toString().toLowerCase() == 'university'
                 ? SchoolType.university
                 : SchoolType.secondary,
             schoolName: item['display_school_name'] ?? 'N/A',
@@ -97,36 +116,11 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> {
           ));
         }
       }
-
-      final resultsRes = await ApiService.getResultsByScholar('');
-      if (resultsRes.statusCode != null && resultsRes.statusCode! < 400) {
-        final List<dynamic> data = resultsRes.data['data'] ?? [];
-        kResults.clear();
-        for (var item in data) {
-          kResults.add(ResultRecord(
-            studentId: item['scholar_id'].toString(),
-            code: item['subject_code'] ?? 'N/A',
-            subject: item['subject_name'] ?? 'N/A',
-            marks: double.parse(item['marks'].toString()),
-            gpa: item['gpa'] != null ? double.parse(item['gpa'].toString()) : null,
-            points: item['points'] != null ? double.parse(item['points'].toString()) : null,
-            year: (item['academic_year'] ?? item['year'] ?? '').toString(),
-            term: item['term'],
-            semester: item['semester'],
-          ));
-        }
-      }
     } catch (e) {
       debugPrint('Error loading view results data: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
   }
 
   List<String> get _schoolNameOptions {
@@ -139,7 +133,14 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> {
 
   List<Student> get _filteredStudents {
     final query = _searchController.text.trim().toLowerCase();
+    final bool showingArchive = _tabController.index == 1;
+
     return kStudents.where((s) {
+      // 0. Filter by status based on tab
+      final bool isGraduated = ['Graduated', 'Alumni', 'Completed'].contains(s.status);
+      if (showingArchive && !isGraduated) return false;
+      if (!showingArchive && isGraduated) return false;
+
       final matchesQuery = query.isEmpty || s.name.toLowerCase().contains(query);
       final matchesType =
           _schoolTypeFilter == null || s.schoolType == _schoolTypeFilter;
@@ -237,6 +238,14 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> {
     );
   }
 
+  int get _totalPeriodCount {
+    final Set<String> uniquePeriods = {};
+    for (var r in kResults) {
+      uniquePeriods.add("${r.studentId}_${r.year}_${r.semester ?? r.term ?? 'N/A'}");
+    }
+    return uniquePeriods.length;
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -248,6 +257,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> {
       );
     }
     final students = _filteredStudents;
+    final totalPeriods = _totalPeriodCount;
 
     return Container(
       width: double.infinity,
@@ -311,7 +321,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     _miniStat(Icons.groups_rounded, "${students.length} shown"),
-                    _miniStat(Icons.fact_check_rounded, "${kResults.length} results"),
+                    _miniStat(Icons.fact_check_rounded, "$totalPeriods recorded"),
                     const SizedBox(width: 8),
                     ElevatedButton.icon(
                       onPressed: widget.onViewPerformance,
@@ -401,6 +411,26 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> {
             ),
           ),
           const Divider(height: 32),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: TabBar(
+                controller: _tabController,
+                isScrollable: true,
+                labelColor: kBrandOlive,
+                unselectedLabelColor: Colors.grey,
+                indicatorColor: kBrandOlive,
+                indicatorWeight: 3,
+                labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                tabs: const [
+                  Tab(text: "ACTIVE SCHOLARS"),
+                  Tab(text: "PERFORMANCE ARCHIVE"),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 14, 24, 12),
             child: Container(
@@ -582,7 +612,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> {
 
   Widget _buildInitialGuidance() {
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(48.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -614,7 +644,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> {
 
   Widget _buildNoResultsState() {
     return Center(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(32.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -636,6 +666,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> {
             Text(
               "Try loosening your filters or clearing search text.",
               style: TextStyle(color: Colors.grey.shade600),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -650,13 +681,23 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> {
       separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey.shade100, indent: 84),
       itemBuilder: (context, index) {
         final student = students[index];
-        final resultCount = kResults.where((r) {
+        
+        // Count unique exam periods (Year + Term/Semester) instead of individual subjects
+        final relevantResults = kResults.where((r) {
           final matchesId = r.studentId == student.id;
           final matchesYear = _selectedYearFilter == null || r.year == _selectedYearFilter;
           return matchesId && matchesYear;
-        }).length;
+        }).toList();
+
+        final Set<String> uniquePeriods = {};
+        for (var r in relevantResults) {
+          final period = student.schoolType == SchoolType.university ? (r.semester ?? 'N/A') : (r.term ?? 'N/A');
+          uniquePeriods.add("${r.year}_$period");
+        }
         
+        final periodCount = uniquePeriods.length;
         final isUniversity = student.schoolType == SchoolType.university;
+        final periodLabel = isUniversity ? 'SEMESTER' : 'EXAM';
 
         return Material(
           color: Colors.transparent,
@@ -744,12 +785,12 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> {
                         child: Row(
                           children: [
                             Text(
-                              '$resultCount',
+                              '$periodCount',
                               style: const TextStyle(color: kBrandBrown, fontSize: 14, fontWeight: FontWeight.w900),
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'RECORD${resultCount == 1 ? '' : 'S'}',
+                              '${periodLabel}${periodCount == 1 ? '' : 'S'}',
                               style: TextStyle(color: Colors.grey.shade400, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                             ),
                           ],

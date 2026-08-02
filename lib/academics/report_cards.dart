@@ -51,17 +51,17 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data['data'] ?? [];
         _allScholars = data.map((item) => Student(
-          id: item['id'].toString(),
-          scholarId: item['scholar_id'] ?? 'N/A',
-          name: item['full_name'] ?? 'N/A',
+          id: (item['id'] ?? item['_id'] ?? '').toString(),
+          scholarId: item['scholarId'] ?? item['scholar_id'] ?? 'N/A',
+          name: item['fullName'] ?? item['full_name'] ?? 'N/A',
           age: item['age'] ?? 16,
-          schoolType: item['school_type'] == 'University' ? SchoolType.university : SchoolType.secondary,
-          schoolName: item['display_school_name'] ?? 'N/A',
+          schoolType: item['schoolType'] == 'University' || item['school_type'] == 'University' ? SchoolType.university : SchoolType.secondary,
+          schoolName: item['schoolName'] ?? item['school_name'] ?? 'N/A',
           status: item['status'] ?? 'Active',
           donor: item['donor'] ?? 'N/A',
-          currentClass: item['academic_year'] ?? '',
+          currentClass: item['academicYear'] ?? item['academic_year'] ?? '',
         )).toList();
-        _filteredScholars = List.from(_allScholars);
+        _filteredScholars = _allScholars.where((s) => s.status == 'Active').toList();
       }
     } catch (e) {
       debugPrint('Error loading scholars: $e');
@@ -73,7 +73,7 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
   Future<void> _fetchDirector() async {
     try {
       final response = await ApiService.getDirector();
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && mounted) {
         setState(() {
           _directorName = response.data['data']['name'];
         });
@@ -86,8 +86,9 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
   void _filterScholars(String query) {
     setState(() {
       _filteredScholars = _allScholars
-          .where((s) => s.name.toLowerCase().contains(query.toLowerCase()) || 
-                         s.scholarId.toLowerCase().contains(query.toLowerCase()))
+          .where((s) => s.status == 'Active' && 
+                        (s.name.toLowerCase().contains(query.toLowerCase()) || 
+                         s.scholarId.toLowerCase().contains(query.toLowerCase())))
           .toList();
     });
   }
@@ -501,17 +502,23 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
         color: Colors.grey.shade50,
         constraints: const BoxConstraints(minHeight: 400),
         child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: Colors.grey.shade100)),
-                child: Icon(Icons.person_search_rounded, size: 48, color: Colors.grey.shade300),
-              ),
-              const SizedBox(height: 20),
-              const Text("Select a scholar to configure report", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500)),
-            ],
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: Colors.grey.shade100)),
+                  child: Icon(Icons.person_search_rounded, size: 48, color: Colors.grey.shade300),
+                ),
+                const SizedBox(height: 20),
+                const Text("Select a scholar to configure report", 
+                  style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
         ),
       );

@@ -118,11 +118,12 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
           
           final List<dynamic> scholarData = scholarsRes.data['data'] ?? [];
           _allScholars = scholarData.map((s) => Student(
-            id: s['id'].toString(),
+            id: (s['id'] ?? s['_id'] ?? '').toString(),
             scholarId: s['scholar_id'] ?? 'N/A',
             name: s['full_name'] ?? 'N/A',
+            status: s['status'] ?? 'Active',
             age: s['dob'] != null ? DateTime.now().year - DateTime.parse(s['dob']).year : 16,
-            schoolType: s['school_type'] == 'University' ? SchoolType.university : SchoolType.secondary,
+            schoolType: s['school_type'] == 'University' || s['schoolType'] == 'University' ? SchoolType.university : SchoolType.secondary,
             schoolName: s['display_school_name'] ?? 'N/A',
             currentClass: s['academic_year'] ?? '',
           )).toList();
@@ -146,16 +147,21 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
     }
   }
 
-  void _onScholarChanged(String? name) async {
-    if (name == null) return;
-    final student = _scholarOptions.firstWhere((s) => s.name == name);
-    setState(() {
-      _selectedStudent = student;
-      _selectedPeriod = null;
-    });
+  void _onScholarChanged(String? id) async {
+    if (id == null) return;
+    try {
+      final student = _scholarOptions.firstWhere((s) => s.id == id);
+      setState(() {
+        _selectedStudent = student;
+        _selectedPeriod = null;
+        _recordedPeriods = [];
+      });
 
-    if (_selectedYear != null) {
-      _checkCompleteness(student.id, int.parse(_selectedYear!));
+      if (_selectedYear != null) {
+        _checkCompleteness(student.id, int.parse(_selectedYear!));
+      }
+    } catch (e) {
+      debugPrint('Scholar selection error: $e');
     }
   }
 
@@ -168,8 +174,8 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
       if (res.statusCode == 200) {
         final data = res.data['data'];
         setState(() {
-          _recordedPeriods = List<String>.from(isUniversity ? data['semestersRecorded'] : data['termsRecorded']);
-          if (data['isComplete']) {
+          _recordedPeriods = List<String>.from(isUniversity ? (data['semestersRecorded'] ?? []) : (data['termsRecorded'] ?? []));
+          if (data['isComplete'] == true) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text("All academic results for this year have already been recorded."),
@@ -223,7 +229,9 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
 
   List<Student> get _scholarOptions {
     if (_selectedSchool == null) return [];
-    return _allScholars.where((s) => s.schoolName == _selectedSchool!['name']).toList();
+    return _allScholars
+        .where((s) => s.schoolName == _selectedSchool!['name'] && s.status == 'Active')
+        .toList();
   }
 
   List<Subject> get _subjectOptions {
@@ -318,6 +326,21 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
 
       final response = await ApiService.recordResults(payload);
       if (response.statusCode == 201 || response.statusCode == 200) {
+        // Sync the global kResults list with the new data from server
+        try {
+          final resultsRes = await ApiService.getResultsBySchool(null);
+          if (resultsRes.statusCode == 200) {
+            final List<dynamic> data = resultsRes.data['data'] ?? [];
+            debugPrint('Synced ${data.length} results to global state.');
+            kResults.clear();
+            for (var item in data) {
+              kResults.add(ResultRecord.fromMap(item));
+            }
+          }
+        } catch (e) {
+          debugPrint('Error syncing kResults: $e');
+        }
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -418,7 +441,13 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
               ),
               const SizedBox(width: 32),
               Expanded(
-                child: _dropdownField("Academic Year", _selectedYear, _academicYears, Icons.calendar_today_rounded, (v) => setState(() => _selectedYear = v)),
+                child: _dropdownField<String>(
+                  label: "Academic Year", 
+                  value: _selectedYear, 
+                  items: _academicYears, 
+                  icon: Icons.calendar_today_rounded, 
+                  onChanged: (v) => setState(() => _selectedYear = v)
+                ),
               ),
             ],
           ),
@@ -427,17 +456,30 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
             children: [
               Expanded(
                 flex: 2,
-                child: _dropdownField("Partner Institution", _selectedSchool?['name'], _schoolOptions.map((s) => s['name'] as String).toList(), Icons.apartment_rounded, (v) {
-                  setState(() {
-                    _selectedSchool = _registeredSchools.firstWhere((s) => s['name'] == v);
-                    _selectedStudent = null;
-                  });
-                }),
+                child: _dropdownField<String>(
+                  label: "Partner Institution", 
+                  value: _selectedSchool?['name'], 
+                  items: _schoolOptions.map((s) => s['name'] as String).toList(), 
+                  icon: Icons.apartment_rounded, 
+                  onChanged: (v) {
+                    setState(() {
+                      _selectedSchool = _registeredSchools.firstWhere((s) => s['name'] == v);
+                      _selectedStudent = null;
+                    });
+                  }
+                ),
               ),
               const SizedBox(width: 24),
               Expanded(
                 flex: 2,
-                child: _dropdownField("Selected Scholar", _selectedStudent?.name, _scholarOptions.map((s) => s.name).toList(), Icons.person_search_rounded, _onScholarChanged),
+                child: _dropdownField<String>(
+                  label: "Selected Scholar", 
+                  value: _selectedStudent?.id, 
+                  items: _scholarOptions.map((s) => s.id).toList(), 
+                  icon: Icons.person_search_rounded, 
+                  onChanged: _onScholarChanged,
+                  itemLabel: (id) => _scholarOptions.firstWhere((s) => s.id == id).name,
+                ),
               ),
             ],
           ),
@@ -445,18 +487,24 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
           Row(
             children: [
               Expanded(
-                child: _dropdownField(
-                  _schoolType == SchoolType.secondary ? "Academic Term" : "Academic Semester",
-                  _selectedPeriod,
-                  _schoolType == SchoolType.secondary ? kTerms : kSemesters,
-                  Icons.event_note_rounded,
-                  (v) => setState(() => _selectedPeriod = v),
+                child: _dropdownField<String>(
+                  label: _schoolType == SchoolType.secondary ? "Academic Term" : "Academic Semester",
+                  value: _selectedPeriod,
+                  items: _schoolType == SchoolType.secondary ? kTerms : kSemesters,
+                  icon: Icons.event_note_rounded,
+                  onChanged: (v) => setState(() => _selectedPeriod = v),
                 ),
               ),
               const SizedBox(width: 24),
               if (_schoolType == SchoolType.secondary)
                 Expanded(
-                  child: _dropdownField("Current Class", _selectedClass, _secondaryClasses, Icons.class_outlined, (v) => setState(() => _selectedClass = v)),
+                  child: _dropdownField<String>(
+                    label: "Current Class", 
+                    value: _selectedClass, 
+                    items: _secondaryClasses, 
+                    icon: Icons.class_outlined, 
+                    onChanged: (v) => setState(() => _selectedClass = v)
+                  ),
                 )
               else
                 Expanded(
@@ -685,11 +733,18 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
     return Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1));
   }
 
-  Widget _dropdownField(String label, String? value, List<String> items, IconData icon, ValueChanged<String?> onChanged) {
+  Widget _dropdownField<T>({
+    required String label,
+    required T? value,
+    required List<T> items,
+    required IconData icon,
+    required ValueChanged<T?> onChanged,
+    String Function(T)? itemLabel,
+  }) {
     // If it's Term or Semester selection, filter out recorded ones
-    List<String> filteredItems = items;
+    List<T> filteredItems = items;
     if (label.contains("Term") || label.contains("Semester")) {
-      filteredItems = items.where((item) => !_recordedPeriods.contains(item)).toList();
+      filteredItems = items.where((item) => !_recordedPeriods.contains(item as String)).toList();
     }
 
     return Column(
@@ -704,12 +759,15 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.grey.shade200),
           ),
-          child: DropdownButton<String>(
+          child: DropdownButton<T>(
             value: filteredItems.contains(value) ? value : null,
             isExpanded: true,
             hint: const Text("Select...", style: TextStyle(fontSize: 14)),
             underline: const SizedBox(),
-            items: filteredItems.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 14)))).toList(),
+            items: filteredItems.map((e) => DropdownMenuItem<T>(
+              value: e, 
+              child: Text(itemLabel != null ? itemLabel(e) : e.toString(), style: const TextStyle(fontSize: 14))
+            )).toList(),
             onChanged: onChanged,
           ),
         ),

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../academics/academics_utils.dart';
 import 'package:scholar_management_system/services/api_service.dart';
+import 'package:scholar_management_system/services/permission_service.dart';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -79,6 +80,9 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
 
           // Save token in ApiService for subsequent requests
           ApiService.setToken(token, persist: _rememberMe);
+          
+          // Initialize Permissions
+          PermissionService.init(userData);
 
           if (mounted) {
             setState(() => _isLoading = false);
@@ -90,7 +94,7 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
             }
 
             final String role = userData['role'] ?? 'User';
-            final bool hasAdminAccess = ['Administrator', 'Program Coordinator', 'Country Director'].contains(role);
+            final bool hasAdminAccess = ['Administrator', 'Program Manager', 'Program Coordinator', 'Country Director'].contains(role);
             
             if (hasAdminAccess) {
               Navigator.pushReplacementNamed(

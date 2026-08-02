@@ -8,6 +8,10 @@ class ApiService {
   static const String _tokenKey = 'auth_token';
 
   static String get baseUrl {
+    if (kReleaseMode) {
+      return 'https://scholar-management-api.onrender.com';
+    }
+    // Local development: use localhost for Web/Windows, or 10.0.2.2 for Android emulator
     if (kIsWeb) return 'http://localhost:5000';
     try {
       if (Platform.isAndroid) return 'http://10.0.2.2:5000';
@@ -64,6 +68,13 @@ class ApiService {
     return await _dio.post('/auth/login', data: {
       'email': email,
       'password': password,
+    });
+  }
+
+  static Future<Response> verifyOTP(String userId, String otp) async {
+    return await _dio.post('/auth/verify-otp', data: {
+      'userId': userId,
+      'otp': otp,
     });
   }
 
@@ -209,6 +220,10 @@ class ApiService {
     return await _dio.get('/academic/completeness/$scholarId/$year');
   }
 
+  static Future<Response> getSchoolsWithResults() async {
+    return await _dio.get('/academic/schools-with-results');
+  }
+
   // Schools
   static Future<Response> getAllSchools() async {
     return await _dio.get('/schools');
@@ -264,6 +279,10 @@ class ApiService {
     return await _dio.get('/users');
   }
 
+  static Future<Response> getUserById(String id) async {
+    return await _dio.get('/users/$id');
+  }
+
   static Future<Response> createUser(Map<String, dynamic> data) async {
     return await _dio.post('/users', data: data);
   }
@@ -297,7 +316,11 @@ class ApiService {
     return await _dio.delete('/roles/$id');
   }
 
-  static Future<Response> updateRolePermissions(String id, Map<String, dynamic> permissions) async {
+  static Future<Response> getPermissionGroups() async {
+    return await _dio.get('/roles/permissions');
+  }
+
+  static Future<Response> updateRolePermissions(String id, List<String> permissions) async {
     return await _dio.patch('/roles/$id/permissions', data: {'permissions': permissions});
   }
 

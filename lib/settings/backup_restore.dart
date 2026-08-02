@@ -38,6 +38,7 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
   }
 
   Future<void> _fetchBackupInfo() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final response = await ApiService.getBackupInfo();
@@ -169,24 +170,29 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: Colors.white,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: _isLoading 
-        ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
+        ? const Center(child: CircularProgressIndicator(color: kBrandOlive, strokeWidth: 3))
         : Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildProfessionalHeader(),
+            _buildExecutiveHeader(),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(40, 32, 40, 40),
+                padding: const EdgeInsets.all(40),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 1000),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildPrimaryStatusCard(busy),
-                        const SizedBox(height: 40),
+                        _buildPrimaryStatusSection(busy),
+                        const SizedBox(height: 48),
 
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -207,22 +213,22 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
     );
   }
 
-  Widget _buildProfessionalHeader() {
+  Widget _buildExecutiveHeader() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(40, 32, 40, 24),
-      decoration: BoxDecoration(
+      padding: const EdgeInsets.all(32),
+      decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: kBrandBrown.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
+              color: kBrandBrown.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.cloud_sync_rounded, color: kBrandBrown, size: 30),
+            child: const Icon(Icons.cloud_sync_rounded, color: kBrandBrown, size: 28),
           ),
           const SizedBox(width: 20),
           const Expanded(
@@ -230,10 +236,9 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Disaster Recovery",
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                SizedBox(height: 4),
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.8)),
                 Text("Configure enterprise-grade automated backups and system restore protocols.",
-                  style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
+                  style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -242,61 +247,90 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
     );
   }
 
-  Widget _buildPrimaryStatusCard(bool busy) {
+  Widget _buildPrimaryStatusSection(bool busy) {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         color: kBrandBrown,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [BoxShadow(color: kBrandBrown.withValues(alpha: 0.2), blurRadius: 20, offset: const Offset(0, 10))],
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(color: kBrandBrown.withValues(alpha: 0.2), blurRadius: 20, offset: const Offset(0, 10)),
+        ],
       ),
       child: Column(
         children: [
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), shape: BoxShape.circle),
-                child: const Icon(Icons.security_rounded, color: Colors.white, size: 32),
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 2),
+                ),
+                child: const Icon(Icons.shield_rounded, color: kBrandOlive, size: 36),
               ),
-              const SizedBox(width: 24),
+              const SizedBox(width: 28),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("DATABASE INTEGRITY STATUS",
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white70, letterSpacing: 1.5)),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(color: kBrandOlive.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(20)),
+                      child: const Text("ENCRYPTED ARCHIVE ACTIVE",
+                        style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kBrandOlive, letterSpacing: 1.5)),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text("Infrastructure Guard", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.5)),
                     const SizedBox(height: 4),
-                    const Text("Verified & Protected", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white)),
-                    const SizedBox(height: 4),
-                    Text("Last Synchronization: ${_formatLastBackup()}", style: const TextStyle(fontSize: 13, color: Colors.white60)),
+                    Text("LAST SYSTEM AUDIT: ${_formatLastBackup().toUpperCase()}", style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.5), fontWeight: FontWeight.w800, letterSpacing: 0.5)),
                   ],
                 ),
               ),
               if (!busy)
                 ElevatedButton.icon(
                   onPressed: _runBackup,
-                  icon: const Icon(Icons.sync_rounded),
-                  label: const Text("SYNC CLOUD NOW", style: TextStyle(fontWeight: FontWeight.w900)),
+                  icon: const Icon(Icons.cloud_sync_rounded, size: 18),
+                  label: const Text("EXECUTE SYNC", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: kBrandBrown,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
                   ),
                 ),
             ],
           ),
           if (busy) ...[
-            const SizedBox(height: 28),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: LinearProgressIndicator(value: _progress, minHeight: 12, backgroundColor: Colors.white12, color: kBrandOlive),
+            const SizedBox(height: 32),
+            Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: LinearProgressIndicator(value: _progress, minHeight: 16, backgroundColor: Colors.white.withValues(alpha: 0.05), color: kBrandOlive),
+                ),
+                Positioned.fill(
+                  child: Center(
+                    child: Text("${(_progress * 100).toInt()}% COMPLETED",
+                      style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1)),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              _isBackingUp ? "EXFILTRATING SYSTEM STATE... ${(_progress * 100).toInt()}%" : "RECONSTRUCTING DATA STRUCTURES... ${(_progress * 100).toInt()}%",
-              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white70, letterSpacing: 1),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, color: kBrandOlive)),
+                const SizedBox(width: 12),
+                Text(
+                  _isBackingUp ? "ENCRYPTING DATA BLOCKS..." : "RECONSTRUCTING SYSTEM ARCHIVE...",
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white.withValues(alpha: 0.7), letterSpacing: 1.5),
+                ),
+              ],
             ),
           ],
         ],
@@ -309,7 +343,7 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionLabel("AUTOMATION POLICY"),
-        const SizedBox(height: 20),
+        const SizedBox(height: 24),
         _buildControlTile(
           title: "Automated Cloud Sync",
           subtitle: "Periodically upload snapshots to encrypted server storage.",
@@ -353,21 +387,21 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionLabel("VERSION HISTORY"),
-        const SizedBox(height: 20),
+        _sectionLabel("RECOVERY POINTS"),
+        const SizedBox(height: 24),
         Container(
           decoration: BoxDecoration(
-            color: Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey.shade100),
+            color: const Color(0xFFF9FAFB),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFFEEEEEE)),
           ),
           child: _history.isEmpty
-            ? const Padding(padding: EdgeInsets.all(40), child: Center(child: Text("No recovery points found.", style: TextStyle(color: Colors.grey))))
+            ? const Padding(padding: EdgeInsets.all(48), child: Center(child: Text("No recovery points detected.", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic))))
             : ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: _history.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
+                separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFEEEEEE)),
                 itemBuilder: (context, index) => _buildHistoryTile(_history[index], busy),
               ),
         ),
@@ -377,17 +411,23 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
 
   Widget _buildHistoryTile(_BackupItem item, bool busy) {
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       leading: Container(
         padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
-        child: const Icon(Icons.history_rounded, color: Colors.grey, size: 20),
+        decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: const Color(0xFFEEEEEE))),
+        child: const Icon(Icons.history_rounded, color: kBrandBrown, size: 20),
       ),
-      title: Text(item.label, style: const TextStyle(fontWeight: FontWeight.w900, color: kBrandBrown, fontSize: 14)),
-      subtitle: Text("${item.date} • ${item.size}", style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
-      trailing: TextButton(
+      title: Text(item.label, style: const TextStyle(fontWeight: FontWeight.w800, color: kBrandBrown, fontSize: 14)),
+      subtitle: Text("${item.date} • ${item.size}", style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+      trailing: OutlinedButton(
         onPressed: busy ? null : () => _runRestore(item),
-        child: const Text("RESTORE", style: TextStyle(fontWeight: FontWeight.w900, color: kBrandOlive, fontSize: 12)),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: kBrandOlive,
+          side: BorderSide(color: kBrandOlive.withValues(alpha: 0.3)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+        ),
+        child: const Text("RESTORE", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5)),
       ),
     );
   }
@@ -404,8 +444,8 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: kBrandOlive.withValues(alpha: 0.05), shape: BoxShape.circle),
-            child: Icon(icon, color: kBrandOlive, size: 22),
+            decoration: BoxDecoration(color: kBrandBrown.withValues(alpha: 0.05), shape: BoxShape.circle),
+            child: Icon(icon, color: kBrandBrown, size: 22),
           ),
           const SizedBox(width: 20),
           Expanded(
@@ -426,6 +466,6 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
   }
 
   Widget _sectionLabel(String text) {
-    return Text(text, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.2));
+    return Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kBrandOlive.withValues(alpha: 0.8), letterSpacing: 1.5));
   }
 }

@@ -43,7 +43,7 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage = "Synchronisation interrupted. Retrying...";
+          _errorMessage = "Connection to notification server interrupted.";
         });
       }
     }
@@ -88,163 +88,303 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: Colors.white,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFB),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildProfessionalHeader(),
+          _buildExecutiveHeader(),
+          _buildSummaryBar(),
           Expanded(
             child: _isLoading 
-              ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
+              ? const Center(child: CircularProgressIndicator(color: kBrandOlive, strokeWidth: 3))
               : _errorMessage != null
                 ? _buildErrorState()
-                : _buildNotificationList(),
+                : _buildNotificationContent(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildProfessionalHeader() {
+  Widget _buildExecutiveHeader() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(32, 28, 32, 24),
-      decoration: BoxDecoration(
+      padding: const EdgeInsets.all(32),
+      decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: kBrandBrown.withOpacity(0.08), borderRadius: BorderRadius.circular(16)),
-            child: const Icon(Icons.history_toggle_off_rounded, color: kBrandBrown, size: 28),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: kBrandBrown.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.notifications_active_rounded, color: kBrandBrown, size: 28),
           ),
           const SizedBox(width: 20),
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("System Activity Log", 
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                Text("Real-time telemetry and administrative audit trails.", 
+                Text("Communications & Alerts", 
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.8)),
+                Text("Centralized administration audit logs and system broadcasts.", 
                   style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
-          _buildHeaderActions(),
+          _buildActionToggles(),
         ],
       ),
     );
   }
 
-  Widget _buildHeaderActions() {
+  Widget _buildActionToggles() {
     return Row(
       children: [
-        _filterToggle("All Activity", 'all'),
-        const SizedBox(width: 12),
-        _filterToggle("Action Required", 'unread'),
+        _tabButton("ALL LOGS", 'all'),
+        const SizedBox(width: 8),
+        _tabButton("UNREAD", 'unread'),
         const SizedBox(width: 24),
-        const VerticalDivider(width: 1, indent: 10, endIndent: 10),
-        const SizedBox(width: 12),
-        IconButton(
+        Container(width: 1, height: 32, color: Colors.grey.shade200),
+        const SizedBox(width: 24),
+        OutlinedButton.icon(
           onPressed: _fetchNotifications,
-          icon: const Icon(Icons.refresh_rounded, color: kBrandOlive),
-          tooltip: "Refresh Audit",
-        ),
-        if (_notifications.any((n) => !(n['is_read'] ?? false)))
-          IconButton(
-            onPressed: _markAllAsRead,
-            icon: const Icon(Icons.done_all_rounded, color: kBrandOlive),
-            tooltip: "Mark all as read",
+          icon: const Icon(Icons.sync_rounded, size: 18),
+          label: const Text("SYNC"),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: kBrandOlive,
+            side: BorderSide(color: kBrandOlive.withOpacity(0.3)),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
+        ),
+        if (_notifications.any((n) => !(n['is_read'] ?? false))) ...[
+          const SizedBox(width: 12),
+          ElevatedButton.icon(
+            onPressed: _markAllAsRead,
+            icon: const Icon(Icons.done_all_rounded, size: 18),
+            label: const Text("MARK ALL READ"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kBrandOlive,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+        ],
       ],
     );
   }
 
-  Widget _filterToggle(String label, String value) {
-    final isSelected = _filter == value;
+  Widget _tabButton(String label, String value) {
+    final bool isSelected = _filter == value;
     return GestureDetector(
       onTap: () => setState(() => _filter = value),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected ? kBrandBrown : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: isSelected ? kBrandBrown : Colors.grey.shade200),
+          borderRadius: BorderRadius.circular(8),
         ),
-        child: Text(label.toUpperCase(), 
-          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isSelected ? Colors.white : Colors.grey, letterSpacing: 0.5)),
+        child: Text(label, 
+          style: TextStyle(
+            fontSize: 11, 
+            fontWeight: FontWeight.w900, 
+            color: isSelected ? Colors.white : Colors.grey.shade600,
+            letterSpacing: 1.0,
+          )),
       ),
     );
   }
 
-  Widget _buildNotificationList() {
+  Widget _buildSummaryBar() {
+    final unreadCount = _notifications.where((n) => !(n['is_read'] ?? false)).length;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+      color: Colors.white,
+      child: Row(
+        children: [
+          _summaryItem(Icons.mark_as_unread_rounded, "$unreadCount Pending Alerts", kBrandOrange),
+          const SizedBox(width: 32),
+          _summaryItem(Icons.assessment_outlined, "${_notifications.length} Total Entries", kBrandBrown),
+          const Spacer(),
+          Text(
+            "Last Synced: ${DateFormat('HH:mm:ss').format(DateTime.now())}",
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey.shade400),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryItem(IconData icon, String text, Color color) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: color.withOpacity(0.6)),
+        const SizedBox(width: 8),
+        Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kBrandBrown.withOpacity(0.7))),
+      ],
+    );
+  }
+
+  Widget _buildNotificationContent() {
     final visible = _filteredNotifications;
     if (visible.isEmpty) return _buildEmptyState();
 
-    return RefreshIndicator(
-      onRefresh: _fetchNotifications,
-      color: kBrandOlive,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(32),
-        itemCount: visible.length,
-        itemBuilder: (context, index) => _buildAuditTile(visible[index]),
+    // Grouping by relative date
+    final Map<String, List<dynamic>> grouped = {};
+    for (var n in visible) {
+      DateTime date = DateTime.now();
+      try {
+        final dateStr = n['createdAt'] ?? n['created_at'];
+        if (dateStr != null) date = DateTime.parse(dateStr).toLocal();
+      } catch (_) {}
+      
+      String dayKey;
+      final now = DateTime.now();
+      if (date.year == now.year && date.month == now.month && date.day == now.day) {
+        dayKey = "TODAY";
+      } else if (date.year == now.year && date.month == now.month && date.day == now.day - 1) {
+        dayKey = "YESTERDAY";
+      } else {
+        dayKey = DateFormat('MMMM dd, yyyy').format(date).toUpperCase();
+      }
+      
+      grouped.putIfAbsent(dayKey, () => []).add(n);
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(32, 8, 32, 40),
+      itemCount: grouped.keys.length,
+      itemBuilder: (context, index) {
+        final key = grouped.keys.elementAt(index);
+        final items = grouped[key]!;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 4),
+              child: Text(key, 
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1.5)),
+            ),
+            ...items.map((item) => _buildProfessionalTile(item)),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildProfessionalTile(dynamic n) {
+    final bool isRead = n['isRead'] ?? n['is_read'] ?? false;
+    final String type = n['type'] ?? 'info';
+    final String id = (n['id'] ?? n['_id'] ?? '').toString();
+    final String? actor = n['actorName'] ?? n['actor_name'];
+    
+    DateTime createdAt = DateTime.now();
+    try {
+      final dateStr = n['createdAt'] ?? n['created_at'];
+      if (dateStr != null) createdAt = DateTime.parse(dateStr).toLocal();
+    } catch (_) {}
+    
+    Color severityColor = kBrandOlive;
+    IconData icon = Icons.info_outline_rounded;
+    if (type == 'success') { severityColor = Colors.green.shade600; icon = Icons.verified_user_rounded; }
+    if (type == 'warning') { severityColor = Colors.amber.shade800; icon = Icons.report_problem_rounded; }
+    if (type == 'error') { severityColor = Colors.red.shade700; icon = Icons.gavel_rounded; }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: isRead ? Colors.grey.shade100 : severityColor.withOpacity(0.2)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: IntrinsicHeight(
+          child: Row(
+            children: [
+              Container(
+                width: 6,
+                color: isRead ? Colors.grey.shade200 : severityColor,
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(n['message'] ?? '', 
+                              style: TextStyle(
+                                fontWeight: isRead ? FontWeight.w600 : FontWeight.w800, 
+                                color: kBrandBrown, 
+                                fontSize: 15,
+                                height: 1.4,
+                              )),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                if (actor != null) ...[
+                                  Text("BY $actor".toUpperCase(), 
+                                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBrandBrown.withOpacity(0.4), letterSpacing: 0.5)),
+                                  const SizedBox(width: 12),
+                                  const Text("•", style: TextStyle(color: Colors.grey)),
+                                  const SizedBox(width: 12),
+                                ],
+                                Text(DateFormat('HH:mm:ss').format(createdAt), 
+                                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Column(
+                        children: [
+                          if (!isRead)
+                            _miniAction(Icons.check_circle_outline_rounded, "READ", severityColor, () => _markAsRead(id)),
+                          const Spacer(),
+                          _miniAction(Icons.delete_sweep_outlined, "PURGE", Colors.red.shade400, () => _deleteNotification(id)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildAuditTile(dynamic n) {
-    final bool isRead = n['is_read'] ?? false;
-    final String type = n['type'] ?? 'info';
-    final String id = n['id'].toString();
-    final String? actor = n['actor_name'];
-    final DateTime createdAt = DateTime.parse(n['created_at']).toLocal();
-    
-    Color accentColor = kBrandOlive;
-    IconData icon = Icons.info_outline_rounded;
-    if (type == 'success') { accentColor = Colors.green; icon = Icons.check_circle_outline_rounded; }
-    if (type == 'warning') { accentColor = kBrandOrange; icon = Icons.warning_amber_rounded; }
-    if (type == 'error') { accentColor = Colors.red; icon = Icons.error_outline_rounded; }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: isRead ? Colors.white : accentColor.withOpacity(0.04),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isRead ? Colors.grey.shade100 : accentColor.withOpacity(0.15)),
-        boxShadow: isRead ? [] : [BoxShadow(color: accentColor.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        leading: Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(color: accentColor.withOpacity(0.1), shape: BoxShape.circle),
-          child: Icon(icon, color: accentColor, size: 20),
-        ),
-        title: Text(n['message'] ?? '', 
-          style: TextStyle(fontWeight: isRead ? FontWeight.w500 : FontWeight.w900, color: kBrandBrown, fontSize: 15)),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: Row(
-            children: [
-              if (actor != null) ...[
-                Text(actor.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: accentColor, letterSpacing: 0.5)),
-                const SizedBox(width: 12),
-                const Text("•", style: TextStyle(color: Colors.grey)),
-                const SizedBox(width: 12),
-              ],
-              Text(DateFormat('dd MMM yyyy, HH:mm:ss').format(createdAt), 
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
-            ],
-          ),
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
+  Widget _miniAction(IconData icon, String label, Color color, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(4),
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: Column(
           children: [
-            if (!isRead)
-              IconButton(icon: const Icon(Icons.mark_chat_read_outlined, size: 20), onPressed: () => _markAsRead(id), tooltip: "Mark as read"),
-            IconButton(icon: const Icon(Icons.delete_outline_rounded, size: 20, color: Colors.redAccent), onPressed: () => _deleteNotification(id), tooltip: "Delete log"),
+            Icon(icon, size: 18, color: color.withOpacity(0.6)),
+            Text(label, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: color.withOpacity(0.6))),
           ],
         ),
       ),
@@ -256,10 +396,16 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.auto_awesome_motion_rounded, size: 80, color: Colors.grey.shade100),
+          Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: Colors.grey.shade100, width: 4)),
+            child: Icon(Icons.inbox_rounded, size: 64, color: Colors.grey.shade200),
+          ),
           const SizedBox(height: 24),
-          Text(_filter == 'unread' ? "Zero pending actions" : "Activity log clear", 
-            style: TextStyle(color: Colors.grey.shade300, fontSize: 20, fontWeight: FontWeight.bold)),
+          Text(_filter == 'unread' ? "NO PENDING ALERTS" : "ACTIVITY LOG CLEAR", 
+            style: TextStyle(color: Colors.grey.shade400, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+          const SizedBox(height: 8),
+          Text("All systems are operational and quiet.", style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
         ],
       ),
     );
@@ -270,11 +416,15 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.cloud_off_rounded, size: 60, color: Colors.redAccent),
+          Icon(Icons.wifi_off_rounded, size: 48, color: Colors.red.shade200),
           const SizedBox(height: 16),
-          Text(_errorMessage!, style: const TextStyle(color: Colors.grey)),
+          Text(_errorMessage!, style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
           const SizedBox(height: 24),
-          ElevatedButton(onPressed: _fetchNotifications, child: const Text("Reconnect")),
+          ElevatedButton(
+            onPressed: _fetchNotifications, 
+            style: ElevatedButton.styleFrom(backgroundColor: kBrandBrown),
+            child: const Text("FORCE RECONNECT"),
+          ),
         ],
       ),
     );

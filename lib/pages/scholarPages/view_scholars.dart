@@ -15,6 +15,12 @@ class ViewScholarsPage extends StatelessWidget {
         onViewProfile: onViewProfile,
         onViewGraduates: onViewGraduates,
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: onRegisterScholar ?? () => Navigator.pushNamed(context, '/registerScholar'),
+        backgroundColor: const Color(0xFF9AB334), // kBrandOlive
+        icon: const Icon(Icons.person_add_rounded, color: Colors.white),
+        label: const Text("REGISTER SCHOLAR", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      ),
     );
   }
 }

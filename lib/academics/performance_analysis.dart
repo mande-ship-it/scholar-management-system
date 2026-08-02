@@ -50,11 +50,12 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
           kStudents.clear();
           for (var item in data) {
             kStudents.add(Student(
-              id: item['id'].toString(),
+              id: (item['id'] ?? item['_id'] ?? '').toString(),
               scholarId: item['scholar_id'] ?? 'N/A',
               name: item['full_name'] ?? 'N/A',
-              age: item['age'] ?? 16,
-              schoolType: item['school_type'] == 'University' ? SchoolType.university : SchoolType.secondary,
+              status: item['status'] ?? 'Active',
+              age: item['age'] != null ? int.tryParse(item['age'].toString()) ?? 16 : 16,
+              schoolType: item['school_type'] == 'University' || item['schoolType'] == 'University' ? SchoolType.university : SchoolType.secondary,
               schoolName: item['display_school_name'] ?? 'N/A',
               currentClass: item['academic_year'] ?? 'N/A',
             ));
@@ -76,35 +77,19 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
         final res = await ApiService.getResultsByScholar(_selectedId!);
         if (res.statusCode == 200) {
           final List<dynamic> data = res.data['data'] ?? [];
-          _analysisData = data.map((json) => ResultRecord(
-            studentId: json['scholar_id'].toString(),
-            code: json['subject_code'] ?? 'N/A',
-            subject: json['subject_name'] ?? 'N/A',
-            marks: double.tryParse(json['marks'].toString()) ?? 0.0,
-            gpa: json['gpa'] != null ? double.tryParse(json['gpa'].toString()) : null,
-            points: json['points'] != null ? double.tryParse(json['points'].toString()) : null,
-            year: json['academic_year'].toString(),
-            term: json['term'],
-            semester: json['semester'],
-          )).toList();
+          _analysisData = data.map((json) => ResultRecord.fromMap(json)).toList();
         }
       } else {
         final res = await ApiService.getResultsBySchool(_selectedId!);
         if (res.statusCode == 200) {
           final List<dynamic> data = res.data['data'] ?? [];
-          _analysisData = data.map((json) => ResultRecord(
-            studentId: json['scholar_id'].toString(),
-            code: json['subject_code'] ?? 'N/A',
-            subject: json['subject_name'] ?? 'N/A',
-            marks: double.tryParse(json['marks'].toString()) ?? 0.0,
-            gpa: json['gpa'] != null ? double.tryParse(json['gpa'].toString()) : null,
-            points: json['points'] != null ? double.tryParse(json['points'].toString()) : null,
-            year: json['academic_year'].toString(),
-            term: json['term'],
-            semester: json['semester'],
-          )).toList();
+          final allResults = data.map((json) => ResultRecord.fromMap(json)).toList();
+          
+          // Filter analysis to only include active scholars
+          final activeScholarIds = kStudents.where((s) => s.status == 'Active').map((s) => s.id).toSet();
+          _analysisData = allResults.where((r) => activeScholarIds.contains(r.studentId)).toList();
         }
-        _relevantStudents = kStudents.where((s) => s.schoolName == _selectedId).toList();
+        _relevantStudents = kStudents.where((s) => s.schoolName == _selectedId && s.status == 'Active').toList();
       }
     } catch (e) {
       debugPrint('Error fetching analysis data: $e');
@@ -281,8 +266,9 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
       displayStringForOption: (s) => s.name,
       optionsBuilder: (textValue) {
         final query = textValue.text.trim().toLowerCase();
-        if (query.isEmpty) return kStudents;
-        return kStudents.where((s) => s.name.toLowerCase().contains(query) || s.scholarId.toLowerCase().contains(query));
+        final activeStudents = kStudents.where((s) => s.status == 'Active').toList();
+        if (query.isEmpty) return activeStudents;
+        return activeStudents.where((s) => s.name.toLowerCase().contains(query) || s.scholarId.toLowerCase().contains(query));
       },
       onSelected: (s) {
         setState(() => _selectedId = s.id);
@@ -330,9 +316,12 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
   }
 
   Widget _buildAnalysisDashboard() {
+    final startY = int.tryParse(_startYear) ?? 0;
+    final endY = int.tryParse(_endYear) ?? 9999;
+
     final filteredData = _analysisData.where((r) {
-      final y = int.parse(r.year);
-      return y >= int.parse(_startYear) && y <= int.parse(_endYear);
+      final y = int.tryParse(r.year) ?? 0;
+      return y >= startY && y <= endY;
     }).toList();
 
     if (filteredData.isEmpty) {

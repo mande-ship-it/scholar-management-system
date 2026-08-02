@@ -43,6 +43,7 @@ class _OrganisationProfileComponentState
   }
 
   Future<void> _fetchProfile() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final response = await ApiService.getOrganisationProfile();
@@ -127,15 +128,21 @@ class _OrganisationProfileComponentState
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: Colors.white,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: _isLoading 
-        ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
+        ? const Center(child: CircularProgressIndicator(color: kBrandOlive, strokeWidth: 3))
         : Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            _buildExecutiveHeader(),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(40, 32, 40, 40),
+                padding: const EdgeInsets.all(40),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 1000),
@@ -144,20 +151,20 @@ class _OrganisationProfileComponentState
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildProfileOverviewCard(),
-                          const SizedBox(height: 32),
+                          _buildProfileOverviewSection(),
+                          const SizedBox(height: 48),
 
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Expanded(flex: 3, child: _buildGeneralSettingsSection()),
-                              const SizedBox(width: 32),
+                              const SizedBox(width: 40),
                               Expanded(flex: 2, child: _buildContactSettingsSection()),
                             ],
                           ),
 
-                          const SizedBox(height: 48),
-                          _buildSubmitSection(),
+                          const SizedBox(height: 60),
+                          _buildSubmitAction(),
                         ],
                       ),
                     ),
@@ -170,74 +177,32 @@ class _OrganisationProfileComponentState
     );
   }
 
-  Widget _buildProfileOverviewCard() {
+  Widget _buildExecutiveHeader() {
     return Container(
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: kBrandBrown.withValues(alpha: 0.03),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: kBrandBrown.withValues(alpha: 0.08)),
+      padding: const EdgeInsets.all(32),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: Row(
         children: [
-          Stack(
-            children: [
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: kBrandBrown,
-                  borderRadius: BorderRadius.circular(24),
-                  image: const DecorationImage(
-                    image: AssetImage('assets/images/age-logo.png'),
-                    fit: BoxFit.contain,
-                  ),
-                ),
-                padding: const EdgeInsets.all(12),
-                child: _nameController.text.isEmpty
-                  ? const Icon(Icons.business_rounded, color: Colors.white, size: 40)
-                  : null,
-              ),
-              Positioned(
-                bottom: -4,
-                right: -4,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(color: kBrandOrange, shape: BoxShape.circle),
-                  child: const Icon(Icons.camera_alt_rounded, size: 16, color: Colors.white),
-                ),
-              ),
-            ],
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: kBrandBrown.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.corporate_fare_rounded, color: kBrandBrown, size: 28),
           ),
-          const SizedBox(width: 28),
-          Expanded(
+          const SizedBox(width: 20),
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Text(_nameController.text.isEmpty ? "Institution Name" : _nameController.text,
-                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kBrandBrown)),
-                    if (_isVerified) ...[
-                      const SizedBox(width: 10),
-                      const Tooltip(
-                        message: "Verified Institution",
-                        child: Icon(Icons.verified_rounded, size: 22, color: kBrandOlive),
-                      ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    _badge("REG ID: $_orgId", Icons.fingerprint_rounded),
-                    const SizedBox(width: 12),
-                    _badge("EST: $_createdDate", Icons.event_available_rounded),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(_addressController.text.isEmpty ? "Location not set" : _addressController.text,
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+                Text("Organisation Profile", 
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.8)),
+                Text("Manage institutional identity, authentication and contact channels.", 
+                  style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -246,9 +211,108 @@ class _OrganisationProfileComponentState
     );
   }
 
-  Widget _badge(String text, IconData icon) {
+  Widget _buildProfileOverviewSection() {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+      ),
+      child: Row(
+        children: [
+          // Round Logo
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.grey.shade200, width: 4),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                )
+              ],
+            ),
+            child: ClipOval(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Image.asset(
+                  'assets/images/age-logo.png',
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 40),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(_nameController.text.isEmpty ? "Institutional Entity" : _nameController.text.toUpperCase(),
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                    if (_isVerified) ...[
+                      const SizedBox(width: 12),
+                      _verifiedBadge(),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 8,
+                  children: [
+                    _metaInfoChip("ID: $_orgId", Icons.fingerprint_rounded),
+                    _metaInfoChip("ESTABLISHED: $_createdDate", Icons.event_available_rounded),
+                    _metaInfoChip(_orgType.toUpperCase(), Icons.category_rounded),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    const Icon(Icons.location_on_rounded, size: 16, color: kBrandOrange),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(_addressController.text.isEmpty ? "Headquarters Address Pending" : _addressController.text,
+                        style: TextStyle(fontSize: 14, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _verifiedBadge() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: kBrandOlive.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: kBrandOlive.withValues(alpha: 0.2)),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.verified_rounded, size: 14, color: kBrandOlive),
+          SizedBox(width: 6),
+          Text("VERIFIED", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBrandOlive, letterSpacing: 1)),
+        ],
+      ),
+    );
+  }
+
+  Widget _metaInfoChip(String text, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
@@ -257,8 +321,8 @@ class _OrganisationProfileComponentState
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: kBrandOlive),
-          const SizedBox(width: 6),
+          Icon(icon, size: 14, color: kBrandBrown.withValues(alpha: 0.5)),
+          const SizedBox(width: 8),
           Text(text, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kBrandBrown)),
         ],
       ),
@@ -269,8 +333,8 @@ class _OrganisationProfileComponentState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionLabel("INSTITUTIONAL IDENTITY"),
-        const SizedBox(height: 20),
+        _sectionLabel("ACADEMIC & LEGAL IDENTITY"),
+        const SizedBox(height: 24),
         _buildTextField(
           controller: _nameController,
           label: "Full Registered Name",
@@ -280,17 +344,17 @@ class _OrganisationProfileComponentState
         ),
         const SizedBox(height: 20),
         _buildDropdownField(
-          label: "Entity Type",
+          label: "Organisation Type",
           value: _orgType,
           options: _orgTypes,
-          icon: Icons.category_rounded,
+          icon: Icons.account_tree_rounded,
           onChanged: (v) => setState(() => _orgType = v!),
         ),
         const SizedBox(height: 20),
         _buildTextField(
           controller: _addressController,
-          label: "Physical Office Address",
-          hint: "Street, City, Country",
+          label: "Registered Physical Address",
+          hint: "Postal Box, City, Region",
           icon: Icons.location_on_rounded,
           maxLines: 2,
         ),
@@ -302,19 +366,19 @@ class _OrganisationProfileComponentState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _sectionLabel("COMMUNICATION CHANNELS"),
-        const SizedBox(height: 20),
+        _sectionLabel("DIGITAL FOOTPRINT"),
+        const SizedBox(height: 24),
         _buildTextField(
           controller: _emailController,
-          label: "Official Email",
-          hint: "info@organisation.org",
+          label: "Corporate Email Address",
+          hint: "contact@organisation.org",
           icon: Icons.alternate_email_rounded,
           keyboardType: TextInputType.emailAddress,
         ),
         const SizedBox(height: 20),
         _buildTextField(
           controller: _phoneController,
-          label: "Primary Contact Number",
+          label: "Switchboard / Primary Phone",
           hint: "+265...",
           icon: Icons.phone_android_rounded,
           keyboardType: TextInputType.phone,
@@ -322,7 +386,7 @@ class _OrganisationProfileComponentState
         const SizedBox(height: 20),
         _buildTextField(
           controller: _websiteController,
-          label: "Public Website",
+          label: "Official Web Domain",
           hint: "www.organisation.org",
           icon: Icons.language_rounded,
           keyboardType: TextInputType.url,
@@ -331,31 +395,29 @@ class _OrganisationProfileComponentState
     );
   }
 
-  Widget _buildSubmitSection() {
-    return Center(
-      child: SizedBox(
-        width: 300,
-        height: 56,
-        child: ElevatedButton.icon(
-          onPressed: _isSaving ? null : _saveProfile,
-          icon: _isSaving
-            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-            : const Icon(Icons.verified_user_rounded),
-          label: Text(_isSaving ? "SYNCING..." : "UPDATE PROFILE",
-            style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: kBrandOlive,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          ),
+  Widget _buildSubmitAction() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: _isSaving ? null : _saveProfile,
+        icon: _isSaving
+          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+          : const Icon(Icons.verified_user_rounded, size: 20),
+        label: Text(_isSaving ? "SYNCHRONIZING..." : "FINALIZE & SAVE PROFILE",
+          style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.0, fontSize: 13)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: kBrandOlive,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 22),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          elevation: 0,
         ),
       ),
     );
   }
 
   Widget _sectionLabel(String text) {
-    return Text(text, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.2));
+    return Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kBrandOlive.withValues(alpha: 0.8), letterSpacing: 1.5));
   }
 
   Widget _buildTextField({
@@ -373,16 +435,16 @@ class _OrganisationProfileComponentState
       keyboardType: keyboardType,
       validator: validator,
       onChanged: (v) => setState(() {}),
+      style: const TextStyle(fontWeight: FontWeight.w600, color: kBrandBrown),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon: Icon(icon, size: 20, color: kBrandBrown.withValues(alpha: 0.5)),
+        prefixIcon: Icon(icon, size: 20, color: kBrandBrown.withValues(alpha: 0.4)),
         filled: true,
-        fillColor: Colors.grey.shade50,
-        labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBrandBrown),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade200)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade200)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: kBrandOlive, width: 2)),
+        fillColor: Colors.white,
+        labelStyle: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w500, fontSize: 14),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kBrandOlive, width: 2)),
       ),
     );
   }
@@ -395,18 +457,18 @@ class _OrganisationProfileComponentState
     required ValueChanged<String?> onChanged,
   }) {
     return DropdownButtonFormField<String>(
-      value: value,
-      items: options.map((o) => DropdownMenuItem(value: o, child: Text(o, style: const TextStyle(fontSize: 14)))).toList(),
+      initialValue: value,
+      items: options.map((o) => DropdownMenuItem(value: o, child: Text(o, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
       onChanged: onChanged,
+      style: const TextStyle(fontWeight: FontWeight.w600, color: kBrandBrown),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, size: 20, color: kBrandBrown.withValues(alpha: 0.5)),
+        prefixIcon: Icon(icon, size: 20, color: kBrandBrown.withValues(alpha: 0.4)),
         filled: true,
-        fillColor: Colors.grey.shade50,
-        labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: kBrandBrown),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade200)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: Colors.grey.shade200)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: kBrandOlive, width: 2)),
+        fillColor: Colors.white,
+        labelStyle: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w500, fontSize: 14),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kBrandOlive, width: 2)),
       ),
     );
   }

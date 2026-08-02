@@ -61,6 +61,31 @@ class Student {
   final List<dynamic> documents;
   final List<dynamic> payments;
 
+  int get calculatedRemainingYears {
+    if (['Graduated', 'Alumni', 'Completed'].contains(status)) return 0;
+    
+    final end = int.tryParse(endYear);
+    if (end == null) return 0;
+
+    final currentYear = DateTime.now().year;
+    
+    // Remaining = (End Year - Current Year) + 1
+    final remaining = (end - currentYear) + 1;
+    return remaining > 0 ? remaining : 0;
+  }
+
+  String get calculatedAcademicYear {
+    final start = int.tryParse(startYear);
+    if (start == null) return currentClass;
+
+    final cur = DateTime.now().year;
+    final yearOfStudy = (cur - start) + 1;
+    if (yearOfStudy <= 0) return currentClass;
+
+    final prefix = schoolType == SchoolType.university ? 'Year' : 'Form';
+    return "$prefix $yearOfStudy";
+  }
+
   const Student({
     required this.id,
     required this.scholarId,
@@ -188,6 +213,20 @@ class ResultRecord {
     this.term,
     this.semester,
   });
+
+  factory ResultRecord.fromMap(Map<String, dynamic> map) {
+    return ResultRecord(
+      studentId: (map['scholar_id'] ?? map['scholarId'] ?? '').toString(),
+      code: (map['subject_code'] ?? map['code'] ?? 'N/A').toString(),
+      subject: (map['subject_name'] ?? map['subject'] ?? 'N/A').toString(),
+      marks: double.tryParse(map['marks']?.toString() ?? '0') ?? 0.0,
+      gpa: map['gpa'] != null ? double.tryParse(map['gpa'].toString()) : null,
+      points: map['points'] != null ? double.tryParse(map['points'].toString()) : null,
+      year: (map['academic_year'] ?? map['year'] ?? '').toString(),
+      term: map['term'],
+      semester: map['semester'],
+    );
+  }
 
   /// The grade point value regardless of secondary/university (whichever is set).
   double get gradePoint => gpa ?? points ?? 0;
@@ -335,4 +374,33 @@ double calculateAnnualGpa(List<ResultRecord> semester1, List<ResultRecord> semes
   final all = [...semester1, ...semester2];
   if (all.isEmpty) return 0;
   return all.fold(0.0, (sum, r) => sum + (r.gpa ?? 0)) / all.length;
+}
+
+/// Simple Translation Engine for Chichewa support
+class Translator {
+  static String currentLanguage = "English (Malawi)";
+
+  static const Map<String, Map<String, String>> _dictionary = {
+    'Chichewa': {
+      'Dashboard': 'Dati ya Tsamba',
+      'Scholars': 'Ophunzira',
+      'Schools': 'Masukulu',
+      'Settings': 'Zosintha',
+      'Overview': 'Chidule',
+      'System Control Center': 'Likulu la Maendetsedwe',
+      'Pending Approvals': 'Zodikira Chivomerezo',
+      'Manage Users': 'Samalirani Ogwiritsa Ntchito',
+      'Total Users': 'Onse Ogwiritsa Ntchito',
+      'Active Sponsors': 'Othandizira',
+      'Intelligence Hub': 'Likulu la Nzeru',
+      'Executive Overview': 'Chidule cha Akuluakulu',
+      'Data Continuity': 'Kusungika kwa Deta',
+      'Security Profile': 'Mbiri ya Chitetezo',
+    }
+  };
+
+  static String translate(String key) {
+    if (currentLanguage == "English (Malawi)" || currentLanguage == "English (UK)") return key;
+    return _dictionary[currentLanguage]?[key] ?? key;
+  }
 }
