@@ -20,6 +20,7 @@ import 'pages/scholarPages/register_scholar.dart';
 import 'pages/scholarPages/view_scholars.dart';
 import 'pages/scholarPages/scholar_profile.dart';
 import 'pages/scholarPages/scholar_stats.dart';
+import 'pages/scholarPages/promote_scholars.dart';
 import 'pages/scholarPages/graduates_page.dart';
 import 'pages/attendancePages/scholar_attendance.dart';
 
@@ -124,6 +125,7 @@ class MyApp extends StatelessWidget {
             '/scholarProfile': (context) => ScholarProfilePage(),
             '/scholarAttendance': (context) => ScholarAttendancePage(),
             '/scholars/stats': (context) => ScholarStatsPage(),
+            '/scholars/promote': (context) => const PromoteScholarsPage(),
             '/scholars/graduates': (context) => const UniversityGraduatesPage(),
 
             // Schools

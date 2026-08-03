@@ -137,6 +137,19 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     _fetchUserProfile();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    if (args != null && _fullName == "User") {
+      setState(() {
+        _fullName = args['username'] ?? "User";
+        _userRole = args['role'] ?? "Staff";
+        _profileImageUrl = args['profilePicture'];
+      });
+    }
+  }
+
   Future<void> _fetchUserProfile() async {
     try {
       final response = await ApiService.getAccountProfile();

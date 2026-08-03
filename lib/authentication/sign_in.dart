@@ -103,6 +103,7 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
                 arguments: {
                   'username': userData['fullName'] ?? _usernameController.text.trim(),
                   'role': role,
+                  'profilePicture': userData['profile_picture'] ?? userData['profilePicture'],
                 },
               );
             } else {
@@ -112,6 +113,7 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
                 arguments: {
                   'username': userData['fullName'] ?? _usernameController.text.trim(),
                   'role': role,
+                  'profilePicture': userData['profile_picture'] ?? userData['profilePicture'],
                 },
               );
             }

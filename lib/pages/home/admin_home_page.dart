@@ -126,6 +126,19 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
     _fetchNotificationCount();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    if (args != null && _fullName == "Admin") {
+      setState(() {
+        _fullName = args['username'] ?? "Admin";
+        _userRole = args['role'] ?? "Administrator";
+        _profileImageUrl = args['profilePicture'];
+      });
+    }
+  }
+
   Future<void> _checkAccess() async {
     try {
       final response = await ApiService.getAccountProfile();

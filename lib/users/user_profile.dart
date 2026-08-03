@@ -164,7 +164,7 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
       final response = await ApiService.uploadProfilePicture(file.bytes!, file.name);
       if (response.statusCode == 200) {
         setState(() {
-          _profilePicture = response.data['data']['profilePicture'];
+          _profilePicture = response.data['data']['profile_picture'];
         });
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(

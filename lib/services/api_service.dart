@@ -8,15 +8,8 @@ class ApiService {
   static const String _tokenKey = 'auth_token';
 
   static String get baseUrl {
-    if (kReleaseMode) {
-      return 'https://scholar-management-api.onrender.com';
-    }
-    // Local development: use localhost for Web/Windows, or 10.0.2.2 for Android emulator
-    if (kIsWeb) return 'http://localhost:5000';
-    try {
-      if (Platform.isAndroid) return 'http://10.0.2.2:5000';
-    } catch (_) {}
-    return 'http://localhost:5000';
+    // Force connect to Render backend
+    return 'https://age-systems-backend.onrender.com';
   }
 
   static String getFullUrl(String? path) {

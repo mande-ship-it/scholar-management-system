@@ -95,110 +95,107 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
   Widget _buildRegionCard() {
     final List regions = _data!['regions'] ?? [];
     
-    return InkWell(
-      onTap: () => Navigator.pushNamed(context, '/dashboard/map'),
-      borderRadius: BorderRadius.circular(18),
-      child: _DashboardCard(
-        title: "Regional Impact",
-        subtitle: "Scholars distribution across Malawi regions",
-        child: Column(
-          children: [
-            if (regions.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 40),
-                child: Center(child: Text("No regional data found.", style: TextStyle(color: Colors.grey, fontSize: 12))),
-              )
-            else
-              ...regions.take(3).map((r) => Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: kBrandBrown.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-                      child: const Icon(Icons.public_rounded, size: 16, color: kBrandBrown),
+    return _DashboardCard(
+      title: "Regional Impact",
+      subtitle: "Active scholars distribution across Malawi",
+      child: Column(
+        children: [
+          if (regions.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 40),
+              child: Center(child: Text("No regional data found.", style: TextStyle(color: Colors.grey, fontSize: 12))),
+            )
+          else
+            ...regions.map((r) => Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                    child: const Icon(Icons.location_city_rounded, size: 16, color: kBrandOlive),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(r['region'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textPrimary)),
+                        Text("Active Partnerships", style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
+                      ],
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(r['region'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textPrimary)),
-                          Text("Region Impact Level", style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                    ),
-                    Text("${r['count']}", style: const TextStyle(fontWeight: FontWeight.w900, color: kBrandOlive, fontSize: 18)),
-                  ],
-                ),
-              )).toList(),
-            const Divider(height: 32),
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text("EXPLORE INTERACTIVE MAP", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: 0.8)),
-                SizedBox(width: 10),
-                Icon(Icons.map_outlined, size: 16, color: kBrandBrown),
-              ],
+                  ),
+                  Text("${r['count']}", style: const TextStyle(fontWeight: FontWeight.w900, color: kBrandBrown, fontSize: 18)),
+                ],
+              ),
+            )).toList(),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.pushNamed(context, '/dashboard/map'),
+              icon: const Icon(Icons.map_outlined, size: 16),
+              label: const Text("VIEW INTERACTIVE MAP", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.8)),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: kBrandBrown,
+                side: BorderSide(color: dividerColor, width: 1.5),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildStatsGrid() {
     final summary = _data!['summary'] as List;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Force all items into one line for the "horizontal dashboard strip" look
-        int crossAxisCount = summary.length;
-        
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1.0, 
-          ),
-          itemCount: summary.length,
-          itemBuilder: (context, i) {
-            final item = summary[i];
-            final Color color = chartColors[i % chartColors.length];
-            return Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: color.withOpacity(0.2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3),
-                  )
-                ],
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(_getIcon(item['icon']), color: Colors.white.withOpacity(0.9), size: 14),
-                  const SizedBox(height: 4),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text("${item['value']}", 
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.5)),
+    return Row(
+      children: summary.map((item) {
+        final int index = summary.indexOf(item);
+        final Color color = chartColors[index % chartColors.length];
+        return Expanded(
+          child: Container(
+            margin: EdgeInsets.only(right: index == summary.length - 1 ? 0 : 16),
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: dividerColor),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.02),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ],
+            ),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    shape: BoxShape.circle,
                   ),
-                  Text(item['label'].toString().toUpperCase(), 
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 7, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.2)),
-                ],
-              ),
-            );
-          },
+                  child: Icon(_getIcon(item['icon']), color: color, size: 20),
+                ),
+                const SizedBox(height: 16),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text("${item['value']}", 
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: textPrimary, letterSpacing: -0.5)),
+                ),
+                const SizedBox(height: 4),
+                Text(item['label'].toString().toUpperCase(), 
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: textSecondary, letterSpacing: 0.5)),
+              ],
+            ),
+          ),
         );
-      }
+      }).toList(),
     );
   }
 
@@ -208,40 +205,43 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
 
     return _DashboardCard(
       title: "Scholar Cohorts",
-      subtitle: "Registered by intake year, cohort 1 = current year",
+      subtitle: "Active program registration by intake year",
       child: Row(
         children: [
           SizedBox(
             width: 170, height: 170,
-            child: PieChart(PieChartData(
-              sectionsSpace: 4,
-              centerSpaceRadius: 40,
-              sections: cohorts.asMap().entries.map((e) => PieChartSectionData(
-                color: chartColors[e.key % chartColors.length],
-                value: (e.value['count'] as int).toDouble(),
-                title: "", radius: 30,
-              )).toList(),
-            )),
+            child: cohorts.isEmpty 
+              ? const Center(child: Text("No cohort data", style: TextStyle(fontSize: 10, color: Colors.grey)))
+              : PieChart(PieChartData(
+                  sectionsSpace: 4,
+                  centerSpaceRadius: 40,
+                  sections: cohorts.asMap().entries.map((e) => PieChartSectionData(
+                    color: chartColors[e.key % chartColors.length],
+                    value: (e.value['count'] as int).toDouble(),
+                    title: "", radius: 30,
+                  )).toList(),
+                )),
           ),
-          const SizedBox(width: 20),
+          const SizedBox(width: 32),
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: cohorts.asMap().entries.map((e) {
                 final count = e.value['count'] as int;
                 final perc = total > 0 ? (count / total * 100).round() : 0;
+                final Color color = chartColors[e.key % chartColors.length];
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: Row(
                     children: [
-                      Container(width: 10, height: 10, decoration: BoxDecoration(color: chartColors[e.key % chartColors.length], shape: BoxShape.circle)),
-                      const SizedBox(width: 10),
+                      Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("Cohort ${e.value['cohort']}", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: textPrimary)),
-                            Text("$count scholars ($perc%)", style: const TextStyle(fontSize: 11.5, color: textSecondary)),
+                            Text("Enrolment ${e.value['cohort']}", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textPrimary)),
+                            Text("$count scholars ($perc%)", style: const TextStyle(fontSize: 11, color: textSecondary, fontWeight: FontWeight.w500)),
                           ],
                         ),
                       ),
@@ -263,62 +263,85 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
     final school = schools.firstWhere((s) => s['name'] == _selectedRiskSchool, orElse: () => schools[0]);
 
     final Color rColor = _getRiskColor(school['level']);
-    final String rLabel = school['level'].toString().toUpperCase() + " RISK";
+    final String rLabel = school['level'].toString().toUpperCase() + " PRIORITY";
 
     return _DashboardCard(
-      title: "Risk Indicators",
-      subtitle: "Institutional risk mapping and scholar flags",
+      title: "Institutional Oversight",
+      subtitle: "Risk mapping and performance flags for partner schools",
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: dividerColor),
-            ),
-            child: DropdownButton<String>(
-              value: _selectedRiskSchool,
-              isExpanded: true,
-              underline: const SizedBox(),
-              icon: const Icon(Icons.keyboard_arrow_down_rounded, color: textSecondary),
-              items: schools.map((s) {
-                final name = s['name']?.toString() ?? 'Unassigned';
-                return DropdownMenuItem<String>(value: name, child: Text(name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)));
-              }).toList(),
-              onChanged: (val) => setState(() => _selectedRiskSchool = val),
-            ),
+          Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: dividerColor),
+                  ),
+                  child: DropdownButton<String>(
+                    value: _selectedRiskSchool,
+                    isExpanded: true,
+                    underline: const SizedBox(),
+                    icon: const Icon(Icons.keyboard_arrow_down_rounded, color: textSecondary),
+                    items: schools.map((s) {
+                      final name = s['name']?.toString() ?? 'Unassigned';
+                      return DropdownMenuItem<String>(value: name, child: Text(name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)));
+                    }).toList(),
+                    onChanged: (val) => setState(() => _selectedRiskSchool = val),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                flex: 2,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: rColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: rColor.withOpacity(0.2)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded, size: 20, color: rColor),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("$rLabel", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: rColor, letterSpacing: 0.5)),
+                          Text("${school['atrisk']} scholars at risk", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: rColor)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Container(
-            padding: const EdgeInsets.all(18),
+            width: double.infinity,
+            padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: rColor.withOpacity(0.08), 
-              borderRadius: BorderRadius.circular(14), 
-              border: Border.all(color: rColor.withOpacity(0.25))
+              color: Colors.white, 
+              borderRadius: BorderRadius.circular(16), 
+              border: Border.all(color: dividerColor)
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const Text("SITUATIONAL ANALYSIS", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.2)),
+                const SizedBox(height: 8),
+                Text(school['reason'], style: const TextStyle(fontSize: 13.5, height: 1.6, color: textPrimary, fontWeight: FontWeight.w500)),
+                const SizedBox(height: 20),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                      decoration: BoxDecoration(color: rColor, borderRadius: BorderRadius.circular(20)),
-                      child: Text(rLabel, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
-                    ),
-                    Text("${school['avg']}% avg", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: rColor)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text(school['reason'], style: const TextStyle(fontSize: 12.5, height: 1.5, color: textPrimary, fontWeight: FontWeight.w500)),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Icon(Icons.report_problem_rounded, size: 16, color: rColor),
-                    const SizedBox(width: 8),
-                    Text("${school['atrisk']} scholars flagged", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: rColor)),
+                    Text("Institutional Average: ", style: TextStyle(fontSize: 12, color: textSecondary, fontWeight: FontWeight.w500)),
+                    Text("${school['avg']}%", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: rColor)),
                   ],
                 ),
               ],

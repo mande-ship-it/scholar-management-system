@@ -70,7 +70,7 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
 
         if (response.statusCode == 200) {
           setState(() {
-            _profileImageUrl = response.data['data']['profilePicture'];
+            _profileImageUrl = response.data['data']['profile_picture'];
           });
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(

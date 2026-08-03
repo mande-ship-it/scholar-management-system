@@ -12,7 +12,7 @@ import 'events_utils.dart';
 // PDF report generation
 // ---------------------------------------------------------------------------
 
-pdf.PdfColor _pdf(Color color) => pdf.PdfColor.fromInt(color.value);
+pdf.PdfColor _pdf(Color color) => pdf.PdfColor.fromInt(color.toARGB32());
 
 Future<pw.Document> buildEventReportPdf(OrganisationEvent event) async {
   final doc = pw.Document(
@@ -99,7 +99,7 @@ Future<pw.Document> buildEventReportPdf(OrganisationEvent event) async {
             pw.Container(
               padding: const pw.EdgeInsets.all(20),
               decoration: pw.BoxDecoration(
-                color: _pdf(kBrandCream.withOpacity(0.3)),
+                color: _pdf(kBrandCream.withValues(alpha: 0.3)),
                 borderRadius: pw.BorderRadius.circular(8),
                 border: pw.Border.all(color: cream),
               ),
@@ -413,9 +413,9 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
   Widget _summaryItem(IconData icon, String text, Color color) {
     return Row(
       children: [
-        Icon(icon, size: 16, color: color.withOpacity(0.6)),
+        Icon(icon, size: 16, color: color.withValues(alpha: 0.6)),
         const SizedBox(width: 8),
-        Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kBrandBrown.withOpacity(0.7))),
+        Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: kBrandBrown.withValues(alpha: 0.7))),
       ],
     );
   }
@@ -468,20 +468,30 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
   Widget _buildEventList(List<OrganisationEvent> events, String emptyMessage) {
     if (events.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.event_note_rounded, size: 80, color: Colors.grey.shade100),
-            const SizedBox(height: 24),
-            Text(emptyMessage, style: TextStyle(color: Colors.grey.shade400, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.event_note_rounded, size: 64, color: Colors.grey.shade200),
+              ),
+              const SizedBox(height: 24),
+              Text(emptyMessage, 
+                style: TextStyle(color: Colors.grey.shade400, fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+            ],
+          ),
         ),
       );
     }
     return ListView.separated(
       padding: const EdgeInsets.all(32),
       itemCount: events.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 12),
+      separatorBuilder: (context, index) => const SizedBox(height: 16),
       itemBuilder: (context, index) => _buildEventCard(events[index]),
     );
   }
@@ -493,86 +503,164 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade100),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.01), blurRadius: 10, offset: const Offset(0, 2))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
       ),
+      clipBehavior: Clip.antiAlias,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: () => _viewEventDetails(event),
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          child: IntrinsicHeight(
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // 1. Calendar Style Date Tile
                 Container(
-                  width: 52,
-                  height: 52,
+                  width: 80,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(12),
+                    border: Border(right: BorderSide(color: Colors.grey.shade100)),
                   ),
-                  child: Icon(event.category.icon, color: color, size: 24),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Row(
-                        children: [
-                          Text(
-                            DateFormat('MMM dd, yyyy').format(event.date).toUpperCase(),
-                            style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1),
-                          ),
-                          const SizedBox(width: 12),
-                          const Icon(Icons.circle, size: 4, color: Colors.grey),
-                          const SizedBox(width: 12),
-                          Text(
-                            event.time.format(context),
-                            style: TextStyle(color: Colors.grey.shade600, fontSize: 11, fontWeight: FontWeight.bold),
-                          ),
-                        ],
+                      Text(
+                        DateFormat('MMM').format(event.date).toUpperCase(),
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.5,
+                        ),
                       ),
-                      const SizedBox(height: 6),
-                      Text(event.title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: kBrandBrown)),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.place_rounded, size: 14, color: Colors.grey.shade400),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(event.location, 
-                              style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 24),
-                          Icon(Icons.business_center_rounded, size: 14, color: Colors.grey.shade400),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(event.organizer ?? 'Program Office', 
-                              style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
+                      const SizedBox(height: 4),
+                      Text(
+                        DateFormat('dd').format(event.date),
+                        style: TextStyle(
+                          color: kBrandBrown,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 20),
-                Row(
-                  children: [
-                    if (!isHistory) ...[
-                      _actionIcon(Icons.edit_note_rounded, kBrandOlive, () => _showEditEventDialog(event)),
-                      const SizedBox(width: 8),
-                    ],
-                    _actionIcon(Icons.delete_outline_rounded, Colors.redAccent, () => _deleteEvent(event)),
-                    const SizedBox(width: 8),
-                    const Icon(Icons.chevron_right_rounded, color: Colors.grey),
-                  ],
+
+                // 2. Main Content
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: color.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(event.category.icon, size: 12, color: color),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    event.category.label.toUpperCase(),
+                                    style: TextStyle(
+                                      color: color,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              event.time.format(context),
+                              style: TextStyle(
+                                color: Colors.grey.shade500,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          event.title,
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: kBrandBrown,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(Icons.place_rounded, size: 14, color: Colors.grey.shade400),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                event.location,
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 20),
+                            Icon(Icons.business_center_rounded, size: 14, color: Colors.grey.shade400),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                event.organizer ?? 'Program Office',
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // 3. Actions
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Center(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (!isHistory) ...[
+                          _actionIcon(Icons.edit_note_rounded, kBrandOlive, () => _showEditEventDialog(event)),
+                          const SizedBox(width: 8),
+                        ],
+                        _actionIcon(Icons.delete_outline_rounded, Colors.redAccent, () => _deleteEvent(event)),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -586,7 +674,7 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
     return IconButton(
       icon: Icon(icon, color: color, size: 22),
       onPressed: onTap,
-      style: IconButton.styleFrom(backgroundColor: color.withOpacity(0.05), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+      style: IconButton.styleFrom(backgroundColor: color.withValues(alpha: 0.05), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
     );
   }
 }
@@ -673,9 +761,9 @@ class _ViewEventDialogState extends State<ViewEventDialog> {
                         children: event.targetedParticipants!.map((p) => Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: kBrandOlive.withOpacity(0.05),
+                            color: kBrandOlive.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: kBrandOlive.withOpacity(0.1)),
+                            border: Border.all(color: kBrandOlive.withValues(alpha: 0.1)),
                           ),
                           child: Text(p, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: kBrandBrown)),
                         )).toList(),
@@ -691,13 +779,20 @@ class _ViewEventDialogState extends State<ViewEventDialog> {
                         children: event.externalParticipants!.map((p) => Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
-                            color: kBrandOrange.withOpacity(0.05),
+                            color: kBrandOrange.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: kBrandOrange.withOpacity(0.1)),
+                            border: Border.all(color: kBrandOrange.withValues(alpha: 0.1)),
                           ),
                           child: Text("${p['name']} (${p['email']})", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: kBrandBrown)),
                         )).toList(),
                       ),
+                    ],
+                    if (event.internalParticipants != null && event.internalParticipants!.isNotEmpty) ...[
+                      const SizedBox(height: 40),
+                      const Text("SPECIFIC INTERNAL USERS", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.0)),
+                      const SizedBox(height: 12),
+                      Text("${event.internalParticipants!.length} specific users have been invited to this session.",
+                        style: const TextStyle(fontSize: 13, fontStyle: FontStyle.italic, color: Colors.black54)),
                     ],
                   ],
                 ),
@@ -777,7 +872,7 @@ class _ViewEventDialogState extends State<ViewEventDialog> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: kBrandOlive.withOpacity(0.6)),
+          Icon(icon, size: 20, color: kBrandOlive.withValues(alpha: 0.6)),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -818,6 +913,9 @@ class _EventFormDialogState extends State<EventFormDialog> {
   late TimeOfDay _selectedTime;
   bool _isSaving = false;
   
+  // Selection States
+  String _audienceType = "Users of the system"; // "Users of the system" or "Externals"
+  
   final List<String> _targetedParticipants = [];
   final List<String> _availableRoles = [];
   
@@ -850,8 +948,9 @@ class _EventFormDialogState extends State<EventFormDialog> {
       _selectedInternalUserIds.addAll(widget.event!.internalParticipants!);
     }
     
-    if (widget.event?.externalParticipants != null) {
+    if (widget.event?.externalParticipants != null && widget.event!.externalParticipants!.isNotEmpty) {
       _externalParticipants.addAll(widget.event!.externalParticipants!);
+      _audienceType = "Externals";
     }
     
     _fetchRoles();
@@ -945,6 +1044,8 @@ class _EventFormDialogState extends State<EventFormDialog> {
 
     setState(() => _isSaving = true);
     try {
+      final isInternal = _audienceType == "Users of the system";
+      
       final data = {
         'title': _titleController.text.trim(),
         'description': _descController.text.trim(),
@@ -953,9 +1054,9 @@ class _EventFormDialogState extends State<EventFormDialog> {
         'date': _selectedDate.toIso8601String(),
         'time': '${_selectedTime.hour}:${_selectedTime.minute}',
         'organizer': _organizerController.text.trim(),
-        'targetedParticipants': _targetedParticipants,
-        'internalParticipants': _selectedInternalUserIds,
-        'externalParticipants': _externalParticipants,
+        'targetedParticipants': isInternal ? _targetedParticipants : [],
+        'internalParticipants': isInternal ? _selectedInternalUserIds : [],
+        'externalParticipants': isInternal ? [] : _externalParticipants,
       };
 
       final bool isUpdate = widget.event != null;
@@ -1055,11 +1156,37 @@ class _EventFormDialogState extends State<EventFormDialog> {
                       final rightColumn = Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildParticipantSelector(),
+                          const Text("TARGET AUDIENCE SCOPE", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 0.5)),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ChoiceChip(
+                                  label: const Center(child: Text("System Users", style: TextStyle(fontSize: 12))),
+                                  selected: _audienceType == "Users of the system",
+                                  onSelected: (val) => setState(() => _audienceType = "Users of the system"),
+                                  selectedColor: kBrandOlive.withValues(alpha: 0.2),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: ChoiceChip(
+                                  label: const Center(child: Text("Externals", style: TextStyle(fontSize: 12))),
+                                  selected: _audienceType == "Externals",
+                                  onSelected: (val) => setState(() => _audienceType = "Externals"),
+                                  selectedColor: kBrandOlive.withValues(alpha: 0.2),
+                                ),
+                              ),
+                            ],
+                          ),
                           const SizedBox(height: 32),
-                          _buildInternalUserSelector(),
-                          const SizedBox(height: 32),
-                          _buildExternalParticipantForm(),
+                          if (_audienceType == "Users of the system") ...[
+                            _buildParticipantSelector(),
+                            const SizedBox(height: 32),
+                            _buildInternalUserSelector(),
+                          ] else ...[
+                            _buildExternalParticipantForm(),
+                          ],
                         ],
                       );
 
@@ -1126,7 +1253,7 @@ class _EventFormDialogState extends State<EventFormDialog> {
       decoration: InputDecoration(
         labelText: label,
         labelStyle: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w500, fontSize: 14),
-        prefixIcon: Icon(icon, size: 20, color: kBrandBrown.withOpacity(0.4)),
+        prefixIcon: Icon(icon, size: 20, color: kBrandBrown.withValues(alpha: 0.4)),
         filled: true,
         fillColor: Colors.white,
         isDense: true,
@@ -1144,7 +1271,7 @@ class _EventFormDialogState extends State<EventFormDialog> {
       decoration: InputDecoration(
         labelText: 'Category',
         labelStyle: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w500, fontSize: 14),
-        prefixIcon: Icon(Icons.category_rounded, size: 20, color: kBrandBrown.withOpacity(0.4)),
+        prefixIcon: Icon(Icons.category_rounded, size: 20, color: kBrandBrown.withValues(alpha: 0.4)),
         filled: true,
         fillColor: Colors.white,
         isDense: true,
@@ -1176,7 +1303,7 @@ class _EventFormDialogState extends State<EventFormDialog> {
               return FilterChip(
                 label: Text(role, style: TextStyle(fontSize: 12, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
                 selected: isSelected,
-                selectedColor: kBrandOlive.withOpacity(0.2),
+                selectedColor: kBrandOlive.withValues(alpha: 0.2),
                 checkmarkColor: kBrandOlive,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 onSelected: (selected) {
@@ -1292,7 +1419,7 @@ class _EventFormDialogState extends State<EventFormDialog> {
         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0xFFE5E7EB))),
         child: Row(
           children: [
-            Icon(icon, size: 20, color: kBrandOlive.withOpacity(0.6)),
+            Icon(icon, size: 20, color: kBrandOlive.withValues(alpha: 0.6)),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
