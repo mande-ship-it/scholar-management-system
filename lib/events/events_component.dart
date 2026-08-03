@@ -1333,42 +1333,67 @@ class _EventFormDialogState extends State<EventFormDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("SPECIFIC SYSTEM USERS", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 0.5)),
+        const Text("SELECT SYSTEM PARTICIPANTS", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 0.5)),
         const SizedBox(height: 12),
         if (_isLoadingUsers)
           const LinearProgressIndicator(color: kBrandOlive)
         else
           Container(
-            height: 150,
+            height: 250,
             decoration: BoxDecoration(
               color: Colors.grey.shade50,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.grey.shade200),
             ),
-            child: ListView.builder(
-              itemCount: _availableUsers.length,
-              itemBuilder: (context, index) {
-                final user = _availableUsers[index];
-                final userId = (user['id'] ?? user['_id']).toString();
-                final isSelected = _selectedInternalUserIds.contains(userId);
-                
-                return CheckboxListTile(
-                  title: Text(user['full_name'] ?? user['fullName'] ?? 'N/A', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                  subtitle: Text(user['role_name'] ?? 'Staff', style: const TextStyle(fontSize: 11)),
-                  value: isSelected,
-                  activeColor: kBrandOlive,
-                  dense: true,
-                  onChanged: (val) {
-                    setState(() {
-                      if (val == true) {
-                        _selectedInternalUserIds.add(userId);
-                      } else {
-                        _selectedInternalUserIds.remove(userId);
-                      }
-                    });
+            child: _availableUsers.isEmpty 
+              ? const Center(child: Text("No system users found.", style: TextStyle(fontSize: 12, color: Colors.grey)))
+              : ListView.builder(
+                  padding: EdgeInsets.zero,
+                  itemCount: _availableUsers.length,
+                  itemBuilder: (context, index) {
+                    final user = _availableUsers[index];
+                    final userId = (user['id'] ?? user['_id']).toString();
+                    final isSelected = _selectedInternalUserIds.contains(userId);
+                    final String initials = (user['fullName'] ?? user['full_name'] ?? 'U').toString().trim().split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join('').toUpperCase();
+                    
+                    return CheckboxListTile(
+                      title: Text(user['fullName'] ?? user['full_name'] ?? 'N/A', 
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kBrandBrown)),
+                      subtitle: Text(user['role_name'] ?? user['role']?['name'] ?? 'Staff', 
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                      secondary: CircleAvatar(
+                        radius: 16,
+                        backgroundColor: kBrandOlive.withValues(alpha: 0.1),
+                        child: Text(initials, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                      ),
+                      value: isSelected,
+                      activeColor: kBrandOlive,
+                      dense: true,
+                      onChanged: (val) {
+                        setState(() {
+                          if (val == true) {
+                            _selectedInternalUserIds.add(userId);
+                          } else {
+                            _selectedInternalUserIds.remove(userId);
+                          }
+                        });
+                      },
+                    );
                   },
-                );
-              },
+                ),
+          ),
+        if (_selectedInternalUserIds.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Row(
+              children: [
+                const Icon(Icons.mark_email_read_rounded, size: 14, color: kBrandOlive),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text("${_selectedInternalUserIds.length} users will receive automated email invitations upon finalization.",
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kBrandOlive)),
+                ),
+              ],
             ),
           ),
       ],
