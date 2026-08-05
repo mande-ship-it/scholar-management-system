@@ -8,17 +8,22 @@ class ApiService {
   static const String _tokenKey = 'auth_token';
 
   static String get baseUrl {
-    // 0.0.0.0 or localhost for desktop
-    // 10.0.2.2 for Android emulator
-    // 192.168.100.170 for physical phone
     if (kIsWeb) {
-      return 'http://localhost:5000';
-    } else if (defaultTargetPlatform == TargetPlatform.android) {
-      // Toggle as needed for emulator vs physical device
-      // return 'http://192.168.100.170:5000'; 
-      return 'http://10.0.2.2:5000';
+      return 'http://localhost:5000'; // For web, usually localhost or 0.0.0.0
     }
-    return 'http://localhost:5000';
+    
+    // For mobile/desktop
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        // return 'http://192.168.100.170:5000'; // Physical Device
+        return 'http://10.0.2.2:5000'; // Emulator
+      case TargetPlatform.windows:
+      case TargetPlatform.linux:
+      case TargetPlatform.macOS:
+        return 'http://localhost:5000'; // Desktop (Localhost/0.0.0.0)
+      default:
+        return 'http://localhost:5000';
+    }
   }
 
   static String getFullUrl(String? path) {

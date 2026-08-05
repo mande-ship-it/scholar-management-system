@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../dashboard/recent_activities.dart';
+import '../../dashBoard/recent_activities.dart';
 
 class RecentActivitiesPage extends StatelessWidget {
   const RecentActivitiesPage({super.key});

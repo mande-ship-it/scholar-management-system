@@ -5,7 +5,7 @@ import '../../services/api_service.dart';
 import '../../academics/academics_utils.dart';
 
 // Admin Dashboard Component
-import '../../dashboard/admin_dashboard.dart';
+import '../../dashBoard/admin_dashboard.dart';
 
 // School Components
 import '../schoolPages/register_school.dart';

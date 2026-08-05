@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../dashboard/dashboard.dart';
+import '../../dashBoard/dashboard.dart';
 
 class DashboardPage extends StatelessWidget {
   final Function(String)? onNavigate;

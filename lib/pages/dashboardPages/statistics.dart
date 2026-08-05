@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../dashboard/statistics.dart';
+import '../../dashBoard/statistics.dart';
 
 class StatisticsPage extends StatelessWidget {
   const StatisticsPage({super.key});

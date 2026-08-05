@@ -58,7 +58,7 @@ import 'pages/userPages/manage_departments.dart';
 import 'pages/admin/approvals_page.dart';
 
 // Interactive Map
-import 'dashboard/districts_map.dart';
+import 'dashBoard/districts_map.dart';
 
 // Splash Screen
 import 'pages/splash/splash_screen.dart';

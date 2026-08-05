@@ -5,7 +5,7 @@ import '../../services/api_service.dart';
 import '../../academics/academics_utils.dart';
 
 // Dashboard & Core Components
-import '../../dashboard/field_operations_dashboard.dart';
+import '../../dashBoard/field_operations_dashboard.dart';
 import '../dashboardPages/notifications.dart';
 import '../../users/user_profile.dart';
 
