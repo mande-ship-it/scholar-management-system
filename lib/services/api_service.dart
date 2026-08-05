@@ -8,8 +8,17 @@ class ApiService {
   static const String _tokenKey = 'auth_token';
 
   static String get baseUrl {
-    // We are forcing the Render production backend to ensure consistency with the database
-    return 'https://age-systems-backend.onrender.com';
+    // 0.0.0.0 or localhost for desktop
+    // 10.0.2.2 for Android emulator
+    // 192.168.100.170 for physical phone
+    if (kIsWeb) {
+      return 'http://localhost:5000';
+    } else if (defaultTargetPlatform == TargetPlatform.android) {
+      // Toggle as needed for emulator vs physical device
+      // return 'http://192.168.100.170:5000'; 
+      return 'http://10.0.2.2:5000';
+    }
+    return 'http://localhost:5000';
   }
 
   static String getFullUrl(String? path) {
