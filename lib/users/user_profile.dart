@@ -337,6 +337,7 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  _buildExecutiveHeader(),
                   _buildHeaderCard(),
                   Padding(
                     padding: const EdgeInsets.all(24.0),
@@ -353,6 +354,40 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildExecutiveHeader() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(32, 32, 32, 24),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: kBrandBrown.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.badge_rounded, color: kBrandBrown, size: 28),
+          ),
+          const SizedBox(width: 24),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Identity & Access Profile", 
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.8)),
+                Text("Manage your professional system profile and security parameters.", 
+                  style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -382,21 +417,19 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
                       color: kBrandBrown.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                       border: Border.all(color: kBrandCream, width: 2),
-                      image: (_profilePicture != null) 
-                        ? DecorationImage(
-                            image: NetworkImage(ApiService.getFullUrl(_profilePicture)),
-                            fit: BoxFit.cover,
-                          ) 
-                        : null,
                     ),
+                    clipBehavior: Clip.antiAlias,
                     alignment: Alignment.center,
-                    child: (_profilePicture == null) 
-                      ? const Icon(
-                          Icons.person_rounded,
-                          color: kBrandBrown,
-                          size: 56,
+                    child: (_profilePicture != null)
+                      ? Image.network(
+                          ApiService.getFullUrl(_profilePicture),
+                          fit: BoxFit.cover,
+                          width: 100,
+                          height: 100,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(Icons.person_rounded, color: kBrandBrown, size: 56),
                         )
-                      : null,
+                      : const Icon(Icons.person_rounded, color: kBrandBrown, size: 56),
                   ),
                   Positioned(
                     bottom: 2,

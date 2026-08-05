@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import '../../academics/academics_utils.dart';
 import '../../widgets/custom_loaders.dart';
 import '../../services/api_service.dart';
+import '../../services/permission_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -46,8 +47,24 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
           final response = await ApiService.getAccountProfile();
           if (response.statusCode == 200 && mounted) {
             final userData = response.data['data'];
+
+            // Initialize Permissions
+            PermissionService.init(userData);
+
             final String role = userData['role_name'] ?? 'Staff';
-            final String targetRoute = (role == 'Administrator') ? '/admin/home' : '/home';
+            final String normalizedRole = role.trim().toLowerCase();
+
+            String targetRoute = '/home';
+            if (normalizedRole == 'administrator') {
+              targetRoute = '/admin/home';
+            } else if ([
+              'field officer',
+              'field coordinator',
+              'field operations',
+              'operational officer'
+            ].contains(normalizedRole)) {
+              targetRoute = '/field-operations/home';
+            }
 
             Navigator.pushReplacementNamed(
               context,
@@ -55,6 +72,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
               arguments: {
                 'username': userData['full_name'] ?? 'User',
                 'role': role,
+                'profilePicture': userData['profile_picture'],
               },
             );
             return;

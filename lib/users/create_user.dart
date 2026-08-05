@@ -23,6 +23,7 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
 
   // Dropdown / toggle state
   String? _selectedRole;
+  String? _assignedDistrict;
   dynamic _selectedDepartmentId;
   bool _isActive = true;
   bool _obscurePassword = true;
@@ -164,6 +165,7 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
         'phone': _phoneController.text.trim(),
         'password': _passwordController.text.trim(),
         'roleName': _selectedRole,
+        'assignedDistrict': _assignedDistrict,
         'departmentId': _selectedDepartmentId,
         'isActive': _isActive,
         'notes': _notesController.text.trim(),
@@ -251,7 +253,7 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 20, 20, 20),
+      padding: const EdgeInsets.fromLTRB(24, 12, 20, 12),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
@@ -259,8 +261,8 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 32,
+            height: 32,
             decoration: BoxDecoration(
               color: kBrandOlive.withOpacity(0.15),
               shape: BoxShape.circle,
@@ -268,7 +270,7 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
             alignment: Alignment.center,
             child: Text(
               _initialsOf(_fullNameController.text),
-              style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: 18),
+              style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: 12),
             ),
           ),
           const SizedBox(width: 16),
@@ -276,8 +278,8 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Create User Account", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                Text("Provision a new system user with specialized role permissions.", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                Text("Create User Account", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                Text("Provision a new system user with specialized role permissions.", style: TextStyle(fontSize: 11, color: Colors.grey)),
               ],
             ),
           ),
@@ -314,6 +316,8 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
   }
 
   Widget _buildAccessCard() {
+    final bool isFieldRole = _selectedRole?.toLowerCase().contains('field') ?? false;
+
     return _cardShell(
       children: [
         Row(
@@ -334,6 +338,15 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
             ),
           ],
         ),
+        if (isFieldRole) ...[
+          const SizedBox(height: 20),
+          _buildDropdown("Assigned Monitoring District", _assignedDistrict, kMalawiDistricts, Icons.location_on_rounded, (v) => setState(() => _assignedDistrict = v)),
+          const SizedBox(height: 4),
+          const Padding(
+            padding: EdgeInsets.only(left: 12),
+            child: Text("Field Officers can only view and manage schools and scholars in their assigned district.", style: TextStyle(fontSize: 10, color: kBrandOrange, fontWeight: FontWeight.bold)),
+          ),
+        ],
         const SizedBox(height: 20),
         _buildTextField(_usernameController, "System Username", Icons.alternate_email_rounded, helper: "Must be unique. Used for signing in."),
         const SizedBox(height: 24),

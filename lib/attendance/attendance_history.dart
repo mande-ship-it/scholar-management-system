@@ -55,14 +55,14 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
           _buildProfessionalHeader(),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(32, 32, 32, 40),
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildFilterBar(),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 16),
                   if (_isLoading)
-                    const Center(child: Padding(padding: EdgeInsets.all(80), child: CircularProgressIndicator(color: kBrandOlive)))
+                    const Center(child: Padding(padding: EdgeInsets.all(60), child: CircularProgressIndicator(color: kBrandOlive)))
                   else if (_history.isEmpty)
                     _buildEmptyState()
                   else
@@ -78,7 +78,7 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
 
   Widget _buildProfessionalHeader() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(32, 28, 32, 24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
@@ -86,23 +86,22 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
               color: kBrandBrown.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(6),
             ),
-            child: const Icon(Icons.history_edu_rounded, color: kBrandBrown, size: 30),
+            child: const Icon(Icons.history_edu_rounded, color: kBrandBrown, size: 16),
           ),
-          const SizedBox(width: 20),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text("Attendance Archives", 
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                const SizedBox(height: 4),
-                Text("Historical audit of CHATs and Study Circle engagement across the partner network.", 
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.4)),
+                Text("Historical audit of program engagement.",
+                  style: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -121,7 +120,7 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
             _filterSchool = null;
             _fetchHistory();
           }),
-          icon: const Icon(Icons.refresh_rounded, color: kBrandBrown),
+          icon: const Icon(Icons.refresh_rounded, color: kBrandBrown, size: 20),
           tooltip: "Reload Archives",
         ),
       ],
@@ -130,33 +129,92 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
 
   Widget _buildFilterBar() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.grey.shade100),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 4, offset: const Offset(0, 1))],
       ),
       child: Row(
         children: [
           Expanded(
-            child: _dropdownFilter("SESSION TYPE", _filterType, [
-              const DropdownMenuItem(value: null, child: Text("All Program Modules")),
+            child: _dropdownFilter("MODULE", _filterType, [
+              const DropdownMenuItem(value: null, child: Text("All Modules")),
               ...AttendanceModuleType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.label))),
             ], (v) {
               setState(() => _filterType = v);
               _fetchHistory();
             }),
           ),
-          const SizedBox(width: 24),
+          const SizedBox(width: 12),
           Expanded(
-            child: _textFilter("INSTITUTIONAL SEARCH", Icons.search_rounded, "Filter by school name...", (v) {
+            child: _textFilter("INSTITUTION", Icons.search_rounded, "Search school...", (v) {
               setState(() => _filterSchool = v.isEmpty ? null : v);
               _fetchHistory();
             }),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _dropdownFilter(String label, dynamic value, List<DropdownMenuItem<AttendanceModuleType>> items, ValueChanged<AttendanceModuleType?> onChanged) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 0.8)),
+        const SizedBox(height: 4),
+        Container(
+          height: 32,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<AttendanceModuleType>(
+              value: value,
+              isExpanded: true,
+              items: items,
+              onChanged: onChanged,
+              style: const TextStyle(color: kBrandBrown, fontWeight: FontWeight.bold, fontSize: 12),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _textFilter(String label, IconData icon, String hint, ValueChanged<String> onChanged) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 0.8)),
+        const SizedBox(height: 4),
+        Container(
+          height: 32,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: TextField(
+            onChanged: onChanged,
+            style: const TextStyle(fontSize: 12),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: const TextStyle(fontSize: 11, color: Colors.grey),
+              border: InputBorder.none,
+              isDense: true,
+              contentPadding: const EdgeInsets.symmetric(vertical: 8),
+              icon: Icon(icon, size: 14, color: kBrandBrown.withOpacity(0.6)),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -169,11 +227,11 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
           children: [
             Text("HISTORICAL LOGS (${_history.length})", 
               style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
-            Text("Data ordered by most recent sessions.", 
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+            Text("Ordered by most recent sessions.",
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
           ],
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         ListView.separated(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -186,66 +244,60 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
             final String dateStr = item['session_date'] != null ? item['session_date'].toString().split('T')[0] : 'N/A';
 
             return Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.grey.shade100),
                 boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 10, offset: const Offset(0, 4))],
               ),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), shape: BoxShape.circle),
-                    child: Icon(moduleType.icon, color: kBrandOlive, size: 24),
+                    child: Icon(moduleType.icon, color: kBrandOlive, size: 20),
                   ),
-                  const SizedBox(width: 24),
+                  const SizedBox(width: 16),
                   Expanded(
                     flex: 3,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(item['display_school_name'] ?? item['school_name'] ?? 'N/A', 
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: kBrandBrown)),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const Icon(Icons.person_pin_rounded, size: 14, color: Colors.grey),
-                            const SizedBox(width: 6),
-                            Text("Facilitator: ${item['facilitator'] ?? 'N/A'}", style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
-                          ],
-                        ),
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kBrandBrown)),
+                        const SizedBox(height: 2),
+                        Text("Facilitator: ${item['facilitator'] ?? 'N/A'}", style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 32),
+                  const SizedBox(width: 24),
                   Expanded(
                     flex: 2,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(dateStr, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: kBrandBrown)),
-                        const SizedBox(height: 4),
+                        Text(dateStr, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: kBrandBrown)),
+                        const SizedBox(height: 2),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(color: kBrandBrown.withOpacity(0.08), borderRadius: BorderRadius.circular(6)),
-                          child: Text(moduleType.label.toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: 0.5)),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(color: kBrandBrown.withOpacity(0.08), borderRadius: BorderRadius.circular(4)),
+                          child: Text(moduleType.label.toUpperCase(), style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: 0.5)),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 32),
+                  const SizedBox(width: 24),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text("${item['present_count'] ?? 0}/${item['total_count'] ?? 0}", 
-                        style: const TextStyle(fontWeight: FontWeight.w900, color: kBrandOlive, fontSize: 20)),
-                      Text("ATTENDANCE RATE", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 0.5)),
+                        style: const TextStyle(fontWeight: FontWeight.w900, color: kBrandOlive, fontSize: 18)),
+                      Text("RATE", style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 0.5)),
                     ],
                   ),
-                  const SizedBox(width: 24),
-                  const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
+                  const SizedBox(width: 20),
+                  const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Colors.grey),
                 ],
               ),
             );
@@ -258,73 +310,20 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
   Widget _buildEmptyState() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 100),
+      padding: const EdgeInsets.symmetric(vertical: 80),
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.grey.shade100),
       ),
       child: Column(
         children: [
-          Icon(Icons.history_toggle_off_rounded, size: 80, color: Colors.grey.shade200),
-          const SizedBox(height: 24),
-          const Text("No attendance archives found for the current selection.", 
-            style: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w500)),
+          Icon(Icons.history_toggle_off_rounded, size: 64, color: Colors.grey.shade200),
+          const SizedBox(height: 20),
+          const Text("No attendance archives found.",
+            style: TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.w500)),
         ],
       ),
-    );
-  }
-
-  Widget _dropdownFilter(String label, dynamic value, List<DropdownMenuItem<AttendanceModuleType>> items, ValueChanged<AttendanceModuleType?> onChanged) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
-        const SizedBox(height: 10),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
-          ),
-          child: DropdownButton<AttendanceModuleType>(
-            value: value,
-            isExpanded: true,
-            underline: const SizedBox(),
-            items: items,
-            onChanged: onChanged,
-            style: const TextStyle(color: kBrandBrown, fontWeight: FontWeight.bold, fontSize: 14),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _textFilter(String label, IconData icon, String hint, ValueChanged<String> onChanged) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
-        const SizedBox(height: 10),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
-          ),
-          child: TextField(
-            onChanged: onChanged,
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
-              border: InputBorder.none,
-              icon: Icon(icon, size: 20, color: kBrandBrown.withOpacity(0.6)),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

@@ -82,10 +82,18 @@ class _PromoteScholarsComponentState extends State<PromoteScholarsComponent> {
       }
     }
 
+    setState(() => _isLoading = true);
     try {
       final response = await ApiService.promoteScholar(student.id, nextClass);
       if (response.statusCode == 200) {
-        _fetchScholars();
+        // Optimization: Update local state instead of full refetch
+        setState(() {
+          final index = kStudents.indexWhere((s) => s.id == student.id);
+          if (index != -1) {
+            kStudents[index] = kStudents[index].copyWith(currentClass: nextClass);
+          }
+        });
+
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -98,6 +106,80 @@ class _PromoteScholarsComponentState extends State<PromoteScholarsComponent> {
       }
     } catch (e) {
       debugPrint('Error: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _promoteAllFiltered(List<Student> filtered) async {
+    if (filtered.isEmpty) return;
+
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Bulk Promotion"),
+        content: Text("Are you sure you want to promote all ${filtered.length} scholars in the current view?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: kBrandOlive, foregroundColor: Colors.white),
+            child: const Text("Promote All"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isLoading = true);
+    int successCount = 0;
+
+    // In a real high-volume system, we would use a single bulk API endpoint.
+    // Since the backend doesn't have one yet, we'll iterate with a small delay or in parallel.
+    // For now, we'll do it sequentially but update UI at the end.
+
+    for (final student in filtered) {
+      final current = student.currentClass;
+      String nextClass = current;
+
+      if (student.schoolType == SchoolType.secondary) {
+        if (current.startsWith('Form ')) {
+          final formNum = int.tryParse(current.replaceFirst('Form ', ''));
+          if (formNum != null) nextClass = 'Form ${formNum + 1}';
+        } else {
+          nextClass = 'Form 1';
+        }
+      } else {
+        if (current.startsWith('Year ')) {
+          final yearNum = int.tryParse(current.replaceFirst('Year ', ''));
+          if (yearNum != null) nextClass = 'Year ${yearNum + 1}';
+        } else {
+          nextClass = 'Year 1';
+        }
+      }
+
+      try {
+        final response = await ApiService.promoteScholar(student.id, nextClass);
+        if (response.statusCode == 200) {
+          successCount++;
+          final index = kStudents.indexWhere((s) => s.id == student.id);
+          if (index != -1) {
+            kStudents[index] = kStudents[index].copyWith(currentClass: nextClass);
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (mounted) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Successfully promoted $successCount scholars."),
+          backgroundColor: kBrandOlive,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
@@ -123,26 +205,38 @@ class _PromoteScholarsComponentState extends State<PromoteScholarsComponent> {
           children: [
             // ---------------- Header (No Banners) ----------------
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                    child: const Icon(Icons.auto_graph_rounded, color: kBrandOlive, size: 24),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                    child: const Icon(Icons.auto_graph_rounded, color: kBrandOlive, size: 20),
                   ),
                   const SizedBox(width: 14),
                   const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Scholar Progression', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                        SizedBox(height: 2),
+                        Text('Scholar Progression', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                        SizedBox(height: 1),
                         Text('Update and promote scholars to the next form or academic year.',
-                            style: TextStyle(fontSize: 12, color: Colors.grey)),
+                            style: TextStyle(fontSize: 11, color: Colors.grey)),
                       ],
                     ),
                   ),
+                  if (filteredStudents.isNotEmpty)
+                    ElevatedButton.icon(
+                      onPressed: _isLoading ? null : () => _promoteAllFiltered(filteredStudents),
+                      icon: const Icon(Icons.done_all_rounded, size: 16),
+                      label: const Text("PROMOTE ALL", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kBrandOrange,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
                 ],
               ),
             ),

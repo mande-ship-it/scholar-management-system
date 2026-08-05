@@ -110,7 +110,7 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
   Widget _buildCleanHeader() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 12),
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
       decoration: const BoxDecoration(
         color: Colors.white,
       ),
@@ -121,10 +121,10 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text("PROGRAM ANALYTICS", 
-                style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1.2)),
+                style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1.0)),
               const SizedBox(height: 2),
               Text("$_selectedLevel Overview", 
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.4)),
             ],
           ),
           Row(
@@ -257,16 +257,35 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
         _actionBtn("View Scholars", Icons.people_outline_rounded, kBrandBrown),
         const SizedBox(width: 14),
         _actionBtn("Academics", Icons.school_outlined, kBrandOlive),
+        const SizedBox(width: 14),
+        _actionBtn("University CHATs", Icons.forum_rounded, kBrandOrange),
       ],
     );
   }
 
   Widget _actionBtn(String label, IconData icon, Color color) {
-    String target = label == "View Scholars" ? "View Scholars" : "View Results";
+    String target;
+    if (label == "View Scholars") {
+      target = "View Scholars";
+    } else if (label == "Academics") {
+      target = "View Results";
+    } else {
+      target = "Scholar Attendance";
+    }
 
     return Expanded(
       child: InkWell(
-        onTap: () => widget.onNavigate?.call(target),
+        onTap: () {
+          if (target == "Scholar Attendance") {
+             // For University on general dashboard, force CHATS attendance
+             Navigator.pushNamed(context, '/scholarAttendance', arguments: {
+               'forcedSchoolType': SchoolType.university,
+               'forcedModuleType': 'chats'
+             });
+          } else {
+            widget.onNavigate?.call(target);
+          }
+        },
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),

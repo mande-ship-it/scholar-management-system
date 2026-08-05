@@ -66,13 +66,16 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       height: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: theme.dividerColor),
       ),
       clipBehavior: Clip.antiAlias,
       child: _isLoading 
@@ -127,13 +130,13 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
                         ),
 
                         const SizedBox(height: 60),
-                        const Center(
+                        Center(
                           child: Column(
                             children: [
                               Text("Scholar Management System (Core Engine)",
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kBrandBrown, letterSpacing: 0.5)),
+                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : kBrandBrown, letterSpacing: 0.5)),
                               const SizedBox(height: 4),
-                              Text("Deployment v2.4.12 • All rights reserved • 2026",
+                              const Text("Deployment v2.4.12 • All rights reserved • 2026",
                                 style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w500)),
                             ],
                           ),
@@ -150,32 +153,34 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
   }
 
   Widget _buildExecutiveHeader() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     bool isChichewa = _language == "Chichewa";
     return Container(
-      padding: const EdgeInsets.all(32),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        border: Border(bottom: BorderSide(color: theme.dividerColor)),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: kBrandBrown.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(12),
+              color: (isDark ? Colors.white : kBrandBrown).withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.settings_suggest_rounded, color: kBrandBrown, size: 28),
+            child: Icon(Icons.settings_suggest_rounded, color: isDark ? Colors.white : kBrandBrown, size: 20),
           ),
-          const SizedBox(width: 20),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(isChichewa ? "Makonzedwe a Kachitidwe" : "Environment Settings",
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.8)),
-                Text(isChichewa ? "Konshani momwe pulogalamuyi ikugwirira ntchito m'derali." : "Configure terminal behavior, visual interfaces and localized financial standards.",
-                  style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.5)),
+                Text(isChichewa ? "Konshani momwe pulogalamuyi ikugwirira ntchito." : "Configure terminal behavior and interfaces.",
+                  style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -185,6 +190,9 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
   }
 
   Widget _buildThemeCard(String label, String title, IconData icon, bool isSelected, VoidCallback onTap) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(24),
@@ -192,11 +200,22 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
         duration: const Duration(milliseconds: 300),
         padding: const EdgeInsets.all(28),
         decoration: BoxDecoration(
-          color: isSelected ? kBrandBrown : Colors.white,
+          color: isSelected
+            ? (isDark ? theme.colorScheme.primaryContainer : kBrandBrown)
+            : (isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white),
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: isSelected ? kBrandBrown : Colors.grey.shade200, width: 1.5),
+          border: Border.all(
+            color: isSelected
+              ? (isDark ? theme.colorScheme.primary : kBrandBrown)
+              : theme.dividerColor,
+            width: 1.5
+          ),
           boxShadow: isSelected ? [
-            BoxShadow(color: kBrandBrown.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 10))
+            BoxShadow(
+              color: (isDark ? theme.colorScheme.primary : kBrandBrown).withValues(alpha: 0.3),
+              blurRadius: 20,
+              offset: const Offset(0, 10)
+            )
           ] : [
             BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))
           ],
@@ -206,15 +225,28 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isSelected ? Colors.white.withValues(alpha: 0.15) : kBrandBrown.withValues(alpha: 0.05),
+                color: isSelected
+                  ? Colors.white.withValues(alpha: 0.15)
+                  : (isDark ? Colors.white12 : kBrandBrown.withValues(alpha: 0.05)),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: isSelected ? Colors.white : kBrandBrown, size: 28),
+              child: Icon(icon, color: isSelected ? Colors.white : (isDark ? Colors.white70 : kBrandBrown), size: 28),
             ),
             const SizedBox(height: 20),
-            Text(label.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isSelected ? Colors.white70 : Colors.grey, letterSpacing: 1.5)),
+            Text(label.toUpperCase(),
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+                color: isSelected ? Colors.white70 : Colors.grey,
+                letterSpacing: 1.5
+              )),
             const SizedBox(height: 4),
-            Text(title, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : kBrandBrown)),
+            Text(title,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? Colors.white : (isDark ? Colors.white : kBrandBrown)
+              )),
           ],
         ),
       ),

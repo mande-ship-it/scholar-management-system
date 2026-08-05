@@ -5,7 +5,18 @@ class ViewScholarsPage extends StatelessWidget {
   final VoidCallback? onRegisterScholar;
   final Function(String)? onViewProfile;
   final VoidCallback? onViewGraduates;
-  const ViewScholarsPage({super.key, this.onRegisterScholar, this.onViewProfile, this.onViewGraduates});
+  final String? forcedSchoolType;
+  final bool hideRegistration;
+  final bool hideUniversity;
+  const ViewScholarsPage({
+    super.key,
+    this.onRegisterScholar,
+    this.onViewProfile,
+    this.onViewGraduates,
+    this.forcedSchoolType,
+    this.hideRegistration = false,
+    this.hideUniversity = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -14,12 +25,8 @@ class ViewScholarsPage extends StatelessWidget {
         onRegisterScholar: onRegisterScholar,
         onViewProfile: onViewProfile,
         onViewGraduates: onViewGraduates,
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: onRegisterScholar ?? () => Navigator.pushNamed(context, '/registerScholar'),
-        backgroundColor: const Color(0xFF9AB334), // kBrandOlive
-        icon: const Icon(Icons.person_add_rounded, color: Colors.white),
-        label: const Text("REGISTER SCHOLAR", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        forcedSchoolType: forcedSchoolType,
+        hideUniversity: hideUniversity,
       ),
     );
   }

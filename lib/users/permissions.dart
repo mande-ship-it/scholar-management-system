@@ -130,35 +130,35 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-            child: const Icon(Icons.admin_panel_settings_rounded, color: kBrandOlive, size: 28),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+            child: const Icon(Icons.admin_panel_settings_rounded, color: kBrandOlive, size: 20),
           ),
-          const SizedBox(width: 20),
+          const SizedBox(width: 16),
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Role Permissions Governance", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kBrandBrown)),
-                Text("Define modular access control and functional boundaries for each user role.", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                Text("Role Permissions Governance", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                Text("Define modular access control and functional boundaries for each user role.", style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
           ElevatedButton.icon(
             onPressed: _isSaving ? null : _savePermissions,
             icon: _isSaving 
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.verified_user_rounded),
-            label: const Text("SYNC PERMISSIONS", style: TextStyle(fontWeight: FontWeight.bold)),
+                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Icon(Icons.verified_user_rounded, size: 16),
+            label: const Text("SYNC", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10)),
             style: ElevatedButton.styleFrom(
               backgroundColor: kBrandBrown,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),
         ],

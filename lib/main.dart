@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 // Home Page
 import 'pages/home/home_page.dart';
 import 'pages/home/admin_home_page.dart';
+import 'pages/home/field_ops_home_page.dart';
 
 // Dashboard Pages
 import 'pages/dashboardPages/dashboard.dart';
+import 'pages/dashboardPages/field_operations.dart';
 import 'pages/dashboardPages/statistics.dart';
 import 'pages/dashboardPages/recent_activities.dart';
 import 'pages/dashboardPages/notifications.dart';
@@ -111,6 +113,7 @@ class MyApp extends StatelessWidget {
             '/forgot-password': (context) => const ForgotPasswordPage(),
             '/home': (context) => const HomePage(),
             '/admin/home': (context) => const AdminHomePage(),
+            '/field-operations/home': (context) => const FieldOpsHomePage(),
 
             // Dashboard
             '/dashboard': (context) => DashboardPage(),

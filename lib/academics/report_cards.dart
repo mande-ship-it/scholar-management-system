@@ -9,12 +9,6 @@ import 'package:intl/intl.dart';
 import 'package:scholar_management_system/services/api_service.dart';
 import 'academics_utils.dart';
 
-// Brand Colors
-const Color kBrandBrown = Color(0xFF4C3C32);
-const Color kBrandCream = Color(0xFFFAF2DB);
-const Color kBrandOlive = Color(0xFF9AB334);
-const Color kBrandOrange = Color(0xFFE05B1C);
-
 class ReportCardsComponent extends StatefulWidget {
   const ReportCardsComponent({super.key});
 
@@ -165,16 +159,18 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
     final periods = results.map((r) => (isUni ? r.semester : r.term) ?? 'Unknown').toSet().toList()..sort();
 
     String outcome = "";
+    String aggregateLabel = "";
+    
     if (isUni) {
       final validGpas = results.where((r) => r.gpa != null).map((r) => r.gpa!).toList();
       final avgGpa = validGpas.isEmpty ? 0.0 : validGpas.reduce((a, b) => a + b) / validGpas.length;
       outcome = "GPA: ${avgGpa.toStringAsFixed(2)}";
+      aggregateLabel = "CUMULATIVE GPA:";
     } else {
-      final latestResults = results.where((r) => r.term == periods.last).toList();
-      final totalPoints = latestResults.fold(0.0, (sum, r) => sum + (r.points ?? 0));
-      outcome = _selectedPeriod == "ANNUAL" 
-          ? "Year Avg: ${avgMarks.toStringAsFixed(1)}%" 
-          : "Aggregate Points: ${totalPoints.toStringAsFixed(0)}";
+      // MSCE Style for Secondary
+      final outcomeData = calculateSecondaryOutcome(results);
+      outcome = "${outcomeData.totalPoints.toInt()} Points (${outcomeData.passed ? 'PASS' : 'FAIL'})";
+      aggregateLabel = "MSCE BEST 6 AGGREGATE:";
     }
 
     doc.addPage(
@@ -190,15 +186,16 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
-                    pw.Text("AGE AFRICA", style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(kBrandBrown.toARGB32()))),
+                    pw.Text("AGE AFRICA", style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(kBrandBrown.toARGB32()))),
                     pw.Text("Advancing Girls' Education", style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(kBrandOlive.toARGB32()))),
+                    pw.Text("P.O. Box 2147, Lilongwe, Malawi", style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
                     pw.Text("www.ageafrica.org", style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
                   ],
                 ),
               ],
             ),
             pw.SizedBox(height: 10),
-            pw.Divider(color: PdfColor.fromInt(kBrandBrown.toARGB32()), thickness: 1),
+            pw.Divider(color: PdfColor.fromInt(kBrandBrown.toARGB32()), thickness: 1.5),
             pw.SizedBox(height: 10),
           ],
         ),
@@ -207,46 +204,64 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
           
           return [
             pw.Center(
-              child: pw.Text(
-                _selectedPeriod == "ANNUAL" 
-                    ? "ANNUAL ACADEMIC PROGRESS TRANSCRIPT" 
-                    : "OFFICIAL ACADEMIC REPORT CARD", 
-                style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, letterSpacing: 1.2),
+              child: pw.Container(
+                padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: primaryColor, width: 1),
+                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+                ),
+                child: pw.Text(
+                  _selectedPeriod == "ANNUAL" 
+                      ? "ANNUAL ACADEMIC PROGRESS TRANSCRIPT" 
+                      : "OFFICIAL ACADEMIC REPORT CARD", 
+                  style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, letterSpacing: 1.2, color: primaryColor),
+                ),
               ),
             ),
-            pw.SizedBox(height: 20),
+            pw.SizedBox(height: 25),
             
-            // Scholar Details
-            pw.Table(
-              columnWidths: {
-                0: const pw.FixedColumnWidth(100),
-                1: const pw.FlexColumnWidth(),
-                2: const pw.FixedColumnWidth(100),
-                3: const pw.FlexColumnWidth(),
-              },
-              children: [
-                _pwTableRow("SCHOLAR NAME:", _selectedStudent!.name.toUpperCase(), "SCHOLAR ID:", _selectedStudent!.scholarId),
-                _pwTableRow("INSTITUTION:", _selectedStudent!.schoolName, "LEVEL:", isUni ? "UNIVERSITY" : "SECONDARY"),
-                _pwTableRow("ACADEMIC YEAR:", _selectedYear, "REPORT TYPE:", _selectedPeriod),
-              ],
+            // Scholar Details Header
+            pw.Container(
+              padding: const pw.EdgeInsets.all(12),
+              decoration: pw.BoxDecoration(
+                color: PdfColors.grey50,
+                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+              ),
+              child: pw.Table(
+                columnWidths: {
+                  0: const pw.FixedColumnWidth(100),
+                  1: const pw.FlexColumnWidth(),
+                  2: const pw.FixedColumnWidth(100),
+                  3: const pw.FlexColumnWidth(),
+                },
+                children: [
+                  _pwTableRow("SCHOLAR NAME:", _selectedStudent!.name.toUpperCase(), "SCHOLAR ID:", _selectedStudent!.scholarId),
+                  _pwTableRow("INSTITUTION:", _selectedStudent!.schoolName, "LEVEL:", isUni ? "UNIVERSITY" : "SECONDARY SCHOOL"),
+                  _pwTableRow("ACADEMIC YEAR:", _selectedYear, "PERIOD:", _selectedPeriod),
+                  _pwTableRow("PROGRAM/CLASS:", _selectedStudent!.currentClass, "STATUS:", _selectedStudent!.status),
+                ],
+              ),
             ),
             pw.SizedBox(height: 24),
 
-            // Separate Tables for each period
+            // Results Tables
             for (final period in periods) ...[
               pw.Container(
                 width: double.infinity,
                 padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 10),
-                decoration: pw.BoxDecoration(color: PdfColors.grey100),
-                child: pw.Text(period.toUpperCase(), style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10, color: primaryColor)),
+                decoration: pw.BoxDecoration(
+                  color: primaryColor,
+                  borderRadius: const pw.BorderRadius.only(topLeft: pw.Radius.circular(4), topRight: pw.Radius.circular(4))
+                ),
+                child: pw.Text(period.toUpperCase(), style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10, color: PdfColors.white)),
               ),
               pw.TableHelper.fromTextArray(
                 context: context,
-                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white, fontSize: 9),
-                headerDecoration: pw.BoxDecoration(color: primaryColor),
+                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: primaryColor, fontSize: 9),
+                headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
                 cellAlignment: pw.Alignment.centerLeft,
                 cellStyle: const pw.TextStyle(fontSize: 9),
-                headers: ['Subject / Course Description', 'Marks (%)', isUni ? 'GPA' : 'Points', 'Grade'],
+                headers: ['Subject / Course Description', 'Marks (%)', isUni ? 'GPA' : 'Points', 'Grade/Remark'],
                 data: results.where((r) => (isUni ? r.semester : r.term) == period).map((r) {
                   final grade = gradeFromMarks(r.marks, isUniversity: isUni);
                   return [
@@ -262,30 +277,40 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
               pw.SizedBox(height: 20),
             ],
             
-            // Statistics Summary
+            // Performance Summary
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.end,
               children: [
                 pw.Container(
-                  width: 220,
-                  padding: const pw.EdgeInsets.all(12),
+                  width: 250,
+                  padding: const pw.EdgeInsets.all(15),
                   decoration: pw.BoxDecoration(
-                    border: pw.Border.all(color: primaryColor, width: 1.5),
+                    border: pw.Border.all(color: primaryColor, width: 2),
+                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
                     color: PdfColors.white,
                   ),
                   child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
+                      pw.Text("PERFORMANCE SUMMARY", style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: primaryColor)),
+                      pw.SizedBox(height: 8),
                       if (_selectedPeriod == "ANNUAL") ...[
                         for (final period in periods) ...[
                           _pwStatRow("$period AVG:", "${(results.where((r) => (isUni ? r.semester : r.term) == period).fold(0.0, (sum, r) => sum + r.marks) / results.where((r) => (isUni ? r.semester : r.term) == period).length).toStringAsFixed(1)}%"),
                           pw.SizedBox(height: 4),
                         ],
-                        pw.Divider(color: PdfColors.grey400),
+                        pw.Divider(color: PdfColors.grey300),
                         pw.SizedBox(height: 4),
                       ],
-                      _pwStatRow(_selectedPeriod == "ANNUAL" ? "ANNUAL AVERAGE:" : "PERIOD AVERAGE:", "${avgMarks.toStringAsFixed(1)}%"),
+                      _pwStatRow("OVERALL AVERAGE:", "${avgMarks.toStringAsFixed(1)}%"),
                       pw.SizedBox(height: 6),
-                      _pwStatRow("ACADEMIC STANDING:", outcome),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text(aggregateLabel, style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: primaryColor)),
+                          pw.Text(outcome, style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: primaryColor)),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -294,14 +319,23 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
 
             pw.SizedBox(height: 30),
             
-            pw.Text("Official Remarks:", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10, color: primaryColor)),
-            pw.SizedBox(height: 6),
-            pw.Text(
-              "This transcript reflects the official academic record of the student for the specified period. "
-              "Age Africa supports scholars to achieve their full potential through academic and social empowerment.",
+            pw.Text("Official Certification:", style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10, color: primaryColor)),
+            pw.SizedBox(height: 8),
+            pw.Container(
+              padding: const pw.EdgeInsets.all(10),
+              decoration: pw.BoxDecoration(
+                border: pw.Border.all(color: PdfColors.grey200),
+                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(4)),
+              ),
+              child: pw.Text(
+                "This document is an official transcript of the academic performance for the scholar named above. "
+                "The marks and grades reflected herein are verified by the AGE Africa academic governance committee. "
+                "AGE Africa is committed to providing comprehensive support to ensure our scholars excel in their academic pursuits.",
+                style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey800, lineSpacing: 1.5),
+              ),
             ),
             
-            pw.SizedBox(height: 40),
+            pw.SizedBox(height: 50),
             
             // Footer Signatures
             pw.Row(
@@ -311,26 +345,27 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Text("Date of Issue: ${DateFormat('dd MMMM yyyy').format(DateTime.now())}", style: const pw.TextStyle(fontSize: 8)),
-                    pw.SizedBox(height: 20),
+                    pw.Text("Date Issued: ${DateFormat('dd MMMM yyyy').format(DateTime.now())}", style: const pw.TextStyle(fontSize: 8)),
+                    pw.SizedBox(height: 25),
                     pw.Container(
-                      width: 150,
+                      width: 160,
                       decoration: const pw.BoxDecoration(border: pw.Border(bottom: pw.BorderSide(color: PdfColors.black, width: 1))),
                     ),
                     pw.SizedBox(height: 4),
-                    pw.Text("Program Coordinator Signature", style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey600)),
+                    pw.Text("PROGRAM COORDINATOR", style: pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold, color: PdfColors.grey700)),
                   ],
                 ),
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.center,
                   children: [
-                    pw.Text(_directorName, style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold, fontStyle: pw.FontStyle.italic, color: primaryColor)),
+                    pw.Text(_directorName, style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, fontStyle: pw.FontStyle.italic, color: primaryColor)),
+                    pw.SizedBox(height: 2),
                     pw.Container(
-                      width: 180,
+                      width: 200,
                       decoration: const pw.BoxDecoration(border: pw.Border(bottom: pw.BorderSide(color: PdfColors.black, width: 1))),
                     ),
                     pw.SizedBox(height: 4),
-                    pw.Text("Country Director - AGE Africa", style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
+                    pw.Text("COUNTRY DIRECTOR - AGE AFRICA", style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold)),
                   ],
                 ),
               ],
@@ -339,8 +374,8 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
         },
         footer: (context) => pw.Container(
           alignment: pw.Alignment.centerRight,
-          margin: const pw.EdgeInsets.only(top: 10),
-          child: pw.Text("Page ${context.pageNumber} of ${context.pagesCount}", style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey500)),
+          margin: const pw.EdgeInsets.only(top: 20),
+          child: pw.Text("Official AGE Africa Academic Document - Page ${context.pageNumber} of ${context.pagesCount}", style: const pw.TextStyle(fontSize: 7, color: PdfColors.grey500)),
         ),
       ),
     );

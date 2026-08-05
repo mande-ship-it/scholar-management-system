@@ -321,41 +321,41 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
 
   Widget _buildProfessionalHeader() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(32, 32, 32, 20),
+      padding: const EdgeInsets.fromLTRB(32, 24, 32, 12),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: kBrandBrown.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.manage_accounts_rounded, color: kBrandBrown, size: 30),
+            child: const Icon(Icons.manage_accounts_rounded, color: kBrandBrown, size: 20),
           ),
-          const SizedBox(width: 20),
+          const SizedBox(width: 16),
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("User Administration", 
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                Text("Command center for identity management, access control and role governance.", 
-                  style: TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500)),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                Text("Command center for identity management and access control.", 
+                  style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
           if (PermissionService.hasPermission('users.create'))
             ElevatedButton.icon(
               onPressed: widget.onAddUser,
-              icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
-              label: const Text("Register User"),
+              icon: const Icon(Icons.person_add_alt_1_rounded, size: 16),
+              label: const Text("REGISTER"),
               style: ElevatedButton.styleFrom(
                 backgroundColor: kBrandOlive,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
               ),
             ),
         ],
@@ -431,49 +431,60 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
       children: [
         Expanded(
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            height: 40,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
               color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(color: Colors.grey.shade200),
             ),
             child: TextField(
               onChanged: (val) => setState(() => _searchQuery = val),
+              style: const TextStyle(fontSize: 13),
               decoration: const InputDecoration(
-                hintText: "Filter by name, username or email...",
-                hintStyle: TextStyle(fontSize: 14, color: Colors.grey),
-                prefixIcon: Icon(Icons.search, size: 20),
+                hintText: "Search identities...",
+                hintStyle: TextStyle(fontSize: 12, color: Colors.grey),
+                prefixIcon: Icon(Icons.search, size: 18),
                 border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(vertical: 10),
               ),
             ),
           ),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: 12),
         _dropdownFilter("ROLES", _roleFilter, _roles, (v) => setState(() => _roleFilter = v)),
-        const SizedBox(width: 16),
+        const SizedBox(width: 12),
         _dropdownFilter("STATUS", _statusFilter, ['All', 'Active', 'Inactive'], (v) => setState(() => _statusFilter = v ?? 'All')),
         if (_hasActiveFilters)
-          IconButton(onPressed: _clearFilters, icon: const Icon(Icons.filter_list_off_rounded, color: Colors.redAccent), tooltip: "Reset Filters"),
+          IconButton(
+            onPressed: _clearFilters, 
+            icon: const Icon(Icons.filter_list_off_rounded, color: Colors.redAccent, size: 18),
+            constraints: const BoxConstraints(),
+            padding: const EdgeInsets.all(8),
+          ),
       ],
     );
   }
 
   Widget _dropdownFilter(String label, String? value, List<String> items, ValueChanged<String?> onChanged) {
     return Container(
-      width: 180,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      width: 140,
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Colors.grey.shade200),
       ),
-      child: DropdownButton<String>(
-        value: value,
-        isExpanded: true,
-        hint: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
-        underline: const SizedBox(),
-        items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 13)))).toList(),
-        onChanged: onChanged,
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          isExpanded: true,
+          hint: Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+          items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 12)))).toList(),
+          onChanged: onChanged,
+        ),
       ),
     );
   }

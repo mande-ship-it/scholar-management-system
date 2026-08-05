@@ -14,11 +14,6 @@ import 'package:scholar_management_system/services/api_service.dart';
 // ============================================================
 // Shared Brand Color Palette
 // ============================================================
-const Color kBrandBrown = Color(0xFF4C3C32);
-const Color kBrandCream = Color(0xFFFAF2DB);
-const Color kBrandCreamDark = Color(0xFFF3E7C4);
-const Color kBrandOlive = Color(0xFF9AB334);
-const Color kBrandOrange = Color(0xFFE05B1C);
 const Color kSurfaceMuted = Color(0xFFF7F6F2);
 
 String _initialsOf(String name) {
@@ -55,6 +50,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
 
   SchoolType? _schoolTypeFilter; // null = All
   String? _schoolNameFilter; // null = All
+  String? _districtFilter; // null = All
   String? _selectedYearFilter; // To filter the result count in the list
   bool _isExportingRoster = false;
   bool _isLoading = false;
@@ -146,7 +142,16 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
           _schoolTypeFilter == null || s.schoolType == _schoolTypeFilter;
       final matchesSchool =
           _schoolNameFilter == null || s.schoolName == _schoolNameFilter;
-      return matchesQuery && matchesType && matchesSchool;
+      final matchesDistrict = 
+          _districtFilter == null || s.district == _districtFilter;
+
+      if (_schoolTypeFilter == SchoolType.secondary) {
+         return matchesQuery && matchesType && matchesSchool && matchesDistrict;
+      } else if (_schoolTypeFilter == SchoolType.university) {
+         return matchesQuery && matchesType && matchesSchool;
+      }
+
+      return matchesQuery && matchesType && matchesSchool && matchesDistrict;
     }).toList();
   }
 
@@ -513,9 +518,39 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
                       onChanged: (v) => setState(() {
                         _schoolTypeFilter = v;
                         _schoolNameFilter = null;
+                        _districtFilter = null;
                       }),
                     ),
                   ),
+                  if (_schoolTypeFilter == SchoolType.secondary || _schoolTypeFilter == null)
+                    SizedBox(
+                      width: 180,
+                      child: DropdownButtonFormField<String?>(
+                        initialValue: _districtFilter,
+                        isExpanded: true,
+                        decoration: InputDecoration(
+                          isDense: true,
+                          filled: true,
+                          fillColor: Colors.white,
+                          labelText: "District",
+                          prefixIcon: const Icon(Icons.location_on_outlined, size: 18),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(color: Colors.grey.shade200),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: kBrandOlive, width: 2),
+                          ),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        items: [
+                          const DropdownMenuItem(value: null, child: Text('All Districts')),
+                          ...kMalawiDistricts.map((d) => DropdownMenuItem(value: d, child: Text(d, overflow: TextOverflow.ellipsis))),
+                        ],
+                        onChanged: (v) => setState(() => _districtFilter = v),
+                      ),
+                    ),
                   SizedBox(
                     width: 320,
                     child: DropdownButtonFormField<String?>(

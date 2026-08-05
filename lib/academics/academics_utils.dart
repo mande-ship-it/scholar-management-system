@@ -277,6 +277,13 @@ final List<ResultRecord> kResults = [];
 const List<String> kTerms = ['Term 1', 'Term 2', 'Term 3'];
 const List<String> kSemesters = ['Semester 1', 'Semester 2'];
 
+const List<String> kMalawiDistricts = [
+  'Balaka', 'Blantyre', 'Chikwawa', 'Chiradzulu', 'Chitipa', 'Dedza', 'Dowa',
+  'Karonga', 'Kasungu', 'Likoma', 'Lilongwe', 'Machinga', 'Mangochi', 'Mchinji',
+  'Mulanje', 'Mwanza', 'Mzimba', 'Nkhata Bay', 'Nkhotakota', 'Nsanje', 'Ntcheu',
+  'Ntchisi', 'Phalombe', 'Rumphi', 'Salima', 'Thyolo', 'Zomba'
+];
+
 /// ---------------------------------------------------------------------
 /// SHARED UTILITIES
 /// ---------------------------------------------------------------------
@@ -382,20 +389,58 @@ class Translator {
 
   static const Map<String, Map<String, String>> _dictionary = {
     'Chichewa': {
-      'Dashboard': 'Dati ya Tsamba',
+      // Core Navigation
+      'Dashboard': 'Tsamba Laukulu',
       'Scholars': 'Ophunzira',
       'Schools': 'Masukulu',
+      'Sponsors': 'Othandizira',
+      'Academics': 'Maphunziro',
+      'Attendance': 'Ofika',
+      'Users': 'Ogwiritsa Ntchito',
       'Settings': 'Zosintha',
+      'Operations': 'Ntchito',
+      'Notifications': 'Zilengezo',
+      
+      // Sub-items & Actions
       'Overview': 'Chidule',
-      'System Control Center': 'Likulu la Maendetsedwe',
+      'View Scholars': 'Onani Ophunzira',
+      'Register Scholar': 'Lembetsani Wophunzira',
+      'University Graduates': 'Omaliza Maphunziro a Ukachenjede',
+      'Internship Allocation': 'Kugawira Ntchito Zoyeserera',
+      'View Schools': 'Onani Masukulu',
+      'Register School': 'Lembetsani Sukulu',
+      'View Sponsors': 'Onani Othandizira',
+      'Register Sponsor': 'Lembetsani Wothandizira',
+      'Enter Results': 'Lembani Zotsatira',
+      'View Results': 'Onani Zotsatira',
+      'Report Cards': 'Malipoti a Maphunziro',
+      'Performance Analysis': 'Kupenda Mmene Akuchitira',
+      'Scholar Attendance': 'Ofika mwa Ophunzira',
+      'View Attendance': 'Onani Ofika',
+      'User Profile': 'Mbiri ya Wogwiritsa Ntchito',
       'Pending Approvals': 'Zodikira Chivomerezo',
+      'Admin Overview': 'Chidule cha Maendetsedwe',
+      'Command Center': 'Likulu la Maendetsedwe',
+      
+      // Settings
+      'Organisation Profile': 'Mbiri ya Bungwe',
+      'Backup & Restore': 'Kusunga & Kubwezeretsa Deta',
+      'System Settings': 'Zosintha za Dongosolo',
+      'Account Settings': 'Zosintha za Akaunti',
+      
+      // Dashboard & UI Labels
+      'System Control Center': 'Likulu la Maendetsedwe',
       'Manage Users': 'Samalirani Ogwiritsa Ntchito',
       'Total Users': 'Onse Ogwiritsa Ntchito',
-      'Active Sponsors': 'Othandizira',
+      'Active Sponsors': 'Othandizira Omwe Alipo',
       'Intelligence Hub': 'Likulu la Nzeru',
       'Executive Overview': 'Chidule cha Akuluakulu',
       'Data Continuity': 'Kusungika kwa Deta',
       'Security Profile': 'Mbiri ya Chitetezo',
+      'Events & Programs': 'Zochitika & Mapulogalamu',
+      'AI Strategy': 'Nzeru za AI',
+      'AI Analyst': 'Wopenda wa AI',
+      'Logout Session': 'Tulukani mu Dongosolo',
     }
   };
 

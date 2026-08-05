@@ -8,15 +8,23 @@ class ApiService {
   static const String _tokenKey = 'auth_token';
 
   static String get baseUrl {
-    // Force connect to Render backend
+    // We are forcing the Render production backend to ensure consistency with the database
     return 'https://age-systems-backend.onrender.com';
   }
 
   static String getFullUrl(String? path) {
     if (path == null || path.isEmpty) return '';
     if (path.startsWith('http')) return path;
-    // Remove leading slash if present to prevent double slashes
-    final cleanPath = path.startsWith('/') ? path.substring(1) : path;
+
+    // Remove leading ./ or / if present
+    String cleanPath = path;
+    if (cleanPath.startsWith('./')) {
+      cleanPath = cleanPath.substring(2);
+    }
+    if (cleanPath.startsWith('/')) {
+      cleanPath = cleanPath.substring(1);
+    }
+
     return '$baseUrl/$cleanPath';
   }
 
@@ -33,6 +41,8 @@ class ApiService {
       return handler.next(options);
     },
   ));
+
+  static Dio get dio => _dio;
 
   static Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -286,6 +296,10 @@ class ApiService {
 
   static Future<Response> deleteUser(String id) async {
     return await _dio.delete('/users/$id');
+  }
+
+  static Future<Response> getActiveUsers() async {
+    return await _dio.get('/users/active');
   }
 
   static Future<Response> getDirector() async {

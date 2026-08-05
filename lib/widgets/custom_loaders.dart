@@ -16,24 +16,27 @@ class BeautifulLoader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final loader = Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const _AnimatedBrandLoader(),
-        if (message != null) ...[
-          const SizedBox(height: 24),
-          Text(
-            message!.toUpperCase(),
-            style: TextStyle(
-              color: isOverlay ? Colors.white : kBrandBrown,
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 2.5,
+    final loader = FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const _AnimatedBrandLoader(),
+          if (message != null) ...[
+            const SizedBox(height: 16),
+            Text(
+              message!.toUpperCase(),
+              style: TextStyle(
+                color: isOverlay ? Colors.white : kBrandBrown,
+                fontSize: 10,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 2.0,
+              ),
             ),
-          ),
+          ],
         ],
-      ],
+      ),
     );
 
     if (!isOverlay) return loader;

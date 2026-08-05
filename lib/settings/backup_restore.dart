@@ -215,7 +215,7 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
 
   Widget _buildExecutiveHeader() {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
@@ -223,22 +223,22 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: kBrandBrown.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.cloud_sync_rounded, color: kBrandBrown, size: 28),
+            child: const Icon(Icons.cloud_sync_rounded, color: kBrandBrown, size: 20),
           ),
-          const SizedBox(width: 20),
+          const SizedBox(width: 16),
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Disaster Recovery",
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.8)),
-                Text("Configure enterprise-grade automated backups and system restore protocols.",
-                  style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                Text("Configure automated backups and system restore protocols.",
+                  style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
           ),

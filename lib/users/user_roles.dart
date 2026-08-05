@@ -666,16 +666,16 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
   // ---------------- CLEAN HEADER (Banner Removed) ----------------
   Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 32, 24, 8),
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: Colors.green.shade50,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.badge_rounded, color: Colors.green, size: 32),
+            child: const Icon(Icons.badge_rounded, color: Colors.green, size: 20),
           ),
           const SizedBox(width: 16),
           const Expanded(
@@ -685,27 +685,26 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
                 Text(
                   "User Roles",
                   style: TextStyle(
-                      color: Color(0xFF4C3C32), fontSize: 24, fontWeight: FontWeight.bold),
+                      color: Color(0xFF4C3C32), fontSize: 18, fontWeight: FontWeight.bold),
                 ),
-                SizedBox(height: 4),
                 Text(
                   "Define and manage the roles available across CHATS.",
-                  style: TextStyle(color: Colors.grey, fontSize: 14),
+                  style: TextStyle(color: Colors.grey, fontSize: 11),
                 ),
               ],
             ),
           ),
           ElevatedButton.icon(
             onPressed: () => _openRoleDialog(),
-            icon: const Icon(Icons.add_rounded, size: 18),
-            label: const Text("New Role"),
+            icon: const Icon(Icons.add_rounded, size: 16),
+            label: const Text("REGISTER"),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF4C3C32),
               foregroundColor: Colors.white,
               elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              textStyle: const TextStyle(fontWeight: FontWeight.bold),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
             ),
           ),
         ],

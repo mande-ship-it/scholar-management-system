@@ -8,13 +8,36 @@ import 'package:scholar_management_system/services/api_service.dart';
 // ============================================================
 
 class AcademicsManagementComponent extends StatefulWidget {
-  const AcademicsManagementComponent({super.key});
+  final SchoolType? forcedSchoolType;
+  const AcademicsManagementComponent({super.key, this.forcedSchoolType});
 
   @override
   State<AcademicsManagementComponent> createState() => _AcademicsManagementComponentState();
 }
 
 class _AcademicsManagementComponentState extends State<AcademicsManagementComponent> {
+  bool _isFieldOfficer = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkRole();
+  }
+
+  Future<void> _checkRole() async {
+    try {
+      final res = await ApiService.getAccountProfile();
+      if (res.statusCode == 200) {
+        final role = (res.data['data']['role_name'] ?? '').toString().toLowerCase();
+        if (mounted) {
+          setState(() {
+            _isFieldOfficer = role.contains('field');
+          });
+        }
+      }
+    } catch (e) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -24,7 +47,7 @@ class _AcademicsManagementComponentState extends State<AcademicsManagementCompon
         children: [
           _buildHeader(),
           const Divider(height: 1),
-          const Expanded(child: EnterResultsComponent()),
+          Expanded(child: EnterResultsComponent(forcedSchoolType: widget.forcedSchoolType)),
         ],
       ),
     );
@@ -32,30 +55,47 @@ class _AcademicsManagementComponentState extends State<AcademicsManagementCompon
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(32, 24, 32, 20),
+      padding: const EdgeInsets.all(32),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: kBrandOlive.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(16),
+              color: kBrandBrown.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.edit_note_rounded, color: kBrandOlive, size: 28),
+            child: Icon(_isFieldOfficer ? Icons.edit_note_rounded : Icons.visibility_rounded, color: kBrandBrown, size: 28),
           ),
-          const SizedBox(width: 20),
-          const Expanded(
+          const SizedBox(width: 24),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Academic Results Entry',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                SizedBox(height: 4),
-                Text('Digitize and record scholar examination scores with automated grading.',
-                    style: TextStyle(fontSize: 13, color: Colors.grey)),
+                Text(_isFieldOfficer ? "Academic Results Entry" : "View Academic Records", 
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.8)),
+                Text(_isFieldOfficer 
+                    ? "Digitize and record scholar examination scores with automated grading."
+                    : "Analyze and review official scholar performance records. Modification restricted.", 
+                  style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
+          if (!_isFieldOfficer)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(color: Colors.amber.withOpacity(0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.amber.shade300)),
+              child: const Row(
+                children: [
+                  Icon(Icons.lock_outline_rounded, size: 14, color: Colors.orange),
+                  SizedBox(width: 8),
+                  Text("READ-ONLY ACCESS", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange)),
+                ],
+              ),
+            ),
         ],
       ),
     );
@@ -63,7 +103,8 @@ class _AcademicsManagementComponentState extends State<AcademicsManagementCompon
 }
 
 class EnterResultsComponent extends StatefulWidget {
-  const EnterResultsComponent({super.key});
+  final SchoolType? forcedSchoolType;
+  const EnterResultsComponent({super.key, this.forcedSchoolType});
 
   @override
   State<EnterResultsComponent> createState() => _EnterResultsComponentState();
@@ -72,9 +113,10 @@ class EnterResultsComponent extends StatefulWidget {
 class _EnterResultsComponentState extends State<EnterResultsComponent> {
   bool _isLoading = false;
   bool _isSaving = false;
+  bool _isFieldOfficer = false;
 
   // Selection State
-  SchoolType _schoolType = SchoolType.secondary;
+  late SchoolType _schoolType;
   Map<String, dynamic>? _selectedSchool;
   Student? _selectedStudent;
 
@@ -100,9 +142,27 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
   @override
   void initState() {
     super.initState();
+    _schoolType = widget.forcedSchoolType ?? SchoolType.secondary;
     _selectedYear = _academicYears.first;
     _addRow();
     _fetchBaseData();
+    _checkRole();
+  }
+
+  Future<void> _checkRole() async {
+    try {
+      final res = await ApiService.getAccountProfile();
+      if (res.statusCode == 200) {
+        final role = (res.data['data']['role_name'] ?? '').toString().toLowerCase();
+        if (mounted) {
+          setState(() {
+            _isFieldOfficer = role.contains('field');
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Role check error: $e');
+    }
   }
 
   Future<void> _fetchBaseData() async {
@@ -299,8 +359,8 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
       }
     }
 
-    final int minSubjects = isUniversity ? 5 : 6;
-    final int maxSubjects = isUniversity ? 8 : 12;
+    final int minSubjects = _isFieldOfficer ? 8 : (isUniversity ? 5 : 6);
+    final int maxSubjects = _isFieldOfficer ? 10 : (isUniversity ? 8 : 12);
 
     if (validResults.length < minSubjects) {
       _showError("Please enter at least $minSubjects ${isUniversity ? 'courses' : 'subjects'}.");
@@ -412,9 +472,26 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("SCHOLAR & SESSION CONFIGURATION", 
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
-          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("SCHOLAR & SESSION CONFIGURATION", 
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+              if (_isFieldOfficer)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.security_rounded, size: 14, color: kBrandOlive),
+                      SizedBox(width: 8),
+                      Text("VERIFIED ENTRY MODE", style: TextStyle(color: kBrandOlive, fontSize: 10, fontWeight: FontWeight.w900)),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 32),
           Row(
             children: [
               Expanded(
@@ -423,19 +500,44 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                   children: [
                     const Text("Institution Level", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: kBrandBrown)),
                     const SizedBox(height: 12),
-                    SegmentedButton<SchoolType>(
-                      segments: const [
-                        ButtonSegment(value: SchoolType.secondary, label: Text("Secondary"), icon: Icon(Icons.school_outlined, size: 18)),
-                        ButtonSegment(value: SchoolType.university, label: Text("University"), icon: Icon(Icons.account_balance_outlined, size: 18)),
-                      ],
-                      selected: {_schoolType},
-                      onSelectionChanged: (s) => _onTypeChanged(s.first),
-                      style: SegmentedButton.styleFrom(
-                        selectedBackgroundColor: kBrandOlive,
-                        selectedForegroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                    if (_isFieldOfficer)
+                      Container(
+                        height: 52,
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        decoration: BoxDecoration(
+                          color: kBrandBrown.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: kBrandBrown.withOpacity(0.1)),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.school_rounded, size: 18, color: kBrandBrown),
+                            SizedBox(width: 12),
+                            Text("Secondary School Operations", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown)),
+                          ],
+                        ),
+                      )
+                    else
+                      IgnorePointer(
+                        ignoring: widget.forcedSchoolType != null,
+                        child: Opacity(
+                          opacity: widget.forcedSchoolType != null ? 0.6 : 1.0,
+                          child: SegmentedButton<SchoolType>(
+                            segments: const [
+                              ButtonSegment(value: SchoolType.secondary, label: Text("Secondary"), icon: Icon(Icons.school_outlined, size: 18)),
+                              ButtonSegment(value: SchoolType.university, label: Text("University"), icon: Icon(Icons.account_balance_outlined, size: 18)),
+                            ],
+                            selected: {_schoolType},
+                            onSelectionChanged: (s) => _onTypeChanged(s.first),
+                            style: SegmentedButton.styleFrom(
+                              selectedBackgroundColor: kBrandOlive,
+                              selectedForegroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
@@ -585,7 +687,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
               ),
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: OutlinedButton.icon(
+                child: _isFieldOfficer ? OutlinedButton.icon(
                   onPressed: _addRow,
                   icon: const Icon(Icons.add_rounded),
                   label: const Text("Add Subject Row"),
@@ -593,7 +695,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                     padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                ),
+                ) : const SizedBox(),
               ),
             ],
           ),
@@ -614,22 +716,13 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
         children: [
           Expanded(
             flex: 3,
-            child: Autocomplete<Subject>(
-              optionsBuilder: (textValue) {
-                if (textValue.text.isEmpty) return _subjectOptions;
-                return _subjectOptions.where((s) => s.name.toLowerCase().contains(textValue.text.toLowerCase()));
-              },
-              displayStringForOption: (s) => s.name,
-              onSelected: (s) => setState(() => row.subjectController.text = s.name),
-              fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
-                if (controller.text != row.subjectController.text) controller.text = row.subjectController.text;
-                return TextField(
-                  controller: controller,
-                  focusNode: focusNode,
-                  decoration: const InputDecoration(hintText: "Search or type subject...", border: InputBorder.none),
-                  onChanged: (v) => row.subjectController.text = v,
-                );
-              },
+            child: DropdownButtonFormField<String>(
+              value: _subjectOptions.any((s) => s.name == row.subjectController.text) ? row.subjectController.text : null,
+              hint: const Text("Select subject..."),
+              isExpanded: true,
+              decoration: const InputDecoration(border: InputBorder.none),
+              items: _subjectOptions.map((s) => DropdownMenuItem(value: s.name, child: Text(s.name, overflow: TextOverflow.ellipsis))).toList(),
+              onChanged: (v) => setState(() => row.subjectController.text = v ?? ''),
             ),
           ),
           const SizedBox(width: 24),
@@ -637,6 +730,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
             flex: 1,
             child: TextField(
               controller: row.scoreController,
+              enabled: _isFieldOfficer,
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
               style: TextStyle(fontWeight: FontWeight.bold, color: hasScore ? color : kBrandBrown),
@@ -712,18 +806,27 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
 
   Widget _buildMissingSelectionHint() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 80),
+      padding: const EdgeInsets.symmetric(vertical: 120),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(32),
         border: Border.all(color: Colors.grey.shade100),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 10)],
       ),
       child: Column(
         children: [
-          Icon(Icons.fact_check_rounded, size: 64, color: Colors.grey.shade200),
-          const SizedBox(height: 24),
-          const Text("Select a scholar and academic period to initialize the scorecard.", 
-            style: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w500)),
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.05), shape: BoxShape.circle),
+            child: const Icon(Icons.fact_check_rounded, size: 64, color: kBrandOlive),
+          ),
+          const SizedBox(height: 32),
+          const Text("Secure Result Entry Portal", 
+            style: TextStyle(color: kBrandBrown, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+          const SizedBox(height: 12),
+          Text("Select a scholar and specify the academic period above\nto initialize the examination scorecard.", 
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey.shade500, fontSize: 14, height: 1.5)),
         ],
       ),
     );

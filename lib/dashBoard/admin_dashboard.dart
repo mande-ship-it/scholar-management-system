@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 import 'package:scholar_management_system/services/api_service.dart';
 import '../academics/academics_utils.dart';
 
@@ -32,8 +33,9 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
   List<Map<String, dynamic>> _schoolsRiskData = [];
   String _searchQuery = "";
 
-  // Activity Log
+  // Activity Log / Active Users
   List<dynamic> _recentActivities = [];
+  List<dynamic> _activeUsers = [];
 
   static const List<Color> chartColors = [
     Color(0xFF9AB334), // Olive
@@ -112,6 +114,12 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
         final activitiesRes = await ApiService.getRecentActivities();
         if (activitiesRes.statusCode == 200) {
           _recentActivities = activitiesRes.data['data'] ?? [];
+        }
+
+        // 6. Fetch Active Users
+        final activeUsersRes = await ApiService.getActiveUsers();
+        if (activeUsersRes.statusCode == 200) {
+          _activeUsers = activeUsersRes.data['data'] ?? [];
         }
       }
 
@@ -228,35 +236,35 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
             Text(
               Translator.translate("ADMINISTRATIVE CONTROL"),
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 9,
                 fontWeight: FontWeight.w900,
                 color: kBrandBrown.withOpacity(0.5),
-                letterSpacing: 2.0,
+                letterSpacing: 1.5,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Text(
               Translator.translate("System Insights & Operations"),
               style: const TextStyle(
-                fontSize: 28,
+                fontSize: 18,
                 fontWeight: FontWeight.w900,
                 color: kBrandBrown,
-                letterSpacing: -1.0,
+                letterSpacing: -0.5,
               ),
             ),
           ],
         ),
         ElevatedButton.icon(
           onPressed: _loadDashboardData,
-          icon: const Icon(Icons.refresh_rounded, size: 20),
-          label: const Text("REFRESH METRICS", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          icon: const Icon(Icons.refresh_rounded, size: 16),
+          label: const Text("REFRESH", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10)),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.white,
             foregroundColor: kBrandOlive,
             elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
               side: BorderSide(color: kBrandOlive.withOpacity(0.2)),
             ),
           ),
@@ -401,7 +409,7 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
   }
 
   Widget _buildApprovalsDensityCard() {
-    final int maxVal = [1, _pendingScholars, _pendingEvents, _pendingPayments].reduce((a, b) => a > b ? a : b);
+    final int maxVal = [1, _pendingEvents, _pendingPayments].reduce((a, b) => a > b ? a : b);
 
     return _DashboardCard(
       title: "Queue Workloads",
@@ -423,9 +431,8 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
                     getTitlesWidget: (value, meta) {
                       const style = TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey);
                       switch (value.toInt()) {
-                        case 0: return const Padding(padding: EdgeInsets.only(top: 8.0), child: Text("Scholars", style: style));
-                        case 1: return const Padding(padding: EdgeInsets.only(top: 8.0), child: Text("Events", style: style));
-                        case 2: return const Padding(padding: EdgeInsets.only(top: 8.0), child: Text("Payments", style: style));
+                        case 0: return const Padding(padding: EdgeInsets.only(top: 8.0), child: Text("Events", style: style));
+                        case 1: return const Padding(padding: EdgeInsets.only(top: 8.0), child: Text("Payments", style: style));
                         default: return const Text("");
                       }
                     },
@@ -438,9 +445,8 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
               gridData: const FlGridData(show: false),
               borderData: FlBorderData(show: false),
               barGroups: [
-                BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: _pendingScholars.toDouble(), color: kBrandOlive, width: 32, borderRadius: BorderRadius.circular(6))]),
-                BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: _pendingEvents.toDouble(), color: kBrandOrange, width: 32, borderRadius: BorderRadius.circular(6))]),
-                BarChartGroupData(x: 2, barRods: [BarChartRodData(toY: _pendingPayments.toDouble(), color: kBrandBrown, width: 32, borderRadius: BorderRadius.circular(6))]),
+                BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: _pendingEvents.toDouble(), color: kBrandOrange, width: 32, borderRadius: BorderRadius.circular(6))]),
+                BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: _pendingPayments.toDouble(), color: kBrandBrown, width: 32, borderRadius: BorderRadius.circular(6))]),
               ],
             ),
           ),
@@ -567,49 +573,90 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
   Widget _buildActivityLogCard() {
     return _DashboardCard(
       title: "Operations Ledger",
-      subtitle: "Chronological audit log of administrative changes",
-      child: _recentActivities.isEmpty
-        ? const Padding(padding: EdgeInsets.all(32), child: Center(child: Text("No actions logged in database.", style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey))))
+      subtitle: "Active users recently engaged with the system",
+      child: _activeUsers.isEmpty
+        ? const Padding(padding: EdgeInsets.all(32), child: Center(child: Text("No active user sessions detected.", style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey))))
         : ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: _recentActivities.take(5).length,
+            itemCount: _activeUsers.take(6).length,
             separatorBuilder: (_, __) => const Divider(height: 24, color: Color(0xFFF1F4F8)),
             itemBuilder: (context, idx) {
-              final a = _recentActivities[idx];
-              String timeStr = "Just now";
+              final user = _activeUsers[idx];
+              String timeStr = "Active now";
               try {
-                final date = DateTime.tryParse(a['created_at'] ?? '');
+                final date = DateTime.tryParse(user['lastLogin'] ?? '');
                 if (date != null) {
-                  timeStr = "${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}";
+                  final diff = DateTime.now().difference(date);
+                  if (diff.inMinutes < 1) {
+                    timeStr = "Active now";
+                  } else if (diff.inMinutes < 60) {
+                    timeStr = "${diff.inMinutes}m ago";
+                  } else if (diff.inHours < 24) {
+                    timeStr = "${diff.inHours}h ago";
+                  } else {
+                    timeStr = DateFormat('MMM dd, HH:mm').format(date);
+                  }
                 }
               } catch (_) {}
 
               return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    margin: const EdgeInsets.only(top: 4),
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(color: kBrandOrange.withOpacity(0.2), shape: BoxShape.circle, border: Border.all(color: kBrandOrange, width: 2)),
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: kBrandOlive.withOpacity(0.1),
+                    child: ClipOval(
+                      child: user['profilePicture'] != null
+                        ? Image.network(
+                            ApiService.getFullUrl(user['profilePicture']),
+                            fit: BoxFit.cover,
+                            width: 36,
+                            height: 36,
+                            errorBuilder: (context, error, stackTrace) =>
+                              _initialsAvatar(user['fullName'] ?? '?'),
+                          )
+                        : _initialsAvatar(user['fullName'] ?? '?'),
+                    ),
                   ),
-                  const SizedBox(width: 20),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(a['message'] ?? '', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Text(
-                              "AUTHORIZED BY: ${a['actor'] ?? 'SYSTEM'}",
-                              style: TextStyle(fontSize: 10, color: kBrandBrown.withOpacity(0.4), fontWeight: FontWeight.w900, letterSpacing: 0.5),
-                            ),
-                            const Spacer(),
-                            Text(timeStr, style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
-                          ],
+                        Text(
+                          user['fullName'] ?? 'User Identity',
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: kBrandBrown),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          user['roleId']?['name']?.toUpperCase() ?? 'STAFF',
+                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBrandBrown.withOpacity(0.4), letterSpacing: 0.5),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: timeStr == "Active now" ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Row(
+                      children: [
+                        if (timeStr == "Active now")
+                          Container(
+                            margin: const EdgeInsets.only(right: 6),
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(color: Colors.green, shape: BoxShape.circle),
+                          ),
+                        Text(
+                          timeStr,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: timeStr == "Active now" ? Colors.green : Colors.grey.shade600
+                          ),
                         ),
                       ],
                     ),
@@ -671,6 +718,19 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
     if (level == 'high') return Colors.red.shade700;
     if (level == 'medium') return Colors.orange.shade700;
     return Colors.green.shade700;
+  }
+
+  Widget _initialsAvatar(String name) {
+    return Container(
+      width: 36,
+      height: 36,
+      alignment: Alignment.center,
+      color: kBrandOlive.withOpacity(0.1),
+      child: Text(
+        name.isNotEmpty ? name[0].toUpperCase() : '?',
+        style: const TextStyle(color: kBrandBrown, fontWeight: FontWeight.bold, fontSize: 12),
+      ),
+    );
   }
 }
 

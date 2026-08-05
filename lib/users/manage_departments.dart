@@ -116,7 +116,7 @@ class _ManageDepartmentsComponentState extends State<ManageDepartmentsComponent>
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       color: Colors.white,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -124,15 +124,20 @@ class _ManageDepartmentsComponentState extends State<ManageDepartmentsComponent>
           const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Department Management", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kBrandBrown)),
-              Text("Define and manage institutional departments for user allocation.", style: TextStyle(fontSize: 12, color: Colors.grey)),
+              Text("Department Management", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kBrandBrown)),
+              Text("Define and manage institutional departments for user allocation.", style: TextStyle(fontSize: 11, color: Colors.grey)),
             ],
           ),
           ElevatedButton.icon(
             onPressed: () => _showDeptDialog(),
-            icon: const Icon(Icons.add),
-            label: const Text("Create Department"),
-            style: ElevatedButton.styleFrom(backgroundColor: kBrandOlive, foregroundColor: Colors.white),
+            icon: const Icon(Icons.add, size: 16),
+            label: const Text("CREATE", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kBrandOlive,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
           ),
         ],
       ),

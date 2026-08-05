@@ -179,7 +179,7 @@ class _OrganisationProfileComponentState
 
   Widget _buildExecutiveHeader() {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
@@ -187,22 +187,22 @@ class _OrganisationProfileComponentState
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: kBrandBrown.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(12),
+              color: kBrandBrown.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.corporate_fare_rounded, color: kBrandBrown, size: 28),
+            child: const Icon(Icons.corporate_fare_rounded, color: kBrandBrown, size: 20),
           ),
-          const SizedBox(width: 20),
+          const SizedBox(width: 16),
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Organisation Profile", 
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.8)),
-                Text("Manage institutional identity, authentication and contact channels.", 
-                  style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                Text("Manage institutional identity and channels.",
+                  style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -295,9 +295,9 @@ class _OrganisationProfileComponentState
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: kBrandOlive.withValues(alpha: 0.1),
+        color: kBrandOlive.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: kBrandOlive.withValues(alpha: 0.2)),
+        border: Border.all(color: kBrandOlive.withOpacity(0.2)),
       ),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
@@ -321,7 +321,7 @@ class _OrganisationProfileComponentState
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: kBrandBrown.withValues(alpha: 0.5)),
+          Icon(icon, size: 14, color: kBrandBrown.withOpacity(0.5)),
           const SizedBox(width: 8),
           Text(text, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kBrandBrown)),
         ],
@@ -417,7 +417,7 @@ class _OrganisationProfileComponentState
   }
 
   Widget _sectionLabel(String text) {
-    return Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kBrandOlive.withValues(alpha: 0.8), letterSpacing: 1.5));
+    return Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kBrandOlive.withOpacity(0.8), letterSpacing: 1.5));
   }
 
   Widget _buildTextField({
@@ -429,21 +429,24 @@ class _OrganisationProfileComponentState
     TextInputType? keyboardType,
     String? Function(String?)? validator,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
       keyboardType: keyboardType,
       validator: validator,
       onChanged: (v) => setState(() {}),
-      style: const TextStyle(fontWeight: FontWeight.w600, color: kBrandBrown),
+      style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? Colors.white : kBrandBrown),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon: Icon(icon, size: 20, color: kBrandBrown.withValues(alpha: 0.4)),
+        prefixIcon: Icon(icon, size: 20, color: isDark ? Colors.white70 : kBrandBrown.withOpacity(0.4)),
         filled: true,
-        fillColor: Colors.white,
-        labelStyle: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w500, fontSize: 14),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+        fillColor: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
+        labelStyle: TextStyle(color: isDark ? Colors.white60 : Colors.grey.shade500, fontWeight: FontWeight.w500, fontSize: 14),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: isDark ? theme.dividerColor : const Color(0xFFE5E7EB))),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kBrandOlive, width: 2)),
       ),
     );
@@ -456,18 +459,22 @@ class _OrganisationProfileComponentState
     required IconData icon,
     required ValueChanged<String?> onChanged,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return DropdownButtonFormField<String>(
       initialValue: value,
       items: options.map((o) => DropdownMenuItem(value: o, child: Text(o, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
       onChanged: onChanged,
-      style: const TextStyle(fontWeight: FontWeight.w600, color: kBrandBrown),
+      dropdownColor: theme.cardColor,
+      style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? Colors.white : kBrandBrown),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, size: 20, color: kBrandBrown.withValues(alpha: 0.4)),
+        prefixIcon: Icon(icon, size: 20, color: isDark ? Colors.white70 : kBrandBrown.withOpacity(0.4)),
         filled: true,
-        fillColor: Colors.white,
-        labelStyle: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w500, fontSize: 14),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+        fillColor: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
+        labelStyle: TextStyle(color: isDark ? Colors.white60 : Colors.grey.shade500, fontWeight: FontWeight.w500, fontSize: 14),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: isDark ? theme.dividerColor : const Color(0xFFE5E7EB))),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kBrandOlive, width: 2)),
       ),
     );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:scholar_management_system/services/api_service.dart';
+import '../academics/academics_utils.dart';
 
 class RecentActivitiesComponent extends StatefulWidget {
   const RecentActivitiesComponent({super.key});
@@ -47,9 +48,9 @@ class _RecentActivitiesComponentState extends State<RecentActivitiesComponent> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           "Recent Activities",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: kBrandBrown),
         ),
         const SizedBox(height: 16),
         ListView.separated(

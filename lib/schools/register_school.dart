@@ -36,7 +36,33 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
   String? _selectedGenderType;
   String? _selectedRegion;
   String? _selectedDistrict;
+  String? _assignedDistrict;
   bool _isSaving = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProfile();
+  }
+
+  Future<void> _fetchProfile() async {
+    try {
+      final response = await ApiService.getAccountProfile();
+      if (response.statusCode == 200) {
+        final userData = response.data['data'];
+        _assignedDistrict = userData['assignedDistrict'];
+        if (_assignedDistrict != null) {
+          setState(() {
+            _selectedDistrict = _assignedDistrict;
+            // Auto-detect region if possible or leave for manual selection
+          });
+        }
+      }
+    } catch (e) {} finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   // Options Lists
   final List<String> _schoolLevels = [
@@ -292,7 +318,7 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
 
   Widget _buildExecutiveHeader() {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
@@ -300,19 +326,19 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: kBrandBrown.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(12)),
-            child: const Icon(Icons.domain_add_rounded, color: kBrandBrown, size: 28),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: kBrandBrown.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(8)),
+            child: const Icon(Icons.domain_add_rounded, color: kBrandBrown, size: 20),
           ),
-          const SizedBox(width: 24),
+          const SizedBox(width: 16),
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Register New Institution", 
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.8)),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
                 Text("Enter comprehensive administrative and academic profiles for school onboarding.", 
-                  style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
+                  style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -365,7 +391,7 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
                 initialValue: _selectedRegion,
                 decoration: _inputDeco("Region", Icons.map_outlined),
                 items: _regions.map((r) => DropdownMenuItem(value: r, child: Text(r, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
-                onChanged: (v) => setState(() {
+                onChanged: _assignedDistrict != null ? null : (v) => setState(() {
                   _selectedRegion = v;
                   _selectedDistrict = null;
                 }),
@@ -374,11 +400,20 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
             const SizedBox(width: 24),
             Expanded(
               child: DropdownButtonFormField<String>(
-                key: ValueKey(_selectedRegion),
+                key: ValueKey('$_selectedRegion$_assignedDistrict'),
                 initialValue: _selectedDistrict,
-                decoration: _inputDeco("District", Icons.my_location_outlined),
-                items: _activeDistricts.map((d) => DropdownMenuItem(value: d, child: Text(d, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
-                onChanged: _selectedRegion == null ? null : (v) => setState(() => _selectedDistrict = v),
+                decoration: _inputDeco(
+                  _assignedDistrict != null ? "Assigned District (Locked)" : "District", 
+                  Icons.my_location_outlined
+                ).copyWith(
+                  helperText: _assignedDistrict != null ? "Monitoring restricted to $_assignedDistrict." : null,
+                  helperStyle: const TextStyle(color: kBrandOrange, fontWeight: FontWeight.bold),
+                ),
+                items: _assignedDistrict != null 
+                  ? [DropdownMenuItem(value: _assignedDistrict, child: Text(_assignedDistrict!, style: const TextStyle(fontWeight: FontWeight.w600)))]
+                  : _activeDistricts.map((d) => DropdownMenuItem(value: d, child: Text(d, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+                onChanged: _assignedDistrict != null ? null : (v) => setState(() => _selectedDistrict = v),
+                validator: (v) => v == null ? "Required" : null,
               ),
             ),
           ],

@@ -295,23 +295,26 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
 
   Widget _buildExecutiveHeader() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: kBrandOlive.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-            child: const Icon(Icons.volunteer_activism_rounded, color: kBrandOlive, size: 24),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: kBrandOlive.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+            child: const Icon(Icons.volunteer_activism_rounded, color: kBrandOlive, size: 20),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 16),
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Strategic Partner Registry', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                SizedBox(height: 2),
+                Text('Strategic Partner Registry', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kBrandBrown, letterSpacing: -0.5)),
                 Text('Management of philanthropic relationships and funding commitments.',
-                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+                    style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -324,13 +327,13 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
                   Navigator.pushNamed(context, '/sponsors/register').then((_) => _loadSponsors());
                 }
               },
-              icon: const Icon(Icons.add_rounded, size: 18),
-              label: const Text("REGISTER PARTNER", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+              icon: const Icon(Icons.add_rounded, size: 16),
+              label: const Text("REGISTER", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: kBrandOlive,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
         ],
@@ -343,28 +346,38 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
       children: [
         const Divider(indent: 24, endIndent: 24),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
           child: Row(
             children: [
               Expanded(
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Search by partner name, entity, or email...',
-                    prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                    isDense: true,
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
+                child: Container(
+                  height: 40,
+                  child: TextField(
+                    style: const TextStyle(fontSize: 13),
+                    decoration: InputDecoration(
+                      hintText: 'Search partners...',
+                      prefixIcon: const Icon(Icons.search_rounded, size: 18),
+                      isDense: true,
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade200)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: kBrandOlive, width: 1.5)),
+                    ),
+                    onChanged: (val) {
+                      _searchQuery = val;
+                      _applyFilter();
+                    },
                   ),
-                  onChanged: (val) {
-                    _searchQuery = val;
-                    _applyFilter();
-                  },
                 ),
               ),
-              const SizedBox(width: 16),
-              IconButton(icon: const Icon(Icons.sync_rounded, color: kBrandBrown), onPressed: _isLoading ? null : _loadSponsors),
+              const SizedBox(width: 12),
+              IconButton(
+                icon: const Icon(Icons.sync_rounded, color: kBrandBrown, size: 18),
+                onPressed: _isLoading ? null : _loadSponsors,
+                constraints: const BoxConstraints(),
+                padding: EdgeInsets.zero,
+              ),
             ],
           ),
         ),

@@ -82,7 +82,7 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
         children: [
           // Professional Header
           Container(
-            padding: const EdgeInsets.fromLTRB(32, 28, 32, 24),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             decoration: BoxDecoration(
               color: Colors.white,
               border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
@@ -90,23 +90,22 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: kBrandOlive.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.analytics_rounded, color: kBrandOlive, size: 30),
+                  child: const Icon(Icons.analytics_rounded, color: kBrandOlive, size: 20),
                 ),
-                const SizedBox(width: 20),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text('School Attendance Reports',
-                        style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                      const SizedBox(height: 4),
-                      Text('Analyze program participation against targets for specific institutions and periods.',
-                        style: TextStyle(fontSize: 14, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                      Text('Analyze program participation against targets.',
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
                     ],
                   ),
                 ),

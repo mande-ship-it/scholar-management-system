@@ -86,16 +86,35 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
 
           if (mounted) {
             setState(() => _isLoading = false);
+            
+            final String role = userData['role'] ?? 'User';
+            final String normalizedRole = role.trim().toLowerCase();
+            
+            debugPrint('LOGIN DEBUG: Detected role is "$role", normalized to "$normalizedRole"');
 
-            // Check if password reset is required
+            // 1. Admin Group
+            final bool hasAdminAccess = [
+              'administrator', 
+              'program manager', 
+              'program coordinator', 
+              'country director'
+            ].contains(normalizedRole);
+
+            // 2. Field Operations Group
+            final bool isFieldOfficer = [
+              'field officer', 
+              'field coordinator', 
+              'field operations', 
+              'operational officer'
+            ].contains(normalizedRole);
+
+            debugPrint('LOGIN DEBUG: hasAdminAccess=$hasAdminAccess, isFieldOfficer=$isFieldOfficer');
+
             if (userData['mustResetPassword'] == true || userData['isFirstLogin'] == true) {
               Navigator.pushReplacementNamed(context, '/password-reset');
               return;
             }
 
-            final String role = userData['role'] ?? 'User';
-            final bool hasAdminAccess = ['Administrator', 'Program Manager', 'Program Coordinator', 'Country Director'].contains(role);
-            
             if (hasAdminAccess) {
               Navigator.pushReplacementNamed(
                 context,
@@ -106,7 +125,19 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
                   'profilePicture': userData['profile_picture'] ?? userData['profilePicture'],
                 },
               );
+            } else if (isFieldOfficer) {
+              debugPrint('LOGIN DEBUG: Routing to Field Operations Portal...');
+              Navigator.pushReplacementNamed(
+                context,
+                '/field-operations/home',
+                arguments: {
+                  'username': userData['fullName'] ?? _usernameController.text.trim(),
+                  'role': role,
+                  'profilePicture': userData['profile_picture'] ?? userData['profilePicture'],
+                },
+              );
             } else {
+              debugPrint('LOGIN DEBUG: Routing to standard Operations Dashboard...');
               Navigator.pushReplacementNamed(
                 context,
                 '/home',
@@ -491,10 +522,25 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  "Don't have an account?",
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                TextButton(
+                  onPressed: () {
+                    ApiService.logout();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Session cleared. Try logging in again.")),
+                    );
+                  },
+                  child: const Text(
+                    "Clear Session",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
+                  ),
                 ),
+                const SizedBox(width: 8),
+                const Text("|", style: TextStyle(color: Colors.grey)),
+                const SizedBox(width: 8),
                 TextButton(
                   onPressed: () {},
                   child: const Text(

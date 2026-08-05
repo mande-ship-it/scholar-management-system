@@ -123,7 +123,7 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
 
   Widget _buildProfessionalHeader() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(32, 24, 32, 0),
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
@@ -133,40 +133,40 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: kBrandOlive.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.workspace_premium_rounded, color: kBrandOlive, size: 28),
+                child: const Icon(Icons.workspace_premium_rounded, color: kBrandOlive, size: 20),
               ),
-              const SizedBox(width: 20),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text("Alumni & Graduates Registry",
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
                     Text("Centralized database of scholars who have completed their university program cycle.",
-                      style: TextStyle(fontSize: 13, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+                      style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
                   ],
                 ),
               ),
               ElevatedButton.icon(
                 onPressed: _fetchData,
-                icon: const Icon(Icons.sync_rounded, size: 18),
-                label: const Text("SYNC DATA"),
+                icon: const Icon(Icons.sync_rounded, size: 16),
+                label: const Text("SYNC DATA", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: kBrandBrown,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   elevation: 0,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerLeft,
             child: TabBar(
@@ -175,11 +175,12 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
               labelColor: kBrandOlive,
               unselectedLabelColor: Colors.grey,
               indicatorColor: kBrandOlive,
-              indicatorWeight: 3,
-              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              indicatorWeight: 2,
+              labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
               tabs: const [
-                Tab(text: "GRADUATES (Pending Allocation)"),
-                Tab(text: "ALUMNI (Allocated)"),
+                Tab(text: "GRADUATES", height: 36),
+                Tab(text: "ALUMNI", height: 36),
               ],
             ),
           ),

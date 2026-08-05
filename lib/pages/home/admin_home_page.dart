@@ -145,9 +145,11 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
       if (response.statusCode == 200) {
         final data = response.data['data'];
         if (data != null && mounted) {
-          final String role = data['role_name'] ?? "";
-          // Strict check: Only "Administrator" can access this portal
-          if (role != 'Administrator') {
+          final String role = (data['role_name'] ?? "").toString().trim();
+          final String normalizedRole = role.toLowerCase();
+          
+          // Case-insensitive check for Admin access
+          if (normalizedRole != 'administrator') {
             _redirectToHome();
           } else {
             setState(() {
@@ -757,8 +759,18 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
               child: CircleAvatar(
                 backgroundColor: kBrandCream,
                 radius: 18,
-                backgroundImage: _profileImageUrl != null ? NetworkImage(ApiService.getFullUrl(_profileImageUrl)) : null,
-                child: _profileImageUrl == null ? const Icon(Icons.person_rounded, color: kBrandBrown, size: 20) : null,
+                child: ClipOval(
+                  child: _profileImageUrl != null
+                      ? Image.network(
+                          ApiService.getFullUrl(_profileImageUrl),
+                          fit: BoxFit.cover,
+                          width: 36,
+                          height: 36,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(Icons.person_rounded, color: kBrandBrown, size: 20),
+                        )
+                      : const Icon(Icons.person_rounded, color: kBrandBrown, size: 20),
+                ),
               ),
             ),
           )
@@ -784,12 +796,18 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
                             CircleAvatar(
                               radius: 40,
                               backgroundColor: kBrandBrown,
-                              backgroundImage: _profileImageUrl != null
-                                ? NetworkImage(ApiService.getFullUrl(_profileImageUrl))
-                                : null,
-                              child: _profileImageUrl == null
-                                ? const Icon(Icons.person_rounded, size: 45, color: kBrandCream)
-                                : null,
+                              child: ClipOval(
+                                child: _profileImageUrl != null
+                                    ? Image.network(
+                                        ApiService.getFullUrl(_profileImageUrl),
+                                        fit: BoxFit.cover,
+                                        width: 80,
+                                        height: 80,
+                                        errorBuilder: (context, error, stackTrace) =>
+                                            const Icon(Icons.person_rounded, size: 45, color: kBrandCream),
+                                      )
+                                    : const Icon(Icons.person_rounded, size: 45, color: kBrandCream),
+                              ),
                             ),
                             const SizedBox(height: 12),
                             Text(
@@ -911,7 +929,7 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
                   color: Colors.white,
                   child: Row(
                     children: [
-                      if (_navigationHistory.isNotEmpty) ...[
+                      if (_navigationHistory.isNotEmpty && activeSubItem.title != "Pending Approvals") ...[
                         IconButton(icon: const Icon(Icons.arrow_back, color: Colors.black87), onPressed: _popSubItem),
                         const SizedBox(width: 8),
                       ],

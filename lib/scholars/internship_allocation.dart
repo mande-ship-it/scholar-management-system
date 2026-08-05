@@ -136,25 +136,25 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(32, 24, 32, 24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: const BoxDecoration(color: Colors.white, border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE)))),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: kBrandOrange.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
-            child: const Icon(Icons.handshake_rounded, color: kBrandOrange, size: 28),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: kBrandOrange.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+            child: const Icon(Icons.handshake_rounded, color: kBrandOrange, size: 20),
           ),
-          const SizedBox(width: 20),
+          const SizedBox(width: 16),
           const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Internship Allocation Hub", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-              Text("Strategic workforce placement for AGE Africa alumni.", style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
+              Text("Internship Allocation Hub", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+              Text("Strategic workforce placement for AGE Africa alumni.", style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
             ],
           ),
           const Spacer(),
-          IconButton(onPressed: _fetchData, icon: const Icon(Icons.sync_rounded, color: kBrandOlive)),
+          IconButton(onPressed: _fetchData, icon: const Icon(Icons.sync_rounded, color: kBrandOlive, size: 20)),
         ],
       ),
     );

@@ -8,7 +8,8 @@ typedef OnScholarRegistered = Future<void> Function(Student scholar);
 
 class RegisterScholarComponent extends StatefulWidget {
   final OnScholarRegistered? onRegister;
-  const RegisterScholarComponent({super.key, this.onRegister});
+  final String? forcedSchoolType;
+  const RegisterScholarComponent({super.key, this.onRegister, this.forcedSchoolType});
 
   @override
   State<RegisterScholarComponent> createState() => _RegisterScholarComponentState();
@@ -72,14 +73,39 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
   bool _isLoadingSchools = false;
   bool _isLoadingSponsors = false;
   String? _selectedSchoolId;
+  String? _assignedDistrict; // From user profile
 
   @override
   void initState() {
     super.initState();
-    _fetchRegisteredSchools();
-    _fetchRegisteredSponsors();
+    _selectedSchoolType = widget.forcedSchoolType;
+    _fetchProfileAndData();
     for (final c in [_fullNameController, _yearController, _phoneController, _emailController]) {
       c.addListener(() => setState(() {}));
+    }
+  }
+
+  Future<void> _fetchProfileAndData() async {
+    setState(() => _isLoading = true);
+    try {
+      final profileRes = await ApiService.getAccountProfile();
+      if (profileRes.statusCode == 200) {
+        final userData = profileRes.data['data'];
+        _assignedDistrict = userData['assignedDistrict'];
+        if (_assignedDistrict != null) {
+          setState(() {
+            _selectedDistrict = _assignedDistrict;
+          });
+        }
+      }
+      await Future.wait([
+        _fetchRegisteredSchools(),
+        _fetchRegisteredSponsors(),
+      ]);
+    } catch (e) {
+      debugPrint('Error during initialization: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -349,36 +375,79 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildExecutiveHeader(),
-          Padding(
-            padding: const EdgeInsets.all(40),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionLabel("PERSONAL IDENTITY & BIOMETRICS"),
-                  const SizedBox(height: 24),
-                  _buildPersonalSection(),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(40),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionLabel("PERSONAL IDENTITY & BIOMETRICS"),
+                    const SizedBox(height: 24),
+                    _buildPersonalSection(),
 
-                  const SizedBox(height: 48),
-                  _buildSectionLabel("GUARDIANSHIP & PRIMARY CONTACT"),
-                  const SizedBox(height: 24),
-                  _buildGuardianSection(),
+                    const SizedBox(height: 48),
+                    _buildSectionLabel("GUARDIANSHIP & PRIMARY CONTACT"),
+                    const SizedBox(height: 24),
+                    _buildGuardianSection(),
 
-                  const SizedBox(height: 48),
-                  _buildSectionLabel("ACADEMIC PLACEMENT & HISTORY"),
-                  const SizedBox(height: 24),
-                  _buildAcademicSection(),
+                    const SizedBox(height: 48),
+                    _buildSectionLabel("ACADEMIC PLACEMENT & HISTORY"),
+                    const SizedBox(height: 24),
+                    _buildAcademicSection(),
 
-                  const SizedBox(height: 48),
-                  _buildSectionLabel("ORIGIN & SPONSORSHIP ALLOCATION"),
-                  const SizedBox(height: 24),
-                  _buildDemographicsSection(),
+                    const SizedBox(height: 48),
+                    _buildSectionLabel("ORIGIN & SPONSORSHIP ALLOCATION"),
+                    const SizedBox(height: 24),
+                    _buildDemographicsSection(),
 
-                  const SizedBox(height: 60),
-                  _buildSubmitAction(),
-                  const SizedBox(height: 40),
-                ],
+                    const SizedBox(height: 40),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          _buildFixedFooter(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFixedFooter() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        border: const Border(top: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          OutlinedButton(
+            onPressed: () => _resetForm(),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              foregroundColor: Colors.grey,
+            ),
+            child: const Text("DISCARD DRAFT", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 0.5)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: _isLoading ? null : _submitForm,
+              icon: _isLoading
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.verified_user_rounded, size: 18),
+              label: Text(_isLoading ? "PROCESSING..." : "FINALIZE ENROLMENT",
+                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kBrandOlive,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                elevation: 0,
               ),
             ),
           ),
@@ -389,7 +458,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
 
   Widget _buildExecutiveHeader() {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
@@ -397,19 +466,19 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: kBrandBrown.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(12)),
-            child: const Icon(Icons.person_add_alt_1_rounded, color: kBrandBrown, size: 28),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: kBrandBrown.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(8)),
+            child: const Icon(Icons.person_add_alt_1_rounded, color: kBrandBrown, size: 20),
           ),
-          const SizedBox(width: 24),
+          const SizedBox(width: 16),
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Register New Scholar", 
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.8)),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
                 Text("Enrol a new student into the scholarship management ecosystem.", 
-                  style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
+                  style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -512,18 +581,24 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
         Row(
           children: [
             Expanded(
-              child: DropdownButtonFormField<String>(
-                initialValue: _selectedSchoolType,
-                decoration: _inputDeco("Level of Study", Icons.category_outlined),
-                items: _schoolTypes.map((t) => DropdownMenuItem(value: t, child: Text(t, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
-                onChanged: (v) {
-                  setState(() {
-                    _selectedSchoolType = v;
-                    _selectedSchool = null;
-                    _selectedSchoolId = null;
-                  });
-                },
-                validator: (v) => v == null ? "Required" : null,
+              child: IgnorePointer(
+                ignoring: widget.forcedSchoolType != null,
+                child: Opacity(
+                  opacity: widget.forcedSchoolType != null ? 0.7 : 1.0,
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _selectedSchoolType,
+                    decoration: _inputDeco("Level of Study", Icons.category_outlined),
+                    items: _schoolTypes.map((t) => DropdownMenuItem(value: t, child: Text(t, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+                    onChanged: (v) {
+                      setState(() {
+                        _selectedSchoolType = v;
+                        _selectedSchool = null;
+                        _selectedSchoolId = null;
+                      });
+                    },
+                    validator: (v) => v == null ? "Required" : null,
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 24),
@@ -643,9 +718,16 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
             Expanded(
               child: DropdownButtonFormField<String>(
                 initialValue: _selectedDistrict,
-                decoration: _inputDeco("District of Origin", Icons.map_outlined),
+                decoration: _inputDeco(
+                  _assignedDistrict != null ? "Assigned District (Locked)" : "District of Origin",
+                  Icons.map_outlined
+                ).copyWith(
+                  helperText: _assignedDistrict != null ? "Registration is restricted to your monitoring district." : null,
+                  helperStyle: const TextStyle(color: kBrandOrange, fontWeight: FontWeight.bold),
+                ),
                 items: _districts.map((d) => DropdownMenuItem(value: d, child: Text(d, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
-                onChanged: (v) => setState(() => _selectedDistrict = v),
+                onChanged: _assignedDistrict != null ? null : (v) => setState(() => _selectedDistrict = v),
+                validator: (v) => v == null ? "Required" : null,
               ),
             ),
             const SizedBox(width: 24),
@@ -663,26 +745,6 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
     );
   }
 
-  Widget _buildSubmitAction() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: _isLoading ? null : _submitForm,
-        icon: _isLoading 
-            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-            : const Icon(Icons.verified_user_rounded, size: 20),
-        label: Text(_isLoading ? "PROCESSING..." : "FINALIZE SCHOLAR ENROLMENT", 
-          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5)),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: kBrandOlive,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 22),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          elevation: 0,
-        ),
-      ),
-    );
-  }
 
   Widget _executiveCard({required List<Widget> children}) {
     return Container(

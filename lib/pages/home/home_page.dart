@@ -156,9 +156,37 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       if (response.statusCode == 200) {
         final data = response.data['data'];
         if (data != null && mounted) {
+          final String role = data['role_name'] ?? "";
+          final String normalizedRole = role.trim().toLowerCase();
+          
+          if (normalizedRole == 'administrator') {
+            Navigator.pushReplacementNamed(context, '/admin/home');
+            return;
+          }
+          
+          final bool isFieldOfficer = [
+            'field officer', 
+            'field coordinator', 
+            'field operations', 
+            'operational officer'
+          ].contains(normalizedRole);
+
+          if (isFieldOfficer) {
+            Navigator.pushReplacementNamed(
+              context,
+              '/field-operations/home',
+              arguments: {
+                'username': data['full_name'] ?? data['username'],
+                'role': role,
+                'profilePicture': data['profile_picture'],
+              },
+            );
+            return;
+          }
+
           setState(() {
             _fullName = data['full_name'] ?? "User";
-            _userRole = data['role_name'] ?? "Staff";
+            _userRole = role;
             _profileImageUrl = data['profile_picture'];
             _currentUserId = data['id'];
             _userPermissions = data['permissions'] ?? {};
@@ -664,6 +692,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       final filteredSubItems = category.subItems.where((item) {
         if (!item.isVisible) return false;
         
+        final String normalizedRole = _userRole.toLowerCase();
+        final bool isAdmin = normalizedRole == 'administrator';
+        
+        // Restriction: Admin should not view results and attendance
+        if (isAdmin && (category.title == "Academics" || category.title == "Attendance")) return false;
+
         // Restriction: Pending Approvals for all elevated roles
         if (item.title == "Pending Approvals" && !elevatedRoles.contains(_userRole)) return false;
 
@@ -709,6 +743,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       ),
       appBar: AppBar(
         elevation: 2,
+        toolbarHeight: 48,
         shadowColor: brandBrown.withOpacity(0.3),
         backgroundColor: brandBrown,
         leadingWidth: 280,
@@ -718,11 +753,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               width: 200,
               height: double.infinity,
               color: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               child: Image.asset('assets/images/age-logo.png', fit: BoxFit.contain),
             ),
             const SizedBox(width: 8),
-            IconButton(icon: const Icon(Icons.menu, color: Colors.white), onPressed: () => setState(() => _isSidebarVisible = !_isSidebarVisible)),
+            IconButton(icon: const Icon(Icons.menu, color: Colors.white, size: 20), onPressed: () => setState(() => _isSidebarVisible = !_isSidebarVisible)),
           ],
         ),
         title: _isSearching
@@ -816,8 +851,18 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               child: CircleAvatar(
                 backgroundColor: brandCream,
                 radius: 18,
-                backgroundImage: _profileImageUrl != null ? NetworkImage(ApiService.getFullUrl(_profileImageUrl)) : null,
-                child: _profileImageUrl == null ? const Icon(Icons.person, color: brandBrown, size: 20) : null,
+                child: ClipOval(
+                  child: _profileImageUrl != null
+                      ? Image.network(
+                          ApiService.getFullUrl(_profileImageUrl),
+                          fit: BoxFit.cover,
+                          width: 36,
+                          height: 36,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(Icons.person, color: brandBrown, size: 20),
+                        )
+                      : const Icon(Icons.person, color: brandBrown, size: 20),
+                ),
               ),
             ),
           )
@@ -844,10 +889,20 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                               child: Stack(
                                 children: [
                                   CircleAvatar(
-                                    radius: 40, 
-                                    backgroundColor: brandBrown, 
-                                    backgroundImage: _profileImageUrl != null ? NetworkImage(ApiService.getFullUrl(_profileImageUrl)) : null, 
-                                    child: _profileImageUrl == null ? const Icon(Icons.person, size: 45, color: brandCream) : null
+                                    radius: 40,
+                                    backgroundColor: brandBrown,
+                                    child: ClipOval(
+                                      child: _profileImageUrl != null
+                                          ? Image.network(
+                                              ApiService.getFullUrl(_profileImageUrl),
+                                              fit: BoxFit.cover,
+                                              width: 80,
+                                              height: 80,
+                                              errorBuilder: (context, error, stackTrace) =>
+                                                  const Icon(Icons.person, size: 45, color: brandCream),
+                                            )
+                                          : const Icon(Icons.person, size: 45, color: brandCream),
+                                    ),
                                   ),
                                   Positioned(
                                     bottom: 0,
@@ -911,14 +966,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               children: [
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                   color: Colors.white,
                   child: Row(
                     children: [
-                      if (_navigationHistory.isNotEmpty) IconButton(icon: const Icon(Icons.arrow_back, color: Colors.black87), onPressed: _popSubItem),
-                      Text(activeCategory.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.black54)),
-                      const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
-                      Text(activeSubItem.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                      if (_navigationHistory.isNotEmpty && activeSubItem.title != "Pending Approvals") 
+                        IconButton(icon: const Icon(Icons.arrow_back, color: Colors.black87, size: 18), onPressed: _popSubItem),
+                      Text(activeCategory.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black54)),
+                      const Icon(Icons.chevron_right, color: Colors.grey, size: 16),
+                      Text(activeSubItem.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87)),
                     ],
                   ),
                 ),

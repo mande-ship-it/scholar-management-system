@@ -18,7 +18,9 @@ const Color kBrandOrange = Color(0xFFE05B1C);
 
 class ViewSchoolsComponent extends StatefulWidget {
   final VoidCallback? onRegisterSchool;
-  const ViewSchoolsComponent({super.key, this.onRegisterSchool});
+  final String? forcedLevel;
+  final bool hideRegistration;
+  const ViewSchoolsComponent({super.key, this.onRegisterSchool, this.forcedLevel, this.hideRegistration = false});
 
   @override
   State<ViewSchoolsComponent> createState() => _ViewSchoolsComponentState();
@@ -26,7 +28,7 @@ class ViewSchoolsComponent extends StatefulWidget {
 
 class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
   String _searchQuery = '';
-  String _selectedLevel = 'All';
+  late String _selectedLevel;
   String _selectedRegion = 'All';
   bool _isLoading = true;
   String _userRole = 'User';
@@ -36,6 +38,7 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
   @override
   void initState() {
     super.initState();
+    _selectedLevel = widget.forcedLevel ?? 'All';
     _fetchSchools();
     _fetchUserRole();
   }
@@ -238,27 +241,34 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
 
   Widget _buildExecutiveHeader() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: kBrandOlive.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-            child: const Icon(Icons.apartment_rounded, color: kBrandOlive, size: 24),
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: kBrandBrown.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Icons.apartment_rounded, color: kBrandBrown, size: 20),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 16),
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Institutional Registry', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                SizedBox(height: 2),
-                Text('Regional distribution of partner secondary and tertiary institutions.',
-                    style: TextStyle(fontSize: 12, color: Colors.grey)),
+                Text("Institutional Registry",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                Text("Management of partner secondary schools and tertiary institutions.",
+                  style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
-          if (_userRole == 'Administrator' || PermissionService.hasPermission('schools.create'))
+          if (!widget.hideRegistration && (_userRole == 'Administrator' || PermissionService.hasPermission('schools.create')))
             ElevatedButton.icon(
               onPressed: () async {
                 if (widget.onRegisterSchool != null) {
@@ -268,13 +278,14 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
                   if (result == true) _fetchSchools();
                 }
               },
-              icon: const Icon(Icons.add_business_rounded, size: 18),
-              label: const Text("REGISTER SCHOOL", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+              icon: const Icon(Icons.add_business_rounded, size: 16),
+              label: const Text("REGISTER", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: kBrandOlive,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
         ],
@@ -305,7 +316,8 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
                 ),
               ),
               const SizedBox(width: 16),
-              _filterDropdown("Level", _selectedLevel, _schoolLevels, (v) => setState(() => _selectedLevel = v!)),
+              if (widget.forcedLevel == null)
+                _filterDropdown("Level", _selectedLevel, _schoolLevels, (v) => setState(() => _selectedLevel = v!)),
               const SizedBox(width: 12),
               _filterDropdown("Region", _selectedRegion, _regions, (v) => setState(() => _selectedRegion = v!)),
               const SizedBox(width: 12),

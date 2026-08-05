@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import '../../academics/performance_analysis.dart';
+import '../../academics/academics_utils.dart';
 
 class PerformanceAnalysisPage extends StatelessWidget {
-  const PerformanceAnalysisPage({super.key});
+  final SchoolType? forcedSchoolType;
+  const PerformanceAnalysisPage({super.key, this.forcedSchoolType});
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       body: Padding(
-        padding: EdgeInsets.all(20),
-        child: PerformanceAnalysisComponent(),
+        padding: const EdgeInsets.all(20),
+        child: PerformanceAnalysisComponent(forcedSchoolType: forcedSchoolType),
       ),
     );
   }

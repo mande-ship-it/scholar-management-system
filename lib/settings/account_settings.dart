@@ -207,7 +207,7 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
 
   Widget _buildExecutiveHeader() {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
@@ -215,22 +215,22 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: kBrandBrown.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: const Icon(Icons.manage_accounts_rounded, color: kBrandBrown, size: 28),
+            child: const Icon(Icons.manage_accounts_rounded, color: kBrandBrown, size: 20),
           ),
-          const SizedBox(width: 20),
+          const SizedBox(width: 16),
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Account Preferences",
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.8)),
-                Text("Update your personal digital identity, security settings and contact information.",
-                  style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                Text("Update your personal digital identity and security.",
+                  style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -240,7 +240,9 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
   }
 
   Widget _buildAccountSummarySection() {
-    final initials = _nameController.text.isNotEmpty 
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final initials = _nameController.text.isNotEmpty
         ? _nameController.text.trim().split(' ').map((e) => e[0]).take(2).join().toUpperCase()
         : "U";
 
@@ -297,19 +299,19 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(_nameController.text.isEmpty ? "User Profile" : _nameController.text,
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kBrandBrown)),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown)),
                 const SizedBox(height: 4),
                 Text("@${_usernameController.text}", style: const TextStyle(fontSize: 14, color: kBrandOrange, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
-                    color: kBrandBrown.withValues(alpha: 0.1),
+                    color: (isDark ? Colors.white : kBrandBrown).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: kBrandBrown.withValues(alpha: 0.1)),
+                    border: Border.all(color: (isDark ? Colors.white : kBrandBrown).withOpacity(0.1)),
                   ),
                   child: Text(_userRole.toUpperCase(),
-                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: 1.0)),
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: 1.0)),
                 ),
               ],
             ),
@@ -325,18 +327,21 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
     required IconData icon,
     TextInputType? keyboardType,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       onChanged: (v) => setState(() {}),
-      style: const TextStyle(fontWeight: FontWeight.w600, color: kBrandBrown),
+      style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? Colors.white : kBrandBrown),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, size: 20, color: kBrandBrown.withValues(alpha: 0.4)),
+        prefixIcon: Icon(icon, size: 20, color: isDark ? Colors.white70 : kBrandBrown.withOpacity(0.4)),
         filled: true,
-        fillColor: Colors.white,
-        labelStyle: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w500, fontSize: 14),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+        fillColor: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
+        labelStyle: TextStyle(color: isDark ? Colors.white60 : Colors.grey.shade500, fontWeight: FontWeight.w500, fontSize: 14),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: theme.dividerColor)),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kBrandOlive, width: 2)),
       ),
     );
@@ -348,36 +353,39 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
     required String subtitle,
     required VoidCallback onTap,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade100),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.01), blurRadius: 10, offset: const Offset(0, 4))],
+          border: Border.all(color: isDark ? theme.dividerColor : Colors.grey.shade100),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 10, offset: const Offset(0, 4))],
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: kBrandBrown.withValues(alpha: 0.05), shape: BoxShape.circle),
-              child: Icon(icon, color: kBrandBrown, size: 20),
+              decoration: BoxDecoration(color: (isDark ? Colors.white : kBrandBrown).withOpacity(0.05), shape: BoxShape.circle),
+              child: Icon(icon, color: isDark ? Colors.white70 : kBrandBrown, size: 20),
             ),
             const SizedBox(width: 20),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.w900, color: kBrandBrown, fontSize: 15)),
+                  Text(title, style: TextStyle(fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, fontSize: 15)),
                   const SizedBox(height: 2),
-                  Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+                  Text(subtitle, style: TextStyle(fontSize: 12, color: isDark ? Colors.white60 : Colors.grey.shade600, fontWeight: FontWeight.w500)),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
+            Icon(Icons.arrow_forward_ios_rounded, size: 14, color: isDark ? Colors.white38 : Colors.grey),
           ],
         ),
       ),

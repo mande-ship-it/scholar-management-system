@@ -42,16 +42,42 @@ class _ScholarStatsComponentState extends State<ScholarStatsComponent> {
     }
 
     return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             "Scholar Statistics",
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kBrandBrown),
           ),
+          const SizedBox(height: 12),
+          Text("Centralized data analysis for program cohorts.", style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
           const SizedBox(height: 24),
-          // Add more detailed stats here as needed
-          Text("Total Scholars: ${_stats['total'] ?? 0}"),
+          _statTile("Total Scholars", _stats['total']?.toString() ?? '0', Icons.groups_rounded, kBrandOlive),
+        ],
+      ),
+    );
+  }
+
+  Widget _statTile(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(width: 16),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.bold)),
+              Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kBrandBrown)),
+            ],
+          ),
         ],
       ),
     );

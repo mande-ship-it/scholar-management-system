@@ -45,17 +45,20 @@ class _SchoolStatsComponentState extends State<SchoolStatsComponent> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "School Statistics",
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 24),
-        Text("Total Schools: ${_stats['total'] ?? 0}"),
-        Text("Active Schools: ${_stats['active'] ?? 0}"),
-      ],
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "School Statistics",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 24),
+          Text("Total Schools: ${_stats['total'] ?? 0}"),
+          Text("Active Schools: ${_stats['active'] ?? 0}"),
+        ],
+      ),
     );
   }
 }

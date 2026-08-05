@@ -446,7 +446,8 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
 
   IconData _getIcon(String key) {
     switch (key) {
-      case 'groups': return Icons.people_rounded;
+      case 'groups': return Icons.groups_rounded;
+      case 'check_circle': return Icons.check_circle_rounded;
       case 'award': return Icons.workspace_premium_rounded;
       case 'bank': return Icons.account_balance_rounded;
       case 'book': return Icons.auto_stories_rounded;
@@ -480,9 +481,9 @@ class _DashboardCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1C2B20), letterSpacing: -0.3)),
-          Text(subtitle, style: const TextStyle(fontSize: 13, color: Color(0xFF6B7A6E), fontWeight: FontWeight.w500)),
-          const SizedBox(height: 24),
+          Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF1C2B20), letterSpacing: -0.2)),
+          Text(subtitle, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7A6E), fontWeight: FontWeight.w500)),
+          const SizedBox(height: 16),
           child,
         ],
       ),

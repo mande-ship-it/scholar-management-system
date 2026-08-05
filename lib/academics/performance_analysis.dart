@@ -4,19 +4,11 @@ import 'academics_utils.dart';
 import 'package:scholar_management_system/services/api_service.dart';
 import 'package:intl/intl.dart';
 
-// ============================================================
-// Shared Brand Color Palette
-// ============================================================
-const Color kBrandBrown = Color(0xFF4C3C32);
-const Color kBrandCream = Color(0xFFFAF2DB);
-const Color kBrandCreamDark = Color(0xFFF3E7C4);
-const Color kBrandOlive = Color(0xFF9AB334);
-const Color kBrandOrange = Color(0xFFE05B1C);
-
 enum AnalysisMode { scholar, school }
 
 class PerformanceAnalysisComponent extends StatefulWidget {
-  const PerformanceAnalysisComponent({super.key});
+  final SchoolType? forcedSchoolType;
+  const PerformanceAnalysisComponent({super.key, this.forcedSchoolType});
 
   @override
   State<PerformanceAnalysisComponent> createState() => _PerformanceAnalysisComponentState();
@@ -26,6 +18,8 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
   AnalysisMode _mode = AnalysisMode.scholar;
   String? _selectedId; // Could be studentId or schoolName
   bool _isLoading = false;
+  String? _assignedDistrict;
+  bool _isFieldOfficer = false;
   
   List<ResultRecord> _analysisData = [];
   List<Student> _relevantStudents = [];
@@ -33,39 +27,60 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
   // Filters
   String _startYear = (DateTime.now().year - 3).toString();
   String _endYear = DateTime.now().year.toString();
+  late SchoolType _schoolType;
 
   @override
   void initState() {
     super.initState();
+    _schoolType = widget.forcedSchoolType ?? SchoolType.secondary;
+    _fetchUserRole();
     _fetchBaseData();
   }
 
-  Future<void> _fetchBaseData() async {
-    if (kStudents.isEmpty) {
-      setState(() => _isLoading = true);
-      try {
-        final res = await ApiService.getAllScholars();
-        if (res.statusCode == 200) {
-          final List<dynamic> data = res.data['data'] ?? [];
-          kStudents.clear();
-          for (var item in data) {
-            kStudents.add(Student(
-              id: (item['id'] ?? item['_id'] ?? '').toString(),
-              scholarId: item['scholar_id'] ?? 'N/A',
-              name: item['full_name'] ?? 'N/A',
-              status: item['status'] ?? 'Active',
-              age: item['age'] != null ? int.tryParse(item['age'].toString()) ?? 16 : 16,
-              schoolType: item['school_type'] == 'University' || item['schoolType'] == 'University' ? SchoolType.university : SchoolType.secondary,
-              schoolName: item['display_school_name'] ?? 'N/A',
-              currentClass: item['academic_year'] ?? 'N/A',
-            ));
-          }
+  Future<void> _fetchUserRole() async {
+    try {
+      final response = await ApiService.getAccountProfile();
+      if (response.statusCode == 200) {
+        final data = response.data['data'];
+        if (data != null && mounted) {
+          setState(() {
+            final role = (data['role_name'] ?? '').toString().toLowerCase();
+            _isFieldOfficer = role.contains('field');
+            _assignedDistrict = data['assignedDistrict'];
+            if (_isFieldOfficer) {
+              _schoolType = SchoolType.secondary;
+            }
+          });
         }
-      } catch (e) {
-        debugPrint('Error fetching scholars: $e');
-      } finally {
-        if (mounted) setState(() => _isLoading = false);
       }
+    } catch (_) {}
+  }
+
+  Future<void> _fetchBaseData() async {
+    setState(() => _isLoading = true);
+    try {
+      final res = await ApiService.getAllScholars();
+      if (res.statusCode == 200) {
+        final List<dynamic> data = res.data['data'] ?? [];
+        kStudents.clear();
+        for (var item in data) {
+          kStudents.add(Student(
+            id: (item['id'] ?? item['_id'] ?? '').toString(),
+            scholarId: item['scholar_id'] ?? 'N/A',
+            name: item['full_name'] ?? 'N/A',
+            status: item['status'] ?? 'Active',
+            district: item['district'] ?? 'N/A', // Crucial for filtering
+            age: item['age'] != null ? int.tryParse(item['age'].toString()) ?? 16 : 16,
+            schoolType: item['school_type'] == 'University' || item['schoolType'] == 'University' ? SchoolType.university : SchoolType.secondary,
+            schoolName: item['display_school_name'] ?? 'N/A',
+            currentClass: item['academic_year'] ?? 'N/A',
+          ));
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching scholars: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -85,11 +100,21 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
           final List<dynamic> data = res.data['data'] ?? [];
           final allResults = data.map((json) => ResultRecord.fromMap(json)).toList();
           
-          // Filter analysis to only include active scholars
-          final activeScholarIds = kStudents.where((s) => s.status == 'Active').map((s) => s.id).toSet();
+          // Filter analysis to only include active scholars in the assigned district
+          var studentsPool = kStudents.where((s) => s.status == 'Active').toList();
+          if (_isFieldOfficer && _assignedDistrict != null && _assignedDistrict != "All Regions") {
+            studentsPool = studentsPool.where((s) => s.district == _assignedDistrict).toList();
+          }
+          
+          final activeScholarIds = studentsPool.map((s) => s.id).toSet();
           _analysisData = allResults.where((r) => activeScholarIds.contains(r.studentId)).toList();
         }
-        _relevantStudents = kStudents.where((s) => s.schoolName == _selectedId && s.status == 'Active').toList();
+        
+        var relevantPool = kStudents.where((s) => s.schoolName == _selectedId && s.status == 'Active').toList();
+        if (_isFieldOfficer && _assignedDistrict != null && _assignedDistrict != "All Regions") {
+          relevantPool = relevantPool.where((s) => s.district == _assignedDistrict).toList();
+        }
+        _relevantStudents = relevantPool;
       }
     } catch (e) {
       debugPrint('Error fetching analysis data: $e');
@@ -107,7 +132,15 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
   }
 
   List<String> get _schoolOptions {
-    return kStudents.map((s) => s.schoolName).toSet().toList()..sort();
+    var students = widget.forcedSchoolType == null
+        ? kStudents
+        : kStudents.where((s) => s.schoolType == widget.forcedSchoolType).toList();
+    
+    if (_isFieldOfficer && _assignedDistrict != null && _assignedDistrict != "All Regions") {
+      students = students.where((s) => s.district == _assignedDistrict).toList();
+    }
+
+    return students.map((s) => s.schoolName).toSet().toList()..sort();
   }
 
   @override
@@ -137,27 +170,31 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
   }
 
   Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(32, 24, 32, 24),
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: kBrandOlive.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
+              color: kBrandBrown.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.insights_rounded, color: kBrandOlive, size: 28),
+            child: const Icon(Icons.insights_rounded, color: kBrandBrown, size: 28),
           ),
-          const SizedBox(width: 20),
-          const Expanded(
+          const SizedBox(width: 24),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Performance Analysis Hub", 
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                Text("Comparative academic intelligence and trend forecasting.", 
-                  style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
+                Text(_isFieldOfficer && _assignedDistrict != null ? "Regional Performance Intelligence • $_assignedDistrict" : "Performance Analysis Hub", 
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.8)),
+                Text(_isFieldOfficer ? "Analyzing secondary scholars in $_assignedDistrict district." : "Comparative academic intelligence and trend forecasting.", 
+                  style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -266,7 +303,12 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
       displayStringForOption: (s) => s.name,
       optionsBuilder: (textValue) {
         final query = textValue.text.trim().toLowerCase();
-        final activeStudents = kStudents.where((s) => s.status == 'Active').toList();
+        var activeStudents = kStudents.where((s) => s.status == 'Active').toList();
+        
+        if (_isFieldOfficer && _assignedDistrict != null && _assignedDistrict != "All Regions") {
+          activeStudents = activeStudents.where((s) => s.district == _assignedDistrict).toList();
+        }
+
         if (query.isEmpty) return activeStudents;
         return activeStudents.where((s) => s.name.toLowerCase().contains(query) || s.scholarId.toLowerCase().contains(query));
       },
@@ -329,17 +371,32 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
     }
 
     final avgScore = filteredData.map((e) => e.marks).reduce((a, b) => a + b) / filteredData.length;
+    
+    // Performance comparison logic: Best 6 for Secondary
+    double displayAvg = avgScore;
+    if (_schoolType == SchoolType.secondary) {
+      displayAvg = calculateSecondaryBestSixAverage(filteredData);
+    }
+
     final passRate = (filteredData.where((r) => r.marks >= 50).length / filteredData.length) * 100;
     
-    // Grouping for trend
+    // Grouping for trend - using best 6 logic per year for secondary
     final Map<String, List<double>> yearlyAvg = {};
     for (var r in filteredData) {
       yearlyAvg.putIfAbsent(r.year, () => []).add(r.marks);
     }
+    
     final sortedYears = yearlyAvg.keys.toList()..sort();
     final trendPoints = sortedYears.map((y) {
       final marks = yearlyAvg[y]!;
-      return (year: y, avg: marks.reduce((a, b) => a + b) / marks.length);
+      double yearAvg;
+      if (_schoolType == SchoolType.secondary) {
+        final yearResults = filteredData.where((r) => r.year == y).toList();
+        yearAvg = calculateSecondaryBestSixAverage(yearResults);
+      } else {
+        yearAvg = marks.reduce((a, b) => a + b) / marks.length;
+      }
+      return (year: y, avg: yearAvg);
     }).toList();
 
     return Column(
@@ -347,7 +404,7 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
       children: [
         Row(
           children: [
-            _MetricCard(label: "Aggregated Average", value: "${avgScore.toStringAsFixed(1)}%", icon: Icons.auto_graph_rounded, color: kBrandBrown),
+            _MetricCard(label: _schoolType == SchoolType.secondary ? "Best-6 Average" : "Aggregated Average", value: "${displayAvg.toStringAsFixed(1)}%", icon: Icons.auto_graph_rounded, color: kBrandBrown),
             const SizedBox(width: 20),
             _MetricCard(label: "Success Rate", value: "${passRate.toStringAsFixed(1)}%", icon: Icons.verified_user_rounded, color: kBrandOlive),
             const SizedBox(width: 20),
@@ -651,4 +708,33 @@ class _DetailedAnalysisTable extends StatelessWidget {
       ),
     );
   }
+}
+
+double calculateSecondaryBestSixAverage(List<ResultRecord> records) {
+  if (records.isEmpty) return 0.0;
+
+  // Group records by student, year, and term
+  final Map<String, List<ResultRecord>> groups = {};
+  for (var r in records) {
+    final key = "${r.studentId}_${r.year}_${r.term ?? ''}";
+    groups.putIfAbsent(key, () => []).add(r);
+  }
+
+  double totalAveragesSum = 0.0;
+  int groupCount = 0;
+
+  for (var groupRecords in groups.values) {
+    if (groupRecords.isEmpty) continue;
+    // Calculate best 6 for this group
+    final sorted = List<ResultRecord>.from(groupRecords)
+      ..sort((a, b) => (a.points ?? 9).compareTo(b.points ?? 9));
+    final bestSix = sorted.take(6).toList();
+    
+    double groupSum = bestSix.fold(0.0, (sum, r) => sum + r.marks);
+    double groupAvg = groupSum / (bestSix.length < 6 ? bestSix.length : 6);
+    totalAveragesSum += groupAvg;
+    groupCount++;
+  }
+
+  return groupCount > 0 ? totalAveragesSum / groupCount : 0.0;
 }
