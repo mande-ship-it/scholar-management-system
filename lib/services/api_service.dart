@@ -8,8 +8,12 @@ class ApiService {
   static const String _tokenKey = 'auth_token';
 
   static String get baseUrl {
+    if (kReleaseMode) {
+      return 'https://scholar-management-api.onrender.com'; // YOUR RENDER URL
+    }
+    
     if (kIsWeb) {
-      return 'http://localhost:5000'; // For web, usually localhost or 0.0.0.0
+      return 'http://localhost:5000';
     }
     
     // For mobile/desktop
