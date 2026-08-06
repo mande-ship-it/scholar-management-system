@@ -655,9 +655,21 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
             )
           : Row(
               children: [
-                Text(
-                  isMobile ? "AGE System" : "AGE Africa System",
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: isMobile ? 14 : 16),
+                if (isMobile && _navigationHistory.isNotEmpty && activeSubItem.title != "Pending Approvals") ...[
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                    onPressed: _popSubItem,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                Expanded(
+                  child: Text(
+                    isMobile ? activeSubItem.title : "AGE Africa System",
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: isMobile ? 16 : 16),
+                  ),
                 ),
                 if (!isMobile) ...[
                   const SizedBox(width: 12),
@@ -801,6 +813,7 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
           Expanded(
             child: Column(
               children: [
+                if (!isMobile)
                 Container(
                   width: double.infinity,
                   padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 16),
@@ -825,10 +838,10 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
                     ],
                   ),
                 ),
-                const Divider(height: 1),
+                if (!isMobile) const Divider(height: 1),
                 Expanded(
                   child: Padding(
-                    padding: EdgeInsets.all(isMobile ? 12 : 24),
+                    padding: EdgeInsets.all(isMobile ? 0 : 24),
                     child: activeSubItem.builder != null
                       ? activeSubItem.builder!(_popSubItem, _pushSubItem)
                       : activeSubItem.page,

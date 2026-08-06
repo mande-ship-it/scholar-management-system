@@ -95,9 +95,15 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> with TickerProv
           _buildBackground(size),
           Positioned.fill(child: IgnorePointer(child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5), child: Container(color: Colors.black.withOpacity(0.1))))),
           SafeArea(
-            child: Center(
+            child: Align(
+              alignment: Alignment.topCenter,
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                padding: EdgeInsets.only(
+                  left: 24,
+                  right: 24,
+                  bottom: 40,
+                  top: size.height < 600 ? 20 : 60,
+                ),
                 child: FadeTransition(
                   opacity: _fadeAnimation,
                   child: Transform.translate(

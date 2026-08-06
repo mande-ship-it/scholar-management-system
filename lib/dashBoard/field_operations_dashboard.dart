@@ -158,8 +158,10 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildExecutiveHeader(isMobile),
-            const SizedBox(height: 32),
+            if (!isMobile) ...[
+              _buildExecutiveHeader(isMobile),
+              const SizedBox(height: 32),
+            ],
             _buildKPISection(isMobile),
             const SizedBox(height: 32),
             if (isMobile)

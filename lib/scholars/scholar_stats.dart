@@ -44,17 +44,19 @@ class _ScholarStatsComponentState extends State<ScholarStatsComponent> {
     final bool isMobile = MediaQuery.of(context).size.width < 900;
 
     return SingleChildScrollView(
-      padding: EdgeInsets.all(isMobile ? 16 : 24),
+      padding: EdgeInsets.all(isMobile ? 12 : 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            "Scholar Statistics",
-            style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.bold, color: kBrandBrown),
-          ),
-          const SizedBox(height: 8),
-          Text("Centralized data analysis for program cohorts.", style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-          const SizedBox(height: 24),
+          if (!isMobile) ...[
+            Text(
+              "Scholar Statistics",
+              style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.bold, color: kBrandBrown),
+            ),
+            const SizedBox(height: 8),
+            Text("Centralized data analysis for program cohorts.", style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+            const SizedBox(height: 24),
+          ],
           if (isMobile)
             Column(
               children: [
@@ -80,9 +82,9 @@ class _ScholarStatsComponentState extends State<ScholarStatsComponent> {
     );
   }
 
-  Widget _statTile(String label, String value, IconData icon, Color color, bool isFullWidth) {
+  Widget _statTile(String label, String value, IconData icon, Color color, bool isMobile) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(isMobile ? 16 : 20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -93,7 +95,7 @@ class _ScholarStatsComponentState extends State<ScholarStatsComponent> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-            child: Icon(icon, color: color, size: 20),
+            child: Icon(icon, color: color, size: isMobile ? 18 : 20),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -101,7 +103,7 @@ class _ScholarStatsComponentState extends State<ScholarStatsComponent> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-                Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                Text(value, style: TextStyle(fontSize: isMobile ? 18 : 20, fontWeight: FontWeight.bold, color: kBrandBrown)),
               ],
             ),
           ),

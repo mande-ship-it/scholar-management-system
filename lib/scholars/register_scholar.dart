@@ -371,13 +371,13 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: isMobile ? BorderRadius.zero : BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildExecutiveHeader(isMobile),
+          if (!isMobile) _buildExecutiveHeader(isMobile),
           Expanded(
             child: SingleChildScrollView(
               padding: EdgeInsets.all(isMobile ? 16 : 40),
@@ -386,22 +386,31 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSectionLabel("PERSONAL IDENTITY & BIOMETRICS"),
+                    _buildSectionLabel("PERSONAL IDENTITY"),
                     const SizedBox(height: 16),
                     _buildPersonalSection(isMobile),
 
                     const SizedBox(height: 32),
-                    _buildSectionLabel("GUARDIANSHIP & PRIMARY CONTACT"),
+                    _sectionDivider(isMobile),
+                    const SizedBox(height: 32),
+
+                    _buildSectionLabel("GUARDIANSHIP"),
                     const SizedBox(height: 16),
                     _buildGuardianSection(isMobile),
 
                     const SizedBox(height: 32),
-                    _buildSectionLabel("ACADEMIC PLACEMENT & HISTORY"),
+                    _sectionDivider(isMobile),
+                    const SizedBox(height: 32),
+
+                    _buildSectionLabel("ACADEMIC PLACEMENT"),
                     const SizedBox(height: 16),
                     _buildAcademicSection(isMobile),
 
                     const SizedBox(height: 32),
-                    _buildSectionLabel("ORIGIN & SPONSORSHIP ALLOCATION"),
+                    _sectionDivider(isMobile),
+                    const SizedBox(height: 32),
+
+                    _buildSectionLabel("ORIGIN & SPONSORSHIP"),
                     const SizedBox(height: 16),
                     _buildDemographicsSection(isMobile),
 
@@ -415,6 +424,10 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
         ],
       ),
     );
+  }
+
+  Widget _sectionDivider(bool isMobile) {
+    return isMobile ? const Divider(height: 1) : const SizedBox.shrink();
   }
 
   Widget _buildFixedFooter(bool isMobile) {

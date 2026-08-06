@@ -142,7 +142,7 @@ class _OrganisationProfileComponentState
         : Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildExecutiveHeader(isMobile),
+            if (!isMobile) _buildExecutiveHeader(isMobile),
             Expanded(
               child: SingleChildScrollView(
                 padding: EdgeInsets.all(isMobile ? 16 : 40),

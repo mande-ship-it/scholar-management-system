@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ui';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../academics/academics_utils.dart';
@@ -35,7 +36,7 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
     );
     _backgroundController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 20),
+      duration: const Duration(seconds: 15),
     )..repeat();
 
     _fadeAnimation = CurvedAnimation(
@@ -78,10 +79,7 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
           final String token = data['token'];
           final userData = data['user'];
 
-          // Save token in ApiService for subsequent requests
           ApiService.setToken(token, persist: _rememberMe);
-          
-          // Initialize Permissions
           PermissionService.init(userData);
 
           if (mounted) {
@@ -89,82 +87,48 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
             
             final String role = userData['role'] ?? 'User';
             final String normalizedRole = role.trim().toLowerCase();
-            
-            debugPrint('LOGIN DEBUG: Detected role is "$role", normalized to "$normalizedRole"');
-
-            // 1. Admin Group
-            final bool hasAdminAccess = [
-              'administrator', 
-              'program manager', 
-              'program coordinator', 
-              'country director'
-            ].contains(normalizedRole);
-
-            // 2. Field Operations Group
-            final bool isFieldOfficer = [
-              'field officer', 
-              'field coordinator', 
-              'field operations', 
-              'operational officer'
-            ].contains(normalizedRole);
-
-            debugPrint('LOGIN DEBUG: hasAdminAccess=$hasAdminAccess, isFieldOfficer=$isFieldOfficer');
 
             if (userData['mustResetPassword'] == true || userData['isFirstLogin'] == true) {
               Navigator.pushReplacementNamed(context, '/password-reset');
               return;
             }
 
+            final bool hasAdminAccess = [
+              'administrator', 'program manager', 'program coordinator', 'country director'
+            ].contains(normalizedRole);
+
+            final bool isFieldOfficer = [
+              'field officer', 'field coordinator', 'field operations'
+            ].contains(normalizedRole);
+
             if (hasAdminAccess) {
-              Navigator.pushReplacementNamed(
-                context,
-                '/admin/home',
-                arguments: {
-                  'username': userData['fullName'] ?? _usernameController.text.trim(),
-                  'role': role,
-                  'profilePicture': userData['profile_picture'] ?? userData['profilePicture'],
-                },
-              );
+              Navigator.pushReplacementNamed(context, '/admin/home', arguments: {
+                'username': userData['fullName'] ?? _usernameController.text.trim(),
+                'role': role,
+                'profilePicture': userData['profilePicture'],
+              });
             } else if (isFieldOfficer) {
-              debugPrint('LOGIN DEBUG: Routing to Field Operations Portal...');
-              Navigator.pushReplacementNamed(
-                context,
-                '/field-operations/home',
-                arguments: {
-                  'username': userData['fullName'] ?? _usernameController.text.trim(),
-                  'role': role,
-                  'profilePicture': userData['profile_picture'] ?? userData['profilePicture'],
-                },
-              );
+              Navigator.pushReplacementNamed(context, '/field-operations/home', arguments: {
+                'username': userData['fullName'] ?? _usernameController.text.trim(),
+                'role': role,
+                'profilePicture': userData['profilePicture'],
+              });
             } else {
-              debugPrint('LOGIN DEBUG: Routing to standard Operations Dashboard...');
-              Navigator.pushReplacementNamed(
-                context,
-                '/home',
-                arguments: {
-                  'username': userData['fullName'] ?? _usernameController.text.trim(),
-                  'role': role,
-                  'profilePicture': userData['profile_picture'] ?? userData['profilePicture'],
-                },
-              );
+              Navigator.pushReplacementNamed(context, '/home', arguments: {
+                'username': userData['fullName'] ?? _usernameController.text.trim(),
+                'role': role,
+                'profilePicture': userData['profilePicture'],
+              });
             }
           }
         } else {
           if (mounted) {
             setState(() => _isLoading = false);
-            final String message = response.data['message'] ?? "Invalid username or password.";
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Row(
-                  children: [
-                    const Icon(Icons.error_outline, color: Colors.white),
-                    const SizedBox(width: 12),
-                    Expanded(child: Text("Authentication Failed: $message")),
-                  ],
-                ),
+                content: Text(response.data['message'] ?? "Invalid username or password."),
                 backgroundColor: Colors.redAccent,
                 behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
             );
           }
@@ -172,43 +136,16 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
       } catch (e) {
         if (mounted) {
           setState(() => _isLoading = false);
-          String errorMessage = "Authentication failed. Please check your credentials.";
-          
-          if (e is DioException) {
-            if (e.response?.data != null && e.response?.data['message'] != null) {
-              errorMessage = e.response?.data['message'];
-            } else if (e.response?.statusCode == 401) {
-              errorMessage = "Invalid username/email or password.";
-            } else if (e.response?.statusCode == 403) {
-              errorMessage = "Your account is disabled. Please contact the administrator.";
-            } else if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
-              errorMessage = "Server connection timed out. Please try again later.";
-            } else if (e.type == DioExceptionType.connectionError) {
-              errorMessage = "Unable to connect to the server. Check your internet connection.";
-            }
-          }
-
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.error_outline, color: Colors.white),
-                  const SizedBox(width: 12),
-                  Expanded(child: Text(errorMessage)),
-                ],
-              ),
+            const SnackBar(
+              content: Text("Unable to connect to server. Please check your connection."),
               backgroundColor: Colors.redAccent,
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
           );
         }
       }
     }
-  }
-
-  void _showForgotPasswordDialog() {
-    Navigator.pushNamed(context, '/forgot-password');
   }
 
   @override
@@ -217,26 +154,37 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
     final bool isSmallScreen = size.width < 600;
 
     return Scaffold(
+      backgroundColor: kBrandBrown,
       body: Stack(
         children: [
-          // 1. Beautiful Animated Background
-          _buildAnimatedBackground(size),
-
+          // 1. Big Moving Lines Motion Background
           Positioned.fill(
-            child: IgnorePointer(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                child: Container(color: Colors.black.withOpacity(0.1)),
-              ),
+            child: AnimatedBuilder(
+              animation: _backgroundController,
+              builder: (context, child) {
+                return CustomPaint(
+                  painter: MovingLinesPainter(_backgroundController.value),
+                );
+              },
             ),
           ),
 
-          // 3. Login Content
+          Positioned.fill(
+            child: Container(color: Colors.black.withOpacity(0.1)),
+          ),
+
+          // 2. Login Content - Starts from top on small screens
           SafeArea(
-            child: Center(
+            child: Container(
+              alignment: Alignment.topCenter,
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 16 : 24, vertical: 40),
+                padding: EdgeInsets.only(
+                  left: isSmallScreen ? 16 : 24, 
+                  right: isSmallScreen ? 16 : 24, 
+                  bottom: isSmallScreen ? 32 : 40,
+                  top: isSmallScreen ? 32 : 80,
+                ),
                 child: AnimatedBuilder(
                   animation: _fadeController,
                   builder: (context, child) {
@@ -248,100 +196,47 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
                       ),
                     );
                   },
-                  child: Center(
-                    child: Container(
-                      constraints: const BoxConstraints(maxWidth: 480),
-                      padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 24 : 40, vertical: 32),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.95),
-                        borderRadius: BorderRadius.circular(isSmallScreen ? 30 : 40),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.15),
-                            blurRadius: 40,
-                            offset: const Offset(0, 20),
-                          ),
-                        ],
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                      child: _buildLoginForm(isSmallScreen),
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 440),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isSmallScreen ? 20 : 40, 
+                      vertical: isSmallScreen ? 28 : 40
                     ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(isSmallScreen ? 24 : 32),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 30,
+                          offset: const Offset(0, 15),
+                        ),
+                      ],
+                    ),
+                    child: _buildLoginForm(isSmallScreen),
                   ),
                 ),
               ),
             ),
           ),
 
-          // 4. Footer attribution
-          Positioned(
-            bottom: 24,
-            left: 0,
-            right: 0,
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: const Text(
-                "© 2026 AGE Africa • AGE Africa System",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 12,
-                  letterSpacing: 0.5,
+          // 3. Footer
+          if (!isSmallScreen)
+            Positioned(
+              bottom: 24,
+              left: 0,
+              right: 0,
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: const Text(
+                  "© 2026 AGE Africa Education Scholarship Program",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white60, fontSize: 11, letterSpacing: 0.5),
                 ),
               ),
             ),
-          ),
         ],
       ),
-    );
-  }
-
-  Widget _buildAnimatedBackground(Size size) {
-    return AnimatedBuilder(
-      animation: _backgroundController,
-      builder: (context, child) {
-        return Stack(
-          children: [
-            // Static Base
-            Container(color: kBrandBrown),
-
-            // Dynamic Gradients
-            Positioned(
-              top: -size.height * 0.2 + (20 * _backgroundController.value),
-              left: -size.width * 0.2 + (40 * _backgroundController.value),
-              child: Container(
-                width: size.width * 0.8,
-                height: size.width * 0.8,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      kBrandOlive.withOpacity(0.4),
-                      kBrandOlive.withOpacity(0),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            Positioned(
-              bottom: -size.height * 0.1 - (30 * _backgroundController.value),
-              right: -size.width * 0.1 - (20 * _backgroundController.value),
-              child: Container(
-                width: size.width * 0.9,
-                height: size.width * 0.9,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      kBrandOrange.withOpacity(0.3),
-                      kBrandOrange.withOpacity(0),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
     );
   }
 
@@ -352,53 +247,42 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Logo & Branding
           Center(
             child: Column(
               children: [
+                // Professional Logo matching Windows
                 Container(
-                  height: isSmallScreen ? 70 : 90,
-                  width: isSmallScreen ? 70 : 90,
-                  padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
+                  height: isSmallScreen ? 64 : 80,
+                  width: isSmallScreen ? 64 : 80,
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: kBrandBrown.withValues(alpha: 0.1),
-                        blurRadius: 15,
-                        spreadRadius: 2,
-                      ),
-                    ],
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
                   ),
                   child: Image.asset(
                     'assets/images/age-logo.png',
                     fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) => Icon(
-                      Icons.school_rounded,
-                      size: isSmallScreen ? 35 : 45,
-                      color: kBrandOlive,
-                    ),
+                    errorBuilder: (ctx, _, __) => const Icon(Icons.school_rounded, size: 40, color: kBrandOlive),
                   ),
                 ),
                 SizedBox(height: isSmallScreen ? 16 : 24),
-                const Text(
-                  "PORTAL ACCESS",
+                Text(
+                  "AGE AFRICA SYSTEM",
                   style: TextStyle(
                     color: kBrandOlive,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w800,
+                    fontSize: isSmallScreen ? 10 : 12,
+                    fontWeight: FontWeight.w900,
                     letterSpacing: 3,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  "Welcome Back",
+                  "Portal Login",
                   style: TextStyle(
                     color: kBrandBrown,
-                    fontSize: isSmallScreen ? 24 : 28,
+                    fontSize: isSmallScreen ? 22 : 26,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
                   ),
                 ),
               ],
@@ -406,34 +290,27 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
           ),
           SizedBox(height: isSmallScreen ? 24 : 32),
 
-          // Fields
-          _buildInputLabel("USERNAME OR EMAIL"),
+          _buildLabel("ACCOUNT IDENTITY"),
           TextFormField(
             controller: _usernameController,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: kBrandBrown),
-            decoration: _fieldDecoration(Icons.person_outline_rounded, hint: "Enter your username"),
-            validator: (value) => (value == null || value.trim().isEmpty) ? "Username is required" : null,
+            decoration: _inputDeco(Icons.person_outline_rounded, "Username or Email"),
+            validator: (v) => (v == null || v.isEmpty) ? "Required" : null,
           ),
           const SizedBox(height: 20),
 
-          _buildInputLabel("PASSWORD"),
+          _buildLabel("SECURITY KEY"),
           TextFormField(
             controller: _passwordController,
             obscureText: _isPasswordObscured,
-            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, color: kBrandBrown),
-            decoration: _fieldDecoration(
-              Icons.lock_open_rounded,
-              hint: "••••••••",
+            decoration: _inputDeco(
+              Icons.lock_open_rounded, 
+              "••••••••",
               suffix: IconButton(
-                icon: Icon(
-                  _isPasswordObscured ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                  color: kBrandBrown.withValues(alpha: 0.4),
-                  size: 20,
-                ),
+                icon: Icon(_isPasswordObscured ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 18),
                 onPressed: () => setState(() => _isPasswordObscured = !_isPasswordObscured),
               ),
             ),
-            validator: (value) => (value == null || value.isEmpty) ? "Password is required" : null,
+            validator: (v) => (v == null || v.isEmpty) ? "Required" : null,
           ),
 
           const SizedBox(height: 12),
@@ -443,164 +320,113 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
               Row(
                 children: [
                   SizedBox(
-                    height: 24,
-                    width: 24,
+                    height: 20, width: 20,
                     child: Checkbox(
-                      value: _rememberMe,
+                      value: _rememberMe, 
+                      onChanged: (v) => setState(() => _rememberMe = v!),
                       activeColor: kBrandOlive,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                      onChanged: (val) => setState(() => _rememberMe = val!),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  const Text(
-                    "Keep me signed in",
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: kBrandBrown,
-                    ),
-                  ),
+                  const Text("Stay signed in", style: TextStyle(fontSize: 12, color: kBrandBrown)),
                 ],
               ),
               TextButton(
-                onPressed: _showForgotPasswordDialog,
-                style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                child: const Text(
-                  "Forgot Password?",
-                  style: TextStyle(
-                    color: kBrandOrange,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                  ),
-                ),
+                onPressed: () => Navigator.pushNamed(context, '/forgot-password'),
+                child: const Text("Reset Access?", style: TextStyle(color: kBrandOrange, fontSize: 12, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
           const SizedBox(height: 32),
 
-          // Action Button
-          SizedBox(
-            height: 58,
-            child: ElevatedButton(
-              onPressed: _isLoading ? null : _handleSignIn,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: kBrandBrown,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                elevation: 8,
-                shadowColor: kBrandBrown.withValues(alpha: 0.4),
-              ),
-              child: _isLoading
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 3,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "SIGN IN TO PORTAL",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.2,
-                            fontSize: 15,
-                          ),
-                        ),
-                        SizedBox(width: 12),
-                        Icon(Icons.arrow_forward_rounded, size: 20),
-                      ],
-                    ),
+          ElevatedButton(
+            onPressed: _isLoading ? null : _handleSignIn,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kBrandBrown,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
             ),
+            child: _isLoading
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Text("SIGN IN TO SYSTEM", style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
           ),
           
           const SizedBox(height: 24),
-          Center(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                TextButton(
-                  onPressed: () {
-                    ApiService.logout();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Session cleared. Try logging in again.")),
-                    );
-                  },
-                  child: const Text(
-                    "Clear Session",
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Text("|", style: TextStyle(color: Colors.grey)),
-                const SizedBox(width: 8),
-                TextButton(
-                  onPressed: () {},
-                  child: const Text(
-                    "Contact Admin",
-                    style: TextStyle(
-                      color: kBrandOlive,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 13,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text("Need help?", style: TextStyle(color: Colors.grey, fontSize: 12)),
+              TextButton(onPressed: () {}, child: const Text("Contact Technical Support", style: TextStyle(color: kBrandOlive, fontSize: 12, fontWeight: FontWeight.bold))),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildInputLabel(String text) {
+  Widget _buildLabel(String text) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10, left: 4),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: kBrandBrown.withValues(alpha: 0.5),
-          fontSize: 10,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 1.2,
-        ),
-      ),
+      padding: const EdgeInsets.only(bottom: 8, left: 4),
+      child: Text(text, style: const TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
     );
   }
 
-  InputDecoration _fieldDecoration(IconData icon, {String? hint, Widget? suffix}) {
+  InputDecoration _inputDeco(IconData icon, String hint, {Widget? suffix}) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14, fontWeight: FontWeight.normal),
-      prefixIcon: Icon(icon, color: kBrandOlive, size: 22),
+      prefixIcon: Icon(icon, color: kBrandOlive, size: 20),
       suffixIcon: suffix,
       filled: true,
       fillColor: Colors.grey.shade50,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(20),
-        borderSide: BorderSide(color: Colors.grey.shade200),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(20),
-        borderSide: const BorderSide(color: kBrandOlive, width: 2),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(20),
-        borderSide: BorderSide(color: Colors.red.shade200),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(20),
-        borderSide: const BorderSide(color: Colors.red, width: 2),
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kBrandOlive, width: 2)),
     );
   }
+}
+
+class MovingLinesPainter extends CustomPainter {
+  final double progress;
+  MovingLinesPainter(this.progress);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.05)
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+
+    final lineCount = 10;
+    final spacing = size.height / lineCount;
+
+    for (int i = 0; i < lineCount; i++) {
+      final path = Path();
+      final y = i * spacing;
+      
+      path.moveTo(0, y);
+      for (double x = 0; x <= size.width; x += 20) {
+        final dy = math.sin((x / size.width * 2 * math.pi) + (progress * 2 * math.pi)) * 50;
+        path.lineTo(x, y + dy);
+      }
+      
+      paint.strokeWidth = 0.5 + (i % 3);
+      paint.color = kBrandOlive.withOpacity(0.03 + (i * 0.01));
+      canvas.drawPath(path, paint);
+    }
+    
+    // Diagonal broad sweeping lines
+    final broadPaint = Paint()
+      ..color = Colors.white.withOpacity(0.02)
+      ..strokeWidth = 120
+      ..style = PaintingStyle.stroke;
+
+    final offset = progress * size.width * 2.5;
+    canvas.drawLine(Offset(-size.width + offset, 0), Offset(offset, size.height), broadPaint);
+    canvas.drawLine(Offset(-size.width * 0.4 + offset, 0), Offset(offset + size.width * 0.6, size.height), broadPaint);
+  }
+
+  @override
+  bool shouldRepaint(MovingLinesPainter old) => old.progress != progress;
 }

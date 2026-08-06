@@ -110,10 +110,16 @@ class _PasswordResetPageState extends State<PasswordResetPage> with TickerProvid
             ),
           ),
           SafeArea(
-            child: Center(
+            child: Align(
+              alignment: Alignment.topCenter,
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+                padding: EdgeInsets.only(
+                  left: 24,
+                  right: 24,
+                  bottom: 40,
+                  top: size.height < 600 ? 20 : 60,
+                ),
                 child: AnimatedBuilder(
                   animation: _fadeController,
                   builder: (context, child) {

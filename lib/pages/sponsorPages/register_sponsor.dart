@@ -9,9 +9,7 @@ class RegisterSponsorPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        child: RegisterSponsorComponent(onRegister: onSuccess != null ? (_) async => onSuccess!() : null),
-      ),
+      body: RegisterSponsorComponent(onRegister: onSuccess != null ? (_) async => onSuccess!() : null),
     );
   }
 }

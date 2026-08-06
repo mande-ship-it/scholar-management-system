@@ -213,13 +213,15 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildHeader(_student!, _extraData, isMobile),
-          const SizedBox(height: 24),
+          if (!isMobile) ...[
+            _buildHeader(_student!, _extraData, isMobile),
+            const SizedBox(height: 24),
+          ],
           _buildTabBar(isMobile),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           Expanded(
             child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 0),
+              padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 0),
               child: _buildTabContent(_student!, _extraData, isMobile),
             ),
           ),
@@ -489,12 +491,17 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
   }
 
   Widget _buildTabContent(Student student, Map<String, dynamic>? args, bool isMobile) {
-    switch (_selectedTab) {
-      case 0: return _buildOverviewTab(student, args, isMobile);
-      case 1: return _buildStatisticsTab(student, isMobile);
-      case 2: return _buildProgressionTab(student, isMobile);
-      default: return const SizedBox();
-    }
+    return Column(
+      children: [
+        switch (_selectedTab) {
+          0 => _buildOverviewTab(student, args, isMobile),
+          1 => _buildStatisticsTab(student, isMobile),
+          2 => _buildProgressionTab(student, isMobile),
+          _ => const SizedBox(),
+        },
+        const SizedBox(height: 32),
+      ],
+    );
   }
 
   Widget _buildProgressionTab(Student student, bool isMobile) {
@@ -503,6 +510,7 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
         _infoSection(
           title: "Current Progression Status",
           icon: Icons.track_changes_rounded,
+          isMobile: isMobile,
           child: Column(
             children: [
               if (isMobile) ...[
@@ -529,6 +537,7 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
         _infoSection(
           title: "Academic Milestone History",
           icon: Icons.history_rounded,
+          isMobile: isMobile,
           child: Column(
             children: [
               if (student.progressionHistory.isEmpty)
@@ -603,6 +612,7 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
         _infoSection(
           title: "Institutional Affiliation",
           icon: Icons.school_outlined,
+          isMobile: isMobile,
           child: Column(
             children: [
               _infoTile("Current Institution", student.schoolName, isBold: true),
@@ -657,6 +667,7 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
           _infoSection(
             title: "Personal Details",
             icon: Icons.badge_outlined,
+            isMobile: isMobile,
             child: Column(
               children: [
                 _infoRow(Icons.wc, "Sex", args?['sex'] ?? 'Female'),
@@ -669,6 +680,7 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
           _infoSection(
             title: "Home & Origin",
             icon: Icons.map_outlined,
+            isMobile: isMobile,
             child: Column(
               children: [
                 _infoRow(Icons.location_on_outlined, "District", args?['district'] ?? 'Mzimba'),
@@ -715,6 +727,7 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
         _infoSection(
           title: "Parent / Guardian Information",
           icon: Icons.family_restroom_outlined,
+          isMobile: isMobile,
           child: Column(
             children: [
               _infoTile("Primary Guardian", student.guardianName ?? 'Not Provided', isBold: true),
@@ -783,7 +796,7 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
           const SizedBox(height: 12),
           _statCard("Total Records", "${records.length}", kBrandBrown, Icons.inventory_2_outlined, true),
           const SizedBox(height: 24),
-          _buildPerformanceBreakdown(records),
+          _buildPerformanceBreakdown(records, isMobile),
         ],
       );
     }
@@ -810,15 +823,16 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
           ],
         ),
         const SizedBox(height: 24),
-        _buildPerformanceBreakdown(records),
+        _buildPerformanceBreakdown(records, isMobile),
       ],
     );
   }
 
-  Widget _buildPerformanceBreakdown(List<ResultRecord> records) {
+  Widget _buildPerformanceBreakdown(List<ResultRecord> records, bool isMobile) {
     return _infoSection(
       title: "Subject Performance Breakdown",
       icon: Icons.bar_chart_rounded,
+      isMobile: isMobile,
       child: Column(
         children: [
           if (records.isEmpty)
@@ -882,10 +896,10 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
   }
 
 
-  Widget _infoSection({required String title, required IconData icon, required Widget child}) {
+  Widget _infoSection({required String title, required IconData icon, required Widget child, bool isMobile = false}) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isMobile ? 16 : 24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -896,9 +910,9 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
         children: [
           Row(
             children: [
-              Icon(icon, size: 20, color: kBrandOlive),
+              Icon(icon, size: isMobile ? 18 : 20, color: kBrandOlive),
               const SizedBox(width: 12),
-              Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kBrandBrown)),
+              Text(title, style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.bold, color: kBrandBrown)),
             ],
           ),
           const SizedBox(height: 24),

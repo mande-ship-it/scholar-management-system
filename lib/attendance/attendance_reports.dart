@@ -81,35 +81,41 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
 
     return Container(
       color: theme.scaffoldBackgroundColor,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildProfessionalHeader(),
+          if (!isMobile) _buildProfessionalHeader(isMobile),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(40, 32, 40, 48),
+              padding: EdgeInsets.fromLTRB(isMobile ? 12 : 40, isMobile ? 16 : 32, isMobile ? 12 : 40, 48),
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1200),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _buildControls(),
-                      const SizedBox(height: 48),
+                      if (isMobile) ...[
+                        _buildActionButtons(isMobile),
+                        const SizedBox(height: 16),
+                      ],
+                      _buildControls(isMobile),
+                      const SizedBox(height: 32),
 
                       if (_isLoading)
                         const Center(child: Padding(padding: EdgeInsets.all(100), child: BeautifulLoader(isOverlay: false, message: "Aggregating Report Data")))
                       else if (_selectedSchool == null)
-                        _buildSelectionPlaceholder()
+                        _buildSelectionPlaceholder(isMobile)
                       else ...[
-                        _buildReportSummary(),
-                        const SizedBox(height: 48),
+                        _buildReportSummary(isMobile),
+                        const SizedBox(height: 32),
                         _reportSection(
                           title: "Participation Registry",
-                          subtitle: "Detailed session tracking for ${_selectedSchool!['name']} during the active period.",
+                          subtitle: "Detailed session tracking for the active period.",
+                          isMobile: isMobile,
                           child: _buildAttendanceTable(_reportData),
                         ),
                       ],
@@ -124,50 +130,66 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
     );
   }
 
-  Widget _buildProfessionalHeader() {
+  Widget _buildProfessionalHeader(bool isMobile) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 24 : 40, vertical: isMobile ? 16 : 24),
       decoration: BoxDecoration(
-        color: theme.cardColor,
+        color: isDark ? theme.cardColor : Colors.white,
         border: Border(bottom: BorderSide(color: theme.dividerColor)),
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: kBrandOlive.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(Icons.analytics_rounded, color: kBrandOlive, size: 24),
+      child: isMobile 
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.analytics_rounded, color: kBrandOlive, size: 24),
+                  const SizedBox(width: 12),
+                  Text('Attendance Intel',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.5)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildActionButtons(isMobile),
+            ],
+          )
+        : Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: kBrandOlive.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.analytics_rounded, color: kBrandOlive, size: 24),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Attendance Intelligence',
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.5)),
+                    const Text('Analyze program participation telemetry and targets.',
+                      style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
+                  ],
+                ),
+              ),
+              _buildActionButtons(isMobile),
+            ],
           ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Attendance Intelligence',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.5)),
-                const Text('Analyze program participation telemetry and targets.',
-                  style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
-              ],
-            ),
-          ),
-          _buildActionButtons(),
-        ],
-      ),
     );
   }
 
-  Widget _buildSelectionPlaceholder() {
+  Widget _buildSelectionPlaceholder(bool isMobile) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.all(100),
+      padding: EdgeInsets.all(isMobile ? 40 : 100),
       decoration: BoxDecoration(
         color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(24),
@@ -175,84 +197,127 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
       ),
       child: Column(
         children: [
-          Icon(Icons.school_outlined, size: 80, color: isDark ? Colors.white12 : Colors.grey.shade200),
+          Icon(Icons.school_outlined, size: isMobile ? 60 : 80, color: isDark ? Colors.white12 : Colors.grey.shade200),
           const SizedBox(height: 32),
-          Text("Institutional report portal ready",
-            style: TextStyle(color: isDark ? Colors.white38 : Colors.grey.shade400, fontSize: 18, fontWeight: FontWeight.w700, letterSpacing: -0.2)),
+          Text("Select institution to generate portal",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: isDark ? Colors.white38 : Colors.grey.shade400, fontSize: isMobile ? 14 : 18, fontWeight: FontWeight.w700, letterSpacing: -0.2)),
         ],
       ),
     );
   }
 
-  Widget _buildReportSummary() {
+  Widget _buildReportSummary(bool isMobile) {
     if (_reportData.isEmpty) return const SizedBox();
 
     double avgRate = _reportData.fold(0.0, (sum, item) => sum + (item['attendanceRate'] ?? 0)) / _reportData.length;
     int atRisk = _reportData.where((item) => (item['attendanceRate'] ?? 0) < 50).length;
     int onTrack = _reportData.where((item) => item['status'] == 'On Track').length;
 
+    if (isMobile) {
+      return Column(
+        children: [
+          _metricCard("Aggregate Rate", "${avgRate.toStringAsFixed(1)}%", kBrandOlive, Icons.rule_rounded, "Global Performance", isMobile),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _metricCard("On Track", "$onTrack", kBrandBrown, Icons.verified_rounded, "Meeting Targets", isMobile)),
+              const SizedBox(width: 12),
+              Expanded(child: _metricCard("At-Risk", "$atRisk", Colors.red, Icons.warning_amber_rounded, "Critical Lows", isMobile)),
+            ],
+          ),
+        ],
+      );
+    }
+
     return Row(
       children: [
-        _metricCard("Aggregate Rate", "${avgRate.toStringAsFixed(1)}%", kBrandOlive, Icons.rule_rounded, "Global Performance"),
+        _metricCard("Aggregate Rate", "${avgRate.toStringAsFixed(1)}%", kBrandOlive, Icons.rule_rounded, "Global Performance", isMobile),
         const SizedBox(width: 24),
-        _metricCard("On Track", "$onTrack", kBrandBrown, Icons.verified_rounded, "Meeting Targets"),
+        _metricCard("On Track", "$onTrack", kBrandBrown, Icons.verified_rounded, "Meeting Targets", isMobile),
         const SizedBox(width: 24),
-        _metricCard("At-Risk Scholars", "$atRisk", Colors.red, Icons.warning_amber_rounded, "Critical Lows"),
+        _metricCard("At-Risk Scholars", "$atRisk", Colors.red, Icons.warning_amber_rounded, "Critical Lows", isMobile),
       ],
     );
   }
 
-  Widget _buildControls() {
+  Widget _buildControls(bool isMobile) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
     final schoolOptions = _schools.map((s) => DropdownMenuItem(
       value: s,
-      child: Text(s['name'] ?? '', style: TextStyle(fontWeight: FontWeight.w800, color: isDark ? Colors.white : kBrandBrown)),
+      child: Text(s['name'] ?? '', style: TextStyle(fontWeight: FontWeight.w800, color: isDark ? Colors.white : kBrandBrown, fontSize: 13)),
     )).toList();
 
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(isMobile ? 20 : 32),
       decoration: BoxDecoration(
         color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: theme.dividerColor),
       ),
-      child: Wrap(
-        spacing: 24,
-        runSpacing: 24,
-        crossAxisAlignment: WrapCrossAlignment.end,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SizedBox(
-            width: 320,
-            child: _dropdownControl("PARTNER INSTITUTION", _selectedSchool, schoolOptions, (v) {
+          if (isMobile) ...[
+            _dropdownControl("PARTNER INSTITUTION", _selectedSchool, schoolOptions, (v) {
               setState(() {
                 _selectedSchool = v;
                 _reportData = [];
               });
               _fetchReport();
             }, hint: "Select school..."),
-          ),
-          SizedBox(
-            width: 200,
-            child: _dropdownControl("REPORTING CYCLE", _selectedPeriodType, [
+            const SizedBox(height: 16),
+            _dropdownControl("REPORTING CYCLE", _selectedPeriodType, [
               'Month', 'Term', 'Semester', 'Week'
-            ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: TextStyle(fontWeight: FontWeight.w800, color: isDark ? Colors.white : kBrandBrown)))).toList(), (v) {
+            ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: TextStyle(fontWeight: FontWeight.w800, color: isDark ? Colors.white : kBrandBrown, fontSize: 13)))).toList(), (v) {
               setState(() {
                 _selectedPeriodType = v!;
                 _reportData = [];
               });
               _fetchReport();
             }),
-          ),
-          _buildPeriodSpecificSelector(),
-          const Spacer(),
+            const SizedBox(height: 16),
+            _buildPeriodSpecificSelector(isMobile),
+          ] else
+            Wrap(
+              spacing: 24,
+              runSpacing: 24,
+              crossAxisAlignment: WrapCrossAlignment.end,
+              children: [
+                SizedBox(
+                  width: 320,
+                  child: _dropdownControl("PARTNER INSTITUTION", _selectedSchool, schoolOptions, (v) {
+                    setState(() {
+                      _selectedSchool = v;
+                      _reportData = [];
+                    });
+                    _fetchReport();
+                  }, hint: "Select school..."),
+                ),
+                SizedBox(
+                  width: 200,
+                  child: _dropdownControl("REPORTING CYCLE", _selectedPeriodType, [
+                    'Month', 'Term', 'Semester', 'Week'
+                  ].map((e) => DropdownMenuItem(value: e, child: Text(e, style: TextStyle(fontWeight: FontWeight.w800, color: isDark ? Colors.white : kBrandBrown)))).toList(), (v) {
+                    setState(() {
+                      _selectedPeriodType = v!;
+                      _reportData = [];
+                    });
+                    _fetchReport();
+                  }),
+                ),
+                _buildPeriodSpecificSelector(isMobile),
+              ],
+            ),
+          const SizedBox(height: 24),
           SizedBox(
             height: 52,
             child: ElevatedButton.icon(
               onPressed: _fetchReport,
               icon: const Icon(Icons.analytics_rounded, size: 20),
-              label: const Text("GENERATE REPORT", style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.0)),
+              label: const Text("GENERATE ANALYTICS", style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.0)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: kBrandOlive,
                 foregroundColor: Colors.white,
@@ -267,15 +332,15 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
     );
   }
 
-  Widget _buildPeriodSpecificSelector() {
+  Widget _buildPeriodSpecificSelector(bool isMobile) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
     if (_selectedPeriodType == 'Month') {
       return SizedBox(
-        width: 160,
+        width: isMobile ? double.infinity : 160,
         child: _dropdownControl("MONTH", _selectedMonth, List.generate(12, (i) => i + 1).map((m) => DropdownMenuItem(
-          value: m, child: Text(DateFormat('MMMM').format(DateTime(2026, m)), style: TextStyle(fontWeight: FontWeight.w800, color: isDark ? Colors.white : kBrandBrown))
+          value: m, child: Text(DateFormat('MMMM').format(DateTime(2026, m)), style: TextStyle(fontWeight: FontWeight.w800, color: isDark ? Colors.white : kBrandBrown, fontSize: 13))
         )).toList(), (v) {
           setState(() => _selectedMonth = v);
           _fetchReport();
@@ -283,22 +348,19 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
       );
     } else if (_selectedPeriodType == 'Week') {
       return Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            width: 160,
+          Expanded(
             child: _dropdownControl("MONTH", _selectedMonth, List.generate(12, (i) => i + 1).map((m) => DropdownMenuItem(
-              value: m, child: Text(DateFormat('MMMM').format(DateTime(2026, m)), style: TextStyle(fontWeight: FontWeight.w800, color: isDark ? Colors.white : kBrandBrown))
+              value: m, child: Text(DateFormat('MMM').format(DateTime(2026, m)), style: TextStyle(fontWeight: FontWeight.w800, color: isDark ? Colors.white : kBrandBrown, fontSize: 13))
             )).toList(), (v) {
               setState(() => _selectedMonth = v);
               _fetchReport();
             }),
           ),
-          const SizedBox(width: 16),
-          SizedBox(
-            width: 130,
+          const SizedBox(width: 12),
+          Expanded(
             child: _dropdownControl("WEEK", _selectedWeek, List.generate(5, (i) => i + 1).map((w) => DropdownMenuItem(
-              value: w, child: Text("Week $w", style: TextStyle(fontWeight: FontWeight.w800, color: isDark ? Colors.white : kBrandBrown))
+              value: w, child: Text("Week $w", style: TextStyle(fontWeight: FontWeight.w800, color: isDark ? Colors.white : kBrandBrown, fontSize: 13))
             )).toList(), (v) {
               setState(() => _selectedWeek = v);
               _fetchReport();
@@ -308,9 +370,9 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
       );
     } else if (_selectedPeriodType == 'Term') {
       return SizedBox(
-        width: 160,
+        width: isMobile ? double.infinity : 160,
         child: _dropdownControl("TERM", _selectedTerm, ['Term 1', 'Term 2', 'Term 3'].map((t) => DropdownMenuItem(
-          value: t, child: Text(t, style: TextStyle(fontWeight: FontWeight.w800, color: isDark ? Colors.white : kBrandBrown))
+          value: t, child: Text(t, style: TextStyle(fontWeight: FontWeight.w800, color: isDark ? Colors.white : kBrandBrown, fontSize: 13))
         )).toList(), (v) {
           setState(() => _selectedTerm = v);
           _fetchReport();
@@ -318,9 +380,9 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
       );
     } else if (_selectedPeriodType == 'Semester') {
       return SizedBox(
-        width: 160,
+        width: isMobile ? double.infinity : 160,
         child: _dropdownControl("SEMESTER", _selectedSemester, ['Semester 1', 'Semester 2'].map((s) => DropdownMenuItem(
-          value: s, child: Text(s, style: TextStyle(fontWeight: FontWeight.w800, color: isDark ? Colors.white : kBrandBrown))
+          value: s, child: Text(s, style: TextStyle(fontWeight: FontWeight.w800, color: isDark ? Colors.white : kBrandBrown, fontSize: 13))
         )).toList(), (v) {
           setState(() => _selectedSemester = v);
           _fetchReport();
@@ -330,49 +392,42 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
     return const SizedBox();
   }
 
-  Widget _dropdownControl(String label, dynamic value, List<DropdownMenuItem<dynamic>> items, ValueChanged<dynamic> onChanged, {String? hint}) {
+  Widget _buildActionButtons(bool isMobile) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: isDark ? Colors.white38 : Colors.grey, letterSpacing: 1.2)),
-        const SizedBox(height: 10),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: theme.cardColor,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: theme.dividerColor),
+    if (isMobile) {
+      return Row(
+        children: [
+          Expanded(
+            child: OutlinedButton(
+              onPressed: () {},
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                foregroundColor: isDark ? Colors.white70 : kBrandBrown,
+                side: BorderSide(color: theme.dividerColor),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text("EXCEL", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.0)),
+            ),
           ),
-          child: DropdownButton<dynamic>(
-            value: value,
-            isExpanded: true,
-            dropdownColor: theme.cardColor,
-            hint: hint != null ? Text(hint, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)) : null,
-            underline: const SizedBox(),
-            items: items,
-            onChanged: onChanged,
+          const SizedBox(width: 8),
+          Expanded(
+            child: ElevatedButton(
+              onPressed: () {},
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kBrandBrown,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                elevation: 0,
+              ),
+              child: const Text("PDF REPORT", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.0)),
+            ),
           ),
-        ),
-      ],
-    );
-  }
-
-  String _initialsOf(String name) {
-    return name
-        .trim()
-        .split(RegExp(r'\s+'))
-        .map((e) => e.isNotEmpty ? e[0] : '')
-        .take(2)
-        .join()
-        .toUpperCase();
-  }
-
-  Widget _buildActionButtons() {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+        ],
+      );
+    }
 
     return Row(
       children: [
@@ -406,7 +461,7 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
     );
   }
 
-  Widget _reportSection({required String title, required String subtitle, required Widget child}) {
+  Widget _reportSection({required String title, required String subtitle, required Widget child, bool isMobile = false}) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -414,45 +469,73 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(title.toUpperCase(), 
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: isDark ? Colors.white70 : Colors.grey, letterSpacing: 1.5)),
+          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: isDark ? Colors.white70 : Colors.grey, letterSpacing: 1.5)),
         const SizedBox(height: 4),
-        Text(subtitle, style: TextStyle(fontSize: 14, color: isDark ? Colors.white38 : Colors.grey.shade600, fontWeight: FontWeight.w500)),
-        const SizedBox(height: 32),
+        Text(subtitle, style: TextStyle(fontSize: isMobile ? 12 : 14, color: isDark ? Colors.white38 : Colors.grey.shade600, fontWeight: FontWeight.w500)),
+        const SizedBox(height: 24),
         child,
       ],
     );
   }
 
-  Widget _metricCard(String label, String value, Color color, IconData icon, String subtitle) {
+  Widget _metricCard(String label, String value, Color color, IconData icon, String subtitle, bool isMobile) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(32),
-        decoration: BoxDecoration(
-          color: theme.cardColor,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: theme.dividerColor),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(label.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.0)),
-                Icon(icon, color: color.withOpacity(0.6), size: 24),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Text(value, style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: color, letterSpacing: -1.0)),
-            const SizedBox(height: 8),
-            Text(subtitle, style: TextStyle(fontSize: 11, color: isDark ? Colors.white24 : Colors.grey.shade500, fontWeight: FontWeight.bold)),
-          ],
-        ),
+    return Container(
+      padding: EdgeInsets.all(isMobile ? 20 : 32),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: theme.dividerColor),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 10, offset: const Offset(0, 4))],
       ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(label.toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.0)),
+              Icon(icon, color: color.withOpacity(0.6), size: isMobile ? 18 : 24),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(value, style: TextStyle(fontSize: isMobile ? 24 : 32, fontWeight: FontWeight.w900, color: color, letterSpacing: -1.0)),
+          const SizedBox(height: 4),
+          Text(subtitle, style: TextStyle(fontSize: 10, color: isDark ? Colors.white24 : Colors.grey.shade500, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  Widget _dropdownControl(String label, dynamic value, List<DropdownMenuItem<dynamic>> items, ValueChanged<dynamic> onChanged, {String? hint}) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: isDark ? Colors.white38 : Colors.grey, letterSpacing: 1.2)),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: theme.cardColor,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: theme.dividerColor),
+          ),
+          child: DropdownButton<dynamic>(
+            value: value,
+            isExpanded: true,
+            dropdownColor: theme.cardColor,
+            hint: hint != null ? Text(hint, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)) : null,
+            underline: const SizedBox(),
+            items: items,
+            onChanged: onChanged,
+          ),
+        ),
+      ],
     );
   }
 

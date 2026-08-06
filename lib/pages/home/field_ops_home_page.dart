@@ -384,8 +384,26 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
                 ),
               ],
             ),
-        title: Text(isMobile ? "Ops Portal" : "Field Operations Portal", 
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: isMobile ? 14 : 16)),
+        title: Row(
+          children: [
+            if (isMobile && _navigationHistory.isNotEmpty && activeSubItem.title != "Pending Approvals") ...[
+              IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+                onPressed: _popSubItem,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+              const SizedBox(width: 12),
+            ],
+            Expanded(
+              child: Text(
+                isMobile ? activeSubItem.title : "Field Operations Portal",
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: isMobile ? 16 : 16),
+              ),
+            ),
+          ],
+        ),
         actions: [
           IconButton(icon: const Icon(Icons.notifications, color: Colors.white), onPressed: () {
             for (int i = 0; i < _categories.length; i++) {
@@ -423,6 +441,7 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
           Expanded(
             child: Column(
               children: [
+                if (!isMobile)
                 Container(
                   width: double.infinity,
                   padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 16),
@@ -448,10 +467,10 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
                     ],
                   ),
                 ),
-                const Divider(height: 1),
+                if (!isMobile) const Divider(height: 1),
                 Expanded(
                   child: Padding(
-                    padding: EdgeInsets.all(isMobile ? 12 : 24),
+                    padding: EdgeInsets.all(isMobile ? 0 : 24),
                     child: _currentDetailScholarId != null
                       ? ScholarProfileComponent(scholarId: _currentDetailScholarId, onBack: _popSubItem)
                       : activeSubItem.builder != null

@@ -91,14 +91,15 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
       height: double.infinity,
       decoration: BoxDecoration(
         color: const Color(0xFFF8FAFB),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: isMobile ? BorderRadius.zero : BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade200),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildExecutiveHeader(isMobile),
+          if (!isMobile) _buildExecutiveHeader(isMobile),
+          if (isMobile) _buildMobileCompactToolbar(),
           if (!isMobile) _buildSummaryBar(),
           Expanded(
             child: _isLoading 
@@ -106,6 +107,36 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
               : _errorMessage != null
                 ? _buildErrorState()
                 : _buildNotificationContent(isMobile),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileCompactToolbar() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+      color: Colors.white,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _tabButton("ALL", 'all', true),
+                      const SizedBox(width: 8),
+                      _tabButton("UNREAD", 'unread', true),
+                    ],
+                  ),
+                ),
+              ),
+              IconButton(onPressed: _fetchNotifications, icon: const Icon(Icons.sync_rounded, size: 20, color: kBrandOlive)),
+              if (_notifications.any((n) => !(n['is_read'] ?? false)))
+                IconButton(onPressed: _markAllAsRead, icon: const Icon(Icons.done_all_rounded, size: 20, color: kBrandOlive)),
+            ],
           ),
         ],
       ),

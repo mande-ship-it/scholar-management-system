@@ -76,7 +76,7 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
       height: double.infinity,
       decoration: BoxDecoration(
         color: theme.cardColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: isMobile ? BorderRadius.zero : BorderRadius.circular(16),
         border: Border.all(color: theme.dividerColor),
       ),
       clipBehavior: Clip.antiAlias,
@@ -85,7 +85,7 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
         : Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildExecutiveHeader(isMobile),
+            if (!isMobile) _buildExecutiveHeader(isMobile),
             Expanded(
               child: SingleChildScrollView(
                 padding: EdgeInsets.all(isMobile ? 16 : 40),

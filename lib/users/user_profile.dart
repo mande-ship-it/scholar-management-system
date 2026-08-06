@@ -340,7 +340,7 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildExecutiveHeader(isMobile),
+                  if (!isMobile) _buildExecutiveHeader(isMobile),
                   _buildHeaderCard(isMobile),
                   Padding(
                     padding: EdgeInsets.all(isMobile ? 16.0 : 24.0),

@@ -265,87 +265,118 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
 
     return Container(
       color: isDark ? theme.scaffoldBackgroundColor : Colors.white,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildHeader(),
+          if (!isMobile) _buildHeader(isMobile),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(40, 32, 40, 48),
+              padding: EdgeInsets.fromLTRB(isMobile ? 12 : 40, isMobile ? 12 : 32, isMobile ? 12 : 40, 48),
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1100),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildConfigSection(),
-                      const SizedBox(height: 48),
+                      _buildConfigSection(isMobile),
+                      const SizedBox(height: 32),
                       if (_isLoadingScholars)
                         const Center(child: Padding(padding: EdgeInsets.all(100), child: BeautifulLoader(isOverlay: false, message: "Opening School Registry")))
                       else if (_entries.isNotEmpty) ...[
-                        _buildFacilitatorSection(),
-                        const SizedBox(height: 48),
-                        _buildAttendanceTable()
+                        if (isMobile && _isFieldOfficer) 
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 24),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  setState(() {
+                                    for (var e in _entries) e.status = AttendanceStatus.present;
+                                  });
+                                },
+                                icon: const Icon(Icons.done_all_rounded, size: 16),
+                                label: const Text("MARK ALL PRESENT", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1.0)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green.shade700,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  elevation: 0,
+                                ),
+                              ),
+                            ),
+                          ),
+                        _buildFacilitatorSection(isMobile),
+                        const SizedBox(height: 32),
+                        if (isMobile) 
+                          _buildMobileAttendanceList()
+                        else 
+                          _buildAttendanceTable()
                       ] else
-                        _buildPlaceholder(),
+                        _buildPlaceholder(isMobile),
                     ],
                   ),
                 ),
               ),
             ),
           ),
-          if (_entries.isNotEmpty) _buildFooterActions(),
+          if (_entries.isNotEmpty) _buildFooterActions(isMobile),
         ],
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(bool isMobile) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 40, vertical: 12),
       decoration: BoxDecoration(
         color: isDark ? theme.cardColor : Colors.white,
         border: Border(bottom: BorderSide(color: theme.dividerColor)),
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: kBrandBrown.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(8),
+          if (!isMobile) ...[
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: kBrandBrown.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(_moduleType.icon, color: kBrandBrown, size: 18),
             ),
-            child: Icon(_moduleType.icon, color: kBrandBrown, size: 18),
-          ),
-          const SizedBox(width: 16),
+            const SizedBox(width: 16),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(_isFieldOfficer ? "Attendance Management" : "Attendance Records",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.2)),
+                  style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.2)),
                 Row(
                   children: [
-                    Text(_isFieldOfficer ? "Recording ${_moduleType.label} Session" : "Reviewing group telemetry",
+                    Text(_isFieldOfficer ? "Recording ${_moduleType.label}" : "Telemetry",
                       style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-                    const SizedBox(width: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
-                      child: const Text("Target: 1 Session / Week", style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: kBrandOlive, letterSpacing: 0.5)),
-                    ),
+                    if (!isMobile) ...[
+                      const SizedBox(width: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+                        child: const Text("Target: 1 Session / Week", style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: kBrandOlive, letterSpacing: 0.5)),
+                      ),
+                    ],
                   ],
                 ),
               ],
             ),
           ),
-          if (!_isFieldOfficer)
+          if (!_isFieldOfficer && !isMobile)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
@@ -369,11 +400,11 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
                 });
               },
               icon: const Icon(Icons.done_all_rounded, size: 16),
-              label: const Text("MARK ALL PRESENT", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.0)),
+              label: Text(isMobile ? "ALL PRESENT" : "MARK ALL PRESENT", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.0)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green.shade700,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 elevation: 0,
               ),
@@ -383,9 +414,32 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
     );
   }
 
-  Widget _buildConfigSection() {
+  Widget _buildConfigSection(bool isMobile) {
     final periodLabel = _schoolType == SchoolType.university ? "Academic Semester" : "School Term";
     final periods = _schoolType == SchoolType.university ? kSemesters : kTerms;
+
+    if (isMobile) {
+      return Column(
+        children: [
+          _dropdownField("Partner Institution", _selectedSchool, _schoolOptions, (v) {
+            setState(() {
+              _selectedSchool = v;
+              _loadRegister();
+            });
+          }),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(child: _dropdownFieldString(periodLabel, _selectedPeriod, periods, (v) => setState(() => _selectedPeriod = v!))),
+              const SizedBox(width: 12),
+              Expanded(child: _dropdownFieldString("Year", _selectedYear, academicYearOptions(), (v) => setState(() => _selectedYear = v!))),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _datePickerField(),
+        ],
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -450,20 +504,241 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
     );
   }
 
-  Widget _buildFacilitatorSection() {
+  Widget _buildFacilitatorSection(bool isMobile) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text("SESSION LOGISTICS", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.0)),
         const SizedBox(height: 12),
+        if (isMobile) ...[
+          _textField(_facilitatorController, "Primary Facilitator", Icons.person_pin_rounded, "Name..."),
+          const SizedBox(height: 16),
+          _textField(_locationController, "Venue", Icons.place_rounded, "e.g. Science Lab..."),
+        ] else
+          Row(
+            children: [
+              Expanded(child: _textField(_facilitatorController, "Primary Facilitator", Icons.person_pin_rounded, "Name...")),
+              const SizedBox(width: 16),
+              Expanded(child: _textField(_locationController, "Venue", Icons.place_rounded, "e.g. Science Lab...")),
+            ],
+          ),
+      ],
+    );
+  }
+
+  Widget _buildMobileAttendanceList() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(child: _textField(_facilitatorController, "Primary Facilitator", Icons.person_pin_rounded, "Name...")),
-            const SizedBox(width: 16),
-            Expanded(child: _textField(_locationController, "Venue", Icons.place_rounded, "e.g. Science Lab...")),
+            const Text("REGISTER", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.0)),
+            _countBadge("${_entries.where((e) => e.status == AttendanceStatus.present).length} P / ${_entries.where((e) => e.status == AttendanceStatus.absent).length} A", kBrandOlive),
           ],
         ),
+        const SizedBox(height: 16),
+        ..._entries.map((entry) => _buildMobileAttendanceCard(entry)),
       ],
+    );
+  }
+
+  Widget _buildMobileAttendanceCard(AttendanceEntry entry) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? theme.cardColor : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.dividerColor),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8)],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: kBrandOlive.withOpacity(0.1),
+                child: Text(getInitials(entry.scholar.name), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBrandOlive)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(entry.scholar.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isDark ? Colors.white : kBrandBrown)),
+                    Text("${entry.scholar.scholarId} • ${entry.scholar.currentClass}", style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildStatusPicker(entry, isMobile: true),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: TextField(
+              onChanged: (v) => entry.note = v,
+              style: TextStyle(fontSize: 12, color: isDark ? Colors.white : kBrandBrown),
+              decoration: InputDecoration(
+                hintText: "Add specific remarks...",
+                hintStyle: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+                border: InputBorder.none,
+                isDense: true,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusPicker(AttendanceEntry entry, {bool isMobile = false}) {
+    return IgnorePointer(
+      ignoring: !_isFieldOfficer,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: AttendanceStatus.values.map((status) {
+          final isSelected = entry.status == status;
+          return Expanded(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: isMobile ? 4 : 6),
+              child: InkWell(
+                onTap: () => setState(() => entry.status = status),
+                borderRadius: BorderRadius.circular(10),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isSelected ? status.color : Colors.transparent,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isSelected ? status.color : Colors.grey.shade300,
+                      width: 1.2
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(status.icon, size: 14, color: isSelected ? Colors.white : Colors.grey.shade400),
+                      if (isSelected) ...[
+                        const SizedBox(width: 8),
+                        Text(
+                          status.label.toUpperCase(),
+                          style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildFooterActions(bool isMobile) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      padding: EdgeInsets.all(isMobile ? 24 : 40),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        border: Border(top: BorderSide(color: theme.dividerColor)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, -10))],
+      ),
+      child: isMobile 
+        ? Column(
+            children: [
+              Text(
+                "AUDIT DECLARATION: By authorizing, you certify that the telemetry recorded is accurate.",
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500, height: 1.4),
+              ),
+              const SizedBox(height: 20),
+              if (_isFieldOfficer)
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton.icon(
+                    onPressed: _isSaving ? null : _saveRegister,
+                    icon: _isSaving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.cloud_upload_rounded),
+                    label: Text(_isSaving ? "SYNCING..." : "VALIDATE & SAVE",
+                      style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.0, fontSize: 13)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kBrandBrown,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
+            ],
+          )
+        : Row(
+            children: [
+              Icon(Icons.verified_user_rounded, color: kBrandOlive.withOpacity(0.6), size: 24),
+              const SizedBox(width: 20),
+              const Expanded(
+                child: Text(
+                  "AUDIT DECLARATION: By authorizing, you certify that the telemetry recorded for this session is accurate and consistent with program engagement standards.",
+                  style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600, height: 1.5),
+                ),
+              ),
+              const SizedBox(width: 60),
+              if (_isFieldOfficer)
+                SizedBox(
+                  width: 380,
+                  height: 64,
+                  child: ElevatedButton.icon(
+                    onPressed: _isSaving ? null : _saveRegister,
+                    icon: _isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.cloud_upload_rounded),
+                    label: Text(_isSaving ? "SYNCHRONIZING..." : "VALIDATE & SAVE REGISTER",
+                      style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2, fontSize: 13)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: kBrandBrown,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+    );
+  }
+
+  Widget _buildPlaceholder(bool isMobile) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Center(
+      child: Column(
+        children: [
+          SizedBox(height: isMobile ? 60 : 120),
+          Container(
+            padding: EdgeInsets.all(isMobile ? 32 : 48),
+            decoration: BoxDecoration(color: isDark ? Colors.white12 : Colors.grey.shade50, shape: BoxShape.circle),
+            child: Icon(Icons.assignment_ind_rounded, size: isMobile ? 60 : 80, color: isDark ? Colors.white10 : Colors.grey.shade200),
+          ),
+          const SizedBox(height: 32),
+          Text(_selectedSchool == null ? "Select an institution" : "No active scholars found",
+            textAlign: TextAlign.center,
+            style: TextStyle(color: isDark ? Colors.white38 : Colors.grey.shade400, fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.w700, letterSpacing: -0.2)),
+        ],
+      ),
     );
   }
 
@@ -566,115 +841,6 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: color.withOpacity(0.2))),
       child: Text(label, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: color, letterSpacing: 0.5)),
-    );
-  }
-
-  Widget _buildStatusPicker(AttendanceEntry entry) {
-    return IgnorePointer(
-      ignoring: !_isFieldOfficer,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: AttendanceStatus.values.map((status) {
-          final isSelected = entry.status == status;
-          return Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: InkWell(
-              onTap: () => setState(() => entry.status = status),
-              borderRadius: BorderRadius.circular(14),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                decoration: BoxDecoration(
-                  color: isSelected ? status.color : Colors.transparent,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(
-                    color: isSelected ? status.color : Colors.grey.shade300,
-                    width: 1.5
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(status.icon, size: 16, color: isSelected ? Colors.white : Colors.grey.shade400),
-                    if (isSelected) ...[
-                      const SizedBox(width: 10),
-                      Text(
-                        status.label.toUpperCase(),
-                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.0),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildFooterActions() {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.all(40),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        border: Border(top: BorderSide(color: theme.dividerColor)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, -10))],
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.verified_user_rounded, color: kBrandOlive.withOpacity(0.6), size: 24),
-          const SizedBox(width: 20),
-          const Expanded(
-            child: Text(
-              "AUDIT DECLARATION: By authorizing, you certify that the telemetry recorded for this session is accurate and consistent with program engagement standards.",
-              style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600, height: 1.5),
-            ),
-          ),
-          const SizedBox(width: 60),
-          if (_isFieldOfficer)
-            SizedBox(
-              width: 380,
-              height: 64,
-              child: ElevatedButton.icon(
-                onPressed: _isSaving ? null : _saveRegister,
-                icon: _isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.cloud_upload_rounded),
-                label: Text(_isSaving ? "SYNCHRONIZING..." : "VALIDATE & SAVE REGISTER",
-                  style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2, fontSize: 13)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: kBrandBrown,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  elevation: 0,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPlaceholder() {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Center(
-      child: Column(
-        children: [
-          const SizedBox(height: 120),
-          Container(
-            padding: const EdgeInsets.all(48),
-            decoration: BoxDecoration(color: isDark ? Colors.white12 : Colors.grey.shade50, shape: BoxShape.circle),
-            child: Icon(Icons.assignment_ind_rounded, size: 80, color: isDark ? Colors.white10 : Colors.grey.shade200),
-          ),
-          const SizedBox(height: 32),
-          Text(_selectedSchool == null ? "Select an institution to load the register" : "No active scholars found in this cohort",
-            style: TextStyle(color: isDark ? Colors.white38 : Colors.grey.shade400, fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: -0.2)),
-        ],
-      ),
     );
   }
 
@@ -783,16 +949,6 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
       _selectedMonth = DateFormat('MMMM').format(date);
       _selectedWeek = ((date.day - 1) / 7).floor() + 1;
     });
-  }
-
-  String _initialsOf(String name) {
-    return name
-        .trim()
-        .split(RegExp(r'\s+'))
-        .map((e) => e.isNotEmpty ? e[0] : '')
-        .take(2)
-        .join()
-        .toUpperCase();
   }
 
   Widget _datePickerField() {

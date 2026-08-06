@@ -290,7 +290,7 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: isMobile ? BorderRadius.zero : BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
       ),
@@ -298,7 +298,7 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildExecutiveHeader(isMobile),
+          if (!isMobile) _buildExecutiveHeader(isMobile),
           _buildToolbar(isMobile),
           Expanded(
             child: _isLoading

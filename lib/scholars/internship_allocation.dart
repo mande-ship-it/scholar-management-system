@@ -115,12 +115,12 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
       color: const Color(0xFFF8F9FA),
       child: Column(
         children: [
-          _buildHeader(isMobile),
+          if (!isMobile) _buildHeader(isMobile),
           Expanded(
             child: _isLoading
               ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
               : SingleChildScrollView(
-                  padding: EdgeInsets.all(isMobile ? 16 : 32),
+                  padding: EdgeInsets.all(isMobile ? 12 : 32),
                   child: isMobile 
                     ? Column(
                         children: [
@@ -175,14 +175,14 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
 
   Widget _buildAllocationForm(bool isMobile) {
     return Container(
-      padding: EdgeInsets.all(isMobile ? 24 : 32),
+      padding: EdgeInsets.all(isMobile ? 20 : 32),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Text("NEW ALLOCATION", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: kBrandOrange, letterSpacing: 1.5)),
           const SizedBox(height: 24),
@@ -240,9 +240,11 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
           TextField(
             controller: _detailsController,
             maxLines: 4,
+            style: const TextStyle(fontSize: 14),
             decoration: InputDecoration(
               filled: true, fillColor: const Color(0xFFF8F9FA),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              contentPadding: const EdgeInsets.all(16),
             ),
           ),
           const SizedBox(height: 32),

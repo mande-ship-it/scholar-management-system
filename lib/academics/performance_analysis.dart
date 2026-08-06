@@ -105,7 +105,14 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
       color: Colors.white,
       child: Column(
         children: [
-          _buildExecutiveHeader(isMobile),
+          if (!isMobile) _buildExecutiveHeader(isMobile),
+          if (isMobile) ...[
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _buildTypeToggle(true),
+            ),
+          ],
           _buildMainTabBar(isMobile),
           Expanded(
             child: _isLoading 

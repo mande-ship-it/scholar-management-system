@@ -110,7 +110,7 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildProfessionalHeader(isMobile),
+          if (!isMobile) _buildProfessionalHeader(isMobile),
           _buildControlPanel(isMobile),
           Expanded(
             child: _isLoading
@@ -392,14 +392,28 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
                     _statusLabel(showingGraduates),
                   ],
                 ),
+                const SizedBox(height: 16),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.school_outlined, size: 14, color: Colors.grey),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(g['display_school_name'] ?? 'N/A', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.black87)),
+                          Text(g['program_name'] ?? 'N/A', style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 12),
-                Text(g['display_school_name'] ?? 'N/A', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.black87)),
-                Text(g['program_name'] ?? 'N/A', style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
-                const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(color: kBrandBrown.withOpacity(0.05), borderRadius: BorderRadius.circular(6)),
-                  child: Text("Class of ${g['end_year']}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBrandBrown)),
+                  child: Text("Class of ${g['end_year']}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: 0.5)),
                 ),
               ],
             ),

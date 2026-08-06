@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'scholar_attendance.dart';
 import 'package:scholar_management_system/services/api_service.dart';
 import '../academics/academics_utils.dart';
@@ -49,6 +50,7 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
 
     return Container(
       width: double.infinity,
@@ -57,24 +59,30 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildProfessionalHeader(),
+          if (!isMobile) _buildProfessionalHeader(isMobile),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(40, 24, 40, 48),
+              padding: EdgeInsets.fromLTRB(isMobile ? 0 : 40, isMobile ? 16 : 24, isMobile ? 0 : 40, 48),
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1100),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _buildFilterBar(),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 0),
+                        child: _buildFilterBar(isMobile),
+                      ),
                       const SizedBox(height: 32),
                       if (_isLoading)
                         const Center(child: Padding(padding: EdgeInsets.all(100), child: BeautifulLoader(isOverlay: false, message: "Retrieving Archive Data")))
                       else if (_history.isEmpty)
-                        _buildEmptyState()
+                        _buildEmptyState(isMobile)
                       else
-                        _buildHistoryList(),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 0),
+                          child: _buildHistoryList(isMobile),
+                        ),
                     ],
                   ),
                 ),
@@ -86,34 +94,36 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
     );
   }
 
-  Widget _buildProfessionalHeader() {
+  Widget _buildProfessionalHeader(bool isMobile) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 40, vertical: 12),
       decoration: BoxDecoration(
         color: isDark ? theme.cardColor : Colors.white,
         border: Border(bottom: BorderSide(color: theme.dividerColor)),
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: kBrandBrown.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(8),
+          if (!isMobile) ...[
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: kBrandBrown.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.history_edu_rounded, color: kBrandBrown, size: 20),
             ),
-            child: const Icon(Icons.history_edu_rounded, color: kBrandBrown, size: 20),
-          ),
-          const SizedBox(width: 16),
+            const SizedBox(width: 16),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Attendance Archives",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.2)),
-                const Text("Historical institutional program engagement.",
+                  style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.2)),
+                const Text("Historical program engagement.",
                   style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
               ],
             ),
@@ -136,37 +146,54 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
     );
   }
 
-  Widget _buildFilterBar() {
+  Widget _buildFilterBar(bool isMobile) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isMobile ? 16 : 24),
       decoration: BoxDecoration(
         color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: theme.dividerColor),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _dropdownFilter("MODULE", _filterType, [
-              const DropdownMenuItem(value: null, child: Text("All Modules")),
-              ...AttendanceModuleType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.label))),
-            ], (v) {
-              setState(() => _filterType = v);
-              _fetchHistory();
-            }),
+      child: isMobile 
+        ? Column(
+            children: [
+              _dropdownFilter("MODULE", _filterType, [
+                const DropdownMenuItem(value: null, child: Text("All Modules")),
+                ...AttendanceModuleType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.label))),
+              ], (v) {
+                setState(() => _filterType = v);
+                _fetchHistory();
+              }),
+              const SizedBox(height: 16),
+              _textFilter("INSTITUTION", Icons.search_rounded, "Search school or partner...", (v) {
+                setState(() => _filterSchool = v.isEmpty ? null : v);
+                _fetchHistory();
+              }),
+            ],
+          )
+        : Row(
+            children: [
+              Expanded(
+                child: _dropdownFilter("MODULE", _filterType, [
+                  const DropdownMenuItem(value: null, child: Text("All Modules")),
+                  ...AttendanceModuleType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.label))),
+                ], (v) {
+                  setState(() => _filterType = v);
+                  _fetchHistory();
+                }),
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                child: _textFilter("INSTITUTION", Icons.search_rounded, "Search school or partner...", (v) {
+                  setState(() => _filterSchool = v.isEmpty ? null : v);
+                  _fetchHistory();
+                }),
+              ),
+            ],
           ),
-          const SizedBox(width: 24),
-          Expanded(
-            child: _textFilter("INSTITUTION", Icons.search_rounded, "Search school or partner...", (v) {
-              setState(() => _filterSchool = v.isEmpty ? null : v);
-              _fetchHistory();
-            }),
-          ),
-        ],
-      ),
     );
   }
 
@@ -236,7 +263,7 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
     );
   }
 
-  Widget _buildHistoryList() {
+  Widget _buildHistoryList(bool isMobile) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -246,10 +273,11 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text("ARCHIVED TELEMETRY LOGS (${_history.length})",
+            Text("ARCHIVED LOGS (${_history.length})",
               style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.2)),
-            Text("Sort: Chronological Recency",
-              style: TextStyle(fontSize: 11, color: isDark ? Colors.white38 : Colors.grey.shade500, fontWeight: FontWeight.w500)),
+            if (!isMobile)
+              Text("Sort: Chronological Recency",
+                style: TextStyle(fontSize: 11, color: isDark ? Colors.white38 : Colors.grey.shade500, fontWeight: FontWeight.w500)),
           ],
         ),
         const SizedBox(height: 24),
@@ -263,6 +291,61 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
             final typeLabel = item['type'] ?? 'CHATs';
             final moduleType = typeLabel == 'CHATs' ? AttendanceModuleType.chats : AttendanceModuleType.studyCircle;
             final String dateStr = item['session_date'] != null ? DateFormat('dd MMM yyyy').format(DateTime.parse(item['session_date'])) : 'N/A';
+
+            if (isMobile) {
+              return Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: theme.cardColor,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: theme.dividerColor),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), shape: BoxShape.circle),
+                          child: Icon(moduleType.icon, color: kBrandOlive, size: 20),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(item['display_school_name'] ?? item['school_name'] ?? 'N/A', 
+                                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: isDark ? Colors.white : kBrandBrown)),
+                              Text(dateStr, style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("Facilitator", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: Colors.grey.shade500)),
+                            Text(item['facilitator'] ?? 'N/A', style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : kBrandBrown, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                          child: Text("${item['present_count'] ?? 0}/${item['total_count'] ?? 0} PRESENT", 
+                            style: const TextStyle(fontWeight: FontWeight.w900, color: kBrandOlive, fontSize: 10)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }
 
             return Container(
               padding: const EdgeInsets.all(24),
@@ -334,13 +417,13 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(bool isMobile) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 100),
+      padding: EdgeInsets.symmetric(vertical: isMobile ? 60 : 100),
       decoration: BoxDecoration(
         color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(24),
@@ -348,10 +431,10 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
       ),
       child: Column(
         children: [
-          Icon(Icons.history_toggle_off_rounded, size: 64, color: isDark ? Colors.white12 : Colors.grey.shade200),
+          Icon(Icons.history_toggle_off_rounded, size: isMobile ? 48 : 64, color: isDark ? Colors.white12 : Colors.grey.shade200),
           const SizedBox(height: 24),
           Text("No attendance archives found",
-            style: TextStyle(color: isDark ? Colors.white38 : Colors.grey, fontSize: 16, fontWeight: FontWeight.w700)),
+            style: TextStyle(color: isDark ? Colors.white38 : Colors.grey, fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.w700)),
         ],
       ),
     );

@@ -194,13 +194,13 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: isMobile ? BorderRadius.zero : BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildExecutiveHeader(isMobile),
+          if (!isMobile) _buildExecutiveHeader(isMobile),
           Expanded(
             child: SingleChildScrollView(
               padding: EdgeInsets.all(isMobile ? 20 : 40),
