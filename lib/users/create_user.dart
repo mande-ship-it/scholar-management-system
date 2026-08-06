@@ -199,6 +199,8 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
 
   @override
   Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 900;
     final strength = _passwordStrength(_passwordController.text);
 
     return Container(
@@ -214,11 +216,11 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // 1. Header
-          _buildHeader(),
+          _buildHeader(isMobile),
           
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(32),
+              padding: EdgeInsets.all(isMobile ? 16 : 32),
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -226,20 +228,20 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
                   children: [
                     _sectionTitle("1. Identity & Profile"),
                     const SizedBox(height: 16),
-                    _buildIdentityCard(),
+                    _buildIdentityCard(isMobile),
                     
                     const SizedBox(height: 32),
-                    _sectionTitle("2. System Access & Permissions"),
+                    _sectionTitle("2. System Access"),
                     const SizedBox(height: 16),
-                    _buildAccessCard(),
+                    _buildAccessCard(isMobile),
 
                     const SizedBox(height: 32),
                     _sectionTitle("3. Security Credentials"),
                     const SizedBox(height: 16),
-                    _buildSecurityCard(strength),
+                    _buildSecurityCard(strength, isMobile),
 
                     const SizedBox(height: 48),
-                    _buildSubmitButton(),
+                    _buildSubmitButton(isMobile),
                     const SizedBox(height: 40),
                   ],
                 ),
@@ -251,9 +253,9 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 12, 20, 12),
+      padding: EdgeInsets.fromLTRB(isMobile ? 16 : 24, 12, isMobile ? 16 : 20, 12),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
@@ -274,12 +276,13 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
             ),
           ),
           const SizedBox(width: 16),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Create User Account", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                Text("Provision a new system user with specialized role permissions.", style: TextStyle(fontSize: 11, color: Colors.grey)),
+                Text("Create User Account", 
+                  style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                const Text("Provision a new system user.", style: TextStyle(fontSize: 11, color: Colors.grey)),
               ],
             ),
           ),
@@ -291,71 +294,90 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
   Widget _sectionTitle(String text) {
     return Text(
       text.toUpperCase(),
-      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.1, color: Colors.grey),
+      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.1, color: Colors.grey),
     );
   }
 
-  Widget _buildIdentityCard() {
+  Widget _buildIdentityCard(bool isMobile) {
     return _cardShell(
+      isMobile: isMobile,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: _buildTextField(_fullNameController, "Full Name", Icons.badge_outlined, onChanged: (v) => setState(() {})),
-            ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: _buildTextField(_phoneController, "Phone Number", Icons.phone_outlined, keyboardType: TextInputType.phone),
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        _buildTextField(_emailController, "Email Address", Icons.email_outlined, keyboardType: TextInputType.emailAddress, helper: "Notifications and password resets will be sent here."),
+        if (isMobile) ...[
+          _buildTextField(_fullNameController, "Full Name", Icons.badge_outlined, onChanged: (v) => setState(() {})),
+          const SizedBox(height: 16),
+          _buildTextField(_phoneController, "Phone Number", Icons.phone_outlined, keyboardType: TextInputType.phone),
+        ] else
+          Row(
+            children: [
+              Expanded(
+                child: _buildTextField(_fullNameController, "Full Name", Icons.badge_outlined, onChanged: (v) => setState(() {})),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: _buildTextField(_phoneController, "Phone Number", Icons.phone_outlined, keyboardType: TextInputType.phone),
+              ),
+            ],
+          ),
+        const SizedBox(height: 16),
+        _buildTextField(_emailController, "Email Address", Icons.email_outlined, keyboardType: TextInputType.emailAddress, helper: "Used for notifications and resets."),
       ],
     );
   }
 
-  Widget _buildAccessCard() {
+  Widget _buildAccessCard(bool isMobile) {
     final bool isFieldRole = _selectedRole?.toLowerCase().contains('field') ?? false;
 
     return _cardShell(
+      isMobile: isMobile,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: _buildDropdown("Assigned Role", _selectedRole, _roles, Icons.shield_outlined, (v) => setState(() => _selectedRole = v)),
-            ),
-            const SizedBox(width: 20),
-            Expanded(
-              child: DropdownButtonFormField<dynamic>(
-                value: _selectedDepartmentId,
-                isExpanded: true,
-                decoration: _inputDeco("Department", Icons.apartment_rounded),
-                items: _departments.map((d) => DropdownMenuItem(value: d['id'], child: Text(d['name'], overflow: TextOverflow.ellipsis))).toList(),
-                onChanged: (v) => setState(() => _selectedDepartmentId = v),
-                validator: (v) => v == null ? "Required" : null,
+        if (isMobile) ...[
+          _buildDropdown("Assigned Role", _selectedRole, _roles, Icons.shield_outlined, (v) => setState(() => _selectedRole = v)),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<dynamic>(
+            value: _selectedDepartmentId,
+            isExpanded: true,
+            decoration: _inputDeco("Department", Icons.apartment_rounded),
+            items: _departments.map((d) => DropdownMenuItem(value: d['id'], child: Text(d['name'], overflow: TextOverflow.ellipsis))).toList(),
+            onChanged: (v) => setState(() => _selectedDepartmentId = v),
+            validator: (v) => v == null ? "Required" : null,
+          ),
+        ] else
+          Row(
+            children: [
+              Expanded(
+                child: _buildDropdown("Assigned Role", _selectedRole, _roles, Icons.shield_outlined, (v) => setState(() => _selectedRole = v)),
               ),
-            ),
-          ],
-        ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: DropdownButtonFormField<dynamic>(
+                  value: _selectedDepartmentId,
+                  isExpanded: true,
+                  decoration: _inputDeco("Department", Icons.apartment_rounded),
+                  items: _departments.map((d) => DropdownMenuItem(value: d['id'], child: Text(d['name'], overflow: TextOverflow.ellipsis))).toList(),
+                  onChanged: (v) => setState(() => _selectedDepartmentId = v),
+                  validator: (v) => v == null ? "Required" : null,
+                ),
+              ),
+            ],
+          ),
         if (isFieldRole) ...[
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           _buildDropdown("Assigned Monitoring District", _assignedDistrict, kMalawiDistricts, Icons.location_on_rounded, (v) => setState(() => _assignedDistrict = v)),
           const SizedBox(height: 4),
           const Padding(
             padding: EdgeInsets.only(left: 12),
-            child: Text("Field Officers can only view and manage schools and scholars in their assigned district.", style: TextStyle(fontSize: 10, color: kBrandOrange, fontWeight: FontWeight.bold)),
+            child: Text("Restricted scope for field operations.", style: TextStyle(fontSize: 10, color: kBrandOrange, fontWeight: FontWeight.bold)),
           ),
         ],
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         _buildTextField(_usernameController, "System Username", Icons.alternate_email_rounded, helper: "Must be unique. Used for signing in."),
         const SizedBox(height: 24),
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(isMobile ? 12 : 16),
           decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
           child: SwitchListTile(
-            title: const Text("Enable Account", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-            subtitle: const Text("Allow this user to sign in immediately upon registration.", style: TextStyle(fontSize: 12)),
+            contentPadding: EdgeInsets.zero,
+            title: const Text("Enable Account", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
             value: _isActive,
             activeColor: kBrandOlive,
             onChanged: (v) => setState(() => _isActive = v),
@@ -365,8 +387,9 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
     );
   }
 
-  Widget _buildSecurityCard(int strength) {
+  Widget _buildSecurityCard(int strength, bool isMobile) {
     return _cardShell(
+      isMobile: isMobile,
       children: [
         TextFormField(
           controller: _passwordController,
@@ -374,7 +397,7 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
           onChanged: (_) => setState(() {}),
           decoration: _inputDeco("Secure Password", Icons.lock_outline_rounded).copyWith(
             suffixIcon: IconButton(
-              icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 20),
+              icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 18),
               onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
             ),
           ),
@@ -390,17 +413,17 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
                 ),
               ),
               const SizedBox(width: 12),
-              Text(_strengthLabel(strength), style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _strengthColor(strength))),
+              Text(_strengthLabel(strength), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: _strengthColor(strength))),
             ],
           ),
         ],
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         TextFormField(
           controller: _confirmPasswordController,
           obscureText: _obscureConfirmPassword,
           decoration: _inputDeco("Confirm Password", Icons.lock_reset_rounded).copyWith(
             suffixIcon: IconButton(
-              icon: Icon(_obscureConfirmPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 20),
+              icon: Icon(_obscureConfirmPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 18),
               onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
             ),
           ),
@@ -409,17 +432,17 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
     );
   }
 
-  Widget _buildSubmitButton() {
+  Widget _buildSubmitButton(bool isMobile) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
         onPressed: _isSubmitting ? null : _submitForm,
         icon: _isSubmitting 
             ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-            : const Icon(Icons.person_add_rounded, size: 20),
-        label: Text(_isSubmitting ? "CREATING ACCOUNT..." : "REGISTER USER ACCOUNT", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            : const Icon(Icons.person_add_rounded, size: 18),
+        label: Text(_isSubmitting ? "PROVISIONING..." : "REGISTER USER ACCOUNT", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
         style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 22),
+          padding: const EdgeInsets.symmetric(vertical: 20),
           backgroundColor: kBrandOlive,
           foregroundColor: Colors.white,
           elevation: 0,
@@ -429,9 +452,9 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
     );
   }
 
-  Widget _cardShell({required List<Widget> children}) {
+  Widget _cardShell({required List<Widget> children, bool isMobile = false}) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isMobile ? 16 : 24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),

@@ -346,30 +346,46 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
       return const Scaffold(body: Center(child: CircularProgressIndicator(color: kBrandOlive)));
     }
 
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 900;
+
     final activeCategory = _categories[activeCategoryIndex];
     final activeSubItem = activeCategory.subItems[activeSubIndex];
     debugPrint("FIELD OPS BUILD: Rendering Category=$activeCategoryIndex, SubItem=$activeSubIndex (${activeSubItem.title})");
 
+    final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+
     return Scaffold(
+      key: scaffoldKey,
       backgroundColor: const Color(0xFFF4F7F5),
+      drawer: isMobile ? _buildDrawer(context) : null,
       appBar: AppBar(
         elevation: 2,
         backgroundColor: kBrandBrown,
-        leadingWidth: 280,
-        leading: Row(
-          children: [
-            Container(
-              width: 200,
-              height: double.infinity,
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Image.asset('assets/images/age-logo.png', fit: BoxFit.contain),
+        leadingWidth: isMobile ? null : 280,
+        leading: isMobile 
+          ? IconButton(
+              icon: const Icon(Icons.menu, color: Colors.white),
+              onPressed: () => scaffoldKey.currentState?.openDrawer(),
+            )
+          : Row(
+              children: [
+                Container(
+                  width: 200,
+                  height: double.infinity,
+                  color: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Image.asset('assets/images/age-logo.png', fit: BoxFit.contain),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.menu, color: Colors.white), 
+                  onPressed: () => setState(() => _isSidebarVisible = !_isSidebarVisible),
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            IconButton(icon: const Icon(Icons.menu, color: Colors.white), onPressed: () => setState(() => _isSidebarVisible = !_isSidebarVisible)),
-          ],
-        ),
-        title: const Text("Field Operations Portal", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+        title: Text(isMobile ? "Ops Portal" : "Field Operations Portal", 
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: isMobile ? 14 : 16)),
         actions: [
           IconButton(icon: const Icon(Icons.notifications, color: Colors.white), onPressed: () {
             for (int i = 0; i < _categories.length; i++) {
@@ -380,7 +396,7 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
               }
             }
           }),
-          const SizedBox(width: 20),
+          if (!isMobile) const SizedBox(width: 20),
           CircleAvatar(
             radius: 18,
             backgroundColor: kBrandCream,
@@ -397,70 +413,45 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
                   : const Icon(Icons.person, color: kBrandBrown, size: 20),
             ),
           ),
-          const SizedBox(width: 20),
+          const SizedBox(width: 12),
         ],
       ),
       body: Row(
         children: [
-          if (_isSidebarVisible)
-            Container(
-              width: 280,
-              color: kBrandCream,
-              child: Column(
-                children: [
-                  _buildUserHeader(),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: _categories.length,
-                      itemBuilder: (context, index) {
-                        final category = _categories[index];
-                        final isSelected = activeCategoryIndex == index;
-                        return ExpansionTile(
-                          initiallyExpanded: isSelected,
-                          leading: Icon(category.icon, color: isSelected ? kBrandOrange : kBrandBrown),
-                          title: Text(category.title, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, fontSize: 14)),
-                          children: category.subItems.where((s) => s.isVisible).map((sub) {
-                            final subIdx = category.subItems.indexOf(sub);
-                            final isSubSelected = isSelected && activeSubIndex == subIdx;
-                            return ListTile(
-                              dense: true,
-                              leading: Icon(sub.icon, size: 18, color: isSubSelected ? kBrandOrange : Colors.black54),
-                              title: Text(sub.title, style: TextStyle(color: isSubSelected ? kBrandOrange : Colors.black87, fontWeight: isSubSelected ? FontWeight.bold : FontWeight.normal)),
-                              onTap: () => setState(() { activeCategoryIndex = index; activeSubIndex = subIdx; }),
-                            );
-                          }).toList(),
-                        );
-                      },
-                    ),
-                  ),
-                  _buildLogoutButton(),
-                ],
-              ),
-            ),
+          if (!isMobile && _isSidebarVisible)
+            _buildSidebar(),
           Expanded(
             child: Column(
               children: [
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 16),
                   color: Colors.white,
                   child: Row(
                     children: [
                       if (_navigationHistory.isNotEmpty && activeSubItem.title != "Pending Approvals")
                         IconButton(
-                          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+                          icon: const Icon(Icons.arrow_back, color: Colors.black87, size: 20),
                           onPressed: _popSubItem
                         ),
-                      Text(activeCategory.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.black54)),
-                      const Icon(Icons.chevron_right, color: Colors.grey, size: 20),
-                      Text(activeSubItem.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                      if (!isMobile) ...[
+                        Text(activeCategory.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black54)),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.chevron_right, color: Colors.grey, size: 18),
+                        const SizedBox(width: 8),
+                      ],
+                      Expanded(
+                        child: Text(activeSubItem.title, 
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                      ),
                     ],
                   ),
                 ),
                 const Divider(height: 1),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: EdgeInsets.all(isMobile ? 12 : 24),
                     child: _currentDetailScholarId != null
                       ? ScholarProfileComponent(scholarId: _currentDetailScholarId, onBack: _popSubItem)
                       : activeSubItem.builder != null
@@ -471,6 +462,54 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDrawer(BuildContext context) {
+    return Drawer(
+      width: 280,
+      backgroundColor: kBrandCream,
+      child: _buildSidebar(isDrawer: true),
+    );
+  }
+
+  Widget _buildSidebar({bool isDrawer = false}) {
+    return Container(
+      width: 280,
+      color: kBrandCream,
+      child: Column(
+        children: [
+          _buildUserHeader(),
+          Expanded(
+            child: ListView.builder(
+              itemCount: _categories.length,
+              itemBuilder: (context, index) {
+                final category = _categories[index];
+                final isSelected = activeCategoryIndex == index;
+                return ExpansionTile(
+                  initiallyExpanded: isSelected,
+                  leading: Icon(category.icon, color: isSelected ? kBrandOrange : kBrandBrown),
+                  title: Text(category.title, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, fontSize: 14)),
+                  children: category.subItems.where((s) => s.isVisible).map((sub) {
+                    final subIdx = category.subItems.indexOf(sub);
+                    final isSubSelected = isSelected && activeSubIndex == subIdx;
+                    return ListTile(
+                      dense: true,
+                      leading: Icon(sub.icon, size: 18, color: isSubSelected ? kBrandOrange : Colors.black54),
+                      title: Text(sub.title, style: TextStyle(color: isSubSelected ? kBrandOrange : Colors.black87, fontWeight: isSubSelected ? FontWeight.bold : FontWeight.normal)),
+                      onTap: () {
+                        setState(() { activeCategoryIndex = index; activeSubIndex = subIdx; });
+                        if (isDrawer) Navigator.pop(context);
+                      },
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ),
+          _buildLogoutButton(),
         ],
       ),
     );

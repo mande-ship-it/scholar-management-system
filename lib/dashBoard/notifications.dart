@@ -85,6 +85,7 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
     return Container(
       width: double.infinity,
       height: double.infinity,
@@ -97,61 +98,95 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildExecutiveHeader(),
-          _buildSummaryBar(),
+          _buildExecutiveHeader(isMobile),
+          if (!isMobile) _buildSummaryBar(),
           Expanded(
             child: _isLoading 
               ? const Center(child: CircularProgressIndicator(color: kBrandOlive, strokeWidth: 3))
               : _errorMessage != null
                 ? _buildErrorState()
-                : _buildNotificationContent(),
+                : _buildNotificationContent(isMobile),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildExecutiveHeader() {
+  Widget _buildExecutiveHeader(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 12),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: kBrandBrown.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.notifications_active_rounded, color: kBrandBrown, size: 20),
+      child: isMobile 
+        ? Column(
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.notifications_active_rounded, color: kBrandBrown, size: 20),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text("Notifications", 
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                  ),
+                  IconButton(onPressed: _fetchNotifications, icon: const Icon(Icons.sync_rounded, size: 20, color: kBrandOlive)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _tabButton("ALL", 'all', isMobile),
+                    const SizedBox(width: 8),
+                    _tabButton("UNREAD", 'unread', isMobile),
+                    const SizedBox(width: 12),
+                    if (_notifications.any((n) => !(n['is_read'] ?? false)))
+                      TextButton.icon(
+                        onPressed: _markAllAsRead,
+                        icon: const Icon(Icons.done_all_rounded, size: 16, color: kBrandOlive),
+                        label: const Text("MARK ALL READ", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: kBrandOlive)),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          )
+        : Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: kBrandBrown.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.notifications_active_rounded, color: kBrandBrown, size: 20),
+              ),
+              const SizedBox(width: 16),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Communications & Alerts", 
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                    Text("Centralized administration audit logs and broadcasts.", 
+                      style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                  ],
+                ),
+              ),
+              _buildActionToggles(),
+            ],
           ),
-          const SizedBox(width: 16),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Communications & Alerts", 
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                Text("Centralized administration audit logs and system broadcasts.", 
-                  style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
-              ],
-            ),
-          ),
-          _buildActionToggles(),
-        ],
-      ),
     );
   }
 
   Widget _buildActionToggles() {
     return Row(
       children: [
-        _tabButton("ALL LOGS", 'all'),
+        _tabButton("ALL LOGS", 'all', false),
         const SizedBox(width: 8),
-        _tabButton("UNREAD", 'unread'),
+        _tabButton("UNREAD", 'unread', false),
         const SizedBox(width: 24),
         Container(width: 1, height: 32, color: Colors.grey.shade200),
         const SizedBox(width: 24),
@@ -185,20 +220,20 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
     );
   }
 
-  Widget _tabButton(String label, String value) {
+  Widget _tabButton(String label, String value, bool isMobile) {
     final bool isSelected = _filter == value;
     return GestureDetector(
       onTap: () => setState(() => _filter = value),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 20, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected ? kBrandBrown : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(label, 
           style: TextStyle(
-            fontSize: 11, 
+            fontSize: isMobile ? 10 : 11, 
             fontWeight: FontWeight.w900, 
             color: isSelected ? Colors.white : Colors.grey.shade600,
             letterSpacing: 1.0,
@@ -237,7 +272,7 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
     );
   }
 
-  Widget _buildNotificationContent() {
+  Widget _buildNotificationContent(bool isMobile) {
     final visible = _filteredNotifications;
     if (visible.isEmpty) return _buildEmptyState();
 
@@ -264,7 +299,7 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(32, 8, 32, 40),
+      padding: EdgeInsets.fromLTRB(isMobile ? 12 : 32, 8, isMobile ? 12 : 32, 40),
       itemCount: grouped.keys.length,
       itemBuilder: (context, index) {
         final key = grouped.keys.elementAt(index);
@@ -275,16 +310,16 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 4),
               child: Text(key, 
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1.5)),
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1.5)),
             ),
-            ...items.map((item) => _buildProfessionalTile(item)),
+            ...items.map((item) => _buildProfessionalTile(item, isMobile)),
           ],
         );
       },
     );
   }
 
-  Widget _buildProfessionalTile(dynamic n) {
+  Widget _buildProfessionalTile(dynamic n, bool isMobile) {
     final bool isRead = n['isRead'] ?? n['is_read'] ?? false;
     final String type = n['type'] ?? 'info';
     final String id = (n['id'] ?? n['_id'] ?? '').toString();
@@ -318,12 +353,12 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
           child: Row(
             children: [
               Container(
-                width: 6,
+                width: 4,
                 color: isRead ? Colors.grey.shade200 : severityColor,
               ),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: EdgeInsets.all(isMobile ? 16 : 20),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -335,32 +370,32 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
                               style: TextStyle(
                                 fontWeight: isRead ? FontWeight.w600 : FontWeight.w800, 
                                 color: kBrandBrown, 
-                                fontSize: 15,
+                                fontSize: isMobile ? 13 : 15,
                                 height: 1.4,
                               )),
                             const SizedBox(height: 8),
                             Row(
                               children: [
                                 if (actor != null) ...[
-                                  Text("BY $actor".toUpperCase(), 
-                                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBrandBrown.withOpacity(0.4), letterSpacing: 0.5)),
-                                  const SizedBox(width: 12),
+                                  Text(isMobile ? actor : "BY $actor".toUpperCase(), 
+                                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBrandBrown.withOpacity(0.4), letterSpacing: 0.5)),
+                                  const SizedBox(width: 8),
                                   const Text("•", style: TextStyle(color: Colors.grey)),
-                                  const SizedBox(width: 12),
+                                  const SizedBox(width: 8),
                                 ],
-                                Text(DateFormat('HH:mm:ss').format(createdAt), 
-                                  style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+                                Text(DateFormat('HH:mm').format(createdAt), 
+                                  style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
                               ],
                             ),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      const SizedBox(width: 12),
                       Column(
                         children: [
                           if (!isRead)
                             _miniAction(Icons.check_circle_outline_rounded, "READ", severityColor, () => _markAsRead(id)),
-                          const Spacer(),
+                          if (!isRead) const SizedBox(height: 8),
                           _miniAction(Icons.delete_sweep_outlined, "PURGE", Colors.red.shade400, () => _deleteNotification(id)),
                         ],
                       ),

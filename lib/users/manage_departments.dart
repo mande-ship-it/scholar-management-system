@@ -114,29 +114,32 @@ class _ManageDepartmentsComponentState extends State<ManageDepartmentsComponent>
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 12),
       color: Colors.white,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("Department Management", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kBrandBrown)),
-              Text("Define and manage institutional departments for user allocation.", style: TextStyle(fontSize: 11, color: Colors.grey)),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Departments", style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                const Text("Define institutional structure.", style: TextStyle(fontSize: 10, color: Colors.grey)),
+              ],
+            ),
           ),
           ElevatedButton.icon(
             onPressed: () => _showDeptDialog(),
-            icon: const Icon(Icons.add, size: 16),
-            label: const Text("CREATE", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+            icon: Icon(Icons.add, size: isMobile ? 14 : 16),
+            label: Text(isMobile ? "ADD" : "CREATE"),
             style: ElevatedButton.styleFrom(
               backgroundColor: kBrandOlive,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: 14),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -154,6 +157,8 @@ class _ManageDepartmentsComponentState extends State<ManageDepartmentsComponent>
 
   @override
   Widget build(BuildContext context) {
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -164,15 +169,15 @@ class _ManageDepartmentsComponentState extends State<ManageDepartmentsComponent>
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
-          _buildHeader(),
+          _buildHeader(isMobile),
           const Divider(height: 1),
           Expanded(
             child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
+              ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
               : _departments.isEmpty
                 ? const Center(child: Text("No departments created yet."))
                 : ListView.separated(
-                    padding: const EdgeInsets.all(24),
+                    padding: EdgeInsets.all(isMobile ? 12 : 24),
                     itemCount: _departments.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 16),
                     itemBuilder: (context, index) {
@@ -182,6 +187,7 @@ class _ManageDepartmentsComponentState extends State<ManageDepartmentsComponent>
                         onEdit: () => _showDeptDialog(dept: dept),
                         onDelete: () => _confirmDelete(dept['id'].toString(), dept['name']),
                         onUserTap: _showUserDetails,
+                        isMobile: isMobile,
                       );
                     },
                   ),
@@ -197,12 +203,14 @@ class _DepartmentTile extends StatefulWidget {
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final Function(String) onUserTap;
+  final bool isMobile;
 
   const _DepartmentTile({
     required this.dept,
     required this.onEdit,
     required this.onDelete,
     required this.onUserTap,
+    this.isMobile = false,
   });
 
   @override
@@ -265,14 +273,14 @@ class _DepartmentTileState extends State<_DepartmentTile> {
       ),
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
-        tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        tilePadding: EdgeInsets.symmetric(horizontal: widget.isMobile ? 12 : 20, vertical: 8),
         onExpansionChanged: (expanded) {
           setState(() => _isExpanded = expanded);
           if (expanded && _users.isEmpty) {
             _fetchUsers();
           }
         },
-        leading: Container(
+        leading: widget.isMobile ? null : Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: kBrandOlive.withOpacity(0.1),
@@ -282,30 +290,46 @@ class _DepartmentTileState extends State<_DepartmentTile> {
         ),
         title: Row(
           children: [
-            Text(widget.dept['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(width: 8),
-            if (widget.dept['code'] != null)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(4)),
-                child: Text(widget.dept['code'], style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
-              ),
-            const Spacer(),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: kBrandOlive.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                "${widget.dept['userCount'] ?? widget.dept['user_count'] ?? 0} PERSONNEL",
-                style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBrandOlive, letterSpacing: 0.5),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(widget.dept['name'], style: TextStyle(fontWeight: FontWeight.bold, fontSize: widget.isMobile ? 14 : 16)),
+                      if (widget.dept['code'] != null) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(4)),
+                          child: Text(widget.dept['code'], style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey)),
+                        ),
+                      ],
+                    ],
+                  ),
+                  if (widget.isMobile)
+                    Text("${widget.dept['userCount'] ?? widget.dept['user_count'] ?? 0} PERSONNEL",
+                      style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kBrandOlive, letterSpacing: 0.5)),
+                ],
               ),
             ),
-            const SizedBox(width: 16),
+            if (!widget.isMobile) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: kBrandOlive.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  "${widget.dept['userCount'] ?? widget.dept['user_count'] ?? 0} PERSONNEL",
+                  style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBrandOlive, letterSpacing: 0.5),
+                ),
+              ),
+              const SizedBox(width: 16),
+            ],
           ],
         ),
-        subtitle: Text(widget.dept['description'] ?? 'No description.', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        subtitle: Text(widget.dept['description'] ?? 'No description.', style: const TextStyle(fontSize: 11, color: Colors.grey)),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -321,7 +345,7 @@ class _DepartmentTileState extends State<_DepartmentTile> {
           if (_isLoadingUsers)
             const Padding(padding: EdgeInsets.all(20), child: Center(child: CircularProgressIndicator(strokeWidth: 2)))
           else if (_users.isEmpty)
-            const Padding(padding: EdgeInsets.all(20), child: Center(child: Text("No users assigned to this department.", style: TextStyle(fontSize: 12, color: Colors.grey))))
+            const Padding(padding: EdgeInsets.all(20), child: Center(child: Text("No users assigned.", style: TextStyle(fontSize: 11, color: Colors.grey))))
           else
             ListView.separated(
               shrinkWrap: true,
@@ -332,15 +356,15 @@ class _DepartmentTileState extends State<_DepartmentTile> {
                 final user = _users[idx];
                 return ListTile(
                   onTap: () => widget.onUserTap(user['id'] ?? user['_id']),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  contentPadding: EdgeInsets.symmetric(horizontal: widget.isMobile ? 16 : 24, vertical: 8),
                   leading: CircleAvatar(
-                    radius: 18,
+                    radius: 16,
                     backgroundColor: kBrandOlive.withOpacity(0.1),
-                    child: Text(user['full_name'][0].toUpperCase(), style: const TextStyle(color: kBrandOlive, fontWeight: FontWeight.bold, fontSize: 14)),
+                    child: Text(user['full_name'][0].toUpperCase(), style: const TextStyle(color: kBrandOlive, fontWeight: FontWeight.bold, fontSize: 12)),
                   ),
-                  title: Text(user['full_name'], style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                  subtitle: Text(user['email'], style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                  trailing: Column(
+                  title: Text(user['full_name'], style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  subtitle: Text(user['email'], style: const TextStyle(fontSize: 10, color: Colors.grey), overflow: TextOverflow.ellipsis),
+                  trailing: widget.isMobile ? null : Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -350,7 +374,7 @@ class _DepartmentTileState extends State<_DepartmentTile> {
                         child: Text(user['role_name'] ?? 'Staff', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: kBrandBrown)),
                       ),
                       const SizedBox(height: 4),
-                      Text("Enrolled: ${_formatDate(user['created_at'])}", style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                      Text("Enrolled: ${_formatDate(user['created_at'])}", style: const TextStyle(fontSize: 9, color: Colors.grey)),
                     ],
                   ),
                 );

@@ -102,6 +102,7 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
 
   @override
   Widget build(BuildContext context) {
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
     return Container(
       width: double.infinity,
       height: double.infinity,
@@ -109,21 +110,21 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildProfessionalHeader(),
-          _buildControlPanel(),
+          _buildProfessionalHeader(isMobile),
+          _buildControlPanel(isMobile),
           Expanded(
             child: _isLoading
               ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
-              : _buildMainContent(),
+              : _buildMainContent(isMobile),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildProfessionalHeader() {
+  Widget _buildProfessionalHeader(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+      padding: EdgeInsets.fromLTRB(isMobile ? 16 : 24, 12, isMobile ? 16 : 24, 0),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
@@ -132,37 +133,31 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: kBrandOlive.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+              if (!isMobile) ...[
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: kBrandOlive.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.workspace_premium_rounded, color: kBrandOlive, size: 20),
                 ),
-                child: const Icon(Icons.workspace_premium_rounded, color: kBrandOlive, size: 20),
-              ),
-              const SizedBox(width: 16),
+                const SizedBox(width: 16),
+              ],
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("Alumni & Graduates Registry",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                    Text("Centralized database of scholars who have completed their university program cycle.",
-                      style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+                    Text("Alumni & Graduates Registry",
+                      style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                    Text("Centralized database of alumni.",
+                      style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
                   ],
                 ),
               ),
-              ElevatedButton.icon(
+              IconButton(
                 onPressed: _fetchData,
-                icon: const Icon(Icons.sync_rounded, size: 16),
-                label: const Text("SYNC DATA", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: kBrandBrown,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  elevation: 0,
-                ),
+                icon: const Icon(Icons.sync_rounded, color: kBrandBrown),
               ),
             ],
           ),
@@ -189,49 +184,83 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
     );
   }
 
-  Widget _buildControlPanel() {
+  Widget _buildControlPanel(bool isMobile) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(32, 24, 32, 24),
+      padding: EdgeInsets.fromLTRB(isMobile ? 16 : 32, 24, isMobile ? 16 : 32, 24),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(isMobile ? 16 : 20),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Colors.grey.shade200),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
         ),
-        child: Row(
-          children: [
-            Expanded(
-              flex: 2,
-              child: _buildSearchField(),
+        child: isMobile 
+          ? Column(
+              children: [
+                _buildSearchField(),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildDropdownFilter(
+                        label: "INSTITUTION",
+                        value: _selectedInstitution,
+                        items: _institutions,
+                        onChanged: (v) {
+                          setState(() => _selectedInstitution = v!);
+                          _applyFilters();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildDropdownFilter(
+                        label: "GRAD YEAR",
+                        value: _selectedYear,
+                        items: _graduatingYears,
+                        onChanged: (v) {
+                          setState(() => _selectedYear = v!);
+                          _applyFilters();
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            )
+          : Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: _buildSearchField(),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildDropdownFilter(
+                    label: "INSTITUTION",
+                    value: _selectedInstitution,
+                    items: _institutions,
+                    onChanged: (v) {
+                      setState(() => _selectedInstitution = v!);
+                      _applyFilters();
+                    },
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildDropdownFilter(
+                    label: "GRADUATION YEAR",
+                    value: _selectedYear,
+                    items: _graduatingYears,
+                    onChanged: (v) {
+                      setState(() => _selectedYear = v!);
+                      _applyFilters();
+                    },
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildDropdownFilter(
-                label: "INSTITUTION",
-                value: _selectedInstitution,
-                items: _institutions,
-                onChanged: (v) {
-                  setState(() => _selectedInstitution = v!);
-                  _applyFilters();
-                },
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildDropdownFilter(
-                label: "GRADUATION YEAR",
-                value: _selectedYear,
-                items: _graduatingYears,
-                onChanged: (v) {
-                  setState(() => _selectedYear = v!);
-                  _applyFilters();
-                },
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -244,7 +273,7 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
         _applyFilters();
       },
       decoration: InputDecoration(
-        hintText: showingGraduates ? "Search graduates by name or Scholar ID..." : "Search alumni by name or Scholar ID...",
+        hintText: showingGraduates ? "Search graduates..." : "Search alumni...",
         prefixIcon: const Icon(Icons.search_rounded, size: 20, color: kBrandOlive),
         filled: true,
         fillColor: const Color(0xFFF8F9FA),
@@ -277,11 +306,11 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
     );
   }
 
-  Widget _buildMainContent() {
+  Widget _buildMainContent(bool isMobile) {
     if (_filteredData.isEmpty) return _buildEmptyState();
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(32, 0, 32, 32),
+      padding: EdgeInsets.fromLTRB(isMobile ? 16 : 32, 0, isMobile ? 16 : 32, 32),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -293,13 +322,13 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildTableHeader(),
+              if (!isMobile) _buildTableHeader(),
               ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: _filteredData.length,
                 separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFEEEEEE)),
-                itemBuilder: (context, index) => _buildAlumniRow(_filteredData[index]),
+                itemBuilder: (context, index) => _buildAlumniRow(_filteredData[index], isMobile),
               ),
             ],
           ),
@@ -324,8 +353,61 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
     );
   }
 
-  Widget _buildAlumniRow(dynamic g) {
+  Widget _buildAlumniRow(dynamic g, bool isMobile) {
     final bool showingGraduates = _tabController.index == 0;
+    
+    if (isMobile) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {},
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(colors: [kBrandBrown, Color(0xFF2C241D)]),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text((g['full_name']?.toString() ?? '?').isNotEmpty ? g['full_name'].toString()[0] : '?', 
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(g['full_name']?.toString() ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: 14)),
+                          Text(g['scholar_id']?.toString() ?? 'N/A', style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                    ),
+                    _statusLabel(showingGraduates),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(g['display_school_name'] ?? 'N/A', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.black87)),
+                Text(g['program_name'] ?? 'N/A', style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(color: kBrandBrown.withOpacity(0.05), borderRadius: BorderRadius.circular(6)),
+                  child: Text("Class of ${g['end_year']}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBrandBrown)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -379,37 +461,42 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
                 ),
               ),
               Expanded(
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: showingGraduates ? kBrandOrange.withOpacity(0.1) : Colors.green.withOpacity(0.1),
-                        shape: BoxShape.circle
-                      ),
-                      child: Icon(
-                        showingGraduates ? Icons.school_rounded : Icons.verified_user_rounded,
-                        color: showingGraduates ? kBrandOrange : Colors.green,
-                        size: 14
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      showingGraduates ? "GRADUATE" : "ALUMNI",
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900,
-                        color: showingGraduates ? kBrandOrange : Colors.green,
-                        letterSpacing: 0.5
-                      ),
-                    ),
-                  ],
-                ),
+                child: _statusLabel(showingGraduates),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _statusLabel(bool showingGraduates) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: showingGraduates ? kBrandOrange.withOpacity(0.1) : Colors.green.withOpacity(0.1),
+            shape: BoxShape.circle
+          ),
+          child: Icon(
+            showingGraduates ? Icons.school_rounded : Icons.verified_user_rounded,
+            color: showingGraduates ? kBrandOrange : Colors.green,
+            size: 14
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          showingGraduates ? "GRADUATE" : "ALUMNI",
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+            color: showingGraduates ? kBrandOrange : Colors.green,
+            letterSpacing: 0.5
+          ),
+        ),
+      ],
     );
   }
 

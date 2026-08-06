@@ -418,65 +418,57 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
     return Container(
       color: Colors.white,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          if (constraints.maxWidth < 800) {
-            // Stacked layout for small screens
-            return SingleChildScrollView(
-              child: Column(
-                children: [
-                  _buildScholarListPanel(height: 400),
-                  const Divider(height: 1),
-                  _buildReportConfigPanel(),
-                ],
-              ),
-            );
-          }
-          // Side-by-side layout for large screens
-          return Row(
+      child: isMobile
+        ? SingleChildScrollView(
+            child: Column(
+              children: [
+                _buildScholarListPanel(height: 400, isMobile: true),
+                const Divider(height: 1),
+                _buildReportConfigPanel(isMobile: true),
+              ],
+            ),
+          )
+        : Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Scholar Selection List (Primary Focus)
               Expanded(
                 flex: 4,
                 child: _buildScholarListPanel(),
               ),
               VerticalDivider(width: 1, color: Colors.grey.shade200),
-              // 2. Report Configuration & Print (Contextual)
               Expanded(
                 flex: 5,
                 child: _buildReportConfigPanel(),
               ),
             ],
-          );
-        },
-      ),
+          ),
     );
   }
 
-  Widget _buildScholarListPanel({double? height}) {
+  Widget _buildScholarListPanel({double? height, bool isMobile = false}) {
     return Container(
       height: height,
       color: Colors.white,
       child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+            padding: EdgeInsets.fromLTRB(24, isMobile ? 16 : 24, 24, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   "Scholar Directory",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kBrandBrown),
+                  style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.bold, color: kBrandBrown),
                 ),
                 const SizedBox(height: 16),
                 TextField(
                   controller: _searchController,
                   onChanged: _filterScholars,
                   decoration: InputDecoration(
-                    hintText: "Search by name or ID...",
+                    hintText: "Search name or ID...",
                     prefixIcon: const Icon(Icons.search, size: 20),
                     filled: true,
                     fillColor: Colors.grey.shade50,
@@ -517,7 +509,7 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
                         overflow: TextOverflow.ellipsis,
                       ),
                       subtitle: Text("${student.scholarId} • ${student.schoolName}", 
-                        style: const TextStyle(fontSize: 12),
+                        style: const TextStyle(fontSize: 11),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -531,11 +523,11 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
     );
   }
 
-  Widget _buildReportConfigPanel() {
+  Widget _buildReportConfigPanel({bool isMobile = false}) {
     if (_selectedStudent == null) {
       return Container(
         color: Colors.grey.shade50,
-        constraints: const BoxConstraints(minHeight: 400),
+        constraints: BoxConstraints(minHeight: isMobile ? 300 : 400),
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(32.0),
@@ -545,7 +537,7 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: Colors.grey.shade100)),
-                  child: Icon(Icons.person_search_rounded, size: 48, color: Colors.grey.shade300),
+                  child: Icon(Icons.person_search_rounded, size: isMobile ? 32 : 48, color: Colors.grey.shade300),
                 ),
                 const SizedBox(height: 20),
                 const Text("Select a scholar to configure report", 
@@ -565,9 +557,10 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
         : ["ANNUAL", "Term 1", "Term 2", "Term 3"];
 
     return SingleChildScrollView(
+      physics: isMobile ? const NeverScrollableScrollPhysics() : const BouncingScrollPhysics(),
       child: Container(
         color: Colors.white,
-        padding: const EdgeInsets.all(40),
+        padding: EdgeInsets.all(isMobile ? 24 : 40),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -576,21 +569,21 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                  child: const Icon(Icons.assignment_rounded, color: kBrandOlive, size: 24),
+                  child: Icon(Icons.assignment_rounded, color: kBrandOlive, size: isMobile ? 20 : 24),
                 ),
                 const SizedBox(width: 16),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("Report Settings", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                      Text("Customize the academic transcript output.", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      Text("Report Settings", style: TextStyle(fontSize: isMobile ? 18 : 20, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                      const Text("Customize academic output.", style: TextStyle(fontSize: 12, color: Colors.grey)),
                     ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 32),
             
             _label("Report Type"),
             const SizedBox(height: 12),
@@ -603,43 +596,62 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
             ),
             const SizedBox(height: 32),
 
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _label("Academic Year"),
-                      const SizedBox(height: 8),
-                      DropdownButtonFormField<String>(
-                        value: _selectedYear,
-                        decoration: _inputDeco(),
-                        items: _academicYears.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
-                        onChanged: (v) => setState(() => _selectedYear = v!),
-                      ),
-                    ],
+            if (isMobile) ...[
+              _label("Academic Year"),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: _selectedYear,
+                decoration: _inputDeco(),
+                items: _academicYears.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
+                onChanged: (v) => setState(() => _selectedYear = v!),
+              ),
+              const SizedBox(height: 24),
+              _label(isUni ? "Semester" : "Term"),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                value: _selectedPeriod,
+                decoration: _inputDeco(),
+                items: periodOptions.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
+                onChanged: (v) => setState(() => _selectedPeriod = v!),
+              ),
+            ] else
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _label("Academic Year"),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          value: _selectedYear,
+                          decoration: _inputDeco(),
+                          items: _academicYears.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
+                          onChanged: (v) => setState(() => _selectedYear = v!),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 24),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _label(isUni ? "Semester Period" : "School Term"),
-                      const SizedBox(height: 8),
-                      DropdownButtonFormField<String>(
-                        value: _selectedPeriod,
-                        decoration: _inputDeco(),
-                        items: periodOptions.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
-                        onChanged: (v) => setState(() => _selectedPeriod = v!),
-                      ),
-                    ],
+                  const SizedBox(width: 24),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _label(isUni ? "Semester Period" : "School Term"),
+                        const SizedBox(height: 8),
+                        DropdownButtonFormField<String>(
+                          value: _selectedPeriod,
+                          decoration: _inputDeco(),
+                          items: periodOptions.map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
+                          onChanged: (v) => setState(() => _selectedPeriod = v!),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
+                ],
+              ),
             
-            const SizedBox(height: 60),
+            const SizedBox(height: 48),
 
             Container(
               padding: const EdgeInsets.all(24),
@@ -654,12 +666,12 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
                     children: [
                       const Icon(Icons.verified_user_rounded, color: kBrandOlive, size: 20),
                       const SizedBox(width: 12),
-                      const Text("Director Signature", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      const Text("Director", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                       const Spacer(),
                       Expanded(
                         child: Text(_directorName, 
                           textAlign: TextAlign.end,
-                          style: const TextStyle(fontStyle: FontStyle.italic, color: kBrandBrown, fontWeight: FontWeight.bold),
+                          style: const TextStyle(fontStyle: FontStyle.italic, color: kBrandBrown, fontWeight: FontWeight.bold, fontSize: 13),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -668,11 +680,12 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
                   const Divider(height: 32),
                   SizedBox(
                     width: double.infinity,
-                    height: 60,
+                    height: 56,
                     child: ElevatedButton.icon(
                       onPressed: _generateReport,
                       icon: const Icon(Icons.print_rounded),
-                      label: const Text("GENERATE OFFICIAL PDF REPORT", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                      label: Text(isMobile ? "GENERATE REPORT" : "GENERATE OFFICIAL PDF REPORT", 
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: kBrandBrown,
                         foregroundColor: Colors.white,
@@ -688,9 +701,9 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
             const SizedBox(height: 24),
             Center(
               child: Text(
-                "Report for: ${_selectedStudent!.name.toUpperCase()}",
+                "REPORT FOR: ${_selectedStudent!.name.toUpperCase()}",
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey.shade400, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1),
+                style: TextStyle(color: Colors.grey.shade400, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
               ),
             ),
           ],

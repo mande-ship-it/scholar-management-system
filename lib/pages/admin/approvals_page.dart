@@ -86,21 +86,24 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text("Pending Approvals", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text("Pending Approvals", 
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: isMobile ? 18 : 20)),
         backgroundColor: Colors.white,
         foregroundColor: brandBrown,
         elevation: 0,
         actions: [
-          IconButton(onPressed: _fetchPending, icon: const Icon(Icons.refresh)),
+          IconButton(onPressed: _fetchPending, icon: const Icon(Icons.refresh, size: 20)),
         ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: brandBrown,
           indicatorColor: brandOlive,
+          labelStyle: TextStyle(fontSize: isMobile ? 12 : 14, fontWeight: FontWeight.bold),
           tabs: [
             if (_canApproveScholars) Tab(text: "Scholars (${_pendingScholars.length})"),
             Tab(text: "Events (${_pendingEvents.length})"),
@@ -108,22 +111,22 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
         ),
       ),
       body: _isLoading
-        ? const Center(child: CircularProgressIndicator())
+        ? Center(child: CircularProgressIndicator(color: brandOlive))
         : TabBarView(
             controller: _tabController,
             children: [
-              if (_canApproveScholars) _buildScholarsList(),
-              _buildEventsList(),
+              if (_canApproveScholars) _buildScholarsList(isMobile),
+              _buildEventsList(isMobile),
             ],
           ),
     );
   }
 
-  Widget _buildScholarsList() {
+  Widget _buildScholarsList(bool isMobile) {
     if (_pendingScholars.isEmpty) return _buildEmptyState("No scholars awaiting approval.");
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(isMobile ? 12 : 16),
       itemCount: _pendingScholars.length,
       itemBuilder: (context, index) {
         final scholar = _pendingScholars[index];
@@ -139,6 +142,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
         } catch (_) {}
 
         return _buildApprovalCard(
+          isMobile: isMobile,
           title: name,
           subtitle: "ID: $scholarIdStr • $school",
           details: "Registered on: $createdStr",
@@ -149,11 +153,11 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
     );
   }
 
-  Widget _buildEventsList() {
+  Widget _buildEventsList(bool isMobile) {
     if (_pendingEvents.isEmpty) return _buildEmptyState("No events awaiting approval.");
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(isMobile ? 12 : 16),
       itemCount: _pendingEvents.length,
       itemBuilder: (context, index) {
         final event = _pendingEvents[index];
@@ -170,6 +174,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
         } catch (_) {}
 
         return _buildApprovalCard(
+          isMobile: isMobile,
           title: title,
           subtitle: "$category • $location",
           details: "Scheduled for: $dateStr at $time",
@@ -186,48 +191,52 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
     required String details,
     required VoidCallback onApprove,
     required VoidCallback onReject,
+    bool isMobile = false,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade100),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Column(
         children: [
           ListTile(
-            contentPadding: const EdgeInsets.all(20),
-            title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            contentPadding: EdgeInsets.all(isMobile ? 16 : 20),
+            title: Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: isMobile ? 16 : 18)),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 8),
-                Text(subtitle, style: TextStyle(color: brandBrown, fontWeight: FontWeight.w600)),
+                Text(subtitle, style: TextStyle(color: brandBrown, fontWeight: FontWeight.w600, fontSize: isMobile ? 12 : 14)),
                 const SizedBox(height: 4),
-                Text(details, style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                Text(details, style: TextStyle(color: Colors.grey.shade600, fontSize: isMobile ? 11 : 13)),
               ],
             ),
           ),
           const Divider(height: 1),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 TextButton.icon(
                   onPressed: onReject,
-                  icon: const Icon(Icons.close, color: Colors.redAccent),
-                  label: const Text("REJECT", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                  icon: const Icon(Icons.close, color: Colors.redAccent, size: 18),
+                  label: Text("REJECT", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: isMobile ? 11 : 12)),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 ElevatedButton.icon(
                   onPressed: onApprove,
-                  icon: const Icon(Icons.check),
-                  label: const Text("APPROVE"),
+                  icon: const Icon(Icons.check, size: 18),
+                  label: Text("APPROVE", style: TextStyle(fontSize: isMobile ? 11 : 12, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: brandOlive,
                     foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: isMobile ? 10 : 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                 ),

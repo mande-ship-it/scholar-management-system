@@ -148,35 +148,55 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
       return const Center(child: CircularProgressIndicator(color: kBrandOlive));
     }
 
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFB),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(32),
+        padding: EdgeInsets.all(isMobile ? 16 : 32),
         physics: const BouncingScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildExecutiveHeader(),
+            _buildExecutiveHeader(isMobile),
             const SizedBox(height: 32),
-            _buildKPISection(),
+            _buildKPISection(isMobile),
             const SizedBox(height: 32),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(flex: 3, child: _buildPerformanceChart()),
-                const SizedBox(width: 24),
-                Expanded(flex: 2, child: _buildOperationalDistributionCard()),
-              ],
-            ),
+            if (isMobile)
+              Column(
+                children: [
+                  _buildPerformanceChart(isMobile),
+                  const SizedBox(height: 24),
+                  _buildOperationalDistributionCard(isMobile),
+                ],
+              )
+            else
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 3, child: _buildPerformanceChart(isMobile)),
+                  const SizedBox(width: 24),
+                  Expanded(flex: 2, child: _buildOperationalDistributionCard(isMobile)),
+                ],
+              ),
             const SizedBox(height: 32),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(flex: 4, child: _buildRecentActivitySection()),
-                const SizedBox(width: 24),
-                Expanded(flex: 3, child: _buildQuickActionsCard()),
-              ],
-            ),
+            if (isMobile)
+              Column(
+                children: [
+                  _buildRecentActivitySection(isMobile),
+                  const SizedBox(height: 24),
+                  _buildQuickActionsCard(isMobile),
+                ],
+              )
+            else
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 4, child: _buildRecentActivitySection(isMobile)),
+                  const SizedBox(width: 24),
+                  Expanded(flex: 3, child: _buildQuickActionsCard(isMobile)),
+                ],
+              ),
             const SizedBox(height: 40),
           ],
         ),
@@ -184,14 +204,14 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
     );
   }
 
-  Widget _buildOperationalDistributionCard() {
+  Widget _buildOperationalDistributionCard(bool isMobile) {
     final int total = _activeScholars + _pendingScholars;
     final double activePerc = total > 0 ? (_activeScholars / total * 100) : 100;
     final double pendingPerc = total > 0 ? (_pendingScholars / total * 100) : 0;
 
     return Container(
-      height: 400,
-      padding: const EdgeInsets.all(32),
+      height: isMobile ? null : 400,
+      padding: EdgeInsets.all(isMobile ? 24 : 32),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -205,8 +225,9 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
           const SizedBox(height: 4),
           const Text("Secondary scholars by current status",
             style: TextStyle(fontSize: 12, color: Colors.grey)),
-          const SizedBox(height: 48),
-          Expanded(
+          SizedBox(height: isMobile ? 32 : 48),
+          SizedBox(
+            height: 200,
             child: BarChart(
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,
@@ -232,13 +253,13 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
                 gridData: const FlGridData(show: false),
                 borderData: FlBorderData(show: false),
                 barGroups: [
-                  BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: activePerc, color: kBrandOlive, width: 40, borderRadius: BorderRadius.circular(6))]),
-                  BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: pendingPerc, color: kBrandOrange, width: 40, borderRadius: BorderRadius.circular(6))]),
+                  BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: activePerc, color: kBrandOlive, width: isMobile ? 32 : 40, borderRadius: BorderRadius.circular(6))]),
+                  BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: pendingPerc, color: kBrandOrange, width: isMobile ? 32 : 40, borderRadius: BorderRadius.circular(6))]),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           _indicatorRow("Active Scholars", "${activePerc.toStringAsFixed(1)}%", kBrandOlive),
           const SizedBox(height: 12),
           _indicatorRow("Pending Approval", "${pendingPerc.toStringAsFixed(1)}%", kBrandOrange),
@@ -259,7 +280,7 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
     );
   }
 
-  Widget _buildExecutiveHeader() {
+  Widget _buildExecutiveHeader(bool isMobile) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: const BoxDecoration(
@@ -268,61 +289,88 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: kBrandBrown.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(8),
+          if (!isMobile) ...[
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: kBrandBrown.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.dashboard_rounded, color: kBrandBrown, size: 20),
             ),
-            child: const Icon(Icons.dashboard_rounded, color: kBrandBrown, size: 20),
-          ),
-          const SizedBox(width: 16),
+            const SizedBox(width: 16),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Operational Command • $_assignedDistrict", 
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                const Text("Centralized field intelligence and program delivery dashboard.", 
+                  style: TextStyle(fontSize: isMobile ? 15 : 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5),
+                  overflow: TextOverflow.ellipsis),
+                const Text("Centralized field intelligence dashboard.", 
                   style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
-          ElevatedButton.icon(
-            onPressed: _loadDashboardData,
-            icon: const Icon(Icons.refresh_rounded, size: 16),
-            label: const Text("SYNC", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kBrandBrown,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-          ),
+          if (!isMobile)
+            ElevatedButton.icon(
+              onPressed: _loadDashboardData,
+              icon: const Icon(Icons.refresh_rounded, size: 16),
+              label: const Text("SYNC", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kBrandBrown,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            )
+          else
+            IconButton(onPressed: _loadDashboardData, icon: const Icon(Icons.refresh_rounded, color: kBrandBrown)),
         ],
       ),
     );
   }
 
-  Widget _buildKPISection() {
+  Widget _buildKPISection(bool isMobile) {
+    if (isMobile) {
+      return Column(
+        children: [
+          Row(
+            children: [
+              _kpiCard("Scholars", _totalScholars.toString(), Icons.groups_rounded, kBrandOlive, isMobile),
+              const SizedBox(width: 12),
+              _kpiCard("Schools", "$_schoolCount", Icons.location_city_rounded, kBrandBrown, isMobile),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _kpiCard("Retention", "${_retentionRate.toStringAsFixed(1)}%", Icons.how_to_reg_rounded, kBrandOrange, isMobile),
+              const SizedBox(width: 12),
+              _kpiCard("District", _assignedDistrict, Icons.my_location_rounded, Colors.blue, isMobile),
+            ],
+          ),
+        ],
+      );
+    }
     return Row(
       children: [
-        _kpiCard("Total Scholars", _totalScholars.toString(), Icons.groups_rounded, kBrandOlive),
+        _kpiCard("Total Scholars", _totalScholars.toString(), Icons.groups_rounded, kBrandOlive, isMobile),
         const SizedBox(width: 20),
-        _kpiCard("Program Reach", "$_schoolCount Schools", Icons.location_city_rounded, kBrandBrown),
+        _kpiCard("Program Reach", "$_schoolCount Schools", Icons.location_city_rounded, kBrandBrown, isMobile),
         const SizedBox(width: 20),
-        _kpiCard("Retention Rate", "${_retentionRate.toStringAsFixed(1)}%", Icons.how_to_reg_rounded, kBrandOrange),
+        _kpiCard("Retention Rate", "${_retentionRate.toStringAsFixed(1)}%", Icons.how_to_reg_rounded, kBrandOrange, isMobile),
         const SizedBox(width: 20),
-        _kpiCard("Operational Focus", _assignedDistrict, Icons.my_location_rounded, Colors.blue),
+        _kpiCard("Operational Focus", _assignedDistrict, Icons.my_location_rounded, Colors.blue, isMobile),
       ],
     );
   }
 
-  Widget _kpiCard(String label, String value, IconData icon, Color color) {
+  Widget _kpiCard(String label, String value, IconData icon, Color color, bool isMobile) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(isMobile ? 16 : 24),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
@@ -335,25 +383,28 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-              child: Icon(icon, color: color, size: 20),
+              child: Icon(icon, color: color, size: isMobile ? 16 : 20),
             ),
             const SizedBox(height: 16),
-            Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown)),
-            Text(label.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 0.5)),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(value, style: TextStyle(fontSize: isMobile ? 20 : 24, fontWeight: FontWeight.w900, color: kBrandBrown)),
+            ),
+            Text(label.toUpperCase(), style: TextStyle(fontSize: isMobile ? 8 : 10, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 0.5)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPerformanceChart() {
+  Widget _buildPerformanceChart(bool isMobile) {
     final Map<String, dynamic> series = _engagementData ?? {};
     final levels = ["Frequent", "Moderate", "Rare"];
     final levelColors = {"Frequent": kBrandOlive, "Moderate": kBrandOrange, "Rare": Colors.red};
 
     return Container(
-      height: 400,
-      padding: const EdgeInsets.all(32),
+      height: isMobile ? null : 400,
+      padding: EdgeInsets.all(isMobile ? 24 : 32),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -366,25 +417,29 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text("REGIONAL PROGRAM ENGAGEMENT", 
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kBrandBrown)),
-                  const SizedBox(height: 4),
-                  Text("Attendance density vs achievement in $_assignedDistrict", 
-                    style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                ],
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("PROGRAM ENGAGEMENT", 
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kBrandBrown)),
+                    const SizedBox(height: 4),
+                    Text("Attendance density in $_assignedDistrict", 
+                      style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  ],
+                ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                child: const Text("LIVE METRICS", style: TextStyle(color: kBrandOlive, fontSize: 10, fontWeight: FontWeight.bold)),
-              ),
+              if (!isMobile)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                  child: const Text("LIVE METRICS", style: TextStyle(color: kBrandOlive, fontSize: 10, fontWeight: FontWeight.bold)),
+                ),
             ],
           ),
-          const SizedBox(height: 48),
-          Expanded(
+          const SizedBox(height: 40),
+          SizedBox(
+            height: 200,
             child: LineChart(
               LineChartData(
                 lineTouchData: LineTouchData(
@@ -407,7 +462,7 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
                     spots: points.map((p) => FlSpot(double.parse(p['year'].toString()), double.parse(p['score'].toString()))).toList(),
                     isCurved: true,
                     color: levelColors[l],
-                    barWidth: 4,
+                    barWidth: 3,
                     dotData: const FlDotData(show: true),
                     belowBarData: BarAreaData(show: true, color: levelColors[l]!.withOpacity(0.05)),
                   );
@@ -415,14 +470,14 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
               ),
             ),
           ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          const SizedBox(height: 24),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 24,
+            runSpacing: 12,
             children: [
               _chartLegend("Frequent", kBrandOlive),
-              const SizedBox(width: 24),
               _chartLegend("Moderate", kBrandOrange),
-              const SizedBox(width: 24),
               _chartLegend("Rare", Colors.red),
             ],
           )
@@ -433,6 +488,7 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
 
   Widget _chartLegend(String label, Color color) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(width: 12, height: 4, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
         const SizedBox(width: 8),
@@ -441,10 +497,10 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
     );
   }
 
-  Widget _buildQuickActionsCard() {
+  Widget _buildQuickActionsCard(bool isMobile) {
     return Container(
-      height: 400,
-      padding: const EdgeInsets.all(32),
+      height: isMobile ? null : 400,
+      padding: EdgeInsets.all(isMobile ? 24 : 32),
       decoration: BoxDecoration(
         color: kBrandBrown,
         borderRadius: BorderRadius.circular(24),
@@ -457,11 +513,12 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
           const SizedBox(height: 32),
           _actionButton("Take Attendance", Icons.how_to_reg_rounded, () => widget.onNavigate?.call("Scholar Attendance")),
           const SizedBox(height: 16),
-          _actionButton("Enter Exam Results", Icons.edit_note_rounded, () => widget.onNavigate?.call("Enter Results")),
+          _actionButton("Enter Results", Icons.edit_note_rounded, () => widget.onNavigate?.call("Enter Results")),
           const SizedBox(height: 16),
-          _actionButton("Performance Analysis", Icons.analytics_rounded, () => widget.onNavigate?.call("Performance Analysis")),
+          _actionButton("Performance", Icons.analytics_rounded, () => widget.onNavigate?.call("Performance Analysis")),
           const SizedBox(height: 16),
-          _actionButton("View Registry", Icons.people_outline_rounded, () => widget.onNavigate?.call("View Scholars")),
+          _actionButton("Registry", Icons.people_outline_rounded, () => widget.onNavigate?.call("View Scholars")),
+          if (isMobile) const SizedBox(height: 12),
         ],
       ),
     );
@@ -475,10 +532,10 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           child: Row(
             children: [
-              Icon(icon, color: Colors.white, size: 20),
+              Icon(icon, color: Colors.white, size: 18),
               const SizedBox(width: 16),
               Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
               const Spacer(),
@@ -490,7 +547,7 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
     );
   }
 
-  Widget _buildRecentActivitySection() {
+  Widget _buildRecentActivitySection(bool isMobile) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -511,15 +568,15 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
             itemBuilder: (context, index) {
               final activity = _recentActivity[index];
               return ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                 leading: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), shape: BoxShape.circle),
-                  child: const Icon(Icons.flash_on_rounded, color: kBrandOlive, size: 16),
+                  child: const Icon(Icons.flash_on_rounded, color: kBrandOlive, size: 14),
                 ),
-                title: Text(activity['title'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                subtitle: Text(activity['desc'], style: TextStyle(color: Colors.grey.shade600, fontSize: 12)),
-                trailing: Text(activity['time'], style: const TextStyle(color: Colors.grey, fontSize: 11)),
+                title: Text(activity['title'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                subtitle: Text(activity['desc'], style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
+                trailing: Text(activity['time'], style: const TextStyle(color: Colors.grey, fontSize: 10)),
               );
             },
           ),
@@ -527,4 +584,5 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
       ],
     );
   }
+
 }

@@ -214,6 +214,7 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final bool isSmallScreen = size.width < 600;
 
     return Scaffold(
       body: Stack(
@@ -235,7 +236,7 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
             child: Center(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+                padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 16 : 24, vertical: 40),
                 child: AnimatedBuilder(
                   animation: _fadeController,
                   builder: (context, child) {
@@ -250,10 +251,10 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
                   child: Center(
                     child: Container(
                       constraints: const BoxConstraints(maxWidth: 480),
-                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
+                      padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 24 : 40, vertical: 32),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.95),
-                        borderRadius: BorderRadius.circular(40),
+                        borderRadius: BorderRadius.circular(isSmallScreen ? 30 : 40),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withOpacity(0.15),
@@ -263,7 +264,7 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
                         ],
                         border: Border.all(color: Colors.white, width: 2),
                       ),
-                      child: _buildLoginForm(),
+                      child: _buildLoginForm(isSmallScreen),
                     ),
                   ),
                 ),
@@ -344,7 +345,7 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildLoginForm() {
+  Widget _buildLoginForm(bool isSmallScreen) {
     return Form(
       key: _formKey,
       child: Column(
@@ -356,9 +357,9 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
             child: Column(
               children: [
                 Container(
-                  height: 90,
-                  width: 90,
-                  padding: const EdgeInsets.all(16),
+                  height: isSmallScreen ? 70 : 90,
+                  width: isSmallScreen ? 70 : 90,
+                  padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
@@ -373,29 +374,29 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
                   child: Image.asset(
                     'assets/images/age-logo.png',
                     fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) => const Icon(
+                    errorBuilder: (context, error, stackTrace) => Icon(
                       Icons.school_rounded,
-                      size: 45,
+                      size: isSmallScreen ? 35 : 45,
                       color: kBrandOlive,
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: isSmallScreen ? 16 : 24),
                 const Text(
                   "PORTAL ACCESS",
                   style: TextStyle(
                     color: kBrandOlive,
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 3,
                   ),
                 ),
-                const SizedBox(height: 12),
-                const Text(
+                const SizedBox(height: 8),
+                Text(
                   "Welcome Back",
                   style: TextStyle(
                     color: kBrandBrown,
-                    fontSize: 28,
+                    fontSize: isSmallScreen ? 24 : 28,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -0.5,
                   ),
@@ -403,7 +404,7 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
               ],
             ),
           ),
-          const SizedBox(height: 32),
+          SizedBox(height: isSmallScreen ? 24 : 32),
 
           // Fields
           _buildInputLabel("USERNAME OR EMAIL"),

@@ -313,6 +313,9 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
   // ---------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 900;
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -337,13 +340,13 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _buildExecutiveHeader(),
-                  _buildHeaderCard(),
+                  _buildExecutiveHeader(isMobile),
+                  _buildHeaderCard(isMobile),
                   Padding(
-                    padding: const EdgeInsets.all(24.0),
+                    padding: EdgeInsets.all(isMobile ? 16.0 : 24.0),
                     child: Column(
                       children: [
-                        _buildTabsBar(),
+                        _buildTabsBar(isMobile),
                         const SizedBox(height: 24),
                         if (_selectedTab == 0) _buildPersonalInfoCard(),
                         if (_selectedTab == 1) _buildSecurityCard(),
@@ -357,32 +360,34 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
     );
   }
 
-  Widget _buildExecutiveHeader() {
+  Widget _buildExecutiveHeader(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(32, 32, 32, 24),
+      padding: EdgeInsets.fromLTRB(isMobile ? 20 : 32, isMobile ? 24 : 32, isMobile ? 20 : 32, isMobile ? 20 : 24),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: kBrandBrown.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(12),
+          if (!isMobile) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: kBrandBrown.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.badge_rounded, color: kBrandBrown, size: 28),
             ),
-            child: const Icon(Icons.badge_rounded, color: kBrandBrown, size: 28),
-          ),
-          const SizedBox(width: 24),
-          const Expanded(
+            const SizedBox(width: 24),
+          ],
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Identity & Access Profile", 
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.8)),
-                Text("Manage your professional system profile and security parameters.", 
-                  style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
+                  style: TextStyle(fontSize: isMobile ? 20 : 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.8)),
+                const Text("Manage your professional system profile.", 
+                  style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -394,130 +399,142 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
   // ---------------------------------------------------------------------
   // HEADER CARD (Banner Removed)
   // ---------------------------------------------------------------------
-  Widget _buildHeaderCard() {
-    return Column(
+  Widget _buildHeaderCard(bool isMobile) {
+    Widget avatar = Stack(
+      clipBehavior: Clip.none,
       children: [
         Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(28, 40, 28, 30),
+          width: isMobile ? 80 : 100,
+          height: isMobile ? 80 : 100,
           decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+            color: kBrandBrown.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+            border: Border.all(color: kBrandCream, width: 2),
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      color: kBrandBrown.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: kBrandCream, width: 2),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    alignment: Alignment.center,
-                    child: (_profilePicture != null)
-                      ? Image.network(
-                          ApiService.getFullUrl(_profilePicture),
-                          fit: BoxFit.cover,
-                          width: 100,
-                          height: 100,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const Icon(Icons.person_rounded, color: kBrandBrown, size: 56),
-                        )
-                      : const Icon(Icons.person_rounded, color: kBrandBrown, size: 56),
-                  ),
-                  Positioned(
-                    bottom: 2,
-                    right: 2,
-                    child: InkWell(
-                      onTap: _pickAndUploadImage,
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: kBrandOrange,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)],
-                        ),
-                        child: _isUploading 
-                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Icon(Icons.camera_alt_rounded, size: 16, color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
+          clipBehavior: Clip.antiAlias,
+          alignment: Alignment.center,
+          child: (_profilePicture != null)
+            ? Image.network(
+                ApiService.getFullUrl(_profilePicture),
+                fit: BoxFit.cover,
+                width: isMobile ? 80 : 100,
+                height: isMobile ? 80 : 100,
+                errorBuilder: (context, error, stackTrace) =>
+                    Icon(Icons.person_rounded, color: kBrandBrown, size: isMobile ? 40 : 56),
+              )
+            : Icon(Icons.person_rounded, color: kBrandBrown, size: isMobile ? 40 : 56),
+        ),
+        Positioned(
+          bottom: 0,
+          right: 0,
+          child: InkWell(
+            onTap: _pickAndUploadImage,
+            child: Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: kBrandOrange,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 1.5),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)],
               ),
-              const SizedBox(width: 28),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _originalValues['name'] ?? '',
-                      style: const TextStyle(
-                        color: kBrandBrown,
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      "@$_username • $_role",
-                      style: TextStyle(
-                          color: Colors.grey.shade600, fontSize: 14, fontWeight: FontWeight.w500),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        _headerPill(Icons.apartment_rounded, _department),
-                        const SizedBox(width: 10),
-                        _headerPill(
-                          _isActive ? Icons.check_circle_rounded : Icons.pause_circle_rounded,
-                          _isActive ? 'Active' : 'Inactive',
-                          isStatus: true,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Column(
-                children: [
-                  if (!_isEditing)
-                    ElevatedButton.icon(
-                      onPressed: _startEditing,
-                      icon: const Icon(Icons.edit_outlined, size: 18),
-                      label: const Text("Edit Profile"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: kBrandBrown,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                    ),
-                  const SizedBox(height: 10),
-                  TextButton.icon(
-                    onPressed: _handleLogout,
-                    icon: const Icon(Icons.logout_rounded, size: 18, color: Colors.redAccent),
-                    label: const Text("Logout", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              child: _isUploading 
+                ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white),
+            ),
           ),
         ),
-        // ---------------- Stats (Banners Removed) ----------------
       ],
+    );
+
+    Widget info = Column(
+      crossAxisAlignment: isMobile ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+      children: [
+        Text(
+          _originalValues['name'] ?? '',
+          style: TextStyle(
+            color: kBrandBrown,
+            fontSize: isMobile ? 22 : 26,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          "@$_username • $_role",
+          style: TextStyle(
+              color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          alignment: WrapAlignment.center,
+          children: [
+            _headerPill(Icons.apartment_rounded, _department),
+            _headerPill(
+              _isActive ? Icons.check_circle_rounded : Icons.pause_circle_rounded,
+              _isActive ? 'Active' : 'Inactive',
+              isStatus: true,
+            ),
+          ],
+        ),
+      ],
+    );
+
+    Widget actions = Column(
+      children: [
+        if (!_isEditing)
+          ElevatedButton.icon(
+            onPressed: _startEditing,
+            icon: const Icon(Icons.edit_outlined, size: 18),
+            label: const Text("Edit Profile"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kBrandBrown,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        const SizedBox(height: 10),
+        TextButton.icon(
+          onPressed: _handleLogout,
+          icon: const Icon(Icons.logout_rounded, size: 18, color: Colors.redAccent),
+          label: const Text("Logout", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
+      ],
+    );
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(28, isMobile ? 20 : 40, 28, 30),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+      ),
+      child: isMobile 
+        ? Column(
+            children: [
+              avatar,
+              const SizedBox(height: 20),
+              info,
+              const SizedBox(height: 24),
+              actions,
+            ],
+          )
+        : Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              avatar,
+              const SizedBox(width: 28),
+              Expanded(child: info),
+              const SizedBox(width: 20),
+              actions,
+            ],
+          ),
     );
   }
 
@@ -549,9 +566,9 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
   // ---------------------------------------------------------------------
   // TABS BAR
   // ---------------------------------------------------------------------
-  Widget _buildTabsBar() {
+  Widget _buildTabsBar(bool isMobile) {
     final tabs = [
-      ("Personal Info", Icons.person_outline_rounded),
+      ("Info", Icons.person_outline_rounded),
       ("Security", Icons.lock_outline_rounded),
       ("Activity", Icons.history_rounded),
     ];
@@ -593,15 +610,17 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
                         color: isSelected
                             ? kBrandOlive
                             : Colors.grey.shade500),
-                    const SizedBox(width: 8),
-                    Text(
-                      tabs[index].$1,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                        color: isSelected ? kBrandBrown : Colors.grey.shade600,
+                    if (!isMobile) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        tabs[index].$1,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          color: isSelected ? kBrandBrown : Colors.grey.shade600,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),

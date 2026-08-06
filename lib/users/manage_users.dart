@@ -291,6 +291,7 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
   @override
   Widget build(BuildContext context) {
     final filtered = _filteredUsers;
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
 
     return Container(
       width: double.infinity,
@@ -299,17 +300,20 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildProfessionalHeader(),
-          _buildStatsRow(),
-          _buildSubNavigation(),
+          _buildProfessionalHeader(isMobile),
+          _buildStatsRow(isMobile),
+          _buildSubNavigation(isMobile),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(32, 0, 32, 32),
+              padding: EdgeInsets.fromLTRB(isMobile ? 16 : 32, 0, isMobile ? 16 : 32, 32),
               child: Column(
                 children: [
-                  _buildFilterBar(),
+                  _buildFilterBar(isMobile),
                   const SizedBox(height: 24),
-                  _buildProfessionalTable(filtered),
+                  if (isMobile)
+                    _buildMobileUserList(filtered)
+                  else
+                    _buildProfessionalTable(filtered),
                 ],
               ),
             ),
@@ -319,27 +323,29 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
     );
   }
 
-  Widget _buildProfessionalHeader() {
+  Widget _buildProfessionalHeader(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(32, 24, 32, 12),
+      padding: EdgeInsets.fromLTRB(isMobile ? 16 : 32, 24, isMobile ? 16 : 32, 12),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: kBrandBrown.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(8),
+          if (!isMobile) ...[
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: kBrandBrown.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.manage_accounts_rounded, color: kBrandBrown, size: 20),
             ),
-            child: const Icon(Icons.manage_accounts_rounded, color: kBrandBrown, size: 20),
-          ),
-          const SizedBox(width: 16),
-          const Expanded(
+            const SizedBox(width: 16),
+          ],
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("User Administration", 
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                Text("Command center for identity management and access control.", 
+                  style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                const Text("Identity and access control center.", 
                   style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
@@ -347,12 +353,12 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
           if (PermissionService.hasPermission('users.create'))
             ElevatedButton.icon(
               onPressed: widget.onAddUser,
-              icon: const Icon(Icons.person_add_alt_1_rounded, size: 16),
-              label: const Text("REGISTER"),
+              icon: Icon(Icons.person_add_alt_1_rounded, size: isMobile ? 14 : 16),
+              label: Text(isMobile ? "ADD" : "REGISTER"),
               style: ElevatedButton.styleFrom(
                 backgroundColor: kBrandOlive,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: 14),
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
@@ -363,23 +369,27 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
     );
   }
 
-  Widget _buildStatsRow() {
+  Widget _buildStatsRow(bool isMobile) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 10),
-      child: Row(
-        children: [
-          _statTile("Global Users", _totalCount.toString(), Colors.blue),
-          _statTile("Active Identities", _activeCount.toString(), kBrandOlive),
-          _statTile("Deactivated", _inactiveCount.toString(), Colors.grey),
-        ],
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 32, vertical: 10),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _statTile("Global Users", _totalCount.toString(), Colors.blue),
+            _statTile("Active", _activeCount.toString(), kBrandOlive),
+            _statTile("Deactivated", _inactiveCount.toString(), Colors.grey),
+          ],
+        ),
       ),
     );
   }
 
   Widget _statTile(String label, String value, Color color) {
     return Padding(
-      padding: const EdgeInsets.only(right: 32),
+      padding: const EdgeInsets.only(right: 24),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
           const SizedBox(width: 10),
@@ -391,22 +401,25 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
     );
   }
 
-  Widget _buildSubNavigation() {
+  Widget _buildSubNavigation(bool isMobile) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(32, 10, 32, 24),
+      margin: EdgeInsets.fromLTRB(isMobile ? 16 : 32, 10, isMobile ? 16 : 32, 24),
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade200),
       ),
-      child: Row(
-        children: [
-          _subNavItem("User Profiles", Icons.account_circle_outlined, widget.onViewProfile),
-          _subNavItem("Role Architecture", Icons.security_rounded, widget.onViewRoles),
-          _subNavItem("Departmental Structure", Icons.apartment_rounded, widget.onViewDepartments),
-          _subNavItem("Governance Permissions", Icons.admin_panel_settings_outlined, widget.onViewPermissions),
-        ],
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _subNavItem("Profiles", Icons.account_circle_outlined, widget.onViewProfile),
+            _subNavItem("Roles", Icons.security_rounded, widget.onViewRoles),
+            _subNavItem("Departments", Icons.apartment_rounded, widget.onViewDepartments),
+            _subNavItem("Governance", Icons.admin_panel_settings_outlined, widget.onViewPermissions),
+          ],
+        ),
       ),
     );
   }
@@ -419,14 +432,58 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
         icon: Icon(icon, size: 18, color: kBrandBrown),
         label: Text(label, style: const TextStyle(color: kBrandBrown, fontWeight: FontWeight.bold, fontSize: 13)),
         style: TextButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       ),
     );
   }
 
-  Widget _buildFilterBar() {
+  Widget _buildFilterBar(bool isMobile) {
+    if (isMobile) {
+      return Column(
+        children: [
+          Container(
+            height: 40,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: TextField(
+              onChanged: (val) => setState(() => _searchQuery = val),
+              style: const TextStyle(fontSize: 13),
+              decoration: const InputDecoration(
+                hintText: "Search identities...",
+                hintStyle: TextStyle(fontSize: 12, color: Colors.grey),
+                prefixIcon: Icon(Icons.search, size: 18),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.symmetric(vertical: 10),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _dropdownFilter("ROLES", _roleFilter, _roles, (v) => setState(() => _roleFilter = v))),
+              const SizedBox(width: 8),
+              Expanded(child: _dropdownFilter("STATUS", _statusFilter, ['All', 'Active', 'Inactive'], (v) => setState(() => _statusFilter = v ?? 'All'))),
+              if (_hasActiveFilters) ...[
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: _clearFilters, 
+                  icon: const Icon(Icons.filter_list_off_rounded, color: Colors.redAccent, size: 18),
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(8),
+                ),
+              ],
+            ],
+          ),
+        ],
+      );
+    }
     return Row(
       children: [
         Expanded(
@@ -464,6 +521,95 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
             padding: const EdgeInsets.all(8),
           ),
       ],
+    );
+  }
+
+  Widget _buildMobileUserList(List<AppUser> filtered) {
+    if (_isLoading) return const Center(child: Padding(padding: EdgeInsets.all(60), child: CircularProgressIndicator(color: kBrandOlive)));
+    if (filtered.isEmpty) {
+      return Center(
+        child: Column(
+          children: [
+            const SizedBox(height: 60),
+            Icon(Icons.person_search_rounded, size: 64, color: Colors.grey.shade200),
+            const SizedBox(height: 16),
+            const Text("No identities found.", style: TextStyle(color: Colors.grey, fontSize: 15)),
+          ],
+        ),
+      );
+    }
+
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: filtered.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final u = filtered[index];
+        final color = _roleColor(u.role);
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 20, 
+                    backgroundColor: color.withOpacity(0.1), 
+                    child: Text(_initialsOf(u.fullName), style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 12))),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(u.fullName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kBrandBrown)),
+                        Text(u.email, style: TextStyle(color: Colors.grey.shade500, fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                  _actionBtn(Icons.edit_note_rounded, Colors.blue, () => _editUser(u)),
+                  const SizedBox(width: 8),
+                  _actionBtn(Icons.delete_outline_rounded, Colors.redAccent, () => _confirmDelete(u)),
+                ],
+              ),
+              const Divider(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                        child: Text(u.role.toUpperCase(), style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 9, letterSpacing: 0.5)),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(u.department, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Text(u.isActive ? "Authorized" : "Revoked", 
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: u.isActive ? kBrandOlive : Colors.redAccent)),
+                      const SizedBox(width: 8),
+                      Transform.scale(
+                        scale: 0.7,
+                        child: Switch(value: u.isActive, activeColor: kBrandOlive, onChanged: (_) => _toggleStatus(u)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

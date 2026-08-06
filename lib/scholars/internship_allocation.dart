@@ -109,24 +109,34 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
 
   @override
   Widget build(BuildContext context) {
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
+
     return Container(
       color: const Color(0xFFF8F9FA),
       child: Column(
         children: [
-          _buildHeader(),
+          _buildHeader(isMobile),
           Expanded(
             child: _isLoading
               ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
               : SingleChildScrollView(
-                  padding: const EdgeInsets.all(32),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(flex: 3, child: _buildAllocationForm()),
-                      const SizedBox(width: 32),
-                      Expanded(flex: 2, child: _buildRecentAllocations()),
-                    ],
-                  ),
+                  padding: EdgeInsets.all(isMobile ? 16 : 32),
+                  child: isMobile 
+                    ? Column(
+                        children: [
+                          _buildAllocationForm(isMobile),
+                          const SizedBox(height: 24),
+                          _buildRecentAllocations(isMobile),
+                        ],
+                      )
+                    : Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(flex: 3, child: _buildAllocationForm(isMobile)),
+                          const SizedBox(width: 32),
+                          Expanded(flex: 2, child: _buildRecentAllocations(isMobile)),
+                        ],
+                      ),
                 ),
           ),
         ],
@@ -134,7 +144,7 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(bool isMobile) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: const BoxDecoration(color: Colors.white, border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE)))),
@@ -146,23 +156,26 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
             child: const Icon(Icons.handshake_rounded, color: kBrandOrange, size: 20),
           ),
           const SizedBox(width: 16),
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text("Internship Allocation Hub", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-              Text("Strategic workforce placement for AGE Africa alumni.", style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Internship Allocation Hub", 
+                  style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                const Text("Strategic workforce placement for alumni.", 
+                  style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+              ],
+            ),
           ),
-          const Spacer(),
           IconButton(onPressed: _fetchData, icon: const Icon(Icons.sync_rounded, color: kBrandOlive, size: 20)),
         ],
       ),
     );
   }
 
-  Widget _buildAllocationForm() {
+  Widget _buildAllocationForm(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(isMobile ? 24 : 32),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -178,31 +191,49 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
           _buildScholarDropdown(),
           const SizedBox(height: 24),
 
-          Row(
-            children: [
-              Expanded(child: _buildTextField("WORKPLACE NAME", _workplaceController, Icons.business_rounded)),
-              const SizedBox(width: 16),
-              Expanded(child: _buildTextField("LOCATION / DISTRICT", _locationController, Icons.place_rounded)),
-            ],
-          ),
+          if (isMobile) ...[
+            _buildTextField("WORKPLACE NAME", _workplaceController, Icons.business_rounded),
+            const SizedBox(height: 24),
+            _buildTextField("LOCATION / DISTRICT", _locationController, Icons.place_rounded),
+          ] else ...[
+            Row(
+              children: [
+                Expanded(child: _buildTextField("WORKPLACE NAME", _workplaceController, Icons.business_rounded)),
+                const SizedBox(width: 16),
+                Expanded(child: _buildTextField("LOCATION / DISTRICT", _locationController, Icons.place_rounded)),
+              ],
+            ),
+          ],
           const SizedBox(height: 24),
 
-          Row(
-            children: [
-              Expanded(child: _buildTextField("ASSIGNED SUPERVISOR", _supervisorController, Icons.person_pin_rounded)),
-              const SizedBox(width: 16),
-              Expanded(child: _buildTextField("SCHOLAR EMAIL (VERIFY)", _emailController, Icons.alternate_email_rounded)),
-            ],
-          ),
+          if (isMobile) ...[
+            _buildTextField("ASSIGNED SUPERVISOR", _supervisorController, Icons.person_pin_rounded),
+            const SizedBox(height: 24),
+            _buildTextField("SCHOLAR EMAIL (VERIFY)", _emailController, Icons.alternate_email_rounded),
+          ] else ...[
+            Row(
+              children: [
+                Expanded(child: _buildTextField("ASSIGNED SUPERVISOR", _supervisorController, Icons.person_pin_rounded)),
+                const SizedBox(width: 16),
+                Expanded(child: _buildTextField("SCHOLAR EMAIL (VERIFY)", _emailController, Icons.alternate_email_rounded)),
+              ],
+            ),
+          ],
           const SizedBox(height: 24),
 
-          Row(
-            children: [
-              Expanded(child: _buildDatePicker("START DATE", _startDate, (d) => setState(() => _startDate = d))),
-              const SizedBox(width: 16),
-              Expanded(child: _buildDatePicker("END DATE (1 YEAR TYPICAL)", _endDate, (d) => setState(() => _endDate = d))),
-            ],
-          ),
+          if (isMobile) ...[
+            _buildDatePicker("START DATE", _startDate, (d) => setState(() => _startDate = d)),
+            const SizedBox(height: 24),
+            _buildDatePicker("END DATE (1 YEAR TYPICAL)", _endDate, (d) => setState(() => _endDate = d)),
+          ] else ...[
+            Row(
+              children: [
+                Expanded(child: _buildDatePicker("START DATE", _startDate, (d) => setState(() => _startDate = d))),
+                const SizedBox(width: 16),
+                Expanded(child: _buildDatePicker("END DATE (1 YEAR TYPICAL)", _endDate, (d) => setState(() => _endDate = d))),
+              ],
+            ),
+          ],
           const SizedBox(height: 24),
 
           _formLabel("ALLOCATION DETAILS / TERMS"),
@@ -227,7 +258,7 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 elevation: 0,
               ),
-              child: const Text("FINALIZE ALLOCATION & NOTIFY SCHOLAR", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+              child: const Text("FINALIZE ALLOCATION", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5)),
             ),
           ),
         ],
@@ -314,7 +345,7 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
     child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
   );
 
-  Widget _buildRecentAllocations() {
+  Widget _buildRecentAllocations(bool isMobile) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

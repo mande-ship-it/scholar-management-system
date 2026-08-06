@@ -100,22 +100,23 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
 
   @override
   Widget build(BuildContext context) {
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
     return Container(
       color: Colors.white,
       child: Column(
         children: [
-          _buildExecutiveHeader(),
-          _buildMainTabBar(),
+          _buildExecutiveHeader(isMobile),
+          _buildMainTabBar(isMobile),
           Expanded(
             child: _isLoading 
               ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
               : TabBarView(
                   controller: _tabController,
                   children: [
-                    _buildIndividualView(),
-                    _buildCohortView(),
-                    _buildSubjectView(),
-                    _buildRiskView(),
+                    _buildIndividualView(isMobile),
+                    _buildCohortView(isMobile),
+                    _buildSubjectView(isMobile),
+                    _buildRiskView(isMobile),
                   ],
                 ),
           ),
@@ -124,103 +125,126 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
     );
   }
 
-  Widget _buildExecutiveHeader() {
+  Widget _buildExecutiveHeader(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(isMobile ? 16 : 32),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
-            child: const Icon(Icons.analytics_rounded, color: kBrandOlive, size: 28),
-          ),
-          const SizedBox(width: 20),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Performance Intelligence Hub", 
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.8)),
-                Text("Longitudinal trends, risk forecasting, and subject-level support mapping.", 
-                  style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
+          Row(
+            children: [
+              if (!isMobile) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
+                  child: const Icon(Icons.analytics_rounded, color: kBrandOlive, size: 28),
+                ),
+                const SizedBox(width: 20),
               ],
-            ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Performance Hub", 
+                      style: TextStyle(fontSize: isMobile ? 20 : 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.8)),
+                    const Text("Trends and support mapping.", 
+                      style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                  ],
+                ),
+              ),
+              if (!isMobile) _buildTypeToggle(false),
+            ],
           ),
-          _buildTypeToggle(),
+          if (isMobile) ...[
+            const SizedBox(height: 16),
+            _buildTypeToggle(true),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildTypeToggle() {
-    return SegmentedButton<String>(
-      segments: const [
-        ButtonSegment(value: 'Secondary', label: Text("SECONDARY"), icon: Icon(Icons.school_outlined)),
-        ButtonSegment(value: 'University', label: Text("UNIVERSITY"), icon: Icon(Icons.account_balance_outlined)),
-      ],
-      selected: {_selectedType},
-      onSelectionChanged: (val) {
-        setState(() => _selectedType = val.first);
-        _fetchCurrentTabData();
-      },
-      style: SegmentedButton.styleFrom(
-        selectedBackgroundColor: kBrandBrown,
-        selectedForegroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 24),
+  Widget _buildTypeToggle(bool isMobile) {
+    return SizedBox(
+      width: isMobile ? double.infinity : null,
+      child: SegmentedButton<String>(
+        segments: const [
+          ButtonSegment(value: 'Secondary', label: Text("SEC"), icon: Icon(Icons.school_outlined, size: 16)),
+          ButtonSegment(value: 'University', label: Text("UNI"), icon: Icon(Icons.account_balance_outlined, size: 16)),
+        ],
+        selected: {_selectedType},
+        onSelectionChanged: (val) {
+          setState(() => _selectedType = val.first);
+          _fetchCurrentTabData();
+        },
+        style: SegmentedButton.styleFrom(
+          selectedBackgroundColor: kBrandBrown,
+          selectedForegroundColor: Colors.white,
+        ),
       ),
     );
   }
 
-  Widget _buildMainTabBar() {
+  Widget _buildMainTabBar(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      decoration: const BoxDecoration(color: Colors.white, border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE)))),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 32),
+      decoration: const BoxDecoration(color: Colors.white, border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
       child: TabBar(
         controller: _tabController,
+        isScrollable: true,
         labelColor: kBrandOlive,
         unselectedLabelColor: Colors.grey,
         indicatorColor: kBrandOlive,
         indicatorWeight: 3,
-        labelPadding: const EdgeInsets.symmetric(vertical: 16),
-        labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
+        labelPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+        labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5),
         tabs: const [
-          Tab(text: "SCHOLAR TREND"),
-          Tab(text: "COHORT ANALYTICS"),
-          Tab(text: "SUBJECT INTELLIGENCE"),
-          Tab(text: "RISK INDICATORS"),
+          Tab(text: "TREND"),
+          Tab(text: "COHORT"),
+          Tab(text: "SUBJECT"),
+          Tab(text: "RISK"),
         ],
       ),
     );
   }
 
   // --- VIEW 1: INDIVIDUAL ---
-  Widget _buildIndividualView() {
+  Widget _buildIndividualView(bool isMobile) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(40),
+      padding: EdgeInsets.all(isMobile ? 16 : 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildScholarPicker(),
           const SizedBox(height: 32),
           if (_individualData != null) ...[
-            _buildIndividualInsightsSummary(),
+            _buildIndividualInsightsSummary(isMobile),
             const SizedBox(height: 32),
             if (_aiNarrative.isNotEmpty) _buildAINarrativeBox(),
             const SizedBox(height: 32),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(flex: 3, child: _buildScoreTrendLine()),
-                const SizedBox(width: 32),
-                Expanded(flex: 2, child: _buildFlagHistory()),
-              ],
-            ),
+            if (isMobile)
+              Column(
+                children: [
+                  _buildScoreTrendLine(isMobile),
+                  const SizedBox(height: 24),
+                  _buildFlagHistory(isMobile),
+                ],
+              )
+            else
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: 3, child: _buildScoreTrendLine(false)),
+                  const SizedBox(width: 32),
+                  Expanded(flex: 2, child: _buildFlagHistory(false)),
+                ],
+              ),
             const SizedBox(height: 32),
-            _buildPeriodBreakdownTable(),
+            _buildPeriodBreakdownTable(isMobile),
           ] else
             _buildEmptyIndividualState(),
         ],
@@ -280,26 +304,27 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
     );
   }
 
-  Widget _buildScoreTrendLine() {
+  Widget _buildScoreTrendLine(bool isMobile) {
     final timeline = _individualData!['timeline'] as List;
     if (timeline.isEmpty) return const SizedBox();
 
     return _AnalysisCard(
-      title: "Academic Trajectory",
-      subtitle: "Term/Semester average scores over time",
+      isMobile: isMobile,
+      title: "Score Trajectory",
+      subtitle: "Performance over time",
       child: SizedBox(
-        height: 300,
+        height: isMobile ? 220 : 300,
         child: LineChart(
           LineChartData(
             gridData: const FlGridData(show: true, drawVerticalLine: false, horizontalInterval: 20),
             titlesData: FlTitlesData(
-              leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40)),
+              leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: isMobile ? 32 : 40, getTitlesWidget: (v, m) => Text("${v.toInt()}%", style: const TextStyle(fontSize: 10)))),
               bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, m) {
                 if (v.toInt() < timeline.length) {
                   return Padding(
                     padding: const EdgeInsets.only(top: 8.0),
                     child: Text(timeline[v.toInt()]['period'].toString().replaceAll('-', '\n'), 
-                      textAlign: TextAlign.center, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold)),
+                      textAlign: TextAlign.center, style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold)),
                   );
                 }
                 return const SizedBox();
@@ -325,62 +350,106 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
     );
   }
 
-  Widget _buildFlagHistory() {
+  Widget _buildFlagHistory(bool isMobile) {
     final history = _individualData!['flagHistory'] as List;
     return _AnalysisCard(
-      title: "Persistence Audit",
-      subtitle: "Chronological flags and promotion outcomes",
+      isMobile: isMobile,
+      title: "Audit Log",
+      subtitle: "Promotion outcomes",
       child: Column(
         children: [
           if (history.isEmpty)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 40),
-              child: Text("No progression flags on record.", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)),
+              child: Text("No flags found.", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)),
             )
           else
             ...history.map((h) => ListTile(
               contentPadding: EdgeInsets.zero,
               dense: true,
               leading: Icon(Icons.flag_rounded, color: h['result'].toString().contains('Fail') ? Colors.red : kBrandOlive),
-              title: Text("${h['year']} | ${h['result']}", style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text("Avg: ${h['average']}% | ${h['from_class']} → ${h['to_class']}"),
+              title: Text("${h['year']} | ${h['result']}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              subtitle: Text("Avg: ${h['average']}% | ${h['from_class']} → ${h['to_class']}", style: const TextStyle(fontSize: 11)),
             )),
         ],
       ),
     );
   }
 
-  Widget _buildPeriodBreakdownTable() {
+  Widget _buildPeriodBreakdownTable(bool isMobile) {
     final timeline = _individualData!['timeline'] as List;
     return _AnalysisCard(
-      title: "Granular Period Analysis",
-      subtitle: "Detailed performance and distance-to-threshold mapping",
-      child: DataTable(
-        columnSpacing: 24,
-        horizontalMargin: 0,
-        columns: const [
-          DataColumn(label: Text("ACADEMIC PERIOD")),
-          DataColumn(label: Text("AVG SCORE")),
-          DataColumn(label: Text("GAP TO PASS")),
-          DataColumn(label: Text("BEST SUBJECT")),
-        ],
-        rows: timeline.map((t) {
-          final dist = t['distanceToThreshold'] as double;
-          final best6 = t['best6'] as List;
-          return DataRow(cells: [
-            DataCell(Text(t['period'], style: const TextStyle(fontWeight: FontWeight.bold))),
-            DataCell(Text("${t['average']}%")),
-            DataCell(Text("${dist > 0 ? '+' : ''}$dist%", 
-              style: TextStyle(color: dist >= 0 ? kBrandOlive : Colors.red, fontWeight: FontWeight.w900))),
-            DataCell(Text(best6.isNotEmpty ? best6[0]['subject'] : 'N/A')),
-          ]);
-        }).toList(),
+      isMobile: isMobile,
+      title: "Granular Breakdown",
+      subtitle: "Threshold mapping",
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          columnSpacing: isMobile ? 24 : 32,
+          horizontalMargin: 0,
+          columns: const [
+            DataColumn(label: Text("PERIOD")),
+            DataColumn(label: Text("AVG")),
+            DataColumn(label: Text("GAP")),
+            DataColumn(label: Text("BEST")),
+          ],
+          rows: timeline.map((t) {
+            final dist = t['distanceToThreshold'] as double;
+            final best6 = t['best6'] as List;
+            return DataRow(cells: [
+              DataCell(Text(t['period'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+              DataCell(Text("${t['average']}%", style: const TextStyle(fontSize: 12))),
+              DataCell(Text("${dist > 0 ? '+' : ''}$dist%", 
+                style: TextStyle(color: dist >= 0 ? kBrandOlive : Colors.red, fontWeight: FontWeight.w900, fontSize: 12))),
+              DataCell(Text(best6.isNotEmpty ? best6[0]['subject'] : 'N/A', style: const TextStyle(fontSize: 11))),
+            ]);
+          }).toList(),
+        ),
       ),
     );
   }
 
-  Widget _buildIndividualInsightsSummary() {
+  Widget _buildIndividualInsightsSummary(bool isMobile) {
     final info = _individualData!['scholarInfo'];
+    if (isMobile) {
+      return Column(
+        children: [
+          Row(
+            children: [
+              _MetricIndicator(label: "CURRENT YEAR", value: "Year ${info['currentRelativeYear']}", icon: Icons.timeline, isMobile: true),
+              const SizedBox(width: 12),
+              _MetricIndicator(label: "REMAINING", value: "${info['yearsRemaining']} Yrs", icon: Icons.hourglass_empty_rounded, isMobile: true),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _MetricIndicator(
+            label: "RISK LEVEL", 
+            value: info['academicFlag'] ?? "Stable", 
+            icon: Icons.shield_rounded, 
+            color: info['academicFlag'] == null ? kBrandOlive : Colors.orange,
+            isMobile: true,
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isGeneratingAI ? null : _generateAINarrative,
+              icon: _isGeneratingAI 
+                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Icon(Icons.auto_awesome_rounded),
+              label: const Text("ASK AI ANALYST"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kBrandOlive,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Row(
       children: [
         _MetricIndicator(label: "CURRENT YEAR", value: "Year ${info['currentRelativeYear']} of ${info['programDurationYears']}", icon: Icons.timeline),
@@ -412,45 +481,64 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
   }
 
   // --- VIEW 2: COHORT ---
-  Widget _buildCohortView() {
+  Widget _buildCohortView(bool isMobile) {
     if (_cohortData == null) return const SizedBox();
     final groups = _cohortData['classGroups'] as Map? ?? {};
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(40),
+      padding: EdgeInsets.all(isMobile ? 16 : 40),
       child: Column(
         children: [
-          Row(
-            children: [
-              _MetricIndicator(label: "ON-TRACK SCHOLARS", value: "${_cohortData['summary']['onTrack']}", icon: Icons.check_circle_rounded, color: kBrandOlive),
-              const SizedBox(width: 24),
-              _MetricIndicator(label: "DELAYED (REPEATS)", value: "${_cohortData['summary']['atRisk']}", icon: Icons.warning_rounded, color: Colors.orange),
-              const SizedBox(width: 24),
-              _MetricIndicator(label: "TOTAL COHORT", value: "${_cohortData['summary']['totalScholars']}", icon: Icons.groups_rounded),
-            ],
-          ),
+          if (isMobile)
+            Column(
+              children: [
+                Row(
+                  children: [
+                    _MetricIndicator(label: "ON-TRACK", value: "${_cohortData['summary']['onTrack']}", icon: Icons.check_circle_rounded, color: kBrandOlive, isMobile: true),
+                    const SizedBox(width: 12),
+                    _MetricIndicator(label: "DELAYED", value: "${_cohortData['summary']['atRisk']}", icon: Icons.warning_rounded, color: Colors.orange, isMobile: true),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _MetricIndicator(label: "TOTAL COHORT", value: "${_cohortData['summary']['totalScholars']}", icon: Icons.groups_rounded, isMobile: true),
+              ],
+            )
+          else
+            Row(
+              children: [
+                _MetricIndicator(label: "ON-TRACK SCHOLARS", value: "${_cohortData['summary']['onTrack']}", icon: Icons.check_circle_rounded, color: kBrandOlive),
+                const SizedBox(width: 24),
+                _MetricIndicator(label: "DELAYED (REPEATS)", value: "${_cohortData['summary']['atRisk']}", icon: Icons.warning_rounded, color: Colors.orange),
+                const SizedBox(width: 24),
+                _MetricIndicator(label: "TOTAL COHORT", value: "${_cohortData['summary']['totalScholars']}", icon: Icons.groups_rounded),
+              ],
+            ),
           const SizedBox(height: 32),
           _AnalysisCard(
-            title: "Performance Distribution by Class",
-            subtitle: "Analysis of pass rates and academic flags per Form/Year",
-            child: DataTable(
-              columns: const [
-                DataColumn(label: Text("CLASS / FORM")),
-                DataColumn(label: Text("TOTAL")),
-                DataColumn(label: Text("SUPPLEMENTARY")),
-                DataColumn(label: Text("REPEAT")),
-                DataColumn(label: Text("SUCCESS RATE")),
-              ],
-              rows: groups.entries.map((e) {
-                final val = e.value;
-                final double success = (val['total'] - val['repeat'] - val['supplementary']) / (val['total'] == 0 ? 1 : val['total']) * 100;
-                return DataRow(cells: [
-                  DataCell(Text(e.key, style: const TextStyle(fontWeight: FontWeight.bold))),
-                  DataCell(Text("${val['total']}")),
-                  DataCell(Text("${val['supplementary']}", style: TextStyle(color: val['supplementary'] > 0 ? Colors.orange : null))),
-                  DataCell(Text("${val['repeat']}", style: TextStyle(color: val['repeat'] > 0 ? Colors.red : null))),
-                  DataCell(Text("${success.toStringAsFixed(1)}%")),
-                ]);
-              }).toList(),
+            isMobile: isMobile,
+            title: "Performance Distribution",
+            subtitle: "Analysis by Class",
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                columns: const [
+                  DataColumn(label: Text("CLASS")),
+                  DataColumn(label: Text("TOTAL")),
+                  DataColumn(label: Text("SUPP.")),
+                  DataColumn(label: Text("REPEAT")),
+                  DataColumn(label: Text("SUCCESS")),
+                ],
+                rows: groups.entries.map((e) {
+                  final val = e.value;
+                  final double success = (val['total'] - val['repeat'] - val['supplementary']) / (val['total'] == 0 ? 1 : val['total']) * 100;
+                  return DataRow(cells: [
+                    DataCell(Text(e.key, style: const TextStyle(fontWeight: FontWeight.bold))),
+                    DataCell(Text("${val['total']}")),
+                    DataCell(Text("${val['supplementary']}", style: TextStyle(color: val['supplementary'] > 0 ? Colors.orange : null))),
+                    DataCell(Text("${val['repeat']}", style: TextStyle(color: val['repeat'] > 0 ? Colors.red : null))),
+                    DataCell(Text("${success.toStringAsFixed(1)}%")),
+                  ]);
+                }).toList(),
+              ),
             ),
           ),
         ],
@@ -459,30 +547,34 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
   }
 
   // --- VIEW 3: SUBJECT ---
-  Widget _buildSubjectView() {
+  Widget _buildSubjectView(bool isMobile) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(40),
+      padding: EdgeInsets.all(isMobile ? 16 : 40),
       child: Column(
         children: [
           _AnalysisCard(
-            title: "Institutional Subject Audit",
-            subtitle: "Mapping failure density and average scores across curriculum",
-            child: DataTable(
-              columns: const [
-                DataColumn(label: Text("SUBJECT / COURSE")),
-                DataColumn(label: Text("AVERAGE MARK")),
-                DataColumn(label: Text("FAIL COUNT")),
-                DataColumn(label: Text("TOTAL ENTRIES")),
-              ],
-              rows: _subjectData.map((s) {
-                final double avg = s['avgMark']?.toDouble() ?? 0.0;
-                return DataRow(cells: [
-                  DataCell(Text(s['_id'], style: const TextStyle(fontWeight: FontWeight.bold))),
-                  DataCell(Text("${avg.toStringAsFixed(1)}%")),
-                  DataCell(Text("${s['failCount']}", style: TextStyle(color: s['failCount'] > 0 ? Colors.red : null))),
-                  DataCell(Text("${s['totalCount']}")),
-                ]);
-              }).toList(),
+            isMobile: isMobile,
+            title: "Subject Audit",
+            subtitle: "Failure density mapping",
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                columns: const [
+                  DataColumn(label: Text("SUBJECT")),
+                  DataColumn(label: Text("AVG")),
+                  DataColumn(label: Text("FAIL")),
+                  DataColumn(label: Text("TOTAL")),
+                ],
+                rows: _subjectData.map((s) {
+                  final double avg = s['avgMark']?.toDouble() ?? 0.0;
+                  return DataRow(cells: [
+                    DataCell(Text(s['_id'], style: const TextStyle(fontWeight: FontWeight.bold))),
+                    DataCell(Text("${avg.toStringAsFixed(1)}%")),
+                    DataCell(Text("${s['failCount']}", style: TextStyle(color: s['failCount'] > 0 ? Colors.red : null))),
+                    DataCell(Text("${s['totalCount']}")),
+                  ]);
+                }).toList(),
+              ),
             ),
           ),
         ],
@@ -491,33 +583,39 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
   }
 
   // --- VIEW 4: RISK ---
-  Widget _buildRiskView() {
+  Widget _buildRiskView(bool isMobile) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(40),
+      padding: EdgeInsets.all(isMobile ? 16 : 40),
       child: Column(
         children: [
           _AnalysisCard(
-            title: "Early Warning Matrix",
-            subtitle: "Scholars within critical distance (-10% to +5%) of pass threshold",
-            child: DataTable(
-              columns: const [
-                DataColumn(label: Text("SCHOLAR NAME")),
-                DataColumn(label: Text("INSTITUTION TYPE")),
-                DataColumn(label: Text("AVG SCORE")),
-                DataColumn(label: Text("GAP TO PASS")),
-                DataColumn(label: Text("ACTION")),
-              ],
-              rows: _riskData.map((r) {
-                final double dist = r['distance']?.toDouble() ?? 0.0;
-                return DataRow(cells: [
-                  DataCell(Text(r['name'], style: const TextStyle(fontWeight: FontWeight.bold))),
-                  DataCell(Text(r['schoolType'])),
-                  DataCell(Text("${r['average'].toStringAsFixed(1)}%")),
-                  DataCell(Text("${dist > 0 ? '+' : ''}${dist.toStringAsFixed(1)}%", 
-                    style: TextStyle(color: dist >= 0 ? Colors.orange : Colors.red, fontWeight: FontWeight.w900))),
-                  DataCell(TextButton(onPressed: () {}, child: const Text("NOTIFY COORDINATOR"))),
-                ]);
-              }).toList(),
+            isMobile: isMobile,
+            title: "Warning Matrix",
+            subtitle: "Critical distance mapping",
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                columnSpacing: 20,
+                columns: const [
+                  DataColumn(label: Text("NAME")),
+                  DataColumn(label: Text("AVG")),
+                  DataColumn(label: Text("GAP")),
+                  DataColumn(label: Text("ACTION")),
+                ],
+                rows: _riskData.map((r) {
+                  final double dist = r['distance']?.toDouble() ?? 0.0;
+                  return DataRow(cells: [
+                    DataCell(Text(r['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                    DataCell(Text("${r['average'].toStringAsFixed(1)}%", style: const TextStyle(fontSize: 12))),
+                    DataCell(Text("${dist > 0 ? '+' : ''}${dist.toStringAsFixed(1)}%", 
+                      style: TextStyle(color: dist >= 0 ? Colors.orange : Colors.red, fontWeight: FontWeight.w900, fontSize: 12))),
+                    DataCell(TextButton(
+                      onPressed: () {}, 
+                      child: const Text("ALERT", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kBrandOlive)),
+                    )),
+                  ]);
+                }).toList(),
+              ),
             ),
           ),
         ],
@@ -546,13 +644,14 @@ class _MetricIndicator extends StatelessWidget {
   final String label, value;
   final IconData icon;
   final Color? color;
-  const _MetricIndicator({required this.label, required this.value, required this.icon, this.color});
+  final bool isMobile;
+  const _MetricIndicator({required this.label, required this.value, required this.icon, this.color, this.isMobile = false});
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(isMobile ? 16 : 24),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -562,18 +661,20 @@ class _MetricIndicator extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: EdgeInsets.all(isMobile ? 8 : 10),
               decoration: BoxDecoration(color: (color ?? kBrandBrown).withOpacity(0.1), shape: BoxShape.circle),
-              child: Icon(icon, color: color ?? kBrandBrown, size: 20),
+              child: Icon(icon, color: color ?? kBrandBrown, size: isMobile ? 18 : 20),
             ),
-            const SizedBox(width: 16),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
-                const SizedBox(height: 4),
-                Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: color ?? kBrandBrown)),
-              ],
+            SizedBox(width: isMobile ? 12 : 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: TextStyle(fontSize: isMobile ? 8 : 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1), overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 4),
+                  Text(value, style: TextStyle(fontSize: isMobile ? 13 : 16, fontWeight: FontWeight.w900, color: color ?? kBrandBrown), overflow: TextOverflow.ellipsis),
+                ],
+              ),
             ),
           ],
         ),
@@ -585,13 +686,14 @@ class _MetricIndicator extends StatelessWidget {
 class _AnalysisCard extends StatelessWidget {
   final String title, subtitle;
   final Widget child;
-  const _AnalysisCard({required this.title, required this.subtitle, required this.child});
+  final bool isMobile;
+  const _AnalysisCard({required this.title, required this.subtitle, required this.child, this.isMobile = false});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(isMobile ? 20 : 32),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -600,9 +702,9 @@ class _AnalysisCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kBrandBrown)),
+          Text(title, style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.bold, color: kBrandBrown)),
           Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 32),
+          SizedBox(height: isMobile ? 24 : 32),
           child,
         ],
       ),

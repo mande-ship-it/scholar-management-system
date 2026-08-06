@@ -125,6 +125,9 @@ class _OrganisationProfileComponentState
 
   @override
   Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 900;
+
     return Container(
       width: double.infinity,
       height: double.infinity,
@@ -139,10 +142,10 @@ class _OrganisationProfileComponentState
         : Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildExecutiveHeader(),
+            _buildExecutiveHeader(isMobile),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(40),
+                padding: EdgeInsets.all(isMobile ? 16 : 40),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 1000),
@@ -151,20 +154,30 @@ class _OrganisationProfileComponentState
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildProfileOverviewSection(),
+                          _buildProfileOverviewSection(isMobile),
                           const SizedBox(height: 48),
 
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(flex: 3, child: _buildGeneralSettingsSection()),
-                              const SizedBox(width: 40),
-                              Expanded(flex: 2, child: _buildContactSettingsSection()),
-                            ],
-                          ),
+                          if (isMobile)
+                            Column(
+                              children: [
+                                _buildGeneralSettingsSection(),
+                                const SizedBox(height: 40),
+                                _buildContactSettingsSection(),
+                              ],
+                            )
+                          else
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(flex: 3, child: _buildGeneralSettingsSection()),
+                                const SizedBox(width: 40),
+                                Expanded(flex: 2, child: _buildContactSettingsSection()),
+                              ],
+                            ),
 
                           const SizedBox(height: 60),
-                          _buildSubmitAction(),
+                          _buildSubmitAction(isMobile),
+                          const SizedBox(height: 20),
                         ],
                       ),
                     ),
@@ -177,7 +190,7 @@ class _OrganisationProfileComponentState
     );
   }
 
-  Widget _buildExecutiveHeader() {
+  Widget _buildExecutiveHeader(bool isMobile) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: const BoxDecoration(
@@ -186,22 +199,24 @@ class _OrganisationProfileComponentState
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: kBrandBrown.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(8),
+          if (!isMobile) ...[
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: kBrandBrown.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.corporate_fare_rounded, color: kBrandBrown, size: 20),
             ),
-            child: const Icon(Icons.corporate_fare_rounded, color: kBrandBrown, size: 20),
-          ),
-          const SizedBox(width: 16),
-          const Expanded(
+            const SizedBox(width: 16),
+          ],
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Organisation Profile", 
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                Text("Manage institutional identity and channels.",
+                  style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                const Text("Identity and communication channels.",
                   style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
@@ -211,83 +226,98 @@ class _OrganisationProfileComponentState
     );
   }
 
-  Widget _buildProfileOverviewSection() {
+  Widget _buildProfileOverviewSection(bool isMobile) {
+    Widget logo = Container(
+      width: isMobile ? 100 : 120,
+      height: isMobile ? 100 : 120,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.grey.shade200, width: 4),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          )
+        ],
+      ),
+      child: ClipOval(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Image.asset(
+            'assets/images/age-logo.png',
+            fit: BoxFit.contain,
+          ),
+        ),
+      ),
+    );
+
+    Widget details = Column(
+      crossAxisAlignment: isMobile ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Text(_nameController.text.isEmpty ? "ENTITY" : _nameController.text.toUpperCase(),
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: isMobile ? 20 : 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+            if (_isVerified) ...[
+              const SizedBox(width: 12),
+              _verifiedBadge(),
+            ],
+          ],
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 12,
+          runSpacing: 8,
+          alignment: WrapAlignment.center,
+          children: [
+            _metaInfoChip("ID: $_orgId", Icons.fingerprint_rounded),
+            _metaInfoChip("ESTABLISHED: $_createdDate", Icons.event_available_rounded),
+            _metaInfoChip(_orgType.toUpperCase(), Icons.category_rounded),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Row(
+          mainAxisAlignment: isMobile ? MainAxisAlignment.center : MainAxisAlignment.start,
+          children: [
+            const Icon(Icons.location_on_rounded, size: 16, color: kBrandOrange),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(_addressController.text.isEmpty ? "Address Pending" : _addressController.text,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+            ),
+          ],
+        ),
+      ],
+    );
+
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(isMobile ? 20 : 32),
       decoration: BoxDecoration(
         color: const Color(0xFFF9FAFB),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: const Color(0xFFEEEEEE)),
       ),
-      child: Row(
-        children: [
-          // Round Logo
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.grey.shade200, width: 4),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
-                )
-              ],
-            ),
-            child: ClipOval(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Image.asset(
-                  'assets/images/age-logo.png',
-                  fit: BoxFit.contain,
-                ),
-              ),
-            ),
+      child: isMobile 
+        ? Column(
+            children: [
+              logo,
+              const SizedBox(height: 24),
+              details,
+            ],
+          )
+        : Row(
+            children: [
+              logo,
+              const SizedBox(width: 40),
+              Expanded(child: details),
+            ],
           ),
-          const SizedBox(width: 40),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(_nameController.text.isEmpty ? "Institutional Entity" : _nameController.text.toUpperCase(),
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                    if (_isVerified) ...[
-                      const SizedBox(width: 12),
-                      _verifiedBadge(),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 8,
-                  children: [
-                    _metaInfoChip("ID: $_orgId", Icons.fingerprint_rounded),
-                    _metaInfoChip("ESTABLISHED: $_createdDate", Icons.event_available_rounded),
-                    _metaInfoChip(_orgType.toUpperCase(), Icons.category_rounded),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    const Icon(Icons.location_on_rounded, size: 16, color: kBrandOrange),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(_addressController.text.isEmpty ? "Headquarters Address Pending" : _addressController.text,
-                        style: TextStyle(fontSize: 14, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -395,7 +425,7 @@ class _OrganisationProfileComponentState
     );
   }
 
-  Widget _buildSubmitAction() {
+  Widget _buildSubmitAction(bool isMobile) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
@@ -403,7 +433,7 @@ class _OrganisationProfileComponentState
         icon: _isSaving
           ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
           : const Icon(Icons.verified_user_rounded, size: 20),
-        label: Text(_isSaving ? "SYNCHRONIZING..." : "FINALIZE & SAVE PROFILE",
+        label: Text(_isSaving ? "SYNCHRONIZING..." : "SAVE PROFILE",
           style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.0, fontSize: 13)),
         style: ElevatedButton.styleFrom(
           backgroundColor: kBrandOlive,

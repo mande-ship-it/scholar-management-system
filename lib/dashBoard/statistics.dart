@@ -70,32 +70,43 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
       return const Center(child: Padding(padding: EdgeInsets.all(100), child: CircularProgressIndicator(color: primary)));
     }
 
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
+
     return Container(
       color: Colors.white,
       child: Column(
         children: [
-          _buildStatsGrid(),
+          _buildStatsGrid(isMobile),
         const SizedBox(height: 24),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(flex: 3, child: _buildCohortCard()),
-            const SizedBox(width: 24),
-            Expanded(flex: 2, child: _buildRegionCard()),
-          ],
-        ),
+        if (isMobile)
+          Column(
+            children: [
+              _buildCohortCard(isMobile),
+              const SizedBox(height: 24),
+              _buildRegionCard(isMobile),
+            ],
+          )
+        else
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 3, child: _buildCohortCard(isMobile)),
+              const SizedBox(width: 24),
+              Expanded(flex: 2, child: _buildRegionCard(isMobile)),
+            ],
+          ),
         const SizedBox(height: 24),
-        _buildPerformanceTrendCard(),
+        _buildPerformanceTrendCard(isMobile),
         const SizedBox(height: 24),
-        _buildRiskIndicatorCard(),
+        _buildRiskIndicatorCard(isMobile),
         const SizedBox(height: 24),
-        _buildEngagementImpactCard(),
+        _buildEngagementImpactCard(isMobile),
       ],
     ),
   );
 }
 
-  Widget _buildRegionCard() {
+  Widget _buildRegionCard(bool isMobile) {
     final List regions = _data!['regions'] ?? [];
     
     return _DashboardCard(
@@ -152,114 +163,151 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
     );
   }
 
-  Widget _buildStatsGrid() {
+  Widget _buildStatsGrid(bool isMobile) {
     final summary = _data!['summary'] as List;
+    if (isMobile) {
+      return Column(
+        children: [
+          Row(
+            children: [
+              _summaryCard(summary[0], chartColors[0], true),
+              const SizedBox(width: 12),
+              _summaryCard(summary[1], chartColors[1], true),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _summaryCard(summary[2], chartColors[2], true),
+              const SizedBox(width: 12),
+              _summaryCard(summary[3], chartColors[3], true),
+            ],
+          ),
+        ],
+      );
+    }
+
     return Row(
       children: summary.map((item) {
         final int index = summary.indexOf(item);
         final Color color = chartColors[index % chartColors.length];
-        return Expanded(
-          child: Container(
-            margin: EdgeInsets.only(right: index == summary.length - 1 ? 0 : 16),
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: dividerColor),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.02),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                )
-              ],
-            ),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(_getIcon(item['icon']), color: color, size: 20),
-                ),
-                const SizedBox(height: 16),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text("${item['value']}", 
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: textPrimary, letterSpacing: -0.5)),
-                ),
-                const SizedBox(height: 4),
-                Text(item['label'].toString().toUpperCase(), 
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: textSecondary, letterSpacing: 0.5)),
-              ],
-            ),
-          ),
-        );
+        return _summaryCard(item, color, true);
       }).toList(),
     );
   }
 
-  Widget _buildCohortCard() {
+  Widget _summaryCard(dynamic item, Color color, bool isExpanded) {
+    Widget content = Container(
+      margin: const EdgeInsets.only(right: 0),
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: dividerColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(_getIcon(item['icon']), color: color, size: 18),
+          ),
+          const SizedBox(height: 12),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text("${item['value']}", 
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: textPrimary, letterSpacing: -0.5)),
+          ),
+          const SizedBox(height: 4),
+          Text(item['label'].toString().toUpperCase(), 
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: textSecondary, letterSpacing: 0.5)),
+        ],
+      ),
+    );
+
+    return isExpanded ? Expanded(child: content) : content;
+  }
+
+  Widget _buildCohortCard(bool isMobile) {
     final cohorts = (_data!['cohorts'] ?? []) as List;
     final total = cohorts.fold(0, (sum, e) => sum + (e['count'] as int));
+
+    Widget chart = SizedBox(
+      width: isMobile ? 140 : 170, 
+      height: isMobile ? 140 : 170,
+      child: cohorts.isEmpty 
+        ? const Center(child: Text("No cohort data", style: TextStyle(fontSize: 10, color: Colors.grey)))
+        : PieChart(PieChartData(
+            sectionsSpace: 4,
+            centerSpaceRadius: isMobile ? 30 : 40,
+            sections: cohorts.asMap().entries.map((e) => PieChartSectionData(
+              color: chartColors[e.key % chartColors.length],
+              value: (e.value['count'] as int).toDouble(),
+              title: "", radius: isMobile ? 20 : 30,
+            )).toList(),
+          )),
+    );
+
+    Widget legend = Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: cohorts.asMap().entries.map((e) {
+        final count = e.value['count'] as int;
+        final perc = total > 0 ? (count / total * 100).round() : 0;
+        final Color color = chartColors[e.key % chartColors.length];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Row(
+            children: [
+              Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Enrolment ${e.value['cohort']}", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textPrimary)),
+                    Text("$count scholars ($perc%)", style: const TextStyle(fontSize: 10, color: textSecondary, fontWeight: FontWeight.w500)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
 
     return _DashboardCard(
       title: "Scholar Cohorts",
       subtitle: "Active program registration by intake year",
-      child: Row(
-        children: [
-          SizedBox(
-            width: 170, height: 170,
-            child: cohorts.isEmpty 
-              ? const Center(child: Text("No cohort data", style: TextStyle(fontSize: 10, color: Colors.grey)))
-              : PieChart(PieChartData(
-                  sectionsSpace: 4,
-                  centerSpaceRadius: 40,
-                  sections: cohorts.asMap().entries.map((e) => PieChartSectionData(
-                    color: chartColors[e.key % chartColors.length],
-                    value: (e.value['count'] as int).toDouble(),
-                    title: "", radius: 30,
-                  )).toList(),
-                )),
+      child: isMobile 
+        ? Column(
+            children: [
+              chart,
+              const SizedBox(height: 24),
+              legend,
+            ],
+          )
+        : Row(
+            children: [
+              chart,
+              const SizedBox(width: 32),
+              Expanded(child: legend),
+            ],
           ),
-          const SizedBox(width: 32),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: cohorts.asMap().entries.map((e) {
-                final count = e.value['count'] as int;
-                final perc = total > 0 ? (count / total * 100).round() : 0;
-                final Color color = chartColors[e.key % chartColors.length];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    children: [
-                      Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text("Enrolment ${e.value['cohort']}", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textPrimary)),
-                            Text("$count scholars ($perc%)", style: const TextStyle(fontSize: 11, color: textSecondary, fontWeight: FontWeight.w500)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
-  Widget _buildRiskIndicatorCard() {
+  Widget _buildRiskIndicatorCard(bool isMobile) {
     final schools = (_data!['schools'] ?? []) as List;
     if (schools.isEmpty) return const SizedBox();
     
@@ -273,11 +321,10 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
       subtitle: "Risk mapping and performance flags for partner schools",
       child: Column(
         children: [
-          Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: Container(
+          if (isMobile)
+            Column(
+              children: [
+                Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade50,
@@ -296,11 +343,8 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
                     onChanged: (val) => setState(() => _selectedRiskSchool = val),
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                flex: 2,
-                child: Container(
+                const SizedBox(height: 12),
+                Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: rColor.withOpacity(0.1),
@@ -321,9 +365,60 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
                     ],
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: dividerColor),
+                    ),
+                    child: DropdownButton<String>(
+                      value: _selectedRiskSchool,
+                      isExpanded: true,
+                      underline: const SizedBox(),
+                      icon: const Icon(Icons.keyboard_arrow_down_rounded, color: textSecondary),
+                      items: schools.map((s) {
+                        final name = s['name']?.toString() ?? 'Unassigned';
+                        return DropdownMenuItem<String>(value: name, child: Text(name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)));
+                      }).toList(),
+                      onChanged: (val) => setState(() => _selectedRiskSchool = val),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: rColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: rColor.withOpacity(0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.warning_amber_rounded, size: 20, color: rColor),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("$rLabel", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: rColor, letterSpacing: 0.5)),
+                            Text("${school['atrisk']} scholars at risk", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: rColor)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           const SizedBox(height: 20),
           Container(
             width: double.infinity,
@@ -338,7 +433,7 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
               children: [
                 const Text("SITUATIONAL ANALYSIS", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.2)),
                 const SizedBox(height: 8),
-                Text(school['reason'], style: const TextStyle(fontSize: 13.5, height: 1.6, color: textPrimary, fontWeight: FontWeight.w500)),
+                Text(school['reason'], style: const TextStyle(fontSize: 13, height: 1.6, color: textPrimary, fontWeight: FontWeight.w500)),
                 const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
@@ -355,7 +450,7 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
     );
   }
 
-  Widget _buildPerformanceTrendCard() {
+  Widget _buildPerformanceTrendCard(bool isMobile) {
     final trends = _data!['performanceSeries'] as Map? ?? {};
     final List<String> schools = trends.keys.map((k) => k?.toString() ?? 'Unknown').toList();
     
@@ -368,13 +463,13 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
           _buildChartLegend(schools.asMap().entries.map((e) => (label: e.value, color: chartColors[e.key % chartColors.length])).toList()),
           const SizedBox(height: 20),
           SizedBox(
-            height: 280,
+            height: isMobile ? 200 : 280,
             child: LineChart(LineChartData(
               lineTouchData: const LineTouchData(enabled: true),
               gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (_) => const FlLine(color: dividerColor, strokeWidth: 1)),
               titlesData: FlTitlesData(
-                leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 45, getTitlesWidget: (v, _) => Text("${v.toInt()}%", style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: textSecondary)))),
-                bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, _) => Padding(padding: const EdgeInsets.only(top: 8), child: Text(v.toInt().toString(), style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: textSecondary))))),
+                leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40, getTitlesWidget: (v, _) => Text("${v.toInt()}%", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: textSecondary)))),
+                bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, _) => Padding(padding: const EdgeInsets.only(top: 8), child: Text(v.toInt().toString(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: textSecondary))))),
                 rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                 topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
               ),
@@ -383,8 +478,8 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
                 final points = trends[e.value] as List;
                 return LineChartBarData(
                   spots: points.map((p) => FlSpot(double.parse(p['year'].toString()), double.parse(p['marks'].toString()))).toList(),
-                  isCurved: true, color: chartColors[e.key % chartColors.length], barWidth: 3.5, 
-                  dotData: FlDotData(show: true, getDotPainter: (s, p, bd, i) => FlDotCirclePainter(radius: 4, color: Colors.white, strokeWidth: 2, strokeColor: chartColors[e.key % chartColors.length])),
+                  isCurved: true, color: chartColors[e.key % chartColors.length], barWidth: isMobile ? 2.5 : 3.5, 
+                  dotData: FlDotData(show: true, getDotPainter: (s, p, bd, i) => FlDotCirclePainter(radius: 3, color: Colors.white, strokeWidth: 2, strokeColor: chartColors[e.key % chartColors.length])),
                 );
               }).toList(),
             )),
@@ -394,7 +489,7 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
     );
   }
 
-  Widget _buildEngagementImpactCard() {
+  Widget _buildEngagementImpactCard(bool isMobile) {
     final engData = _data!['engagementSeries'] as Map? ?? {};
     final levels = ["Frequent", "Moderate", "Rare"];
     final levelColors = {"Frequent": const Color(0xFF2E7D32), "Moderate": const Color(0xFFF9A825), "Rare": const Color(0xFFD32F2F)};
@@ -408,12 +503,12 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
           _buildChartLegend(levels.map((l) => (label: "$l Attendance", color: levelColors[l]!)).toList()),
           const SizedBox(height: 20),
           SizedBox(
-            height: 280,
+            height: isMobile ? 200 : 280,
             child: LineChart(LineChartData(
               gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (_) => const FlLine(color: dividerColor, strokeWidth: 1)),
               titlesData: FlTitlesData(
-                leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 45, getTitlesWidget: (v, _) => Text("${v.toInt()}%", style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: textSecondary)))),
-                bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, _) => Padding(padding: const EdgeInsets.only(top: 8), child: Text(v.toInt().toString(), style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: textSecondary))))),
+                leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40, getTitlesWidget: (v, _) => Text("${v.toInt()}%", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: textSecondary)))),
+                bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, _) => Padding(padding: const EdgeInsets.only(top: 8), child: Text(v.toInt().toString(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: textSecondary))))),
                 rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                 topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
               ),
@@ -422,8 +517,8 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
                 final points = engData[l] as List;
                 return LineChartBarData(
                   spots: points.map((p) => FlSpot(double.parse(p['year'].toString()), double.parse(p['score'].toString()))).toList(),
-                  isCurved: true, color: levelColors[l], barWidth: 4, 
-                  dotData: FlDotData(show: true, getDotPainter: (s, p, bd, i) => FlDotCirclePainter(radius: 4, color: Colors.white, strokeWidth: 2.5, strokeColor: levelColors[l]!)),
+                  isCurved: true, color: levelColors[l], barWidth: isMobile ? 3 : 4, 
+                  dotData: FlDotData(show: true, getDotPainter: (s, p, bd, i) => FlDotCirclePainter(radius: 3, color: Colors.white, strokeWidth: 2.5, strokeColor: levelColors[l]!)),
                 );
               }).toList(),
             )),
@@ -432,6 +527,7 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
       ),
     );
   }
+
 
   Widget _buildChartLegend(List<({String label, Color color})> items) {
     return Wrap(

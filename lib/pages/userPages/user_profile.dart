@@ -6,10 +6,11 @@ class UserProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
+    return Scaffold(
       body: Padding(
-        padding: EdgeInsets.all(20),
-        child: UserProfileComponent(),
+        padding: EdgeInsets.all(isMobile ? 0 : 20),
+        child: const UserProfileComponent(),
       ),
     );
   }

@@ -596,22 +596,24 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
   @override
   Widget build(BuildContext context) {
     final filtered = _filteredRoles;
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
 
     return Card(
       elevation: 2,
+      margin: EdgeInsets.all(isMobile ? 0 : 4),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildHeader(),
+          _buildHeader(isMobile),
           // ---------------- Stats (Banners Removed) ----------------
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 18, 24, 8),
+            padding: EdgeInsets.fromLTRB(24, 18, 24, 8),
             child: TextField(
               onChanged: (val) => setState(() => _searchQuery = val),
               decoration: InputDecoration(
-                hintText: "Search roles by name or description...",
+                hintText: isMobile ? "Search roles..." : "Search roles by name or description...",
                 hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade500),
                 prefixIcon: const Icon(Icons.search, size: 20),
                 isDense: true,
@@ -649,7 +651,7 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
                               crossAxisCount: columns,
                               crossAxisSpacing: 16,
                               mainAxisSpacing: 16,
-                              childAspectRatio: 1.55,
+                              childAspectRatio: isMobile ? 1.4 : 1.55,
                             ),
                             itemCount: filtered.length,
                             itemBuilder: (context, index) =>
@@ -664,31 +666,33 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
   }
 
   // ---------------- CLEAN HEADER (Banner Removed) ----------------
-  Widget _buildHeader() {
+  Widget _buildHeader(bool isMobile) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.green.shade50,
-              borderRadius: BorderRadius.circular(8),
+          if (!isMobile) ...[
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.badge_rounded, color: Colors.green, size: 20),
             ),
-            child: const Icon(Icons.badge_rounded, color: Colors.green, size: 20),
-          ),
-          const SizedBox(width: 16),
-          const Expanded(
+            const SizedBox(width: 16),
+          ],
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   "User Roles",
                   style: TextStyle(
-                      color: Color(0xFF4C3C32), fontSize: 18, fontWeight: FontWeight.bold),
+                      color: const Color(0xFF4C3C32), fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.bold),
                 ),
-                Text(
-                  "Define and manage the roles available across CHATS.",
+                const Text(
+                  "Define system access models.",
                   style: TextStyle(color: Colors.grey, fontSize: 11),
                 ),
               ],
@@ -696,13 +700,13 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
           ),
           ElevatedButton.icon(
             onPressed: () => _openRoleDialog(),
-            icon: const Icon(Icons.add_rounded, size: 16),
-            label: const Text("REGISTER"),
+            icon: Icon(Icons.add_rounded, size: isMobile ? 14 : 16),
+            label: Text(isMobile ? "ADD" : "REGISTER"),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF4C3C32),
               foregroundColor: Colors.white,
               elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: 14),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
             ),

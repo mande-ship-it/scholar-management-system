@@ -105,46 +105,66 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
       return const Center(child: CircularProgressIndicator(color: kBrandOlive));
     }
 
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
+
     return Container(
       width: double.infinity,
       height: double.infinity,
       color: Colors.white,
       child: Column(
         children: [
-          _buildHeader(),
+          _buildHeader(isMobile),
           const Divider(height: 1),
           Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(width: 300, child: _buildRolesList()),
-                const VerticalDivider(width: 1),
-                Expanded(child: _buildPermissionsMatrix()),
-              ],
-            ),
+            child: isMobile 
+              ? _buildMobileLayout()
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(width: 300, child: _buildRolesList()),
+                    const VerticalDivider(width: 1),
+                    Expanded(child: _buildPermissionsMatrix(isMobile)),
+                  ],
+                ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildMobileLayout() {
+    return Column(
+      children: [
+        Container(
+          height: 140,
+          decoration: BoxDecoration(color: Colors.grey.shade50),
+          child: _buildRolesList(isMobile: true),
+        ),
+        const Divider(height: 1),
+        Expanded(child: _buildPermissionsMatrix(true)),
+      ],
+    );
+  }
+
+  Widget _buildHeader(bool isMobile) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-            child: const Icon(Icons.admin_panel_settings_rounded, color: kBrandOlive, size: 20),
-          ),
-          const SizedBox(width: 16),
-          const Expanded(
+          if (!isMobile) ...[
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+              child: const Icon(Icons.admin_panel_settings_rounded, color: kBrandOlive, size: 20),
+            ),
+            const SizedBox(width: 16),
+          ],
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Role Permissions Governance", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                Text("Define modular access control and functional boundaries for each user role.", style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                Text("Permissions", style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                const Text("Define modular access.", style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -152,12 +172,12 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
             onPressed: _isSaving ? null : _savePermissions,
             icon: _isSaving 
                 ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.verified_user_rounded, size: 16),
-            label: const Text("SYNC", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10)),
+                : Icon(Icons.verified_user_rounded, size: isMobile ? 14 : 16),
+            label: Text(isMobile ? "SYNC" : "SYNC CHANGES", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10)),
             style: ElevatedButton.styleFrom(
               backgroundColor: kBrandBrown,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: 14),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),
@@ -166,32 +186,62 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
     );
   }
 
-  Widget _buildRolesList() {
+  Widget _buildRolesList({bool isMobile = false}) {
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: TextField(
-            onChanged: (v) => setState(() => _searchQuery = v),
-            decoration: InputDecoration(
-              hintText: "Filter roles...",
-              prefixIcon: const Icon(Icons.search, size: 20),
-              isDense: true,
-              filled: true,
-              fillColor: Colors.grey.shade50,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
+        if (!isMobile)
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              onChanged: (v) => setState(() => _searchQuery = v),
+              decoration: InputDecoration(
+                hintText: "Filter roles...",
+                prefixIcon: const Icon(Icons.search, size: 20),
+                isDense: true,
+                filled: true,
+                fillColor: Colors.grey.shade50,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
+              ),
             ),
           ),
-        ),
         Expanded(
           child: ListView.builder(
+            scrollDirection: isMobile ? Axis.horizontal : Axis.vertical,
             itemCount: _rolesData.length,
             itemBuilder: (context, index) {
               final role = _rolesData[index];
               final isSelected = _selectedRoleId == role['id'].toString();
-              if (_searchQuery.isNotEmpty && !role['name'].toString().toLowerCase().contains(_searchQuery.toLowerCase())) {
+              if (!isMobile && _searchQuery.isNotEmpty && !role['name'].toString().toLowerCase().contains(_searchQuery.toLowerCase())) {
                 return const SizedBox();
+              }
+
+              if (isMobile) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                  child: InkWell(
+                    onTap: () => setState(() => _selectedRoleId = role['id'].toString()),
+                    child: Container(
+                      width: 150,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isSelected ? kBrandOlive.withOpacity(0.1) : Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: isSelected ? kBrandOlive : Colors.grey.shade200),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.security, size: 18, color: isSelected ? kBrandOlive : kBrandBrown),
+                          const SizedBox(height: 8),
+                          Text(role['name'], 
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: isSelected ? kBrandOlive : kBrandBrown),
+                            overflow: TextOverflow.ellipsis),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
               }
 
               return ListTile(
@@ -202,7 +252,7 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
                   child: Icon(Icons.security, size: 18, color: isSelected ? kBrandOlive : kBrandBrown),
                 ),
                 title: Text(role['name'], style: TextStyle(fontWeight: FontWeight.bold, color: isSelected ? kBrandOlive : kBrandBrown)),
-                subtitle: Text("${_rolePermissions[role['id'].toString()]?.length ?? 0} active permissions", style: const TextStyle(fontSize: 11)),
+                subtitle: Text("${_rolePermissions[role['id'].toString()]?.length ?? 0} active perms", style: const TextStyle(fontSize: 11)),
                 onTap: () => setState(() => _selectedRoleId = role['id'].toString()),
               );
             },
@@ -212,36 +262,35 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
     );
   }
 
-  Widget _buildPermissionsMatrix() {
-    if (_selectedRoleId == null) return const Center(child: Text("Select a role to manage permissions"));
+  Widget _buildPermissionsMatrix(bool isMobile) {
+    if (_selectedRoleId == null) return const Center(child: Text("Select a role"));
     
     final selectedRole = _rolesData.firstWhere((r) => r['id'].toString() == _selectedRoleId);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(isMobile ? 16 : 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Text("Permissions for: ${selectedRole['name']}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kBrandBrown)),
-              const Spacer(),
+              Expanded(child: Text("Scope for: ${selectedRole['name']}", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kBrandBrown))),
               if (selectedRole['name'] == 'Administrator')
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(color: Colors.amber.withOpacity(0.1), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.amber)),
-                  child: const Text("FULL SYSTEM BYPASS ENABLED", style: TextStyle(color: Colors.amber, fontWeight: FontWeight.w900, fontSize: 10)),
+                  child: const Text("ADMIN BYPASS", style: TextStyle(color: Colors.amber, fontWeight: FontWeight.w900, fontSize: 9)),
                 ),
             ],
           ),
           const SizedBox(height: 24),
-          ..._permissionGroups.map((group) => _buildPermissionGroup(group)).toList(),
+          ..._permissionGroups.map((group) => _buildPermissionGroup(group, isMobile)).toList(),
         ],
       ),
     );
   }
 
-  Widget _buildPermissionGroup(dynamic group) {
+  Widget _buildPermissionGroup(dynamic group, bool isMobile) {
     final String groupName = group['name'];
     final List<dynamic> perms = group['permissions'];
 
@@ -252,7 +301,7 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
         children: [
           Row(
             children: [
-              Text(groupName.toUpperCase(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: kBrandOlive, letterSpacing: 1.5)),
+              Text(groupName.toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kBrandOlive, letterSpacing: 1.5)),
               const SizedBox(width: 16),
               const Expanded(child: Divider()),
             ],
@@ -261,11 +310,11 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              childAspectRatio: 4,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: isMobile ? 1 : 3,
+              childAspectRatio: isMobile ? 6 : 4,
               crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
+              mainAxisSpacing: 12,
             ),
             itemCount: perms.length,
             itemBuilder: (context, index) {
@@ -277,7 +326,7 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
                 onTap: isAdmin ? null : () => _togglePermission(_selectedRoleId!, perm['id']),
                 borderRadius: BorderRadius.circular(12),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
                     color: isEnabled ? kBrandOlive.withOpacity(0.05) : Colors.grey.shade50,
                     borderRadius: BorderRadius.circular(12),
@@ -286,15 +335,15 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
                   child: Row(
                     children: [
                       Transform.scale(
-                        scale: 0.8,
+                        scale: 0.7,
                         child: Checkbox(
                           value: isEnabled || isAdmin,
                           onChanged: isAdmin ? null : (v) => _togglePermission(_selectedRoleId!, perm['id']),
                           activeColor: kBrandOlive,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(perm['label'], style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isEnabled || isAdmin ? kBrandBrown : Colors.grey))),
+                      const SizedBox(width: 4),
+                      Expanded(child: Text(perm['label'], style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isEnabled || isAdmin ? kBrandBrown : Colors.grey))),
                     ],
                   ),
                 ),

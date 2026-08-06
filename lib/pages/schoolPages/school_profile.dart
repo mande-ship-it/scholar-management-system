@@ -6,6 +6,7 @@ class SchoolProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
     final canPop = Navigator.of(context).canPop();
     return Scaffold(
       appBar: canPop
@@ -15,9 +16,9 @@ class SchoolProfilePage extends StatelessWidget {
               foregroundColor: Colors.white,
             )
           : null,
-      body: const Padding(
-        padding: EdgeInsets.all(20),
-        child: SchoolProfileComponent(),
+      body: Padding(
+        padding: EdgeInsets.all(isMobile ? 0 : 20),
+        child: const SchoolProfileComponent(),
       ),
     );
   }

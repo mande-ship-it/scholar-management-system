@@ -6,10 +6,12 @@ class AcademicStatsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
+    return Scaffold(
+      backgroundColor: Colors.white,
       body: Padding(
-        padding: EdgeInsets.all(20),
-        child: AcademicStatsComponent(),
+        padding: EdgeInsets.all(isMobile ? 0 : 20),
+        child: const AcademicStatsComponent(),
       ),
     );
   }

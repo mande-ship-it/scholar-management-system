@@ -165,6 +165,8 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
 
   @override
   Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 900;
     final busy = _isBackingUp || _isRestoring;
 
     return Container(
@@ -181,27 +183,36 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
         : Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildExecutiveHeader(),
+            _buildExecutiveHeader(isMobile),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(40),
+                padding: EdgeInsets.all(isMobile ? 16 : 40),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 1000),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildPrimaryStatusSection(busy),
+                        _buildPrimaryStatusSection(busy, isMobile),
                         const SizedBox(height: 48),
 
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(child: _buildAutomationControls()),
-                            const SizedBox(width: 40),
-                            Expanded(child: _buildHistoricalLogs(busy)),
-                          ],
-                        ),
+                        if (isMobile)
+                          Column(
+                            children: [
+                              _buildAutomationControls(isMobile),
+                              const SizedBox(height: 40),
+                              _buildHistoricalLogs(busy, isMobile),
+                            ],
+                          )
+                        else
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: _buildAutomationControls(isMobile)),
+                              const SizedBox(width: 40),
+                              Expanded(child: _buildHistoricalLogs(busy, isMobile)),
+                            ],
+                          ),
                       ],
                     ),
                   ),
@@ -213,7 +224,7 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
     );
   }
 
-  Widget _buildExecutiveHeader() {
+  Widget _buildExecutiveHeader(bool isMobile) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: const BoxDecoration(
@@ -222,22 +233,24 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: kBrandBrown.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(8),
+          if (!isMobile) ...[
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: kBrandBrown.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.cloud_sync_rounded, color: kBrandBrown, size: 20),
             ),
-            child: const Icon(Icons.cloud_sync_rounded, color: kBrandBrown, size: 20),
-          ),
-          const SizedBox(width: 16),
-          const Expanded(
+            const SizedBox(width: 16),
+          ],
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Disaster Recovery",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                Text("Configure automated backups and system restore protocols.",
+                  style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                const Text("Automated backups & restore protocols.",
                   style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
@@ -247,9 +260,54 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
     );
   }
 
-  Widget _buildPrimaryStatusSection(bool busy) {
+  Widget _buildPrimaryStatusSection(bool busy, bool isMobile) {
+    Widget icon = Container(
+      width: isMobile ? 60 : 72,
+      height: isMobile ? 60 : 72,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 2),
+      ),
+      child: Icon(Icons.shield_rounded, color: kBrandOlive, size: isMobile ? 28 : 36),
+    );
+
+    Widget textInfo = Column(
+      crossAxisAlignment: isMobile ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(color: kBrandOlive.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(20)),
+          child: const Text("ENCRYPTED ARCHIVE ACTIVE",
+            style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kBrandOlive, letterSpacing: 1.5)),
+        ),
+        const SizedBox(height: 8),
+        Text("Infrastructure Guard", style: TextStyle(fontSize: isMobile ? 20 : 24, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.5)),
+        const SizedBox(height: 4),
+        Text("LAST SYNC: ${_formatLastBackup().toUpperCase()}", style: TextStyle(fontSize: 10, color: Colors.white.withValues(alpha: 0.5), fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+      ],
+    );
+
+    Widget button = !busy 
+      ? SizedBox(
+          width: isMobile ? double.infinity : null,
+          child: ElevatedButton.icon(
+            onPressed: _runBackup,
+            icon: const Icon(Icons.cloud_sync_rounded, size: 18),
+            label: const Text("EXECUTE SYNC", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: kBrandBrown,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+          ),
+        )
+      : const SizedBox.shrink();
+
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(isMobile ? 24 : 32),
       decoration: BoxDecoration(
         color: kBrandBrown,
         borderRadius: BorderRadius.circular(24),
@@ -259,51 +317,25 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
       ),
       child: Column(
         children: [
-          Row(
-            children: [
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 2),
-                ),
-                child: const Icon(Icons.shield_rounded, color: kBrandOlive, size: 36),
-              ),
-              const SizedBox(width: 28),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(color: kBrandOlive.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(20)),
-                      child: const Text("ENCRYPTED ARCHIVE ACTIVE",
-                        style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: kBrandOlive, letterSpacing: 1.5)),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text("Infrastructure Guard", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.5)),
-                    const SizedBox(height: 4),
-                    Text("LAST SYSTEM AUDIT: ${_formatLastBackup().toUpperCase()}", style: TextStyle(fontSize: 11, color: Colors.white.withValues(alpha: 0.5), fontWeight: FontWeight.w800, letterSpacing: 0.5)),
-                  ],
-                ),
-              ),
-              if (!busy)
-                ElevatedButton.icon(
-                  onPressed: _runBackup,
-                  icon: const Icon(Icons.cloud_sync_rounded, size: 18),
-                  label: const Text("EXECUTE SYNC", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: kBrandBrown,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                  ),
-                ),
-            ],
-          ),
+          if (isMobile)
+            Column(
+              children: [
+                icon,
+                const SizedBox(height: 20),
+                textInfo,
+                const SizedBox(height: 24),
+                button,
+              ],
+            )
+          else
+            Row(
+              children: [
+                icon,
+                const SizedBox(width: 28),
+                Expanded(child: textInfo),
+                button,
+              ],
+            ),
           if (busy) ...[
             const SizedBox(height: 32),
             Stack(
@@ -326,9 +358,11 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
               children: [
                 const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, color: kBrandOlive)),
                 const SizedBox(width: 12),
-                Text(
-                  _isBackingUp ? "ENCRYPTING DATA BLOCKS..." : "RECONSTRUCTING SYSTEM ARCHIVE...",
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white.withValues(alpha: 0.7), letterSpacing: 1.5),
+                Flexible(
+                  child: Text(
+                    _isBackingUp ? "ENCRYPTING DATA BLOCKS..." : "RECONSTRUCTING ARCHIVE...",
+                    style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.white.withValues(alpha: 0.7), letterSpacing: 1.5),
+                  ),
                 ),
               ],
             ),
@@ -338,15 +372,16 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
     );
   }
 
-  Widget _buildAutomationControls() {
+  Widget _buildAutomationControls(bool isMobile) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _sectionLabel("AUTOMATION POLICY"),
         const SizedBox(height: 24),
         _buildControlTile(
-          title: "Automated Cloud Sync",
-          subtitle: "Periodically upload snapshots to encrypted server storage.",
+          isMobile: isMobile,
+          title: "Cloud Sync",
+          subtitle: "Snapshots to secure storage.",
           icon: Icons.auto_mode_rounded,
           trailing: Switch(
             value: _autoBackupEnabled,
@@ -357,8 +392,9 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
         if (_autoBackupEnabled) ...[
           const SizedBox(height: 16),
           _buildControlTile(
+            isMobile: isMobile,
             title: "Sync Interval",
-            subtitle: "Define how often the system generates data snapshots.",
+            subtitle: "Frequency of snapshots.",
             icon: Icons.timer_rounded,
             trailing: DropdownButton<String>(
               value: _backupFrequency,
@@ -369,8 +405,9 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
           ),
           const SizedBox(height: 16),
           _buildControlTile(
-            title: "Cellular Data Restriction",
-            subtitle: "Restrict large data transfers to Wi-Fi networks only.",
+            isMobile: isMobile,
+            title: "Wi-Fi Only",
+            subtitle: "Restrict large transfers.",
             icon: Icons.network_check_rounded,
             trailing: Switch(
               value: _wifiOnly,
@@ -383,7 +420,7 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
     );
   }
 
-  Widget _buildHistoricalLogs(bool busy) {
+  Widget _buildHistoricalLogs(bool busy, bool isMobile) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -396,29 +433,30 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
             border: Border.all(color: const Color(0xFFEEEEEE)),
           ),
           child: _history.isEmpty
-            ? const Padding(padding: EdgeInsets.all(48), child: Center(child: Text("No recovery points detected.", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic))))
+            ? const Padding(padding: EdgeInsets.all(48), child: Center(child: Text("No history.", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic))))
             : ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: _history.length,
                 separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFEEEEEE)),
-                itemBuilder: (context, index) => _buildHistoryTile(_history[index], busy),
+                itemBuilder: (context, index) => _buildHistoryTile(_history[index], busy, isMobile),
               ),
         ),
       ],
     );
   }
 
-  Widget _buildHistoryTile(_BackupItem item, bool busy) {
+  Widget _buildHistoryTile(_BackupItem item, bool busy, bool isMobile) {
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      leading: Container(
+      contentPadding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 12),
+      leading: isMobile ? null : Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: const Color(0xFFEEEEEE))),
         child: const Icon(Icons.history_rounded, color: kBrandBrown, size: 20),
       ),
       title: Text(item.label, style: const TextStyle(fontWeight: FontWeight.w800, color: kBrandBrown, fontSize: 14)),
-      subtitle: Text("${item.date} • ${item.size}", style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+      subtitle: Text("${item.date}\n${item.size}", style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
+      isThreeLine: isMobile,
       trailing: OutlinedButton(
         onPressed: busy ? null : () => _runRestore(item),
         style: OutlinedButton.styleFrom(
@@ -432,9 +470,9 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
     );
   }
 
-  Widget _buildControlTile({required String title, required String subtitle, required IconData icon, required Widget trailing}) {
+  Widget _buildControlTile({required String title, required String subtitle, required IconData icon, required Widget trailing, bool isMobile = false}) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(isMobile ? 16 : 20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -442,23 +480,25 @@ class _BackupRestoreComponentState extends State<BackupRestoreComponent> {
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: kBrandBrown.withValues(alpha: 0.05), shape: BoxShape.circle),
-            child: Icon(icon, color: kBrandBrown, size: 22),
-          ),
-          const SizedBox(width: 20),
+          if (!isMobile) ...[
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: kBrandBrown.withValues(alpha: 0.05), shape: BoxShape.circle),
+              child: Icon(icon, color: kBrandBrown, size: 22),
+            ),
+            const SizedBox(width: 20),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.w900, color: kBrandBrown, fontSize: 14)),
+                Text(title, style: const TextStyle(fontWeight: FontWeight.w900, color: kBrandBrown, fontSize: 13)),
                 const SizedBox(height: 2),
-                Text(subtitle, style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+                Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           trailing,
         ],
       ),

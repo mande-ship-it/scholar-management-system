@@ -127,6 +127,9 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
 
   @override
   Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 900;
+
     return Container(
       width: double.infinity,
       height: double.infinity,
@@ -141,10 +144,10 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
         : Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildExecutiveHeader(),
+            _buildExecutiveHeader(isMobile),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(40),
+                padding: EdgeInsets.all(isMobile ? 16 : 40),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 900),
@@ -153,26 +156,36 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildAccountSummarySection(),
+                          _buildAccountSummarySection(isMobile),
                           const SizedBox(height: 48),
 
                           _sectionLabel("PERSONAL IDENTITY"),
                           const SizedBox(height: 24),
-                          Row(
-                            children: [
-                              Expanded(child: _buildTextField(controller: _nameController, label: "Full Name", icon: Icons.person_rounded)),
-                              const SizedBox(width: 24),
-                              Expanded(child: _buildTextField(controller: _usernameController, label: "Username Handle", icon: Icons.alternate_email_rounded)),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
-                          Row(
-                            children: [
-                              Expanded(child: _buildTextField(controller: _emailController, label: "Email Address", icon: Icons.email_rounded, keyboardType: TextInputType.emailAddress)),
-                              const SizedBox(width: 24),
-                              Expanded(child: _buildTextField(controller: _phoneController, label: "Contact Phone", icon: Icons.phone_android_rounded, keyboardType: TextInputType.phone)),
-                            ],
-                          ),
+                          if (isMobile) ...[
+                            _buildTextField(controller: _nameController, label: "Full Name", icon: Icons.person_rounded),
+                            const SizedBox(height: 20),
+                            _buildTextField(controller: _usernameController, label: "Username Handle", icon: Icons.alternate_email_rounded),
+                            const SizedBox(height: 20),
+                            _buildTextField(controller: _emailController, label: "Email Address", icon: Icons.email_rounded, keyboardType: TextInputType.emailAddress),
+                            const SizedBox(height: 20),
+                            _buildTextField(controller: _phoneController, label: "Contact Phone", icon: Icons.phone_android_rounded, keyboardType: TextInputType.phone),
+                          ] else ...[
+                            Row(
+                              children: [
+                                Expanded(child: _buildTextField(controller: _nameController, label: "Full Name", icon: Icons.person_rounded)),
+                                const SizedBox(width: 24),
+                                Expanded(child: _buildTextField(controller: _usernameController, label: "Username Handle", icon: Icons.alternate_email_rounded)),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+                            Row(
+                              children: [
+                                Expanded(child: _buildTextField(controller: _emailController, label: "Email Address", icon: Icons.email_rounded, keyboardType: TextInputType.emailAddress)),
+                                const SizedBox(width: 24),
+                                Expanded(child: _buildTextField(controller: _phoneController, label: "Contact Phone", icon: Icons.phone_android_rounded, keyboardType: TextInputType.phone)),
+                              ],
+                            ),
+                          ],
 
                           const SizedBox(height: 48),
                           _sectionLabel("SECURITY & CREDENTIALS"),
@@ -180,19 +193,22 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
                           _buildActionTile(
                             icon: Icons.lock_reset_rounded,
                             title: "Change Account Password",
-                            subtitle: "Maintain account security with a strong, unique password.",
+                            subtitle: "Maintain account security with a unique password.",
                             onTap: () => _showChangePasswordDialog(context),
+                            isMobile: isMobile,
                           ),
                           const SizedBox(height: 12),
                           _buildActionTile(
                             icon: Icons.fingerprint_rounded,
                             title: "Biometric Integration",
-                            subtitle: "Configure hardware-level security for faster logins.",
+                            subtitle: "Configure hardware-level security.",
                             onTap: () {},
+                            isMobile: isMobile,
                           ),
 
                           const SizedBox(height: 60),
-                          _buildSubmitAction(),
+                          _buildSubmitAction(isMobile),
+                          const SizedBox(height: 20),
                         ],
                       ),
                     ),
@@ -205,7 +221,7 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
     );
   }
 
-  Widget _buildExecutiveHeader() {
+  Widget _buildExecutiveHeader(bool isMobile) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: const BoxDecoration(
@@ -214,22 +230,24 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: kBrandBrown.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(8),
+          if (!isMobile) ...[
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: kBrandBrown.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.manage_accounts_rounded, color: kBrandBrown, size: 20),
             ),
-            child: const Icon(Icons.manage_accounts_rounded, color: kBrandBrown, size: 20),
-          ),
-          const SizedBox(width: 16),
-          const Expanded(
+            const SizedBox(width: 16),
+          ],
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Account Preferences",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                Text("Update your personal digital identity and security.",
+                  style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                const Text("Update your digital identity.",
                   style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
@@ -239,85 +257,91 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
     );
   }
 
-  Widget _buildAccountSummarySection() {
+  Widget _buildAccountSummarySection(bool isMobile) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final initials = _nameController.text.isNotEmpty
-        ? _nameController.text.trim().split(' ').map((e) => e[0]).take(2).join().toUpperCase()
-        : "U";
+
+    Widget avatar = Stack(
+      children: [
+        Container(
+          width: isMobile ? 80 : 100,
+          height: isMobile ? 80 : 100,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 4),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 5))
+            ],
+          ),
+          child: CircleAvatar(
+            radius: 48,
+            backgroundColor: kBrandBrown,
+            backgroundImage: _profileImageUrl != null
+              ? NetworkImage(ApiService.getFullUrl(_profileImageUrl))
+              : null,
+            child: _profileImageUrl == null
+              ? Icon(Icons.person_rounded, size: isMobile ? 40 : 48, color: Colors.white)
+              : null,
+          ),
+        ),
+        Positioned(
+          bottom: 0,
+          right: 0,
+          child: GestureDetector(
+            onTap: _pickAndUploadImage,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(color: kBrandOrange, shape: BoxShape.circle),
+              child: const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white),
+            ),
+          ),
+        ),
+      ],
+    );
+
+    Widget info = Column(
+      crossAxisAlignment: isMobile ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+      children: [
+        Text(_nameController.text.isEmpty ? "User Profile" : _nameController.text,
+          style: TextStyle(fontSize: isMobile ? 20 : 22, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown)),
+        const SizedBox(height: 4),
+        Text("@${_usernameController.text}", style: const TextStyle(fontSize: 14, color: kBrandOrange, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            color: (isDark ? Colors.white : kBrandBrown).withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: (isDark ? Colors.white : kBrandBrown).withOpacity(0.1)),
+          ),
+          child: Text(_userRole.toUpperCase(),
+            style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: 1.0)),
+        ),
+      ],
+    );
 
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(isMobile ? 24 : 32),
       decoration: BoxDecoration(
         color: const Color(0xFFF9FAFB),
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: const Color(0xFFEEEEEE)),
       ),
-      child: Row(
-        children: [
-          // Round Avatar
-          Stack(
+      child: isMobile 
+        ? Column(
             children: [
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 4),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 5))
-                  ],
-                ),
-                child: CircleAvatar(
-                  radius: 48,
-                  backgroundColor: kBrandBrown,
-                  backgroundImage: _profileImageUrl != null
-                    ? NetworkImage(ApiService.getFullUrl(_profileImageUrl))
-                    : null,
-                  child: _profileImageUrl == null
-                    ? const Icon(Icons.person_rounded, size: 48, color: Colors.white)
-                    : null,
-                ),
-              ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: GestureDetector(
-                  onTap: _pickAndUploadImage,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: const BoxDecoration(color: kBrandOrange, shape: BoxShape.circle),
-                    child: const Icon(Icons.camera_alt_rounded, size: 14, color: Colors.white),
-                  ),
-                ),
-              ),
+              avatar,
+              const SizedBox(height: 20),
+              info,
+            ],
+          )
+        : Row(
+            children: [
+              avatar,
+              const SizedBox(width: 32),
+              Expanded(child: info),
             ],
           ),
-          const SizedBox(width: 32),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(_nameController.text.isEmpty ? "User Profile" : _nameController.text,
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown)),
-                const SizedBox(height: 4),
-                Text("@${_usernameController.text}", style: const TextStyle(fontSize: 14, color: kBrandOrange, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: (isDark ? Colors.white : kBrandBrown).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: (isDark ? Colors.white : kBrandBrown).withOpacity(0.1)),
-                  ),
-                  child: Text(_userRole.toUpperCase(),
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: 1.0)),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -352,6 +376,7 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
+    bool isMobile = false,
   }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -360,7 +385,7 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(isMobile ? 16 : 20),
         decoration: BoxDecoration(
           color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -369,19 +394,21 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
         ),
         child: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: (isDark ? Colors.white : kBrandBrown).withOpacity(0.05), shape: BoxShape.circle),
-              child: Icon(icon, color: isDark ? Colors.white70 : kBrandBrown, size: 20),
-            ),
-            const SizedBox(width: 20),
+            if (!isMobile) ...[
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: (isDark ? Colors.white : kBrandBrown).withOpacity(0.05), shape: BoxShape.circle),
+                child: Icon(icon, color: isDark ? Colors.white70 : kBrandBrown, size: 20),
+              ),
+              const SizedBox(width: 20),
+            ],
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: TextStyle(fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, fontSize: 15)),
+                  Text(title, style: TextStyle(fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, fontSize: isMobile ? 14 : 15)),
                   const SizedBox(height: 2),
-                  Text(subtitle, style: TextStyle(fontSize: 12, color: isDark ? Colors.white60 : Colors.grey.shade600, fontWeight: FontWeight.w500)),
+                  Text(subtitle, style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.grey.shade600, fontWeight: FontWeight.w500)),
                 ],
               ),
             ),
@@ -392,7 +419,7 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
     );
   }
 
-  Widget _buildSubmitAction() {
+  Widget _buildSubmitAction(bool isMobile) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
@@ -400,7 +427,7 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
         icon: _isSaving
           ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
           : const Icon(Icons.verified_user_rounded, size: 20),
-        label: Text(_isSaving ? "SYNCHRONIZING..." : "VERIFY & SAVE PROFILE",
+        label: Text(_isSaving ? "SYNCHRONIZING..." : "SAVE PROFILE",
           style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.0, fontSize: 13)),
         style: ElevatedButton.styleFrom(
           backgroundColor: kBrandOlive,

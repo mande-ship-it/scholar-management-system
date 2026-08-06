@@ -55,6 +55,8 @@ class _SchoolProfileComponentState extends State<SchoolProfileComponent> {
       return const Center(child: Text("School details not found."));
     }
 
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
+
     final String name = data['name'] ?? 'N/A';
     final String code = data['code'] ?? 'N/A';
     final String type = data['type'] ?? 'N/A';
@@ -81,84 +83,131 @@ class _SchoolProfileComponentState extends State<SchoolProfileComponent> {
     final band = performanceBand(schoolAvg);
 
     return SingleChildScrollView(
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 1. Profile Summary (Clean)
+          // 1. Profile Summary
           _buildSectionContainer(
-            child: Row(
-              children: [
-                Container(
-                  width: 90,
-                  height: 90,
-                  decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.green.withValues(alpha: 0.2), width: 2),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join(''),
-                    style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.green),
-                  ),
-                ),
-                const SizedBox(width: 24),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(name, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                      const SizedBox(height: 8),
-                      Row(
+            isMobile: isMobile,
+            child: isMobile 
+              ? Column(
+                  children: [
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: Colors.green.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.green.withValues(alpha: 0.2), width: 2),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join(''),
+                        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.green),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(name, textAlign: TextAlign.center, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      alignment: WrapAlignment.center,
+                      children: [
+                        _badge("CODE: $code", Colors.grey.shade100, Colors.grey.shade700),
+                        _badge(status, isActive ? Colors.green.shade50 : Colors.red.shade50, isActive ? Colors.green.shade700 : Colors.red.shade700),
+                      ],
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    Container(
+                      width: 90,
+                      height: 90,
+                      decoration: BoxDecoration(
+                        color: Colors.green.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.green.withValues(alpha: 0.2), width: 2),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join(''),
+                        style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.green),
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _badge("CODE: $code", Colors.grey.shade100, Colors.grey.shade700),
-                          const SizedBox(width: 8),
-                          _badge(status, isActive ? Colors.green.shade50 : Colors.red.shade50, isActive ? Colors.green.shade700 : Colors.red.shade700),
+                          Text(name, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              _badge("CODE: $code", Colors.grey.shade100, Colors.grey.shade700),
+                              const SizedBox(width: 8),
+                              _badge(status, isActive ? Colors.green.shade50 : Colors.red.shade50, isActive ? Colors.green.shade700 : Colors.red.shade700),
+                            ],
+                          ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
           ),
           const SizedBox(height: 20),
 
           // 2. Statistics Row
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Row(
+          if (isMobile)
+            Column(
               children: [
-                Expanded(child: _statCard("Total Scholars", "$scholarsCount", Colors.blue, Icons.people_outline_rounded)),
-                const SizedBox(width: 16),
-                Expanded(child: _statCard("Overall Avg", "${schoolAvg.toStringAsFixed(1)}%", band.color, Icons.auto_graph_rounded)),
-                const SizedBox(width: 16),
-                Expanded(child: _statCard("Performance", band.label, band.color, Icons.stars_outlined)),
+                Row(
+                  children: [
+                    Expanded(child: _statCard("Scholars", "$scholarsCount", Colors.blue, Icons.people_outline_rounded)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _statCard("Overall Avg", "${schoolAvg.toStringAsFixed(1)}%", band.color, Icons.auto_graph_rounded)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _statCard("Academic Standing", band.label, band.color, Icons.stars_outlined, isFullWidth: true),
               ],
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                children: [
+                  Expanded(child: _statCard("Total Scholars", "$scholarsCount", Colors.blue, Icons.people_outline_rounded)),
+                  const SizedBox(width: 16),
+                  Expanded(child: _statCard("Overall Avg", "${schoolAvg.toStringAsFixed(1)}%", band.color, Icons.auto_graph_rounded)),
+                  const SizedBox(width: 16),
+                  Expanded(child: _statCard("Performance", band.label, band.color, Icons.stars_outlined)),
+                ],
+              ),
             ),
-          ),
           const SizedBox(height: 20),
 
           // 3. School Details
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _buildSectionContainer(
+          if (isMobile)
+            Column(
+              children: [
+                _buildSectionContainer(
+                  isMobile: true,
                   title: "Location Details",
                   icon: Icons.location_on_outlined,
                   child: Column(
                     children: [
                       _infoRow(Icons.map_outlined, "Region", region),
                       _infoRow(Icons.my_location_outlined, "District", district),
-                      _infoRow(Icons.home_outlined, "Physical Address", address),
+                      _infoRow(Icons.home_outlined, "Address", address),
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildSectionContainer(
+                const SizedBox(height: 16),
+                _buildSectionContainer(
+                  isMobile: true,
                   title: "Contact Info",
                   icon: Icons.contact_phone_outlined,
                   child: Column(
@@ -169,38 +218,91 @@ class _SchoolProfileComponentState extends State<SchoolProfileComponent> {
                     ],
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            )
+          else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _buildSectionContainer(
+                    title: "Location Details",
+                    icon: Icons.location_on_outlined,
+                    child: Column(
+                      children: [
+                        _infoRow(Icons.map_outlined, "Region", region),
+                        _infoRow(Icons.my_location_outlined, "District", district),
+                        _infoRow(Icons.home_outlined, "Physical Address", address),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildSectionContainer(
+                    title: "Contact Info",
+                    icon: Icons.contact_phone_outlined,
+                    child: Column(
+                      children: [
+                        _infoRow(Icons.phone_outlined, "Primary Phone", phone),
+                        _infoRow(Icons.email_outlined, "Email Address", email),
+                        _infoRow(Icons.language_outlined, "Website", website),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           const SizedBox(height: 20),
 
           // 4. Administration
           _buildSectionContainer(
+            isMobile: isMobile,
             title: "Administration",
             icon: Icons.person_outline,
-            child: Row(
-              children: [
-                Expanded(child: _infoListTile("Contact Person", adminName, isHighlight: true)),
-                Expanded(child: _infoListTile("Role / Designation", adminRole)),
-                Expanded(child: _infoListTile("Direct Phone", adminPhone)),
-              ],
-            ),
+            child: isMobile 
+              ? Column(
+                  children: [
+                    _infoListTile("Contact Person", adminName, isHighlight: true),
+                    const SizedBox(height: 16),
+                    _infoListTile("Role / Designation", adminRole),
+                    const SizedBox(height: 16),
+                    _infoListTile("Direct Phone", adminPhone),
+                  ],
+                )
+              : Row(
+                  children: [
+                    Expanded(child: _infoListTile("Contact Person", adminName, isHighlight: true)),
+                    Expanded(child: _infoListTile("Role / Designation", adminRole)),
+                    Expanded(child: _infoListTile("Direct Phone", adminPhone)),
+                  ],
+                ),
           ),
           const SizedBox(height: 20),
 
           // 5. Policy & Notes
           _buildSectionContainer(
-            title: "Additional Information",
+            isMobile: isMobile,
+            title: "Policy & Information",
             icon: Icons.info_outline,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Expanded(child: _infoListTile("Gender Policy", genderPolicy)),
-                    Expanded(child: _infoListTile("Agency Type", type)),
-                  ],
-                ),
+                if (isMobile)
+                  Column(
+                    children: [
+                      _infoListTile("Gender Policy", genderPolicy),
+                      const SizedBox(height: 16),
+                      _infoListTile("Agency Type", type),
+                    ],
+                  )
+                else
+                  Row(
+                    children: [
+                      Expanded(child: _infoListTile("Gender Policy", genderPolicy)),
+                      Expanded(child: _infoListTile("Agency Type", type)),
+                    ],
+                  ),
                 const SizedBox(height: 24),
                 const Text("Profile Description", style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
@@ -215,85 +317,125 @@ class _SchoolProfileComponentState extends State<SchoolProfileComponent> {
           const SizedBox(height: 32),
 
           // 6. Actions
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              OutlinedButton.icon(
-                onPressed: () async {
-                  final updatedSchool = await showDialog<Map<String, dynamic>>(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (editContext) => EditSchoolDialog(school: data),
-                  );
-                  if (updatedSchool != null) {
-                    _fetchSchoolDetails(updatedSchool['id']!);
-                  }
-                },
-                icon: const Icon(Icons.edit_outlined, size: 18),
-                label: const Text("Edit School"),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  side: const BorderSide(color: Colors.blue),
-                  foregroundColor: Colors.blue,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
-              const SizedBox(width: 16),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  final confirm = await showDialog<bool>(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      title: const Text("Delete School"),
-                      content: Text("Are you sure you want to delete $name? This action cannot be undone."),
-                      actions: [
-                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx, true),
-                          style: TextButton.styleFrom(foregroundColor: Colors.red),
-                          child: const Text("Delete"),
-                        ),
-                      ],
+          if (isMobile)
+            Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _handleEdit(data),
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    label: const Text("Edit School"),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: const BorderSide(color: Colors.blue),
+                      foregroundColor: Colors.blue,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
-                  );
-
-                  if (confirm == true) {
-                    try {
-                      final response = await ApiService.deleteSchool(data['id'].toString());
-                      if (response.statusCode == 200) {
-                        if (mounted) {
-                          Navigator.pop(context); // Go back after delete
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("School deleted successfully."), backgroundColor: Colors.red),
-                          );
-                        }
-                      }
-                    } catch (e) {
-                      debugPrint('Error deleting school: $e');
-                    }
-                  }
-                },
-                icon: const Icon(Icons.delete_outline, size: 18),
-                label: const Text("Delete School"),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                  backgroundColor: Colors.red.shade700,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _handleDelete(data, name),
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: const Text("Delete Institution"),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Colors.red.shade700,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ),
+              ],
+            )
+          else
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () => _handleEdit(data),
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  label: const Text("Edit School"),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    side: const BorderSide(color: Colors.blue),
+                    foregroundColor: Colors.blue,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton.icon(
+                  onPressed: () => _handleDelete(data, name),
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  label: const Text("Delete School"),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                    backgroundColor: Colors.red.shade700,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ],
+            ),
           const SizedBox(height: 40),
         ],
       ),
     );
   }
 
-  Widget _buildSectionContainer({required Widget child, String? title, IconData? icon}) {
+  Future<void> _handleEdit(Map<String, dynamic> data) async {
+    final updatedSchool = await showDialog<Map<String, dynamic>>(
+      context: context,
+      barrierDismissible: false,
+      builder: (editContext) => EditSchoolDialog(school: data),
+    );
+    if (updatedSchool != null) {
+      _fetchSchoolDetails(updatedSchool['id']!);
+    }
+  }
+
+  Future<void> _handleDelete(Map<String, dynamic> data, String name) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Delete School"),
+        content: Text("Are you sure you want to delete $name? This action cannot be undone."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        final response = await ApiService.deleteSchool(data['id'].toString());
+        if (response.statusCode == 200) {
+          if (mounted) {
+            Navigator.pop(context); // Go back after delete
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("School deleted successfully."), backgroundColor: Colors.red),
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('Error deleting school: $e');
+      }
+    }
+  }
+
+  Widget _buildSectionContainer({required Widget child, String? title, IconData? icon, bool isMobile = false}) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isMobile ? 20 : 24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -317,16 +459,8 @@ class _SchoolProfileComponentState extends State<SchoolProfileComponent> {
     );
   }
 
-  Widget _badge(String label, Color bgColor, Color textColor) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(6)),
-      child: Text(label, style: TextStyle(color: textColor, fontSize: 11, fontWeight: FontWeight.bold)),
-    );
-  }
-
-  Widget _statCard(String label, String value, Color color, IconData icon) {
-    return Container(
+  Widget _statCard(String label, String value, Color color, IconData icon, {bool isFullWidth = false}) {
+    Widget card = Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -345,6 +479,8 @@ class _SchoolProfileComponentState extends State<SchoolProfileComponent> {
         ],
       ),
     );
+
+    return isFullWidth ? SizedBox(width: double.infinity, child: card) : card;
   }
 
   Widget _infoListTile(String label, String value, {bool isHighlight = false}) {
@@ -376,6 +512,14 @@ class _SchoolProfileComponentState extends State<SchoolProfileComponent> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _badge(String label, Color bgColor, Color textColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(6)),
+      child: Text(label, style: TextStyle(color: textColor, fontSize: 11, fontWeight: FontWeight.bold)),
     );
   }
 }

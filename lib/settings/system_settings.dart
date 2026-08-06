@@ -66,6 +66,8 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
 
   @override
   Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 900;
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -83,10 +85,10 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
         : Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _buildExecutiveHeader(),
+            _buildExecutiveHeader(isMobile),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(40),
+                padding: EdgeInsets.all(isMobile ? 16 : 40),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 1000),
@@ -98,45 +100,74 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
                         ValueListenableBuilder<ThemeMode>(
                           valueListenable: themeController,
                           builder: (context, mode, _) {
+                            if (isMobile) {
+                              return Column(
+                                children: [
+                                  _buildThemeCard("Adaptive", "Auto", Icons.brightness_auto_rounded, mode == ThemeMode.system, () {
+                                    themeController.value = ThemeMode.system;
+                                    _updateSettings({'theme': 'system'});
+                                  }, isMobile),
+                                  const SizedBox(height: 12),
+                                  _buildThemeCard("Standard", "Light", Icons.light_mode_rounded, mode == ThemeMode.light, () {
+                                    themeController.value = ThemeMode.light;
+                                    _updateSettings({'theme': 'light'});
+                                  }, isMobile),
+                                  const SizedBox(height: 12),
+                                  _buildThemeCard("Contrast", "Dark", Icons.dark_mode_rounded, mode == ThemeMode.dark, () {
+                                    themeController.value = ThemeMode.dark;
+                                    _updateSettings({'theme': 'dark'});
+                                  }, isMobile),
+                                ],
+                              );
+                            }
                             return Row(
                               children: [
                                 Expanded(child: _buildThemeCard("Adaptive", "System Default", Icons.brightness_auto_rounded, mode == ThemeMode.system, () {
                                   themeController.value = ThemeMode.system;
                                   _updateSettings({'theme': 'system'});
-                                })),
+                                }, false)),
                                 const SizedBox(width: 24),
                                 Expanded(child: _buildThemeCard("Standard", "Light Mode", Icons.light_mode_rounded, mode == ThemeMode.light, () {
                                   themeController.value = ThemeMode.light;
                                   _updateSettings({'theme': 'light'});
-                                })),
+                                }, false)),
                                 const SizedBox(width: 24),
                                 Expanded(child: _buildThemeCard("Contrast", "Dark Mode", Icons.dark_mode_rounded, mode == ThemeMode.dark, () {
                                   themeController.value = ThemeMode.dark;
                                   _updateSettings({'theme': 'dark'});
-                                })),
+                                }, false)),
                               ],
                             );
                           },
                         ),
 
                         const SizedBox(height: 48),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(child: _buildInteractionPreferences()),
-                            const SizedBox(width: 40),
-                            Expanded(child: _buildRegionalSettings()),
-                          ],
-                        ),
+                        if (isMobile)
+                          Column(
+                            children: [
+                              _buildInteractionPreferences(),
+                              const SizedBox(height: 40),
+                              _buildRegionalSettings(),
+                            ],
+                          )
+                        else
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: _buildInteractionPreferences()),
+                              const SizedBox(width: 40),
+                              Expanded(child: _buildRegionalSettings()),
+                            ],
+                          ),
 
                         const SizedBox(height: 60),
                         Center(
                           child: Column(
                             children: [
-                              Text("Scholar Management System (Core Engine)",
+                              Text("Scholar Management System",
                                 style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isDark ? Colors.white70 : kBrandBrown, letterSpacing: 0.5)),
                               const SizedBox(height: 4),
-                              const Text("Deployment v2.4.12 • All rights reserved • 2026",
+                              const Text("Deployment v2.4.12 • 2026",
                                 style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w500)),
                             ],
                           ),
@@ -152,7 +183,7 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
     );
   }
 
-  Widget _buildExecutiveHeader() {
+  Widget _buildExecutiveHeader(bool isMobile) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     bool isChichewa = _language == "Chichewa";
@@ -164,22 +195,24 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: (isDark ? Colors.white : kBrandBrown).withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(8),
+          if (!isMobile) ...[
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: (isDark ? Colors.white : kBrandBrown).withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(Icons.settings_suggest_rounded, color: isDark ? Colors.white : kBrandBrown, size: 20),
             ),
-            child: Icon(Icons.settings_suggest_rounded, color: isDark ? Colors.white : kBrandBrown, size: 20),
-          ),
-          const SizedBox(width: 16),
+            const SizedBox(width: 16),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(isChichewa ? "Makonzedwe a Kachitidwe" : "Environment Settings",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.5)),
-                Text(isChichewa ? "Konshani momwe pulogalamuyi ikugwirira ntchito." : "Configure terminal behavior and interfaces.",
+                Text(isChichewa ? "Makonzedwe" : "Environment Settings",
+                  style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.5)),
+                Text(isChichewa ? "Konshani pulogalamuyi." : "Configure terminal behavior.",
                   style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
@@ -189,7 +222,7 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
     );
   }
 
-  Widget _buildThemeCard(String label, String title, IconData icon, bool isSelected, VoidCallback onTap) {
+  Widget _buildThemeCard(String label, String title, IconData icon, bool isSelected, VoidCallback onTap, bool isMobile) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -198,7 +231,8 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
       borderRadius: BorderRadius.circular(24),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.all(28),
+        width: isMobile ? double.infinity : null,
+        padding: EdgeInsets.all(isMobile ? 16 : 28),
         decoration: BoxDecoration(
           color: isSelected
             ? (isDark ? theme.colorScheme.primaryContainer : kBrandBrown)
@@ -220,35 +254,72 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
             BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))
           ],
         ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: isSelected
-                  ? Colors.white.withValues(alpha: 0.15)
-                  : (isDark ? Colors.white12 : kBrandBrown.withValues(alpha: 0.05)),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: isSelected ? Colors.white : (isDark ? Colors.white70 : kBrandBrown), size: 28),
+        child: isMobile 
+          ? Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                      ? Colors.white.withValues(alpha: 0.15)
+                      : (isDark ? Colors.white12 : kBrandBrown.withValues(alpha: 0.05)),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: isSelected ? Colors.white : (isDark ? Colors.white70 : kBrandBrown), size: 20),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(label.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          color: isSelected ? Colors.white70 : Colors.grey,
+                          letterSpacing: 1.5
+                        )),
+                      Text(title,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? Colors.white : (isDark ? Colors.white : kBrandBrown)
+                        )),
+                    ],
+                  ),
+                ),
+                if (isSelected) const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+              ],
+            )
+          : Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                      ? Colors.white.withValues(alpha: 0.15)
+                      : (isDark ? Colors.white12 : kBrandBrown.withValues(alpha: 0.05)),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: isSelected ? Colors.white : (isDark ? Colors.white70 : kBrandBrown), size: 28),
+                ),
+                const SizedBox(height: 20),
+                Text(label.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: isSelected ? Colors.white70 : Colors.grey,
+                    letterSpacing: 1.5
+                  )),
+                const SizedBox(height: 4),
+                Text(title,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected ? Colors.white : (isDark ? Colors.white : kBrandBrown)
+                  )),
+              ],
             ),
-            const SizedBox(height: 20),
-            Text(label.toUpperCase(),
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w900,
-                color: isSelected ? Colors.white70 : Colors.grey,
-                letterSpacing: 1.5
-              )),
-            const SizedBox(height: 4),
-            Text(title,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: isSelected ? Colors.white : (isDark ? Colors.white : kBrandBrown)
-              )),
-          ],
-        ),
       ),
     );
   }

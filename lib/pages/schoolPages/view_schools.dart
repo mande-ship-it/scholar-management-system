@@ -9,9 +9,10 @@ class ViewSchoolsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
     return Scaffold(
       body: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(isMobile ? 0 : 20),
         child: ViewSchoolsComponent(
           onRegisterSchool: onRegisterSchool,
           forcedLevel: forcedLevel,

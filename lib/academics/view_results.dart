@@ -323,44 +323,68 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
   }
 
   Widget _buildSelectionScreen() {
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(40),
+        padding: EdgeInsets.all(isMobile ? 20 : 40),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.school_rounded, size: 64, color: kBrandBrown),
+            Icon(Icons.school_rounded, size: isMobile ? 48 : 64, color: kBrandBrown),
             const SizedBox(height: 24),
-            const Text(
-              "Academic Results Management",
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5),
+            Text(
+              "Academic Results Audit",
+              style: TextStyle(fontSize: isMobile ? 22 : 28, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5),
             ),
             const SizedBox(height: 8),
-            const Text(
-              "Select the institution level you wish to audit results for.",
-              style: TextStyle(fontSize: 16, color: Colors.grey),
+            Text(
+              "Select an institution level to begin.",
+              style: TextStyle(fontSize: isMobile ? 14 : 16, color: Colors.grey),
             ),
-            const SizedBox(height: 48),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _selectionCard(
-                  title: "Secondary Schools",
-                  subtitle: "View results by District, School or Individual Scholar across all forms and terms.",
-                  icon: Icons.account_balance_rounded,
-                  color: kBrandOrange,
-                  onTap: () => setState(() => _mode = ViewResultsMode.secondary),
-                ),
-                const SizedBox(width: 32),
-                _selectionCard(
-                  title: "Universities / Tertiary",
-                  subtitle: "Audit higher education performance by University and Scholar across years and semesters.",
-                  icon: Icons.auto_stories_rounded,
-                  color: Colors.blue.shade700,
-                  onTap: () => setState(() => _mode = ViewResultsMode.university),
-                ),
-              ],
-            ),
+            SizedBox(height: isMobile ? 32 : 48),
+            if (isMobile)
+              Column(
+                children: [
+                  _selectionCard(
+                    title: "Secondary Schools",
+                    subtitle: "View results by District, School or Scholar.",
+                    icon: Icons.account_balance_rounded,
+                    color: kBrandOrange,
+                    onTap: () => setState(() => _mode = ViewResultsMode.secondary),
+                    isMobile: true,
+                  ),
+                  const SizedBox(height: 16),
+                  _selectionCard(
+                    title: "Universities",
+                    subtitle: "Audit tertiary education performance records.",
+                    icon: Icons.auto_stories_rounded,
+                    color: Colors.blue.shade700,
+                    onTap: () => setState(() => _mode = ViewResultsMode.university),
+                    isMobile: true,
+                  ),
+                ],
+              )
+            else
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _selectionCard(
+                    title: "Secondary Schools",
+                    subtitle: "View results by District, School or Individual Scholar across all forms and terms.",
+                    icon: Icons.account_balance_rounded,
+                    color: kBrandOrange,
+                    onTap: () => setState(() => _mode = ViewResultsMode.secondary),
+                  ),
+                  const SizedBox(width: 32),
+                  _selectionCard(
+                    title: "Universities / Tertiary",
+                    subtitle: "Audit higher education performance by University and Scholar across years and semesters.",
+                    icon: Icons.auto_stories_rounded,
+                    color: Colors.blue.shade700,
+                    onTap: () => setState(() => _mode = ViewResultsMode.university),
+                  ),
+                ],
+              ),
           ],
         ),
       ),
@@ -373,13 +397,14 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
     required IconData icon,
     required Color color,
     required VoidCallback onTap,
+    bool isMobile = false,
   }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(24),
       child: Container(
-        width: 380,
-        padding: const EdgeInsets.all(40),
+        width: isMobile ? double.infinity : 380,
+        padding: EdgeInsets.all(isMobile ? 24 : 40),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
@@ -389,12 +414,12 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.all(isMobile ? 14 : 20),
               decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-              child: Icon(icon, size: 40, color: color),
+              child: Icon(icon, size: isMobile ? 32 : 40, color: color),
             ),
             const SizedBox(height: 24),
-            Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: kBrandBrown)),
+            Text(title, style: TextStyle(fontSize: isMobile ? 18 : 20, fontWeight: FontWeight.w900, color: kBrandBrown)),
             const SizedBox(height: 12),
             Text(subtitle, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: Colors.grey.shade600, height: 1.5)),
             const SizedBox(height: 32),
@@ -414,143 +439,258 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
 
   Widget _buildTopHeader() {
     final bool isSecondary = _mode == ViewResultsMode.secondary;
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
     
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => setState(() {
-              _mode = ViewResultsMode.selection;
-              _selectedDistrict = null;
-              _selectedSchool = null;
-              _selectedScholarId = null;
-              _selectedYear = null;
-              _selectedTerm = null;
-              _selectedSemester = null;
-            }),
-            icon: const Icon(Icons.arrow_back_rounded),
-          ),
-          const SizedBox(width: 16),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: kBrandBrown.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
-            child: Icon(isSecondary ? Icons.account_balance_rounded : Icons.auto_stories_rounded, color: kBrandBrown, size: 24),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(isSecondary ? "Secondary Results Audit" : "University Results Audit",
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                Text(isSecondary ? "Viewing academic standing for secondary scholars by district." : "Monitoring tertiary education performance by university.",
-                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          if (_selectedSchool != null || (_mode == ViewResultsMode.secondary && _selectedDistrict != null))
-            ElevatedButton.icon(
-              onPressed: _openConsolidatedRoster,
-              icon: const Icon(Icons.grid_view_rounded, size: 18),
-              label: Text(_selectedSchool != null 
-                ? (_mode == ViewResultsMode.university ? "UNIVERSITY ROSTER" : "SCHOOL ROSTER")
-                : "DISTRICT ROSTER"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: kBrandBrown,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+      padding: EdgeInsets.fromLTRB(isMobile ? 16 : 24, 20, isMobile ? 16 : 24, 20),
+      child: isMobile
+        ? Column(
+            children: [
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: () => setState(() {
+                      _mode = ViewResultsMode.selection;
+                      _selectedDistrict = null;
+                      _selectedSchool = null;
+                      _selectedScholarId = null;
+                      _selectedYear = null;
+                      _selectedTerm = null;
+                      _selectedSemester = null;
+                    }),
+                    icon: const Icon(Icons.arrow_back_rounded),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(isSecondary ? "Secondary Audit" : "University Audit",
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                  ),
+                ],
               ),
-            ),
-          const SizedBox(width: 12),
-          ElevatedButton.icon(
-            onPressed: widget.onEnterResults ?? () => Navigator.pushNamed(context, '/academics/enterResults'),
-            icon: const Icon(Icons.add_rounded, size: 18),
-            label: const Text("RECORD NEW RESULTS"),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kBrandOlive,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-            ),
+              const SizedBox(height: 16),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    if (_selectedSchool != null || (isSecondary && _selectedDistrict != null)) ...[
+                      _headerActionBtn(
+                        onTap: _openConsolidatedRoster,
+                        icon: Icons.grid_view_rounded,
+                        label: "ROSTER",
+                        color: kBrandBrown,
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    _headerActionBtn(
+                      onTap: widget.onEnterResults ?? () => Navigator.pushNamed(context, '/academics/enterResults'),
+                      icon: Icons.add_rounded,
+                      label: "RECORD NEW",
+                      color: kBrandOlive,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          )
+        : Row(
+            children: [
+              IconButton(
+                onPressed: () => setState(() {
+                  _mode = ViewResultsMode.selection;
+                  _selectedDistrict = null;
+                  _selectedSchool = null;
+                  _selectedScholarId = null;
+                  _selectedYear = null;
+                  _selectedTerm = null;
+                  _selectedSemester = null;
+                }),
+                icon: const Icon(Icons.arrow_back_rounded),
+              ),
+              const SizedBox(width: 16),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: kBrandBrown.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
+                child: Icon(isSecondary ? Icons.account_balance_rounded : Icons.auto_stories_rounded, color: kBrandBrown, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(isSecondary ? "Secondary Results Audit" : "University Results Audit",
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                    Text(isSecondary ? "Viewing standings by district." : "Monitoring performance by university.",
+                      style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              if (_selectedSchool != null || (_mode == ViewResultsMode.secondary && _selectedDistrict != null))
+                ElevatedButton.icon(
+                  onPressed: _openConsolidatedRoster,
+                  icon: const Icon(Icons.grid_view_rounded, size: 18),
+                  label: Text(_selectedSchool != null 
+                    ? (_mode == ViewResultsMode.university ? "UNIVERSITY ROSTER" : "SCHOOL ROSTER")
+                    : "DISTRICT ROSTER"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kBrandBrown,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                ),
+              const SizedBox(width: 12),
+              ElevatedButton.icon(
+                onPressed: widget.onEnterResults ?? () => Navigator.pushNamed(context, '/academics/enterResults'),
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: const Text("RECORD NEW RESULTS"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kBrandOlive,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+              ),
+            ],
           ),
-        ],
+    );
+  }
+
+  Widget _headerActionBtn({required VoidCallback onTap, required IconData icon, required String label, required Color color}) {
+    return ElevatedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 16),
+      label: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }
 
   Widget _buildFilterBar() {
     final bool isSecondary = _mode == ViewResultsMode.secondary;
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isMobile ? 16 : 24),
       color: Colors.grey.shade50,
-      child: Wrap(
-        spacing: 16,
-        runSpacing: 16,
-        children: [
-          if (isSecondary)
-            SizedBox(
-              width: 180,
-              child: _filterDropdown(label: "District", hint: "All Districts", value: _selectedDistrict, items: kMalawiDistricts,
-                onChanged: (v) => setState(() { _selectedDistrict = v; _selectedSchool = null; _selectedScholarId = null; })),
-            ),
-          SizedBox(
-            width: 280,
-            child: _filterDropdown(label: isSecondary ? "School" : "University", hint: isSecondary ? "All Schools" : "All Universities", value: _selectedSchool, items: _availableSchools,
-              onChanged: (v) => setState(() { _selectedSchool = v; _selectedScholarId = null; })),
-          ),
-          SizedBox(
-            width: 280,
-            child: DropdownButtonFormField<String?>(
-              value: _selectedScholarId,
-              isExpanded: true,
-              decoration: _filterDecoration("Scholar", "All Scholars"),
-              items: [
-                const DropdownMenuItem(value: null, child: Text("All Scholars")),
-                ..._availableScholars.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name, overflow: TextOverflow.ellipsis))),
+      child: isMobile 
+        ? Column(
+            children: [
+              if (isSecondary) ...[
+                _filterDropdown(label: "District", hint: "All Districts", value: _selectedDistrict, items: kMalawiDistricts,
+                  onChanged: (v) => setState(() { _selectedDistrict = v; _selectedSchool = null; _selectedScholarId = null; })),
+                const SizedBox(height: 12),
               ],
-              onChanged: (v) => setState(() => _selectedScholarId = v),
-            ),
+              _filterDropdown(label: isSecondary ? "School" : "University", hint: isSecondary ? "All Schools" : "All Universities", value: _selectedSchool, items: _availableSchools,
+                onChanged: (v) => setState(() { _selectedSchool = v; _selectedScholarId = null; })),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String?>(
+                value: _selectedScholarId,
+                isExpanded: true,
+                decoration: _filterDecoration("Scholar", "All Scholars"),
+                items: [
+                  const DropdownMenuItem(value: null, child: Text("All Scholars")),
+                  ..._availableScholars.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name, overflow: TextOverflow.ellipsis))),
+                ],
+                onChanged: (v) => setState(() => _selectedScholarId = v),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _filterDropdown(label: "Year", hint: "All", value: _selectedYear, items: _academicYears,
+                      onChanged: (v) => setState(() => _selectedYear = v)),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _filterDropdown(label: isSecondary ? "Term" : "Semester", hint: "All", value: isSecondary ? _selectedTerm : _selectedSemester, items: isSecondary ? kTerms : kSemesters,
+                      onChanged: (v) => setState(() { if (isSecondary) _selectedTerm = v; else _selectedSemester = v; })),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _statusFilter,
+                decoration: _filterDecoration("Status", "All Statuses"),
+                items: const [
+                  DropdownMenuItem(value: "All", child: Text("All Statuses")),
+                  DropdownMenuItem(value: "Complete", child: Text("Complete")),
+                  DropdownMenuItem(value: "Incomplete", child: Text("Missing Data")),
+                  DropdownMenuItem(value: "Passed", child: Text("Passing")),
+                  DropdownMenuItem(value: "Failing", child: Text("Failing")),
+                ],
+                onChanged: (v) => setState(() => _statusFilter = v ?? 'All'),
+              ),
+            ],
+          )
+        : Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            children: [
+              if (isSecondary)
+                SizedBox(
+                  width: 180,
+                  child: _filterDropdown(label: "District", hint: "All Districts", value: _selectedDistrict, items: kMalawiDistricts,
+                    onChanged: (v) => setState(() { _selectedDistrict = v; _selectedSchool = null; _selectedScholarId = null; })),
+                ),
+              SizedBox(
+                width: 280,
+                child: _filterDropdown(label: isSecondary ? "School" : "University", hint: isSecondary ? "All Schools" : "All Universities", value: _selectedSchool, items: _availableSchools,
+                  onChanged: (v) => setState(() { _selectedSchool = v; _selectedScholarId = null; })),
+              ),
+              SizedBox(
+                width: 280,
+                child: DropdownButtonFormField<String?>(
+                  value: _selectedScholarId,
+                  isExpanded: true,
+                  decoration: _filterDecoration("Scholar", "All Scholars"),
+                  items: [
+                    const DropdownMenuItem(value: null, child: Text("All Scholars")),
+                    ..._availableScholars.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name, overflow: TextOverflow.ellipsis))),
+                  ],
+                  onChanged: (v) => setState(() => _selectedScholarId = v),
+                ),
+              ),
+              SizedBox(
+                width: 140,
+                child: _filterDropdown(label: "Year", hint: "All Years", value: _selectedYear, items: _academicYears,
+                  onChanged: (v) => setState(() => _selectedYear = v)),
+              ),
+              SizedBox(
+                width: 180,
+                child: DropdownButtonFormField<String>(
+                  value: _statusFilter,
+                  decoration: _filterDecoration("Academic Status", "All Statuses"),
+                  items: const [
+                    DropdownMenuItem(value: "All", child: Text("All Statuses")),
+                    DropdownMenuItem(value: "Complete", child: Text("Fully Recorded")),
+                    DropdownMenuItem(value: "Incomplete", child: Text("Missing Data")),
+                    DropdownMenuItem(value: "Passed", child: Text("Passing Annual")),
+                    DropdownMenuItem(value: "Failing", child: Text("Failing Annual")),
+                  ],
+                  onChanged: (v) => setState(() => _statusFilter = v ?? 'All'),
+                ),
+              ),
+              if (isSecondary)
+                SizedBox(
+                  width: 140,
+                  child: _filterDropdown(label: "Term", hint: "All Terms", value: _selectedTerm, items: kTerms,
+                    onChanged: (v) => setState(() => _selectedTerm = v)),
+                )
+              else
+                SizedBox(
+                  width: 160,
+                  child: _filterDropdown(label: "Semester", hint: "All Semesters", value: _selectedSemester, items: kSemesters,
+                    onChanged: (v) => setState(() => _selectedSemester = v)),
+                ),
+            ],
           ),
-          SizedBox(
-            width: 140,
-            child: _filterDropdown(label: "Year", hint: "All Years", value: _selectedYear, items: _academicYears,
-              onChanged: (v) => setState(() => _selectedYear = v)),
-          ),
-          SizedBox(
-            width: 180,
-            child: DropdownButtonFormField<String>(
-              value: _statusFilter,
-              decoration: _filterDecoration("Academic Status", "All Statuses"),
-              items: const [
-                DropdownMenuItem(value: "All", child: Text("All Statuses")),
-                DropdownMenuItem(value: "Complete", child: Text("Fully Recorded")),
-                DropdownMenuItem(value: "Incomplete", child: Text("Missing Data")),
-                DropdownMenuItem(value: "Passed", child: Text("Passing Annual")),
-                DropdownMenuItem(value: "Failing", child: Text("Failing Annual")),
-              ],
-              onChanged: (v) => setState(() => _statusFilter = v ?? 'All'),
-            ),
-          ),
-          if (isSecondary)
-            SizedBox(
-              width: 140,
-              child: _filterDropdown(label: "Term", hint: "All Terms", value: _selectedTerm, items: kTerms,
-                onChanged: (v) => setState(() => _selectedTerm = v)),
-            )
-          else
-            SizedBox(
-              width: 160,
-              child: _filterDropdown(label: "Semester", hint: "All Semesters", value: _selectedSemester, items: kSemesters,
-                onChanged: (v) => setState(() => _selectedSemester = v)),
-            ),
-        ],
-      ),
     );
   }
 
