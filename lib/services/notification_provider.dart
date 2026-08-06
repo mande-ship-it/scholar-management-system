@@ -22,7 +22,7 @@ class NotificationProvider extends ChangeNotifier {
 
   /*
   void _initSocket() {
-    _socket = IO.io('http://localhost:5000', IO.OptionBuilder()
+    _socket = IO.io('https://age-systems-backend.onrender.com', IO.OptionBuilder()
       .setTransports(['websocket'])
       .disableAutoConnect()
       .build());

@@ -9,11 +9,11 @@ class ApiService {
 
   static String get baseUrl {
     if (kReleaseMode) {
-      return 'https://scholar-management-api.onrender.com'; // YOUR RENDER URL
+      return 'https://age-systems-backend.onrender.com'; // YOUR RENDER URL
     }
     
     if (kIsWeb) {
-      return 'http://localhost:5000';
+      return 'https://age-systems-backend.onrender.com'; // Use Render for Web Dev as well if desired
     }
     
     // For mobile/desktop
