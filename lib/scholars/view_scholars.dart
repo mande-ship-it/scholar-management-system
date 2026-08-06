@@ -961,6 +961,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
   Widget build(BuildContext context) {
     final filteredScholars = _getFilteredScholars();
     final availableSchools = _getAvailableSchoolsForFilter();
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
 
     // Executive Metrics Calculation
     final totalInSelection = filteredScholars.length;
@@ -980,15 +981,15 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: const Color(0xFFF9FAFB), // Very light grey/white background
+      color: const Color(0xFFF9FAFB),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildExecutiveHeader(totalInSelection, activeInSelection, movingWell, atRisk),
-          _buildFilterArchitecture(availableSchools, availableClasses),
+          _buildExecutiveHeader(totalInSelection, activeInSelection, movingWell, atRisk, isMobile),
+          _buildFilterArchitecture(availableSchools, availableClasses, isMobile),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(32, 0, 32, 32),
+              padding: EdgeInsets.fromLTRB(isMobile ? 12 : 32, 0, isMobile ? 12 : 32, isMobile ? 12 : 32),
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -1023,33 +1024,37 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
     );
   }
 
-  Widget _buildExecutiveHeader(int total, int active, int moving, int risk) {
+  Widget _buildExecutiveHeader(int total, int active, int moving, int risk, bool isMobile) {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(isMobile ? 20 : 32),
       color: Colors.white,
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: kBrandBrown.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(12),
+              if (!isMobile) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: kBrandBrown.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    _selectedSchoolType == 'University' ? Icons.account_balance_rounded : Icons.school_rounded,
+                    color: kBrandBrown, size: 28
+                  ),
                 ),
-                child: Icon(
-                  _selectedSchoolType == 'University' ? Icons.account_balance_rounded : Icons.school_rounded,
-                  color: kBrandBrown, size: 28
-                ),
-              ),
-              const SizedBox(width: 24),
+                const SizedBox(width: 24),
+              ],
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       _selectedSchoolType == 'University' ? "University Scholars Registry" : "Secondary Scholars Registry",
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -1),
+                      style: TextStyle(fontSize: isMobile ? 20 : 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -1),
                     ),
                     Text(
                       _isFieldOfficer && _assignedDistrict != null ? "Monitoring Region: $_assignedDistrict" : "Program-wide longitudinal tracking and oversight.",
@@ -1058,85 +1063,170 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
                   ],
                 ),
               ),
-              _buildGlobalActions(),
+              if (!isMobile) _buildGlobalActions(false),
             ],
           ),
+          if (isMobile) ...[
+            const SizedBox(height: 20),
+            _buildGlobalActions(true),
+          ],
           const SizedBox(height: 32),
-          Row(
-            children: [
-              _metricCard("TOTAL ENROLLMENT", total.toString(), Icons.groups_outlined, kBrandBrown),
-              const SizedBox(width: 20),
-              _metricCard("ACTIVE STATUS", active.toString(), Icons.check_circle_outline, kBrandOlive),
-              const SizedBox(width: 20),
-              _metricCard("PROGRESSED", moving.toString(), Icons.trending_up_rounded, Colors.blue),
-              const SizedBox(width: 20),
-              _metricCard("AT RISK", risk.toString(), Icons.warning_amber_rounded, kBrandOrange),
-            ],
-          ),
+          if (isMobile)
+            Column(
+              children: [
+                Row(
+                  children: [
+                    _metricCard("TOTAL", total.toString(), Icons.groups_outlined, kBrandBrown, true),
+                    const SizedBox(width: 12),
+                    _metricCard("ACTIVE", active.toString(), Icons.check_circle_outline, kBrandOlive, true),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    _metricCard("PROGRESS", moving.toString(), Icons.trending_up_rounded, Colors.blue, true),
+                    const SizedBox(width: 12),
+                    _metricCard("AT RISK", risk.toString(), Icons.warning_amber_rounded, kBrandOrange, true),
+                  ],
+                ),
+              ],
+            )
+          else
+            Row(
+              children: [
+                _metricCard("TOTAL ENROLLMENT", total.toString(), Icons.groups_outlined, kBrandBrown, false),
+                const SizedBox(width: 20),
+                _metricCard("ACTIVE STATUS", active.toString(), Icons.check_circle_outline, kBrandOlive, false),
+                const SizedBox(width: 20),
+                _metricCard("PROGRESSED", moving.toString(), Icons.trending_up_rounded, Colors.blue, false),
+                const SizedBox(width: 20),
+                _metricCard("AT RISK", risk.toString(), Icons.warning_amber_rounded, kBrandOrange, false),
+              ],
+            ),
         ],
       ),
     );
   }
 
-  Widget _metricCard(String label, String value, IconData icon, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFF3F4F6)),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 10)],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: color.withOpacity(0.08), shape: BoxShape.circle),
-              child: Icon(icon, size: 18, color: color),
-            ),
-            const SizedBox(width: 16),
-            Column(
+  Widget _metricCard(String label, String value, IconData icon, Color color, bool isMobile) {
+    Widget content = Container(
+      padding: EdgeInsets.all(isMobile ? 16 : 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFF3F4F6)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 10)],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: color.withOpacity(0.08), shape: BoxShape.circle),
+            child: Icon(icon, size: 18, color: color),
+          ),
+          SizedBox(width: isMobile ? 12 : 16),
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.grey, letterSpacing: 1)),
-                Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: color)),
+                Text(label, style: TextStyle(fontSize: isMobile ? 8 : 10, fontWeight: FontWeight.w800, color: Colors.grey, letterSpacing: 1), overflow: TextOverflow.ellipsis),
+                Text(value, style: TextStyle(fontSize: isMobile ? 18 : 20, fontWeight: FontWeight.w900, color: color)),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
+
+    return isMobile ? Expanded(child: content) : Expanded(child: content);
   }
 
-  Widget _buildGlobalActions() {
+  Widget _buildGlobalActions(bool isMobile) {
     return Row(
+      mainAxisSize: isMobile ? MainAxisSize.max : MainAxisSize.min,
       children: [
         if (_selectedSchoolType != 'University' && !_isFieldOfficer)
-          TextButton.icon(
-            onPressed: widget.onViewGraduates,
-            icon: const Icon(Icons.workspace_premium_rounded, size: 18),
-            label: const Text("GRADUATES", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-            style: TextButton.styleFrom(foregroundColor: kBrandBrown),
-          ),
-        const SizedBox(width: 12),
-        ElevatedButton.icon(
-          onPressed: widget.onRegisterScholar,
-          icon: const Icon(Icons.add, size: 18),
-          label: const Text("NEW REGISTRATION"),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: kBrandOlive,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            elevation: 0,
-          ),
-        ),
+          isMobile 
+            ? Expanded(
+                child: TextButton.icon(
+                  onPressed: widget.onViewGraduates,
+                  icon: const Icon(Icons.workspace_premium_rounded, size: 18),
+                  label: const Text("GRADUATES", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  style: TextButton.styleFrom(foregroundColor: kBrandBrown),
+                ),
+              )
+            : TextButton.icon(
+                onPressed: widget.onViewGraduates,
+                icon: const Icon(Icons.workspace_premium_rounded, size: 18),
+                label: const Text("GRADUATES", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                style: TextButton.styleFrom(foregroundColor: kBrandBrown),
+              ),
+        if (isMobile && _selectedSchoolType != 'University' && !_isFieldOfficer) const SizedBox(width: 12),
+        isMobile
+          ? Expanded(
+              child: ElevatedButton.icon(
+                onPressed: widget.onRegisterScholar,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text("REGISTER"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kBrandOlive,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  elevation: 0,
+                ),
+              ),
+            )
+          : ElevatedButton.icon(
+              onPressed: widget.onRegisterScholar,
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text("NEW REGISTRATION"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kBrandOlive,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                elevation: 0,
+              ),
+            ),
       ],
     );
   }
 
-  Widget _buildFilterArchitecture(List<String> availableSchools, List<String> availableClasses) {
+  Widget _buildFilterArchitecture(List<String> availableSchools, List<String> availableClasses, bool isMobile) {
+    if (isMobile) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        color: const Color(0xFFF9FAFB),
+        child: Column(
+          children: [
+            _compactSearchField(isMobile),
+            const SizedBox(height: 12),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _compactFilterDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() => _selectedDistrict = v ?? 'All')),
+                  const SizedBox(width: 8),
+                  _compactFilterDropdown("Institution", _selectedSchoolName, availableSchools, (v) => setState(() => _selectedSchoolName = v ?? 'All')),
+                  const SizedBox(width: 8),
+                  _compactFilterDropdown("Level", _selectedClass, availableClasses, (v) => setState(() => _selectedClass = v ?? 'All')),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(child: _exportButton(Icons.description_outlined, "PDF", _exportToPDF)),
+                const SizedBox(width: 8),
+                Expanded(child: _exportButton(Icons.table_view_outlined, "EXCEL", _exportToExcel)),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
       decoration: const BoxDecoration(
@@ -1148,7 +1238,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
           Expanded(
             child: Row(
               children: [
-                _compactSearchField(),
+                _compactSearchField(false),
                 const SizedBox(width: 16),
                 _compactFilterDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() => _selectedDistrict = v ?? 'All')),
                 const SizedBox(width: 12),
@@ -1167,9 +1257,9 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
     );
   }
 
-  Widget _compactSearchField() {
+  Widget _compactSearchField(bool isMobile) {
     return Container(
-      width: 280,
+      width: isMobile ? double.infinity : 280,
       height: 40,
       decoration: BoxDecoration(
         color: Colors.white,
@@ -1188,6 +1278,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
       ),
     );
   }
+
 
   Widget _compactFilterDropdown(String label, String value, List<String> items, ValueChanged<String?> onChanged) {
     return Container(

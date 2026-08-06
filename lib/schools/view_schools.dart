@@ -216,6 +216,7 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
   @override
   Widget build(BuildContext context) {
     final filtered = _getFilteredSchools();
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
 
     return Container(
       width: double.infinity,
@@ -229,42 +230,44 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildExecutiveHeader(),
-          _buildToolbar(),
+          _buildExecutiveHeader(isMobile),
+          _buildToolbar(isMobile),
           Expanded(
-            child: _buildRegistryList(filtered),
+            child: _buildRegistryList(filtered, isMobile),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildExecutiveHeader() {
+  Widget _buildExecutiveHeader(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: 24, vertical: isMobile ? 16 : 12),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: kBrandBrown.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(8),
+          if (!isMobile) ...[
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: kBrandBrown.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.apartment_rounded, color: kBrandBrown, size: 20),
             ),
-            child: const Icon(Icons.apartment_rounded, color: kBrandBrown, size: 20),
-          ),
-          const SizedBox(width: 16),
-          const Expanded(
+            const SizedBox(width: 16),
+          ],
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Institutional Registry",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                  style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
                 Text("Management of partner secondary schools and tertiary institutions.",
-                  style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                  style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -279,12 +282,12 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
                 }
               },
               icon: const Icon(Icons.add_business_rounded, size: 16),
-              label: const Text("REGISTER", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
+              label: Text(isMobile ? "ADD" : "REGISTER", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: kBrandOlive,
                 foregroundColor: Colors.white,
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
@@ -293,49 +296,74 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
     );
   }
 
-  Widget _buildToolbar() {
+  Widget _buildToolbar(bool isMobile) {
     return Column(
       children: [
         const Divider(indent: 24, endIndent: 24),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Search institutions by name or district...',
-                    prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                    isDense: true,
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
+          child: isMobile 
+            ? Column(
+                children: [
+                  _searchField(),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      if (widget.forcedLevel == null)
+                        Expanded(child: _filterDropdown("Level", _selectedLevel, _schoolLevels, (v) => setState(() => _selectedLevel = v!), isMobile)),
+                      if (widget.forcedLevel == null) const SizedBox(width: 8),
+                      Expanded(child: _filterDropdown("Region", _selectedRegion, _regions, (v) => setState(() => _selectedRegion = v!), isMobile)),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.sync_rounded, color: kBrandBrown),
+                        onPressed: _isLoading ? null : _fetchSchools,
+                        tooltip: 'Refresh Registry',
+                      ),
+                    ],
                   ),
-                  onChanged: (val) => setState(() => _searchQuery = val),
-                ),
+                ],
+              )
+            : Row(
+                children: [
+                  Expanded(
+                    child: _searchField(),
+                  ),
+                  const SizedBox(width: 16),
+                  if (widget.forcedLevel == null)
+                    _filterDropdown("Level", _selectedLevel, _schoolLevels, (v) => setState(() => _selectedLevel = v!), isMobile),
+                  const SizedBox(width: 12),
+                  _filterDropdown("Region", _selectedRegion, _regions, (v) => setState(() => _selectedRegion = v!), isMobile),
+                  const SizedBox(width: 12),
+                  IconButton(
+                    icon: const Icon(Icons.sync_rounded, color: kBrandBrown),
+                    onPressed: _isLoading ? null : _fetchSchools,
+                    tooltip: 'Refresh Registry',
+                  ),
+                ],
               ),
-              const SizedBox(width: 16),
-              if (widget.forcedLevel == null)
-                _filterDropdown("Level", _selectedLevel, _schoolLevels, (v) => setState(() => _selectedLevel = v!)),
-              const SizedBox(width: 12),
-              _filterDropdown("Region", _selectedRegion, _regions, (v) => setState(() => _selectedRegion = v!)),
-              const SizedBox(width: 12),
-              IconButton(
-                icon: const Icon(Icons.sync_rounded, color: kBrandBrown),
-                onPressed: _isLoading ? null : _fetchSchools,
-                tooltip: 'Refresh Registry',
-              ),
-            ],
-          ),
         ),
       ],
     );
   }
 
-  Widget _filterDropdown(String label, String value, List<String> items, ValueChanged<String?> onChanged) {
+  Widget _searchField() {
+    return TextField(
+      decoration: InputDecoration(
+        hintText: 'Search institutions by name or district...',
+        prefixIcon: const Icon(Icons.search_rounded, size: 20),
+        isDense: true,
+        filled: true,
+        fillColor: Colors.grey.shade50,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
+      ),
+      onChanged: (val) => setState(() => _searchQuery = val),
+    );
+  }
+
+  Widget _filterDropdown(String label, String value, List<String> items, ValueChanged<String?> onChanged, bool isMobile) {
     return Container(
-      width: 180,
+      width: isMobile ? null : 180,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.grey.shade200)),
       child: DropdownButtonHideUnderline(
@@ -350,12 +378,12 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
     );
   }
 
-  Widget _buildRegistryList(List<Map<String, dynamic>> schools) {
+  Widget _buildRegistryList(List<Map<String, dynamic>> schools, bool isMobile) {
     if (_isLoading) return const Center(child: CircularProgressIndicator(color: kBrandOlive));
     if (schools.isEmpty) return _buildEmptyState();
 
     return ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 24, vertical: 12),
       itemCount: schools.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
@@ -370,7 +398,7 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
             boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2))],
           ),
           child: ListTile(
-            contentPadding: const EdgeInsets.all(16),
+            contentPadding: EdgeInsets.all(isMobile ? 12 : 16),
             leading: CircleAvatar(
               backgroundColor: (isUni ? kBrandBrown : kBrandOlive).withValues(alpha: 0.1),
               child: Icon(isUni ? Icons.account_balance_rounded : Icons.school_rounded, color: isUni ? kBrandBrown : kBrandOlive),
@@ -378,12 +406,13 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
             title: Text(s['name']!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kBrandBrown)),
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 6),
-              child: Row(
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   _miniBadge(s['code']!, Colors.grey.shade100, Colors.grey.shade700),
-                  const SizedBox(width: 8),
                   _miniBadge(s['district']!.toUpperCase(), kBrandOlive.withValues(alpha: 0.1), kBrandOlive),
-                  const SizedBox(width: 12),
                   Text(s['status']!, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: s['status'] == 'Active' ? Colors.green : Colors.red)),
                 ],
               ),
@@ -391,7 +420,7 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (PermissionService.hasPermission('schools.edit'))
+                if (!isMobile && PermissionService.hasPermission('schools.edit'))
                   IconButton(
                     icon: const Icon(Icons.edit_outlined, size: 20),
                     onPressed: () async {
@@ -408,6 +437,7 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
       },
     );
   }
+
 
   Widget _miniBadge(String text, Color bg, Color fg) {
     return Container(

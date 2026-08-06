@@ -367,6 +367,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -376,33 +377,33 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildExecutiveHeader(),
+          _buildExecutiveHeader(isMobile),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(40),
+              padding: EdgeInsets.all(isMobile ? 16 : 40),
               child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildSectionLabel("PERSONAL IDENTITY & BIOMETRICS"),
-                    const SizedBox(height: 24),
-                    _buildPersonalSection(),
+                    const SizedBox(height: 16),
+                    _buildPersonalSection(isMobile),
 
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 32),
                     _buildSectionLabel("GUARDIANSHIP & PRIMARY CONTACT"),
-                    const SizedBox(height: 24),
-                    _buildGuardianSection(),
+                    const SizedBox(height: 16),
+                    _buildGuardianSection(isMobile),
 
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 32),
                     _buildSectionLabel("ACADEMIC PLACEMENT & HISTORY"),
-                    const SizedBox(height: 24),
-                    _buildAcademicSection(),
+                    const SizedBox(height: 16),
+                    _buildAcademicSection(isMobile),
 
-                    const SizedBox(height: 48),
+                    const SizedBox(height: 32),
                     _buildSectionLabel("ORIGIN & SPONSORSHIP ALLOCATION"),
-                    const SizedBox(height: 24),
-                    _buildDemographicsSection(),
+                    const SizedBox(height: 16),
+                    _buildDemographicsSection(isMobile),
 
                     const SizedBox(height: 40),
                   ],
@@ -410,13 +411,13 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
               ),
             ),
           ),
-          _buildFixedFooter(),
+          _buildFixedFooter(isMobile),
         ],
       ),
     );
   }
 
-  Widget _buildFixedFooter() {
+  Widget _buildFixedFooter(bool isMobile) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: BoxDecoration(
@@ -426,16 +427,18 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          OutlinedButton(
-            onPressed: () => _resetForm(),
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              foregroundColor: Colors.grey,
+          if (!isMobile) ...[
+            OutlinedButton(
+              onPressed: () => _resetForm(),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                foregroundColor: Colors.grey,
+              ),
+              child: const Text("DISCARD DRAFT", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 0.5)),
             ),
-            child: const Text("DISCARD DRAFT", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 0.5)),
-          ),
-          const SizedBox(width: 12),
+            const SizedBox(width: 12),
+          ],
           Expanded(
             child: ElevatedButton.icon(
               onPressed: _isLoading ? null : _submitForm,
@@ -453,12 +456,20 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
               ),
             ),
           ),
+          if (isMobile) ...[
+            const SizedBox(width: 12),
+            IconButton(
+              onPressed: () => _resetForm(),
+              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+              tooltip: "Discard Draft",
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildExecutiveHeader() {
+  Widget _buildExecutiveHeader(bool isMobile) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: const BoxDecoration(
@@ -473,14 +484,14 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
             child: const Icon(Icons.person_add_alt_1_rounded, color: kBrandBrown, size: 20),
           ),
           const SizedBox(width: 16),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Register New Scholar", 
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                  style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
                 Text("Enrol a new student into the scholarship management ecosystem.", 
-                  style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                  style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -490,86 +501,124 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
   }
 
   Widget _buildSectionLabel(String label) {
-    return Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kBrandOlive.withValues(alpha: 0.8), letterSpacing: 1.5));
+    return Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBrandOlive.withValues(alpha: 0.8), letterSpacing: 1.5));
   }
 
-  Widget _buildPersonalSection() {
+  Widget _buildPersonalSection(bool isMobile) {
     return _executiveCard(
+      isMobile: isMobile,
       children: [
         _buildTextField(_fullNameController, "Full Legal Name", Icons.person_outline, required: true),
         const SizedBox(height: 24),
-        Row(
-          children: [
-            Expanded(child: _buildTextField(_phoneController, "Primary Phone Number", Icons.phone_outlined)),
-            const SizedBox(width: 24),
-            Expanded(child: _buildTextField(_emailController, "Personal Email Address", Icons.alternate_email_rounded)),
-          ],
-        ),
-        const SizedBox(height: 24),
-        Row(
-          children: [
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                initialValue: _selectedSex,
-                decoration: _inputDeco("Sex / Gender", Icons.wc_outlined),
-                items: _sexOptions.map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
-                onChanged: (v) => setState(() => _selectedSex = v),
+        if (isMobile) ...[
+          _buildTextField(_phoneController, "Primary Phone Number", Icons.phone_outlined),
+          const SizedBox(height: 24),
+          _buildTextField(_emailController, "Personal Email Address", Icons.alternate_email_rounded),
+          const SizedBox(height: 24),
+          DropdownButtonFormField<String>(
+            initialValue: _selectedSex,
+            decoration: _inputDeco("Sex / Gender", Icons.wc_outlined),
+            items: _sexOptions.map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+            onChanged: (v) => setState(() => _selectedSex = v),
+          ),
+          const SizedBox(height: 24),
+          TextFormField(
+            controller: _dobController,
+            readOnly: true,
+            onTap: () => _selectDateOfBirth(context),
+            style: const TextStyle(fontWeight: FontWeight.w600, color: kBrandBrown),
+            decoration: _inputDeco("Date of Birth", Icons.calendar_today_rounded),
+            validator: (v) => (v == null || v.isEmpty) ? "Required" : null,
+          ),
+        ] else ...[
+          Row(
+            children: [
+              Expanded(child: _buildTextField(_phoneController, "Primary Phone Number", Icons.phone_outlined)),
+              const SizedBox(width: 24),
+              Expanded(child: _buildTextField(_emailController, "Personal Email Address", Icons.alternate_email_rounded)),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  initialValue: _selectedSex,
+                  decoration: _inputDeco("Sex / Gender", Icons.wc_outlined),
+                  items: _sexOptions.map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+                  onChanged: (v) => setState(() => _selectedSex = v),
+                ),
               ),
-            ),
-            const SizedBox(width: 24),
-            Expanded(
-              child: TextFormField(
-                controller: _dobController,
-                readOnly: true,
-                onTap: () => _selectDateOfBirth(context),
-                style: const TextStyle(fontWeight: FontWeight.w600, color: kBrandBrown),
-                decoration: _inputDeco("Date of Birth", Icons.calendar_today_rounded),
-                validator: (v) => (v == null || v.isEmpty) ? "Required" : null,
+              const SizedBox(width: 24),
+              Expanded(
+                child: TextFormField(
+                  controller: _dobController,
+                  readOnly: true,
+                  onTap: () => _selectDateOfBirth(context),
+                  style: const TextStyle(fontWeight: FontWeight.w600, color: kBrandBrown),
+                  decoration: _inputDeco("Date of Birth", Icons.calendar_today_rounded),
+                  validator: (v) => (v == null || v.isEmpty) ? "Required" : null,
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ],
     );
   }
 
-  Widget _buildGuardianSection() {
+  Widget _buildGuardianSection(bool isMobile) {
     return _executiveCard(
+      isMobile: isMobile,
       children: [
-        Row(
-          children: [
-            Expanded(flex: 2, child: _buildTextField(_guardianNameController, "Guardian Full Name", Icons.supervisor_account_outlined, required: true)),
-            const SizedBox(width: 24),
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                initialValue: _selectedGuardianRelation,
-                decoration: _inputDeco("Relationship", Icons.family_restroom_outlined),
-                items: _relations.map((r) => DropdownMenuItem(value: r, child: Text(r, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
-                onChanged: (v) => setState(() => _selectedGuardianRelation = v),
+        if (isMobile) ...[
+          _buildTextField(_guardianNameController, "Guardian Full Name", Icons.supervisor_account_outlined, required: true),
+          const SizedBox(height: 24),
+          DropdownButtonFormField<String>(
+            initialValue: _selectedGuardianRelation,
+            decoration: _inputDeco("Relationship", Icons.family_restroom_outlined),
+            items: _relations.map((r) => DropdownMenuItem(value: r, child: Text(r, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+            onChanged: (v) => setState(() => _selectedGuardianRelation = v),
+          ),
+          const SizedBox(height: 24),
+          _buildTextField(_guardianPhoneController, "Guardian Phone", Icons.phone_android_outlined),
+          const SizedBox(height: 24),
+          _buildTextField(_guardianEmailController, "Guardian Email", Icons.email_outlined),
+        ] else ...[
+          Row(
+            children: [
+              Expanded(flex: 2, child: _buildTextField(_guardianNameController, "Guardian Full Name", Icons.supervisor_account_outlined, required: true)),
+              const SizedBox(width: 24),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  initialValue: _selectedGuardianRelation,
+                  decoration: _inputDeco("Relationship", Icons.family_restroom_outlined),
+                  items: _relations.map((r) => DropdownMenuItem(value: r, child: Text(r, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+                  onChanged: (v) => setState(() => _selectedGuardianRelation = v),
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
-        Row(
-          children: [
-            Expanded(child: _buildTextField(_guardianPhoneController, "Guardian Phone", Icons.phone_android_outlined)),
-            const SizedBox(width: 24),
-            Expanded(child: _buildTextField(_guardianEmailController, "Guardian Email", Icons.email_outlined)),
-          ],
-        ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(child: _buildTextField(_guardianPhoneController, "Guardian Phone", Icons.phone_android_outlined)),
+              const SizedBox(width: 24),
+              Expanded(child: _buildTextField(_guardianEmailController, "Guardian Email", Icons.email_outlined)),
+            ],
+          ),
+        ],
         const SizedBox(height: 24),
         _buildTextField(_guardianOccupationController, "Guardian Occupation", Icons.work_outline),
       ],
     );
   }
 
-  Widget _buildAcademicSection() {
+  Widget _buildAcademicSection(bool isMobile) {
     final List<String> years = academicYearOptions();
     final schools = _getAvailableSchoolsForScholar();
     final int currentYear = DateTime.now().year;
 
-    // Check if end year is in the future or present
     bool showClassField = true;
     if (_selectedEndYear != null) {
       final int endY = int.tryParse(_selectedEndYear!) ?? 0;
@@ -579,163 +628,283 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
     }
 
     return _executiveCard(
+      isMobile: isMobile,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: IgnorePointer(
-                ignoring: widget.forcedSchoolType != null,
-                child: Opacity(
-                  opacity: widget.forcedSchoolType != null ? 0.7 : 1.0,
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _selectedSchoolType,
-                    decoration: _inputDeco("Level of Study", Icons.category_outlined),
-                    items: _schoolTypes.map((t) => DropdownMenuItem(value: t, child: Text(t, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
-                    onChanged: (v) {
-                      setState(() {
-                        _selectedSchoolType = v;
-                        _selectedSchool = null;
-                        _selectedSchoolId = null;
-                      });
-                    },
-                    validator: (v) => v == null ? "Required" : null,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 24),
-            Expanded(
+        if (isMobile) ...[
+          IgnorePointer(
+            ignoring: widget.forcedSchoolType != null,
+            child: Opacity(
+              opacity: widget.forcedSchoolType != null ? 0.7 : 1.0,
               child: DropdownButtonFormField<String>(
-                key: ValueKey('school_name_$_selectedSchoolType'),
-                initialValue: _selectedSchool,
-                isExpanded: true,
-                decoration: _inputDeco(
-                  _isLoadingSchools 
-                    ? "Loading Institutions..." 
-                    : (schools.isEmpty && _selectedSchoolType != null ? "No matching schools found" : "Institution Name"), 
-                  Icons.school_outlined
-                ),
-                items: schools.map((s) => DropdownMenuItem(value: s['name'].toString(), child: Text(s['name'].toString(), overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+                initialValue: _selectedSchoolType,
+                decoration: _inputDeco("Level of Study", Icons.category_outlined),
+                items: _schoolTypes.map((t) => DropdownMenuItem(value: t, child: Text(t, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
                 onChanged: (v) {
                   setState(() {
-                    _selectedSchool = v;
-                    try {
-                      final found = schools.firstWhere((s) => s['name'] == v);
-                      _selectedSchoolId = (found['id'] ?? found['_id'] ?? found['scholar_id']).toString();
-                    } catch (_) {
-                      _selectedSchoolId = null;
-                    }
+                    _selectedSchoolType = v;
+                    _selectedSchool = null;
+                    _selectedSchoolId = null;
                   });
                 },
                 validator: (v) => v == null ? "Required" : null,
               ),
             ),
-          ],
-        ),
-        const SizedBox(height: 24),
-        Row(
-          children: [
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                initialValue: _selectedStartYear,
-                decoration: _inputDeco("Enrolment Year", Icons.event_available_rounded),
-                items: years.map((y) => DropdownMenuItem(value: y, child: Text(y, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
-                onChanged: (v) {
-                  setState(() {
-                    _selectedStartYear = v;
-                    _updateGraduationYear();
-                  });
-                },
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: DropdownButtonFormField<int>(
-                initialValue: _selectedDuration,
-                decoration: _inputDeco("Program Duration", Icons.timer_outlined),
-                items: [1, 2, 3, 4, 5, 6].map((d) => DropdownMenuItem(value: d, child: Text("$d Years", style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
-                onChanged: (v) {
-                  setState(() {
-                    _selectedDuration = v;
-                    _updateGraduationYear();
-                  });
-                },
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                key: ValueKey('end_year_${_selectedStartYear}_$_selectedDuration'),
-                initialValue: _selectedEndYear,
-                decoration: _inputDeco("Expected Graduation", Icons.event_busy_rounded),
-                items: years.map((y) => DropdownMenuItem(value: y, child: Text(y, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
-                onChanged: (v) => setState(() => _selectedEndYear = v),
-              ),
-            ),
-          ],
-        ),
-        if (showClassField) ...[
+          ),
           const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(child: _buildTextField(_yearController, "Current Form / Class", Icons.calendar_month_rounded)),
-              const SizedBox(width: 24),
-              Expanded(child: _buildTextField(_previousSchoolController, "Previous Institution", Icons.history_edu_rounded)),
-            ],
+          DropdownButtonFormField<String>(
+            key: ValueKey('school_name_mobile_$_selectedSchoolType'),
+            initialValue: _selectedSchool,
+            isExpanded: true,
+            decoration: _inputDeco(
+              _isLoadingSchools 
+                ? "Loading Institutions..." 
+                : (schools.isEmpty && _selectedSchoolType != null ? "No matching schools found" : "Institution Name"), 
+              Icons.school_outlined
+            ),
+            items: schools.map((s) => DropdownMenuItem(value: s['name'].toString(), child: Text(s['name'].toString(), overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+            onChanged: (v) {
+              setState(() {
+                _selectedSchool = v;
+                try {
+                  final found = schools.firstWhere((s) => s['name'] == v);
+                  _selectedSchoolId = (found['id'] ?? found['_id'] ?? found['scholar_id']).toString();
+                } catch (_) {
+                  _selectedSchoolId = null;
+                }
+              });
+            },
+            validator: (v) => v == null ? "Required" : null,
+          ),
+          const SizedBox(height: 24),
+          DropdownButtonFormField<String>(
+            initialValue: _selectedStartYear,
+            decoration: _inputDeco("Enrolment Year", Icons.event_available_rounded),
+            items: years.map((y) => DropdownMenuItem(value: y, child: Text(y, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+            onChanged: (v) {
+              setState(() {
+                _selectedStartYear = v;
+                _updateGraduationYear();
+              });
+            },
+          ),
+          const SizedBox(height: 24),
+          DropdownButtonFormField<int>(
+            initialValue: _selectedDuration,
+            decoration: _inputDeco("Program Duration", Icons.timer_outlined),
+            items: [1, 2, 3, 4, 5, 6].map((d) => DropdownMenuItem(value: d, child: Text("$d Years", style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+            onChanged: (v) {
+              setState(() {
+                _selectedDuration = v;
+                _updateGraduationYear();
+              });
+            },
+          ),
+          const SizedBox(height: 24),
+          DropdownButtonFormField<String>(
+            key: ValueKey('end_year_mobile_${_selectedStartYear}_$_selectedDuration'),
+            initialValue: _selectedEndYear,
+            decoration: _inputDeco("Expected Graduation", Icons.event_busy_rounded),
+            items: years.map((y) => DropdownMenuItem(value: y, child: Text(y, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+            onChanged: (v) => setState(() => _selectedEndYear = v),
           ),
         ] else ...[
-          const SizedBox(height: 24),
-          _buildTextField(_previousSchoolController, "Previous Institution", Icons.history_edu_rounded),
-        ],
-        if (_selectedSchoolType == 'University') ...[
+          Row(
+            children: [
+              Expanded(
+                child: IgnorePointer(
+                  ignoring: widget.forcedSchoolType != null,
+                  child: Opacity(
+                    opacity: widget.forcedSchoolType != null ? 0.7 : 1.0,
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _selectedSchoolType,
+                      decoration: _inputDeco("Level of Study", Icons.category_outlined),
+                      items: _schoolTypes.map((t) => DropdownMenuItem(value: t, child: Text(t, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+                      onChanged: (v) {
+                        setState(() {
+                          _selectedSchoolType = v;
+                          _selectedSchool = null;
+                          _selectedSchoolId = null;
+                        });
+                      },
+                      validator: (v) => v == null ? "Required" : null,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  key: ValueKey('school_name_$_selectedSchoolType'),
+                  initialValue: _selectedSchool,
+                  isExpanded: true,
+                  decoration: _inputDeco(
+                    _isLoadingSchools 
+                      ? "Loading Institutions..." 
+                      : (schools.isEmpty && _selectedSchoolType != null ? "No matching schools found" : "Institution Name"), 
+                    Icons.school_outlined
+                  ),
+                  items: schools.map((s) => DropdownMenuItem(value: s['name'].toString(), child: Text(s['name'].toString(), overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+                  onChanged: (v) {
+                    setState(() {
+                      _selectedSchool = v;
+                      try {
+                        final found = schools.firstWhere((s) => s['name'] == v);
+                        _selectedSchoolId = (found['id'] ?? found['_id'] ?? found['scholar_id']).toString();
+                      } catch (_) {
+                        _selectedSchoolId = null;
+                      }
+                    });
+                  },
+                  validator: (v) => v == null ? "Required" : null,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 24),
           Row(
             children: [
               Expanded(
                 child: DropdownButtonFormField<String>(
-                  initialValue: _selectedProgramType,
-                  decoration: _inputDeco("Qualification", Icons.bookmark_outline_rounded),
-                  items: const [
-                    DropdownMenuItem(value: "Degree", child: Text("Degree", style: TextStyle(fontWeight: FontWeight.w600))),
-                    DropdownMenuItem(value: "Diploma", child: Text("Diploma", style: TextStyle(fontWeight: FontWeight.w600))),
-                    DropdownMenuItem(value: "Certificate", child: Text("Certificate", style: TextStyle(fontWeight: FontWeight.w600))),
-                  ],
-                  onChanged: (v) => setState(() => _selectedProgramType = v),
+                  initialValue: _selectedStartYear,
+                  decoration: _inputDeco("Enrolment Year", Icons.event_available_rounded),
+                  items: years.map((y) => DropdownMenuItem(value: y, child: Text(y, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+                  onChanged: (v) {
+                    setState(() {
+                      _selectedStartYear = v;
+                      _updateGraduationYear();
+                    });
+                  },
                 ),
               ),
-              const SizedBox(width: 24),
-              Expanded(child: _buildTextField(_programNameController, "Specific Course Name", Icons.assignment_outlined)),
+              const SizedBox(width: 16),
+              Expanded(
+                child: DropdownButtonFormField<int>(
+                  initialValue: _selectedDuration,
+                  decoration: _inputDeco("Program Duration", Icons.timer_outlined),
+                  items: [1, 2, 3, 4, 5, 6].map((d) => DropdownMenuItem(value: d, child: Text("$d Years", style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+                  onChanged: (v) {
+                    setState(() {
+                      _selectedDuration = v;
+                      _updateGraduationYear();
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  key: ValueKey('end_year_${_selectedStartYear}_$_selectedDuration'),
+                  initialValue: _selectedEndYear,
+                  decoration: _inputDeco("Expected Graduation", Icons.event_busy_rounded),
+                  items: years.map((y) => DropdownMenuItem(value: y, child: Text(y, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+                  onChanged: (v) => setState(() => _selectedEndYear = v),
+                ),
+              ),
             ],
           ),
+        ],
+        const SizedBox(height: 24),
+        if (isMobile) ...[
+          if (showClassField) ...[
+            _buildTextField(_yearController, "Current Form / Class", Icons.calendar_month_rounded),
+            const SizedBox(height: 24),
+          ],
+          _buildTextField(_previousSchoolController, "Previous Institution", Icons.history_edu_rounded),
+        ] else ...[
+          if (showClassField)
+            Row(
+              children: [
+                Expanded(child: _buildTextField(_yearController, "Current Form / Class", Icons.calendar_month_rounded)),
+                const SizedBox(width: 24),
+                Expanded(child: _buildTextField(_previousSchoolController, "Previous Institution", Icons.history_edu_rounded)),
+              ],
+            )
+          else
+            _buildTextField(_previousSchoolController, "Previous Institution", Icons.history_edu_rounded),
+        ],
+        if (_selectedSchoolType == 'University') ...[
+          const SizedBox(height: 24),
+          if (isMobile) ...[
+            DropdownButtonFormField<String>(
+              initialValue: _selectedProgramType,
+              decoration: _inputDeco("Qualification", Icons.bookmark_outline_rounded),
+              items: const [
+                DropdownMenuItem(value: "Degree", child: Text("Degree", style: TextStyle(fontWeight: FontWeight.w600))),
+                DropdownMenuItem(value: "Diploma", child: Text("Diploma", style: TextStyle(fontWeight: FontWeight.w600))),
+                DropdownMenuItem(value: "Certificate", child: Text("Certificate", style: TextStyle(fontWeight: FontWeight.w600))),
+              ],
+              onChanged: (v) => setState(() => _selectedProgramType = v),
+            ),
+            const SizedBox(height: 24),
+            _buildTextField(_programNameController, "Specific Course Name", Icons.assignment_outlined),
+          ] else ...[
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _selectedProgramType,
+                    decoration: _inputDeco("Qualification", Icons.bookmark_outline_rounded),
+                    items: const [
+                      DropdownMenuItem(value: "Degree", child: Text("Degree", style: TextStyle(fontWeight: FontWeight.w600))),
+                      DropdownMenuItem(value: "Diploma", child: Text("Diploma", style: TextStyle(fontWeight: FontWeight.w600))),
+                      DropdownMenuItem(value: "Certificate", child: Text("Certificate", style: TextStyle(fontWeight: FontWeight.w600))),
+                    ],
+                    onChanged: (v) => setState(() => _selectedProgramType = v),
+                  ),
+                ),
+                const SizedBox(width: 24),
+                Expanded(child: _buildTextField(_programNameController, "Specific Course Name", Icons.assignment_outlined)),
+              ],
+            ),
+          ],
         ],
       ],
     );
   }
 
-  Widget _buildDemographicsSection() {
+  Widget _buildDemographicsSection(bool isMobile) {
     return _executiveCard(
+      isMobile: isMobile,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                initialValue: _selectedDistrict,
-                decoration: _inputDeco(
-                  _assignedDistrict != null ? "Assigned District (Locked)" : "District of Origin",
-                  Icons.map_outlined
-                ).copyWith(
-                  helperText: _assignedDistrict != null ? "Registration is restricted to your monitoring district." : null,
-                  helperStyle: const TextStyle(color: kBrandOrange, fontWeight: FontWeight.bold),
-                ),
-                items: _districts.map((d) => DropdownMenuItem(value: d, child: Text(d, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
-                onChanged: _assignedDistrict != null ? null : (v) => setState(() => _selectedDistrict = v),
-                validator: (v) => v == null ? "Required" : null,
-              ),
+        if (isMobile) ...[
+          DropdownButtonFormField<String>(
+            initialValue: _selectedDistrict,
+            decoration: _inputDeco(
+              _assignedDistrict != null ? "Assigned District (Locked)" : "District of Origin",
+              Icons.map_outlined
+            ).copyWith(
+              helperText: _assignedDistrict != null ? "Locked to your monitoring district." : null,
+              helperStyle: const TextStyle(color: kBrandOrange, fontWeight: FontWeight.bold, fontSize: 10),
             ),
-            const SizedBox(width: 24),
-            Expanded(child: _buildTextField(_homeVillageController, "Home Village / T.A.", Icons.home_outlined)),
-          ],
-        ),
+            items: _districts.map((d) => DropdownMenuItem(value: d, child: Text(d, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+            onChanged: _assignedDistrict != null ? null : (v) => setState(() => _selectedDistrict = v),
+            validator: (v) => v == null ? "Required" : null,
+          ),
+          const SizedBox(height: 24),
+          _buildTextField(_homeVillageController, "Home Village / T.A.", Icons.home_outlined),
+        ] else ...[
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  initialValue: _selectedDistrict,
+                  decoration: _inputDeco(
+                    _assignedDistrict != null ? "Assigned District (Locked)" : "District of Origin",
+                    Icons.map_outlined
+                  ).copyWith(
+                    helperText: _assignedDistrict != null ? "Registration is restricted to your monitoring district." : null,
+                    helperStyle: const TextStyle(color: kBrandOrange, fontWeight: FontWeight.bold),
+                  ),
+                  items: _districts.map((d) => DropdownMenuItem(value: d, child: Text(d, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+                  onChanged: _assignedDistrict != null ? null : (v) => setState(() => _selectedDistrict = v),
+                  validator: (v) => v == null ? "Required" : null,
+                ),
+              ),
+              const SizedBox(width: 24),
+              Expanded(child: _buildTextField(_homeVillageController, "Home Village / T.A.", Icons.home_outlined)),
+            ],
+          ),
+        ],
         const SizedBox(height: 24),
         DropdownButtonFormField<String>(
           initialValue: _selectedDonor,
@@ -748,9 +917,9 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
   }
 
 
-  Widget _executiveCard({required List<Widget> children}) {
+  Widget _executiveCard({required List<Widget> children, bool isMobile = false}) {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(isMobile ? 16 : 32),
       decoration: BoxDecoration(
         color: const Color(0xFFF9FAFB),
         borderRadius: BorderRadius.circular(16),
@@ -762,6 +931,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
       ),
     );
   }
+
 
   Widget _buildTextField(TextEditingController controller, String label, IconData icon, {bool required = false, int maxLines = 1}) {
     return TextFormField(

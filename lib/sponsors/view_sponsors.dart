@@ -273,6 +273,7 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -285,36 +286,38 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildExecutiveHeader(),
-          _buildToolbar(),
-          Expanded(child: _buildBody()),
+          _buildExecutiveHeader(isMobile),
+          _buildToolbar(isMobile),
+          Expanded(child: _buildBody(isMobile)),
         ],
       ),
     );
   }
 
-  Widget _buildExecutiveHeader() {
+  Widget _buildExecutiveHeader(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: 24, vertical: isMobile ? 16 : 12),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: kBrandOlive.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-            child: const Icon(Icons.volunteer_activism_rounded, color: kBrandOlive, size: 20),
-          ),
-          const SizedBox(width: 16),
-          const Expanded(
+          if (!isMobile) ...[
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: kBrandOlive.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+              child: const Icon(Icons.volunteer_activism_rounded, color: kBrandOlive, size: 20),
+            ),
+            const SizedBox(width: 16),
+          ],
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Strategic Partner Registry', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kBrandBrown, letterSpacing: -0.5)),
+                Text('Strategic Partner Registry', style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.bold, color: kBrandBrown, letterSpacing: -0.5)),
                 Text('Management of philanthropic relationships and funding commitments.',
-                    style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                    style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -328,11 +331,11 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
                 }
               },
               icon: const Icon(Icons.add_rounded, size: 16),
-              label: const Text("REGISTER", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10)),
+              label: Text(isMobile ? "ADD" : "REGISTER", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: kBrandOlive,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
@@ -341,7 +344,7 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
     );
   }
 
-  Widget _buildToolbar() {
+  Widget _buildToolbar(bool isMobile) {
     return Column(
       children: [
         const Divider(indent: 24, endIndent: 24),
@@ -385,13 +388,13 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(bool isMobile) {
     if (_isLoading) return const Center(child: CircularProgressIndicator(color: kBrandOlive));
     if (_loadError != null) return Center(child: Text(_loadError!));
     if (_filteredSponsors.isEmpty) return _buildEmptyState();
 
     return ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 24, vertical: 12),
       itemCount: _filteredSponsors.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
@@ -404,7 +407,7 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
             boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2))],
           ),
           child: ListTile(
-            contentPadding: const EdgeInsets.all(16),
+            contentPadding: EdgeInsets.all(isMobile ? 12 : 16),
             leading: CircleAvatar(
               backgroundColor: kBrandBrown.withValues(alpha: 0.1),
               child: Text(s.name[0].toUpperCase(), style: const TextStyle(color: kBrandBrown, fontWeight: FontWeight.bold)),
@@ -415,8 +418,8 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(_formatAmount(s.amount), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBrandBrown)),
-                Text(s.status, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: s.status == 'Active' ? Colors.green : Colors.grey)),
+                Text(_formatAmount(s.amount), style: TextStyle(fontWeight: FontWeight.bold, fontSize: isMobile ? 11 : 13, color: kBrandBrown)),
+                Text(s.status, style: TextStyle(fontSize: isMobile ? 9 : 10, fontWeight: FontWeight.bold, color: s.status == 'Active' ? Colors.green : Colors.grey)),
               ],
             ),
             onTap: () => _showSponsorDetails(s),
@@ -425,6 +428,7 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
       },
     );
   }
+
 
   Widget _buildEmptyState() {
     return Center(

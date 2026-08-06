@@ -729,6 +729,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 900;
     final visibleCategories = _getVisibleCategories(_categories);
 
     if (activeCategoryIndex >= _categories.length) activeCategoryIndex = 0;
@@ -745,8 +747,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: Colors.grey.shade50,
+      drawer: isMobile ? Drawer(width: 280, child: _buildSidebar(visibleCategories, isMobile)) : null,
       endDrawer: Drawer(
-        width: 450,
+        width: isMobile ? screenWidth * 0.85 : 450,
         child: AIAssistantPage(
           isDrawer: true, 
           currentPage: activeSubItem.title,
@@ -758,20 +761,25 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         toolbarHeight: 48,
         shadowColor: brandBrown.withOpacity(0.3),
         backgroundColor: brandBrown,
-        leadingWidth: 280,
-        leading: Row(
-          children: [
-            Container(
-              width: 200,
-              height: double.infinity,
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              child: Image.asset('assets/images/age-logo.png', fit: BoxFit.contain),
+        leadingWidth: isMobile ? 56 : 280,
+        leading: isMobile 
+          ? IconButton(
+              icon: const Icon(Icons.menu, color: Colors.white, size: 24),
+              onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+            )
+          : Row(
+              children: [
+                Container(
+                  width: 200,
+                  height: double.infinity,
+                  color: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  child: Image.asset('assets/images/age-logo.png', fit: BoxFit.contain),
+                ),
+                const SizedBox(width: 8),
+                IconButton(icon: const Icon(Icons.menu, color: Colors.white, size: 20), onPressed: () => setState(() => _isSidebarVisible = !_isSidebarVisible)),
+              ],
             ),
-            const SizedBox(width: 8),
-            IconButton(icon: const Icon(Icons.menu, color: Colors.white, size: 20), onPressed: () => setState(() => _isSidebarVisible = !_isSidebarVisible)),
-          ],
-        ),
         title: _isSearching
           ? Container(
               alignment: Alignment.centerLeft,
@@ -795,10 +803,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 ),
               ),
             )
-          : const Text("AGE Africa System", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 16)),
+          : Text(isMobile ? "AGE System" : "AGE Africa System", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 16)),
         actions: [
           IconButton(icon: const Icon(Icons.auto_awesome, color: Colors.white), onPressed: () => _scaffoldKey.currentState?.openEndDrawer()),
-          IconButton(icon: const Icon(Icons.search, color: Colors.white), onPressed: _startSearching),
+          if (!isMobile) IconButton(icon: const Icon(Icons.search, color: Colors.white), onPressed: _startSearching),
           Stack(
             children: [
               IconButton(icon: const Icon(Icons.notifications, color: Colors.white), onPressed: () {
@@ -811,18 +819,19 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             ],
           ),
           const SizedBox(width: 8),
-          const VerticalDivider(color: Colors.white24, width: 1, indent: 12, endIndent: 12),
-          const SizedBox(width: 12),
-          GestureDetector(
-            onTap: () => _navigateToSubItem("User Profile"),
-            child: SizedBox(
-              width: 120,
-              child: _MovingText(
-                text: _fullName,
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+          if (!isMobile) const VerticalDivider(color: Colors.white24, width: 1, indent: 12, endIndent: 12),
+          if (!isMobile) const SizedBox(width: 12),
+          if (!isMobile)
+            GestureDetector(
+              onTap: () => _navigateToSubItem("User Profile"),
+              child: SizedBox(
+                width: 120,
+                child: _MovingText(
+                  text: _fullName,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+                ),
               ),
             ),
-          ),
           const SizedBox(width: 12),
           Padding(
             padding: const EdgeInsets.only(right: 20),
@@ -882,118 +891,43 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       ),
       body: Row(
         children: [
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            width: _isSidebarVisible ? 280 : 0,
-            child: _isSidebarVisible 
-              ? Container(
-                  color: brandCream,
-                  child: Column(
-                    children: [
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-                        color: brandCreamDark,
-                        child: Column(
-                          children: [
-                            GestureDetector(
-                              onTap: _pickAndUploadImage,
-                              child: Stack(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 40,
-                                    backgroundColor: brandBrown,
-                                    child: ClipOval(
-                                      child: _profileImageUrl != null
-                                          ? Image.network(
-                                              ApiService.getFullUrl(_profileImageUrl),
-                                              fit: BoxFit.cover,
-                                              width: 80,
-                                              height: 80,
-                                              errorBuilder: (context, error, stackTrace) =>
-                                                  const Icon(Icons.person, size: 45, color: brandCream),
-                                            )
-                                          : const Icon(Icons.person, size: 45, color: brandCream),
-                                    ),
-                                  ),
-                                  Positioned(
-                                    bottom: 0,
-                                    right: 0,
-                                    child: Container(
-                                      padding: const EdgeInsets.all(4),
-                                      decoration: const BoxDecoration(color: Color(0xFFE05B1C), shape: BoxShape.circle),
-                                      child: const Icon(Icons.camera_alt, size: 14, color: Colors.white),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(_fullName, style: const TextStyle(color: brandBrown, fontSize: 16, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 4),
-                            Text(_userRole, style: const TextStyle(color: Colors.black54, fontSize: 12)),
-                          ],
-                        ),
-                      ),
-                      const Divider(height: 1, color: Color(0xFFDCD1B4)),
-                      Expanded(
-                        child: ListView.builder(
-                          itemCount: visibleCategories.length + 1,
-                          itemBuilder: (context, index) {
-                            if (index == visibleCategories.length) {
-                              return ListTile(leading: const Icon(Icons.logout_rounded, color: Colors.redAccent), title: const Text("Logout Session", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 14)), onTap: () { ApiService.logout(); Navigator.pushReplacementNamed(context, '/login'); });
-                            }
-                            final category = visibleCategories[index];
-                            int originalIdx = _categories.indexWhere((c) => c.title == category.title);
-                            final isSelected = activeCategoryIndex == originalIdx;
-
-                            return Theme(
-                              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                              child: ExpansionTile(
-                                initiallyExpanded: isSelected,
-                                leading: Icon(category.icon),
-                                title: Text(category.title, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.w500, fontSize: 14)),
-                                children: category.subItems.where((s) => s.isVisible).map((subItem) {
-                                  int subIdx = _categories[originalIdx].subItems.indexWhere((s) => s.title == subItem.title);
-                                  final isSubSelected = isSelected && activeSubIndex == subIdx;
-                                  return ListTile(
-                                    dense: true,
-                                    leading: Icon(subItem.icon, size: 18, color: isSubSelected ? brandOrange : Colors.black54),
-                                    title: Text(subItem.title, style: TextStyle(color: isSubSelected ? brandOrange : Colors.black87, fontWeight: isSubSelected ? FontWeight.bold : FontWeight.normal, fontSize: 13)),
-                                    onTap: () => setState(() { activeCategoryIndex = originalIdx; activeSubIndex = subIdx; }),
-                                  );
-                                }).toList(),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : const SizedBox.shrink(),
-          ),
+          if (!isMobile)
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              width: _isSidebarVisible ? 280 : 0,
+              child: _isSidebarVisible 
+                ? _buildSidebar(visibleCategories, false)
+                : const SizedBox.shrink(),
+            ),
           Expanded(
             child: Column(
               children: [
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 8),
                   color: Colors.white,
                   child: Row(
                     children: [
                       if (_navigationHistory.isNotEmpty && activeSubItem.title != "Pending Approvals") 
                         IconButton(icon: const Icon(Icons.arrow_back, color: Colors.black87, size: 18), onPressed: _popSubItem),
-                      Text(activeCategory.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black54)),
-                      const Icon(Icons.chevron_right, color: Colors.grey, size: 16),
-                      Text(activeSubItem.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87)),
+                      if (!isMobile) ...[
+                        Text(activeCategory.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black54)),
+                        const Icon(Icons.chevron_right, color: Colors.grey, size: 16),
+                      ],
+                      Expanded(
+                        child: Text(
+                          activeSubItem.title, 
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ],
                   ),
                 ),
                 const Divider(height: 1),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: EdgeInsets.all(isMobile ? 12 : 24),
                     child: _currentDetailScholarId != null
                       ? ScholarProfileComponent(scholarId: _currentDetailScholarId, onBack: _popSubItem)
                       : activeSubItem.builder != null
@@ -1008,6 +942,121 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       ),
     );
   }
+
+  Widget _buildSidebar(List<SidebarCategory> visibleCategories, bool isMobile) {
+    const Color brandBrown = Color(0xFF4C3C32);
+    const Color brandCream = Color(0xFFFAF2DB);
+    const Color brandCreamDark = Color(0xFFF3E7C4);
+    const Color brandOrange = Color(0xFFE05B1C);
+
+    return Container(
+      color: brandCream,
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+            color: brandCreamDark,
+            child: Column(
+              children: [
+                if (isMobile) ...[
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Image.asset('assets/images/age-logo.png', height: 40, fit: BoxFit.contain),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+                GestureDetector(
+                  onTap: _pickAndUploadImage,
+                  child: Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 40,
+                        backgroundColor: brandBrown,
+                        child: ClipOval(
+                          child: _profileImageUrl != null
+                              ? Image.network(
+                                  ApiService.getFullUrl(_profileImageUrl),
+                                  fit: BoxFit.cover,
+                                  width: 80,
+                                  height: 80,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(Icons.person, size: 45, color: brandCream),
+                                )
+                              : const Icon(Icons.person, size: 45, color: brandCream),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(color: Color(0xFFE05B1C), shape: BoxShape.circle),
+                          child: const Icon(Icons.camera_alt, size: 14, color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(_fullName, style: const TextStyle(color: brandBrown, fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text(_userRole, style: const TextStyle(color: Colors.black54, fontSize: 12)),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: Color(0xFFDCD1B4)),
+          Expanded(
+            child: ListView.builder(
+              padding: EdgeInsets.zero,
+              itemCount: visibleCategories.length + 1,
+              itemBuilder: (context, index) {
+                if (index == visibleCategories.length) {
+                  return ListTile(
+                    leading: const Icon(Icons.logout_rounded, color: Colors.redAccent), 
+                    title: const Text("Logout Session", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 14)), 
+                    onTap: () { 
+                      ApiService.logout(); 
+                      Navigator.pushReplacementNamed(context, '/login'); 
+                    }
+                  );
+                }
+                final category = visibleCategories[index];
+                int originalIdx = _categories.indexWhere((c) => c.title == category.title);
+                final isSelected = activeCategoryIndex == originalIdx;
+
+                return Theme(
+                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
+                    initiallyExpanded: isSelected,
+                    leading: Icon(category.icon),
+                    title: Text(category.title, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.w500, fontSize: 14)),
+                    children: category.subItems.where((s) => s.isVisible).map((subItem) {
+                      int subIdx = _categories[originalIdx].subItems.indexWhere((s) => s.title == subItem.title);
+                      final isSubSelected = isSelected && activeSubIndex == subIdx;
+                      return ListTile(
+                        dense: true,
+                        leading: Icon(subItem.icon, size: 18, color: isSubSelected ? brandOrange : Colors.black54),
+                        title: Text(subItem.title, style: TextStyle(color: isSubSelected ? brandOrange : Colors.black87, fontWeight: isSubSelected ? FontWeight.bold : FontWeight.normal, fontSize: 13)),
+                        onTap: () {
+                          setState(() { 
+                            activeCategoryIndex = originalIdx; 
+                            activeSubIndex = subIdx; 
+                          });
+                          if (isMobile) Navigator.pop(context);
+                        },
+                      );
+                    }).toList(),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
 }
 
 class _MovingText extends StatefulWidget {

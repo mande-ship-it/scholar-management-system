@@ -268,6 +268,7 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -277,37 +278,39 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildExecutiveHeader(),
-          Padding(
-            padding: const EdgeInsets.all(40),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionLabel("ACADEMIC IDENTITY"),
-                  const SizedBox(height: 24),
-                  _buildIdentitySection(),
+          _buildExecutiveHeader(isMobile),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(isMobile ? 20 : 40),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionLabel("ACADEMIC IDENTITY"),
+                    const SizedBox(height: 24),
+                    _buildIdentitySection(isMobile),
 
-                  const SizedBox(height: 48),
-                  _buildSectionLabel("GEOGRAPHIC PLACEMENT"),
-                  const SizedBox(height: 24),
-                  _buildLocationSection(),
+                    const SizedBox(height: 32),
+                    _buildSectionLabel("GEOGRAPHIC PLACEMENT"),
+                    const SizedBox(height: 24),
+                    _buildLocationSection(isMobile),
 
-                  const SizedBox(height: 48),
-                  _buildSectionLabel("COMMUNICATION & CHANNELS"),
-                  const SizedBox(height: 24),
-                  _buildContactSection(),
+                    const SizedBox(height: 32),
+                    _buildSectionLabel("COMMUNICATION & CHANNELS"),
+                    const SizedBox(height: 24),
+                    _buildContactSection(isMobile),
 
-                  const SizedBox(height: 48),
-                  _buildSectionLabel("ADMINISTRATION & LEADERSHIP"),
-                  const SizedBox(height: 24),
-                  _buildAdminSection(),
+                    const SizedBox(height: 32),
+                    _buildSectionLabel("ADMINISTRATION & LEADERSHIP"),
+                    const SizedBox(height: 24),
+                    _buildAdminSection(isMobile),
 
-                  const SizedBox(height: 60),
-                  _buildSubmitAction(),
-                  const SizedBox(height: 40),
-                ],
+                    const SizedBox(height: 48),
+                    _buildSubmitAction(isMobile),
+                    const SizedBox(height: 20),
+                  ],
+                ),
               ),
             ),
           ),
@@ -316,7 +319,7 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
     );
   }
 
-  Widget _buildExecutiveHeader() {
+  Widget _buildExecutiveHeader(bool isMobile) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: const BoxDecoration(
@@ -331,14 +334,14 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
             child: const Icon(Icons.domain_add_rounded, color: kBrandBrown, size: 20),
           ),
           const SizedBox(width: 16),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Register New Institution", 
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                  style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
                 Text("Enter comprehensive administrative and academic profiles for school onboarding.", 
-                  style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                  style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -348,121 +351,186 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
   }
 
   Widget _buildSectionLabel(String label) {
-    return Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kBrandOlive.withValues(alpha: 0.8), letterSpacing: 1.5));
+    return Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBrandOlive.withValues(alpha: 0.8), letterSpacing: 1.5));
   }
 
-  Widget _buildIdentitySection() {
+  Widget _buildIdentitySection(bool isMobile) {
     return _executiveCard(
+      isMobile: isMobile,
       children: [
         _buildTextField(_nameController, "School Name / Title", Icons.edit_outlined, required: true),
         const SizedBox(height: 24),
-        Row(
-          children: [
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                initialValue: _selectedLevel,
-                decoration: _inputDeco("Education Level", Icons.layers_outlined),
-                items: _schoolLevels.map((l) => DropdownMenuItem(value: l, child: Text(l, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
-                onChanged: (v) => setState(() => _selectedLevel = v),
+        if (isMobile) ...[
+          DropdownButtonFormField<String>(
+            initialValue: _selectedLevel,
+            decoration: _inputDeco("Education Level", Icons.layers_outlined),
+            items: _schoolLevels.map((l) => DropdownMenuItem(value: l, child: Text(l, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+            onChanged: (v) => setState(() => _selectedLevel = v),
+          ),
+          const SizedBox(height: 24),
+          DropdownButtonFormField<String>(
+            initialValue: _selectedType,
+            decoration: _inputDeco("School Category", Icons.account_balance_outlined),
+            items: _schoolTypes.map((t) => DropdownMenuItem(value: t, child: Text(t, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+            onChanged: (v) => setState(() => _selectedType = v),
+          ),
+        ] else ...[
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  initialValue: _selectedLevel,
+                  decoration: _inputDeco("Education Level", Icons.layers_outlined),
+                  items: _schoolLevels.map((l) => DropdownMenuItem(value: l, child: Text(l, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+                  onChanged: (v) => setState(() => _selectedLevel = v),
+                ),
               ),
-            ),
-            const SizedBox(width: 24),
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                initialValue: _selectedType,
-                decoration: _inputDeco("School Category", Icons.account_balance_outlined),
-                items: _schoolTypes.map((t) => DropdownMenuItem(value: t, child: Text(t, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
-                onChanged: (v) => setState(() => _selectedType = v),
+              const SizedBox(width: 24),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  initialValue: _selectedType,
+                  decoration: _inputDeco("School Category", Icons.account_balance_outlined),
+                  items: _schoolTypes.map((t) => DropdownMenuItem(value: t, child: Text(t, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+                  onChanged: (v) => setState(() => _selectedType = v),
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
+        ],
       ],
     );
   }
 
-  Widget _buildLocationSection() {
+  Widget _buildLocationSection(bool isMobile) {
     return _executiveCard(
+      isMobile: isMobile,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                initialValue: _selectedRegion,
-                decoration: _inputDeco("Region", Icons.map_outlined),
-                items: _regions.map((r) => DropdownMenuItem(value: r, child: Text(r, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
-                onChanged: _assignedDistrict != null ? null : (v) => setState(() {
-                  _selectedRegion = v;
-                  _selectedDistrict = null;
-                }),
-              ),
+        if (isMobile) ...[
+          DropdownButtonFormField<String>(
+            initialValue: _selectedRegion,
+            decoration: _inputDeco("Region", Icons.map_outlined),
+            items: _regions.map((r) => DropdownMenuItem(value: r, child: Text(r, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+            onChanged: _assignedDistrict != null ? null : (v) => setState(() {
+              _selectedRegion = v;
+              _selectedDistrict = null;
+            }),
+          ),
+          const SizedBox(height: 24),
+          DropdownButtonFormField<String>(
+            key: ValueKey('mobile_$_selectedRegion$_assignedDistrict'),
+            initialValue: _selectedDistrict,
+            decoration: _inputDeco(
+              _assignedDistrict != null ? "Assigned District (Locked)" : "District", 
+              Icons.my_location_outlined
+            ).copyWith(
+              helperText: _assignedDistrict != null ? "Monitoring restricted to $_assignedDistrict." : null,
+              helperStyle: const TextStyle(color: kBrandOrange, fontWeight: FontWeight.bold, fontSize: 10),
             ),
-            const SizedBox(width: 24),
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                key: ValueKey('$_selectedRegion$_assignedDistrict'),
-                initialValue: _selectedDistrict,
-                decoration: _inputDeco(
-                  _assignedDistrict != null ? "Assigned District (Locked)" : "District", 
-                  Icons.my_location_outlined
-                ).copyWith(
-                  helperText: _assignedDistrict != null ? "Monitoring restricted to $_assignedDistrict." : null,
-                  helperStyle: const TextStyle(color: kBrandOrange, fontWeight: FontWeight.bold),
+            items: _assignedDistrict != null 
+              ? [DropdownMenuItem(value: _assignedDistrict, child: Text(_assignedDistrict!, style: const TextStyle(fontWeight: FontWeight.w600)))]
+              : _activeDistricts.map((d) => DropdownMenuItem(value: d, child: Text(d, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+            onChanged: _assignedDistrict != null ? null : (v) => setState(() => _selectedDistrict = v),
+            validator: (v) => v == null ? "Required" : null,
+          ),
+        ] else ...[
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  initialValue: _selectedRegion,
+                  decoration: _inputDeco("Region", Icons.map_outlined),
+                  items: _regions.map((r) => DropdownMenuItem(value: r, child: Text(r, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+                  onChanged: _assignedDistrict != null ? null : (v) => setState(() {
+                    _selectedRegion = v;
+                    _selectedDistrict = null;
+                  }),
                 ),
-                items: _assignedDistrict != null 
-                  ? [DropdownMenuItem(value: _assignedDistrict, child: Text(_assignedDistrict!, style: const TextStyle(fontWeight: FontWeight.w600)))]
-                  : _activeDistricts.map((d) => DropdownMenuItem(value: d, child: Text(d, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
-                onChanged: _assignedDistrict != null ? null : (v) => setState(() => _selectedDistrict = v),
-                validator: (v) => v == null ? "Required" : null,
               ),
-            ),
-          ],
-        ),
+              const SizedBox(width: 24),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  key: ValueKey('$_selectedRegion$_assignedDistrict'),
+                  initialValue: _selectedDistrict,
+                  decoration: _inputDeco(
+                    _assignedDistrict != null ? "Assigned District (Locked)" : "District", 
+                    Icons.my_location_outlined
+                  ).copyWith(
+                    helperText: _assignedDistrict != null ? "Monitoring restricted to $_assignedDistrict." : null,
+                    helperStyle: const TextStyle(color: kBrandOrange, fontWeight: FontWeight.bold),
+                  ),
+                  items: _assignedDistrict != null 
+                    ? [DropdownMenuItem(value: _assignedDistrict, child: Text(_assignedDistrict!, style: const TextStyle(fontWeight: FontWeight.w600)))]
+                    : _activeDistricts.map((d) => DropdownMenuItem(value: d, child: Text(d, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+                  onChanged: _assignedDistrict != null ? null : (v) => setState(() => _selectedDistrict = v),
+                  validator: (v) => v == null ? "Required" : null,
+                ),
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: 24),
         _buildTextField(_addressController, "Physical Address / Landmarks", Icons.home_outlined, maxLines: 2),
       ],
     );
   }
 
-  Widget _buildContactSection() {
+  Widget _buildContactSection(bool isMobile) {
     return _executiveCard(
+      isMobile: isMobile,
       children: [
-        Row(
-          children: [
-            Expanded(child: _buildTextField(_phoneController, "Primary Phone", Icons.phone_outlined)),
-            const SizedBox(width: 24),
-            Expanded(child: _buildTextField(_emailController, "Institutional Email", Icons.alternate_email_rounded)),
-          ],
-        ),
+        if (isMobile) ...[
+          _buildTextField(_phoneController, "Primary Phone", Icons.phone_outlined),
+          const SizedBox(height: 24),
+          _buildTextField(_emailController, "Institutional Email", Icons.alternate_email_rounded),
+        ] else ...[
+          Row(
+            children: [
+              Expanded(child: _buildTextField(_phoneController, "Primary Phone", Icons.phone_outlined)),
+              const SizedBox(width: 24),
+              Expanded(child: _buildTextField(_emailController, "Institutional Email", Icons.alternate_email_rounded)),
+            ],
+          ),
+        ],
         const SizedBox(height: 24),
         _buildTextField(_websiteController, "Website URL (Optional)", Icons.language_outlined),
       ],
     );
   }
 
-  Widget _buildAdminSection() {
+  Widget _buildAdminSection(bool isMobile) {
     return _executiveCard(
+      isMobile: isMobile,
       children: [
-        Row(
-          children: [
-            Expanded(flex: 2, child: _buildTextField(_adminNameController, "Admin Contact Name", Icons.person_outline)),
-            const SizedBox(width: 24),
-            Expanded(child: _buildTextField(_adminRoleController, "Designation", Icons.work_outline)),
-          ],
-        ),
-        const SizedBox(height: 24),
-        Row(
-          children: [
-            Expanded(child: _buildTextField(_adminPhoneController, "Direct Admin Phone", Icons.phone_android_outlined)),
-            const SizedBox(width: 24),
-            Expanded(child: _buildTextField(_adminEmailController, "Direct Admin Email", Icons.email_outlined)),
-          ],
-        ),
+        if (isMobile) ...[
+          _buildTextField(_adminNameController, "Admin Contact Name", Icons.person_outline),
+          const SizedBox(height: 24),
+          _buildTextField(_adminRoleController, "Designation", Icons.work_outline),
+          const SizedBox(height: 24),
+          _buildTextField(_adminPhoneController, "Direct Admin Phone", Icons.phone_android_outlined),
+          const SizedBox(height: 24),
+          _buildTextField(_adminEmailController, "Direct Admin Email", Icons.email_outlined),
+        ] else ...[
+          Row(
+            children: [
+              Expanded(flex: 2, child: _buildTextField(_adminNameController, "Admin Contact Name", Icons.person_outline)),
+              const SizedBox(width: 24),
+              Expanded(child: _buildTextField(_adminRoleController, "Designation", Icons.work_outline)),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(child: _buildTextField(_adminPhoneController, "Direct Admin Phone", Icons.phone_android_outlined)),
+              const SizedBox(width: 24),
+              Expanded(child: _buildTextField(_adminEmailController, "Direct Admin Email", Icons.email_outlined)),
+            ],
+          ),
+        ],
       ],
     );
   }
 
-  Widget _buildSubmitAction() {
+  Widget _buildSubmitAction(bool isMobile) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
@@ -471,7 +539,8 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
             ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
             : const Icon(Icons.domain_verification_rounded, size: 20),
         label: Text(_isSaving ? "PROCESSING..." : "FINALIZE INSTITUTIONAL REGISTRATION", 
-          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5)),
+          textAlign: TextAlign.center,
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: isMobile ? 11 : 13, letterSpacing: 0.5)),
         style: ElevatedButton.styleFrom(
           backgroundColor: kBrandOlive,
           foregroundColor: Colors.white,
@@ -483,9 +552,9 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
     );
   }
 
-  Widget _executiveCard({required List<Widget> children}) {
+  Widget _executiveCard({required List<Widget> children, bool isMobile = false}) {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(isMobile ? 16 : 32),
       decoration: BoxDecoration(
         color: const Color(0xFFF9FAFB),
         borderRadius: BorderRadius.circular(16),
@@ -497,6 +566,7 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
       ),
     );
   }
+
 
   Widget _buildTextField(TextEditingController controller, String label, IconData icon, {bool required = false, int maxLines = 1}) {
     return TextFormField(

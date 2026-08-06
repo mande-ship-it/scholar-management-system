@@ -190,6 +190,7 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -199,49 +200,52 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildExecutiveHeader(),
-          Padding(
-            padding: const EdgeInsets.all(40),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionLabel("IDENTITY & ENTITY DETAILS"),
-                    const SizedBox(height: 24),
-                    _buildIdentitySection(),
-                    
-                    const SizedBox(height: 48),
-                    _buildSectionLabel("PRIMARY CONTACT & COMMUNICATION"),
-                    const SizedBox(height: 24),
-                    _buildContactSection(),
+          _buildExecutiveHeader(isMobile),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(isMobile ? 20 : 40),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionLabel("IDENTITY & ENTITY DETAILS"),
+                      const SizedBox(height: 24),
+                      _buildIdentitySection(isMobile),
+                      
+                      const SizedBox(height: 32),
+                      _buildSectionLabel("PRIMARY CONTACT & COMMUNICATION"),
+                      const SizedBox(height: 24),
+                      _buildContactSection(isMobile),
 
-                    const SizedBox(height: 48),
-                    _buildSectionLabel("ADDITIONAL STRATEGIC NOTES"),
-                    const SizedBox(height: 24),
-                    _executiveCard(
-                      children: [
-                        TextFormField(
-                          controller: _notesController,
-                          maxLines: 4,
-                          decoration: _inputDeco("Internal Strategic Notes", Icons.description_outlined),
-                        ),
-                      ],
-                    ),
+                      const SizedBox(height: 32),
+                      _buildSectionLabel("ADDITIONAL STRATEGIC NOTES"),
+                      const SizedBox(height: 24),
+                      _executiveCard(
+                        isMobile: isMobile,
+                        children: [
+                          TextFormField(
+                            controller: _notesController,
+                            maxLines: 4,
+                            decoration: _inputDeco("Internal Strategic Notes", Icons.description_outlined),
+                          ),
+                        ],
+                      ),
 
-                    const SizedBox(height: 60),
-                    _buildSubmitAction(),
-                    const SizedBox(height: 40),
-                  ],
+                      const SizedBox(height: 48),
+                      _buildSubmitAction(isMobile),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
                 ),
               ),
-            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildExecutiveHeader() {
+  Widget _buildExecutiveHeader(bool isMobile) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: const BoxDecoration(
@@ -261,7 +265,7 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(_isEditing ? "Modify Sponsor Profile" : "Register Strategic Partner", 
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                  style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
                 Text(_isEditing ? "Update institutional or individual benefactor records." : "Onboard a new philanthropic entity to the scholarship ecosystem.", 
                   style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
@@ -273,42 +277,56 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
   }
 
   Widget _buildSectionLabel(String label) {
-    return Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kBrandOlive.withOpacity(0.8), letterSpacing: 1.5));
+    return Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBrandOlive.withOpacity(0.8), letterSpacing: 1.5));
   }
 
-  Widget _buildIdentitySection() {
+  Widget _buildIdentitySection(bool isMobile) {
     return _executiveCard(
+      isMobile: isMobile,
       children: [
-        Row(
-          children: [
-            Expanded(child: _buildTextField(_nameController, "Sponsor / Entity Name", Icons.badge_outlined, required: true)),
-            const SizedBox(width: 24),
-            Expanded(child: _buildTextField(_organizationController, "Parent Organization", Icons.business_outlined)),
-          ],
-        ),
+        if (isMobile) ...[
+          _buildTextField(_nameController, "Sponsor / Entity Name", Icons.badge_outlined, required: true),
+          const SizedBox(height: 24),
+          _buildTextField(_organizationController, "Parent Organization", Icons.business_outlined),
+        ] else ...[
+          Row(
+            children: [
+              Expanded(child: _buildTextField(_nameController, "Sponsor / Entity Name", Icons.badge_outlined, required: true)),
+              const SizedBox(width: 24),
+              Expanded(child: _buildTextField(_organizationController, "Parent Organization", Icons.business_outlined)),
+            ],
+          ),
+        ],
         const SizedBox(height: 24),
         _buildTextField(_contactPersonController, "Primary Liaison / Contact Person", Icons.person_pin_rounded, required: true),
       ],
     );
   }
 
-  Widget _buildContactSection() {
+  Widget _buildContactSection(bool isMobile) {
     return _executiveCard(
+      isMobile: isMobile,
       children: [
-        Row(
-          children: [
-            Expanded(child: _buildTextField(_emailController, "Official Email Address", Icons.alternate_email_rounded, required: true)),
-            const SizedBox(width: 24),
-            Expanded(child: _buildTextField(_phoneController, "Direct Phone Line", Icons.phone_iphone_rounded, required: true)),
-          ],
-        ),
+        if (isMobile) ...[
+          _buildTextField(_emailController, "Official Email Address", Icons.alternate_email_rounded, required: true),
+          const SizedBox(height: 24),
+          _buildTextField(_phoneController, "Direct Phone Line", Icons.phone_iphone_rounded, required: true),
+        ] else ...[
+          Row(
+            children: [
+              Expanded(child: _buildTextField(_emailController, "Official Email Address", Icons.alternate_email_rounded, required: true)),
+              const SizedBox(width: 24),
+              Expanded(child: _buildTextField(_phoneController, "Direct Phone Line", Icons.phone_iphone_rounded, required: true)),
+            ],
+          ),
+        ],
         const SizedBox(height: 24),
         _buildTextField(_addressController, "Physical / Mailing Address", Icons.location_on_outlined, maxLines: 2),
       ],
     );
   }
 
-  Widget _buildSubmitAction() {
+  Widget _buildSubmitAction(bool isMobile) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
@@ -317,7 +335,8 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
             ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
             : Icon(_isEditing ? Icons.save_as_rounded : Icons.verified_user_rounded, size: 20),
         label: Text(_isLoading ? "PROCESSING..." : (_isEditing ? "SYNCHRONIZE UPDATES" : "FINALIZE ONBOARDING"), 
-          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5)),
+          textAlign: TextAlign.center,
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: isMobile ? 11 : 13, letterSpacing: 0.5)),
         style: ElevatedButton.styleFrom(
           backgroundColor: kBrandOlive,
           foregroundColor: Colors.white,
@@ -329,9 +348,9 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
     );
   }
 
-  Widget _executiveCard({required List<Widget> children}) {
+  Widget _executiveCard({required List<Widget> children, bool isMobile = false}) {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(isMobile ? 16 : 32),
       decoration: BoxDecoration(
         color: const Color(0xFFF9FAFB),
         borderRadius: BorderRadius.circular(16),
@@ -343,6 +362,7 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
       ),
     );
   }
+
 
   Widget _buildTextField(TextEditingController controller, String label, IconData icon, {bool required = false, int maxLines = 1}) {
     return TextFormField(
