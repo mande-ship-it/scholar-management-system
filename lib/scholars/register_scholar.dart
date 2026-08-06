@@ -931,8 +931,14 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
 
 
   Widget _executiveCard({required List<Widget> children, bool isMobile = false}) {
+    if (isMobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      );
+    }
     return Container(
-      padding: EdgeInsets.all(isMobile ? 16 : 32),
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         color: const Color(0xFFF9FAFB),
         borderRadius: BorderRadius.circular(16),

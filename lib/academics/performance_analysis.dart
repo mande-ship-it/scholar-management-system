@@ -231,6 +231,10 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
           if (_individualData != null) ...[
             _buildIndividualInsightsSummary(isMobile),
             const SizedBox(height: 32),
+            if (_selectedType == 'Secondary') ...[
+              _buildMSCEForecastingCard(isMobile),
+              const SizedBox(height: 32),
+            ],
             if (_aiNarrative.isNotEmpty) _buildAINarrativeBox(),
             const SizedBox(height: 32),
             if (isMobile)
@@ -397,22 +401,121 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
           columns: const [
             DataColumn(label: Text("PERIOD")),
             DataColumn(label: Text("AVG")),
-            DataColumn(label: Text("GAP")),
+            DataColumn(label: Text("AGG")),
             DataColumn(label: Text("BEST")),
           ],
           rows: timeline.map((t) {
-            final dist = t['distanceToThreshold'] as double;
             final best6 = t['best6'] as List;
+            final agg = _calculateAggregatePoints(best6);
             return DataRow(cells: [
               DataCell(Text(t['period'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
               DataCell(Text("${t['average']}%", style: const TextStyle(fontSize: 12))),
-              DataCell(Text("${dist > 0 ? '+' : ''}$dist%", 
-                style: TextStyle(color: dist >= 0 ? kBrandOlive : Colors.red, fontWeight: FontWeight.w900, fontSize: 12))),
+              DataCell(Text("${agg.toInt()} pts", 
+                style: TextStyle(color: agg <= 36 ? kBrandOlive : Colors.red, fontWeight: FontWeight.w900, fontSize: 12))),
               DataCell(Text(best6.isNotEmpty ? best6[0]['subject'] : 'N/A', style: const TextStyle(fontSize: 11))),
             ]);
           }).toList(),
         ),
       ),
+    );
+  }
+
+  double _calculateAggregatePoints(List<dynamic> best6) {
+    double total = 0;
+    for (var item in best6) {
+      final marks = double.tryParse(item['marks'].toString()) ?? 0.0;
+      final grade = gradeFromMarks(marks, isUniversity: false);
+      total += grade.point;
+    }
+    if (best6.isEmpty) return 54.0;
+    if (best6.length < 6) {
+      total += (6 - best6.length) * 9.0;
+    }
+    return total;
+  }
+
+  Widget _buildMSCEForecastingCard(bool isMobile) {
+    final timeline = _individualData!['timeline'] as List;
+    if (timeline.isEmpty) return const SizedBox();
+    
+    final latestBest6 = timeline.last['best6'] as List;
+    final double currentPoints = _calculateAggregatePoints(latestBest6);
+    
+    double forecastedPoints = currentPoints;
+    if (timeline.length >= 2) {
+      final prevBest6 = timeline[timeline.length - 2]['best6'] as List;
+      final double prevPoints = _calculateAggregatePoints(prevBest6);
+      final double improvement = prevPoints - currentPoints; // Positive if points decreased (improved)
+      forecastedPoints = currentPoints - (improvement * 0.5); // conservative projection
+    }
+    
+    forecastedPoints = forecastedPoints.clamp(6.0, 54.0);
+    
+    final Color forecastColor = forecastedPoints <= 18 ? Colors.green : (forecastedPoints <= 36 ? Colors.orange : Colors.red);
+    final String division = forecastedPoints <= 17 ? Translator.translate("Division 1 (Excellent)") : (forecastedPoints <= 30 ? Translator.translate("Division 2") : Translator.translate("Division 3 / Fail"));
+
+    return _AnalysisCard(
+      isMobile: isMobile,
+      title: Translator.translate("MSCE Trend Forecasting"),
+      subtitle: Translator.translate("Aggregate point projection (Best Six)"),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _forecastMetric(Translator.translate("Current Aggregate"), currentPoints.toInt().toString(), "pts", kBrandBrown),
+              const Icon(Icons.auto_graph_rounded, color: Colors.grey, size: 32),
+              _forecastMetric(Translator.translate("Forecasted MSCE"), forecastedPoints.toInt().toString(), "pts", forecastColor),
+            ],
+          ),
+          const SizedBox(height: 32),
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: forecastColor.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: forecastColor.withOpacity(0.1)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(color: forecastColor.withOpacity(0.1), shape: BoxShape.circle),
+                  child: Icon(Icons.psychology_outlined, color: forecastColor, size: 24),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(Translator.translate("PROJECTED OUTCOME"), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: forecastColor, letterSpacing: 1.5)),
+                      const SizedBox(height: 4),
+                      Text(division, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: forecastColor)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _forecastMetric(String label, String value, String unit, Color color) {
+    return Column(
+      children: [
+        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+        const SizedBox(height: 8),
+        RichText(
+          text: TextSpan(
+            children: [
+              TextSpan(text: value, style: TextStyle(fontSize: 36, fontWeight: FontWeight.w900, color: color, letterSpacing: -1)),
+              TextSpan(text: " $unit", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color.withOpacity(0.5))),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

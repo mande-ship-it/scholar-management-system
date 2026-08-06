@@ -14,6 +14,8 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
   bool _isLoading = true;
   List<dynamic> _graduates = [];
   List<dynamic> _internships = [];
+  List<dynamic> _filteredInternships = [];
+  String _internshipSearchQuery = '';
 
   // Selection
   dynamic _selectedGraduate;
@@ -41,6 +43,7 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
         setState(() {
           _graduates = resGrads.data['data'];
           _internships = resInterns.data['data'];
+          _applyInternshipFilter();
           _isLoading = false;
         });
       }
@@ -269,31 +272,64 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
   }
 
   Widget _buildScholarDropdown() {
-    // Only show graduates who aren't already allocated
     final unallocated = _graduates.where((g) => g['internship_status'] == null).toList();
 
-    return DropdownButtonFormField<dynamic>(
-      value: _selectedGraduate,
-      isExpanded: true,
-      decoration: InputDecoration(
-        prefixIcon: const Icon(Icons.school_rounded, size: 20, color: kBrandOlive),
-        filled: true, fillColor: const Color(0xFFF8F9FA),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-      ),
-      hint: const Text("Search unallocated graduates..."),
-      items: unallocated.map((g) => DropdownMenuItem(
-        value: g,
-        child: Text(
-          "${g['full_name']} (${g['scholar_id']}) - ${g['display_school_name']}",
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 13),
-        ),
-      )).toList(),
-      onChanged: (v) {
+    return Autocomplete<Map<String, dynamic>>(
+      displayStringForOption: (g) => "${g['full_name']} (${g['scholar_id']})",
+      optionsBuilder: (TextEditingValue textEditingValue) {
+        if (textEditingValue.text.isEmpty) {
+          return const Iterable<Map<String, dynamic>>.empty();
+        }
+        return unallocated.where((g) {
+          return g['full_name'].toString().toLowerCase().contains(textEditingValue.text.toLowerCase()) ||
+                 g['scholar_id'].toString().toLowerCase().contains(textEditingValue.text.toLowerCase());
+        }).map((e) => e as Map<String, dynamic>);
+      },
+      onSelected: (v) {
         setState(() {
           _selectedGraduate = v;
           _emailController.text = v['email'] ?? '';
         });
+      },
+      fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+        return TextField(
+          controller: controller,
+          focusNode: focusNode,
+          onSubmitted: (v) => onFieldSubmitted(),
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.school_rounded, size: 20, color: kBrandOlive),
+            filled: true, fillColor: const Color(0xFFF8F9FA),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+            hintText: "Search unallocated graduates...",
+            hintStyle: const TextStyle(fontSize: 13),
+          ),
+        );
+      },
+      optionsViewBuilder: (context, onSelected, options) {
+        return Align(
+          alignment: Alignment.topLeft,
+          child: Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: MediaQuery.of(context).size.width * (MediaQuery.of(context).size.width < 900 ? 0.8 : 0.4),
+              constraints: const BoxConstraints(maxHeight: 300),
+              child: ListView.builder(
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                itemCount: options.length,
+                itemBuilder: (BuildContext context, int index) {
+                  final Map<String, dynamic> option = options.elementAt(index);
+                  return ListTile(
+                    title: Text(option['full_name'] ?? 'N/A', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                    subtitle: Text("${option['scholar_id'] ?? 'N/A'} - ${option['display_school_name'] ?? 'N/A'}", style: const TextStyle(fontSize: 11)),
+                    onTap: () => onSelected(option),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
       },
     );
   }
@@ -347,15 +383,53 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
     child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
   );
 
+  void _applyInternshipFilter() {
+    setState(() {
+      _filteredInternships = _internships.where((i) {
+        final name = (i['scholar_name'] ?? (i['scholarId'] != null ? i['scholarId']['fullName'] ?? i['scholarId']['full_name'] : 'N/A')).toString().toLowerCase();
+        final workplace = (i['workplace_name'] ?? i['workplaceName'] ?? 'N/A').toString().toLowerCase();
+        final query = _internshipSearchQuery.toLowerCase();
+        return name.contains(query) || workplace.contains(query);
+      }).toList();
+    });
+  }
+
   Widget _buildRecentAllocations(bool isMobile) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("ACTIVE INTERNSHIPS", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBrandBrown)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text("ACTIVE INTERNSHIPS", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBrandBrown)),
+            Text("${_filteredInternships.length} Found", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          onChanged: (v) {
+            _internshipSearchQuery = v;
+            _applyInternshipFilter();
+          },
+          decoration: InputDecoration(
+            hintText: "Filter internships...",
+            prefixIcon: const Icon(Icons.search_rounded, size: 18),
+            isDense: true,
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
+          ),
+        ),
         const SizedBox(height: 16),
-        ..._internships.map((i) => _allocationCard(i)),
-        if (_internships.isEmpty)
-          const Padding(padding: EdgeInsets.symmetric(vertical: 40), child: Center(child: Text("No active allocations found.", style: TextStyle(color: Colors.grey)))),
+        if (_filteredInternships.isEmpty)
+          const Padding(padding: EdgeInsets.symmetric(vertical: 40), child: Center(child: Text("No matching allocations found.", style: TextStyle(color: Colors.grey))))
+        else
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _filteredInternships.length,
+            itemBuilder: (context, index) => _allocationCard(_filteredInternships[index]),
+          ),
       ],
     );
   }

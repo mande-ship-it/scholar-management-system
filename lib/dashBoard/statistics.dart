@@ -569,6 +569,28 @@ class _DashboardCard extends StatelessWidget {
   const _DashboardCard({required this.title, required this.subtitle, required this.child});
   @override
   Widget build(BuildContext context) {
+    final bool isSmallScreen = MediaQuery.of(context).size.width < 600;
+
+    if (isSmallScreen) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF1C2B20), letterSpacing: -0.2)),
+            Text(subtitle, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7A6E), fontWeight: FontWeight.w500)),
+            const SizedBox(height: 16),
+            child,
+          ],
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -580,9 +602,9 @@ class _DashboardCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF1C2B20), letterSpacing: -0.2)),
-          Text(subtitle, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7A6E), fontWeight: FontWeight.w500)),
-          const SizedBox(height: 16),
+          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1C2B20), letterSpacing: -0.3)),
+          Text(subtitle, style: const TextStyle(fontSize: 13, color: Color(0xFF6B7A6E), fontWeight: FontWeight.w500)),
+          const SizedBox(height: 24),
           child,
         ],
       ),

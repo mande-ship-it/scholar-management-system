@@ -75,26 +75,31 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
 
   @override
   Widget build(BuildContext context) {
+    final bool isSmallScreen = MediaQuery.of(context).size.width < 600;
     final bool isMobile = MediaQuery.of(context).size.width < 900;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isSmallScreen ? Colors.white : const Color(0xFFF4F7F5),
       body: Stack(
         children: [
           Column(
             children: [
-              _buildCleanHeader(isMobile),
+              _buildCleanHeader(isSmallScreen),
               Expanded(
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 24),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isSmallScreen ? 16 : 24,
+                    vertical: isSmallScreen ? 16 : 24
+                  ),
                   child: Column(
                     children: [
-                      _buildQuickActions(isMobile),
+                      _buildQuickActions(isSmallScreen),
                       if (widget.userRole == 'Administrator') ...[
-                        const SizedBox(height: 24),
-                        _buildAdminControlPanel(isMobile),
+                        SizedBox(height: isSmallScreen ? 16 : 24),
+                        _buildAdminControlPanel(isSmallScreen),
                       ],
-                      const SizedBox(height: 24),
+                      SizedBox(height: isSmallScreen ? 16 : 24),
                       StatisticsComponent(level: _selectedLevel),
                     ],
                   ),
@@ -108,12 +113,18 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
     );
   }
 
-  Widget _buildCleanHeader(bool isMobile) {
+  Widget _buildCleanHeader(bool isSmallScreen) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(isMobile ? 16 : 24, 8, isMobile ? 16 : 24, 8),
-      decoration: const BoxDecoration(
+      padding: EdgeInsets.fromLTRB(
+        isSmallScreen ? 16 : 24,
+        12,
+        isSmallScreen ? 16 : 24,
+        12
+      ),
+      decoration: BoxDecoration(
         color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -123,20 +134,24 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("PROGRAM ANALYTICS", 
-                  style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1.0)),
+                  style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1.2)),
                 const SizedBox(height: 2),
                 Text("$_selectedLevel Overview", 
-                  style: TextStyle(fontSize: isMobile ? 13 : 15, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.4),
-                  overflow: TextOverflow.ellipsis),
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 15 : 18,
+                    fontWeight: FontWeight.w900,
+                    color: kBrandBrown,
+                    letterSpacing: -0.5
+                  )),
               ],
             ),
           ),
           Row(
             children: [
-              _buildLevelToggle(isMobile),
-              SizedBox(width: isMobile ? 8 : 16),
+              if (!isSmallScreen) _buildLevelToggle(false),
+              const SizedBox(width: 12),
               _buildAIQuickAccess(),
-              SizedBox(width: isMobile ? 8 : 16),
+              const SizedBox(width: 12),
               _buildStatusApprovalIndicator(),
             ],
           ),
@@ -172,6 +187,7 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
         borderRadius: BorderRadius.circular(30),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           _toggleBtn("University", isMobile),
           _toggleBtn("Secondary", isMobile),
@@ -255,13 +271,15 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
     );
   }
 
-  Widget _buildQuickActions(bool isMobile) {
-    if (isMobile) {
+  Widget _buildQuickActions(bool isSmallScreen) {
+    if (isSmallScreen) {
       return Column(
         children: [
+          _buildLevelToggle(true),
+          const SizedBox(height: 16),
           Row(
             children: [
-              _actionBtn("View Scholars", Icons.people_outline_rounded, kBrandBrown, true),
+              _actionBtn("Scholars", Icons.people_outline_rounded, kBrandBrown, true),
               const SizedBox(width: 12),
               _actionBtn("Academics", Icons.school_outlined, kBrandOlive, true),
             ],
@@ -284,9 +302,9 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
 
   Widget _actionBtn(String label, IconData icon, Color color, bool isExpanded) {
     String target;
-    if (label == "View Scholars") {
+    if (label.contains("Scholars")) {
       target = "View Scholars";
-    } else if (label == "Academics") {
+    } else if (label.contains("Academics")) {
       target = "View Results";
     } else {
       target = "Scholar Attendance";
@@ -327,71 +345,54 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
     return isExpanded ? Expanded(child: content) : content;
   }
 
-  Widget _buildAdminControlPanel(bool isMobile) {
+  Widget _buildAdminControlPanel(bool isSmallScreen) {
     return Container(
-      padding: EdgeInsets.all(isMobile ? 16 : 24),
+      padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
       decoration: BoxDecoration(
         color: kBrandBrown,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: kBrandBrown.withOpacity(0.2), blurRadius: 15, offset: const Offset(0, 8))],
+        borderRadius: BorderRadius.circular(isSmallScreen ? 16 : 20),
+        boxShadow: isSmallScreen ? null : [BoxShadow(color: kBrandBrown.withOpacity(0.2), blurRadius: 15, offset: const Offset(0, 8))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (isMobile) ...[
-            const Text("ADMINISTRATIVE HUB",
-              style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
-            const SizedBox(height: 4),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("System Overview",
-                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                IconButton(
-                  onPressed: () => widget.onNavigate?.call("Pending Approvals"),
-                  icon: const Icon(Icons.rule_rounded, color: Colors.white, size: 24),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              ],
-            ),
-          ] else ...[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Column(
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text("ADMINISTRATIVE HUB",
-                      style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
-                    SizedBox(height: 4),
-                    Text("System Overview & Approvals",
-                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                      style: TextStyle(color: Colors.white70, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                    const SizedBox(height: 4),
+                    Text("System Overview",
+                      style: TextStyle(color: Colors.white, fontSize: isSmallScreen ? 16 : 18, fontWeight: FontWeight.bold)),
                   ],
                 ),
-                ElevatedButton.icon(
-                  onPressed: () => widget.onNavigate?.call("Pending Approvals"),
-                  icon: const Icon(Icons.rule_rounded, size: 16),
-                  label: const Text("ACCESS APPROVALS"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kBrandOlive,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
+              ),
+              ElevatedButton(
+                onPressed: () => widget.onNavigate?.call("Pending Approvals"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kBrandOlive,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  minimumSize: Size.zero,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
-              ],
-            ),
-          ],
-          const SizedBox(height: 24),
-          if (isMobile)
+                child: const Text("APPROVALS", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+          SizedBox(height: isSmallScreen ? 16 : 24),
+          if (isSmallScreen)
             Column(
               children: [
                 Row(
                   children: [
                     _adminStat("Pending", _pendingCount.toString(), Icons.pending_actions_rounded),
                     const SizedBox(width: 12),
-                    _adminStat("Security", "0", Icons.security_rounded),
+                    _adminStat("Alerts", "0", Icons.security_rounded),
                   ],
                 ),
                 const SizedBox(height: 12),

@@ -279,8 +279,8 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: isMobile ? BorderRadius.zero : BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
+        border: isMobile ? null : Border.all(color: Colors.grey.shade200),
+        boxShadow: isMobile ? null : [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -394,26 +394,26 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
     if (_filteredSponsors.isEmpty) return _buildEmptyState();
 
     return ListView.separated(
-      padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 24, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 0 : 24, vertical: 12),
       itemCount: _filteredSponsors.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      separatorBuilder: (_, __) => isMobile ? const Divider(height: 1, thickness: 1) : const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final s = _filteredSponsors[index];
         return Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade100),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2))],
+            borderRadius: isMobile ? BorderRadius.zero : BorderRadius.circular(12),
+            border: isMobile ? null : Border.all(color: Colors.grey.shade100),
+            boxShadow: isMobile ? null : [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2))],
           ),
           child: ListTile(
-            contentPadding: EdgeInsets.all(isMobile ? 12 : 16),
+            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: isMobile ? 8 : 12),
             leading: CircleAvatar(
               backgroundColor: kBrandBrown.withValues(alpha: 0.1),
               child: Text(s.name[0].toUpperCase(), style: const TextStyle(color: kBrandBrown, fontWeight: FontWeight.bold)),
             ),
-            title: Text(s.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kBrandBrown)),
-            subtitle: Text(s.organization.isEmpty ? 'Individual Benefactor' : s.organization, style: const TextStyle(fontSize: 12)),
+            title: Text(s.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: isMobile ? 14 : 15, color: kBrandBrown)),
+            subtitle: Text(s.organization.isEmpty ? 'Individual Benefactor' : s.organization, style: TextStyle(fontSize: isMobile ? 11 : 12)),
             trailing: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.end,

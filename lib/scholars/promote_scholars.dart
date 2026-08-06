@@ -185,6 +185,7 @@ class _PromoteScholarsComponentState extends State<PromoteScholarsComponent> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isSmallScreen = MediaQuery.of(context).size.width < 600;
     final bool isMobile = MediaQuery.of(context).size.width < 900;
     final filteredStudents = kStudents.where((s) {
       final matchesSchool = _selectedSchool == 'All Schools' || s.schoolName == _selectedSchool;
@@ -195,9 +196,9 @@ class _PromoteScholarsComponentState extends State<PromoteScholarsComponent> {
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 3))],
+        borderRadius: isSmallScreen ? BorderRadius.zero : BorderRadius.circular(16),
+        border: isSmallScreen ? null : Border.all(color: Colors.grey.shade200),
+        boxShadow: isSmallScreen ? null : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 3))],
       ),
       clipBehavior: Clip.antiAlias,
       child: SingleChildScrollView(
@@ -206,7 +207,7 @@ class _PromoteScholarsComponentState extends State<PromoteScholarsComponent> {
           children: [
             // ---------------- Header ----------------
             Padding(
-              padding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
+              padding: EdgeInsets.fromLTRB(24, isSmallScreen ? 16 : 12, 24, 8),
               child: isMobile 
                 ? Column(
                     children: [
@@ -284,7 +285,7 @@ class _PromoteScholarsComponentState extends State<PromoteScholarsComponent> {
             const Divider(indent: 24, endIndent: 24),
 
             Padding(
-              padding: EdgeInsets.all(isMobile ? 16 : 24),
+              padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
               child: _isLoading 
                 ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
                 : Column(
@@ -345,11 +346,43 @@ class _PromoteScholarsComponentState extends State<PromoteScholarsComponent> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: filteredStudents.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    separatorBuilder: (_, __) => isSmallScreen ? const SizedBox.shrink() : const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final s = filteredStudents[index];
-                      // For now allow all to be promoted in demo mode
-                      const passed = true; 
+                      const passed = true;
+
+                      if (isSmallScreen) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: const BoxDecoration(
+                            border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+                          ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 18,
+                                backgroundColor: kBrandCream,
+                                child: Text(s.name[0], style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: 12)),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(s.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kBrandBrown)),
+                                    Text("${s.schoolName} (${s.currentClass})", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: passed ? () => _promoteStudent(s) : null,
+                                icon: Icon(Icons.upgrade_rounded, color: passed ? kBrandOlive : Colors.grey),
+                                tooltip: "Promote Scholar",
+                              ),
+                            ],
+                          ),
+                        );
+                      }
 
                       return Container(
                         padding: const EdgeInsets.all(16),
@@ -358,115 +391,54 @@ class _PromoteScholarsComponentState extends State<PromoteScholarsComponent> {
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: Colors.grey.shade200),
                         ),
-                        child: isMobile 
-                          ? Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              backgroundColor: kBrandCream,
+                              child: Text(s.name[0], style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown)),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(s.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kBrandBrown)),
+                                  Text("${s.schoolName} (${s.currentClass})", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                ],
+                              ),
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
-                                Row(
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 18,
-                                      backgroundColor: kBrandCream,
-                                      child: Text(s.name[0], style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown)),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(s.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kBrandBrown)),
-                                          Text("${s.schoolName} (${s.currentClass})", style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: passed ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(4),
-                                          ),
-                                          child: Text(
-                                            passed ? "PASSED" : "FAIL",
-                                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: passed ? Colors.green : Colors.orange),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(s.schoolType == SchoolType.university ? "Year Upgrade" : "Form Upgrade", style: const TextStyle(fontSize: 10, color: Colors.grey)),
-                                      ],
-                                    ),
-                                    ElevatedButton(
-                                      onPressed: passed ? () => _promoteStudent(s) : null,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: kBrandOlive,
-                                        foregroundColor: Colors.white,
-                                        disabledBackgroundColor: Colors.grey.shade200,
-                                        elevation: 0,
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                      ),
-                                      child: const Text("Promote", style: TextStyle(fontSize: 12)),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            )
-                          : Row(
-                              children: [
-                                CircleAvatar(
-                                  backgroundColor: kBrandCream,
-                                  child: Text(s.name[0], style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown)),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(s.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kBrandBrown)),
-                                      Text("${s.schoolName} (${s.currentClass})", style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                                    ],
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: passed ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    passed ? "PASSED" : "PENDING/FAIL",
+                                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: passed ? Colors.green : Colors.orange),
                                   ),
                                 ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: passed ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        passed ? "PASSED" : "PENDING/FAIL",
-                                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: passed ? Colors.green : Colors.orange),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(s.schoolType == SchoolType.university ? "Ready for Year Upgrade" : "Ready for Form Upgrade", style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                                  ],
-                                ),
-                                const SizedBox(width: 16),
-                                ElevatedButton(
-                                  onPressed: passed ? () => _promoteStudent(s) : null,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: kBrandOlive,
-                                    foregroundColor: Colors.white,
-                                    disabledBackgroundColor: Colors.grey.shade200,
-                                    elevation: 0,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                  ),
-                                  child: const Text("Promote"),
-                                ),
+                                const SizedBox(height: 4),
+                                Text(s.schoolType == SchoolType.university ? "Ready for Year Upgrade" : "Ready for Form Upgrade", style: const TextStyle(fontSize: 11, color: Colors.grey)),
                               ],
                             ),
+                            const SizedBox(width: 16),
+                            ElevatedButton(
+                              onPressed: passed ? () => _promoteStudent(s) : null,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: kBrandOlive,
+                                foregroundColor: Colors.white,
+                                disabledBackgroundColor: Colors.grey.shade200,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              child: const Text("Promote"),
+                            ),
+                          ],
+                        ),
                       );
                     },
                   ),

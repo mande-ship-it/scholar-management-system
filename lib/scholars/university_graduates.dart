@@ -318,20 +318,18 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
           border: Border.all(color: Colors.grey.shade200),
         ),
         clipBehavior: Clip.antiAlias,
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (!isMobile) _buildTableHeader(),
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (!isMobile) _buildTableHeader(),
+            Expanded(
+              child: ListView.separated(
                 itemCount: _filteredData.length,
                 separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFEEEEEE)),
                 itemBuilder: (context, index) => _buildAlumniRow(_filteredData[index], isMobile),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

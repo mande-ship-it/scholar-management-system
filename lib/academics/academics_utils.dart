@@ -482,6 +482,15 @@ class Translator {
       'AI Strategy': 'Nzeru za AI',
       'AI Analyst': 'Wopenda wa AI',
       'Logout Session': 'Tulukani mu Dongosolo',
+      'MSCE Trend Forecasting': 'Kunenera za MSCE',
+      'Aggregate point projection (Best Six)': 'Kuyerekeza mfundo za Best Six',
+      'Current Aggregate': 'Mfundo zapano',
+      'Forecasted MSCE': 'Zoyembekezeka pa MSCE',
+      'PROJECTED OUTCOME': 'ZOTSATIRA ZOYEMBEKEZEKA',
+      'Division 1 (Excellent)': 'Gulu Loyamba (Zabwino Kwambiri)',
+      'Division 2': 'Gulu Lachiwiri',
+      'Division 3 / Fail': 'Gulu Lachitatu / Kulephera',
+      'ASK AI ANALYST': 'FUNSANI WOPENDA WA AI',
     }
   };
 

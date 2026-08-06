@@ -392,7 +392,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
 
   Widget _buildExecutiveHeader(int total, int active, int moving, int risk, bool isMobile) {
     return Container(
-      padding: EdgeInsets.all(isMobile ? 20 : 32),
+      padding: EdgeInsets.all(isMobile ? 16 : 32),
       color: Colors.white,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -419,12 +419,12 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _selectedSchoolType == 'University' ? "University Scholars Registry" : "Secondary Scholars Registry",
-                      style: TextStyle(fontSize: isMobile ? 20 : 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -1),
+                      _selectedSchoolType == 'University' ? "University Registry" : "Secondary Registry",
+                      style: TextStyle(fontSize: isMobile ? 18 : 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -1),
                     ),
                     Text(
                       _isFieldOfficer && _assignedDistrict != null ? "Monitoring Region: $_assignedDistrict" : "Program-wide longitudinal tracking and oversight.",
-                      style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500),
+                      style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),
@@ -433,29 +433,26 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
             ],
           ),
           if (isMobile) ...[
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             _buildGlobalActions(true),
           ],
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
           if (isMobile)
-            Column(
-              children: [
-                Row(
-                  children: [
-                    _metricCard("TOTAL", total.toString(), Icons.groups_outlined, kBrandBrown, true),
-                    const SizedBox(width: 12),
-                    _metricCard("ACTIVE", active.toString(), Icons.check_circle_outline, kBrandOlive, true),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    _metricCard("PROGRESS", moving.toString(), Icons.trending_up_rounded, Colors.blue, true),
-                    const SizedBox(width: 12),
-                    _metricCard("AT RISK", risk.toString(), Icons.warning_amber_rounded, kBrandOrange, true),
-                  ],
-                ),
-              ],
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _compactMetric("TOTAL", total.toString(), kBrandBrown),
+                  _compactMetric("ACTIVE", active.toString(), kBrandOlive),
+                  _compactMetric("MOVING", moving.toString(), Colors.blue),
+                  _compactMetric("RISK", risk.toString(), kBrandOrange),
+                ],
+              ),
             )
           else
             Row(
@@ -471,6 +468,15 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
             ),
         ],
       ),
+    );
+  }
+
+  Widget _compactMetric(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: color)),
+        Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey)),
+      ],
     );
   }
 
@@ -774,65 +780,53 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
     final isActive = s['status'] == 'Active';
     final moving = s['progressionStatus'] == 'Moved';
     final failed = s['progressionStatus'] == 'Failed';
-    final remaining = int.tryParse(s['yearsRemaining'] ?? '0') ?? 0;
 
     return InkWell(
       onTap: () => _showScholarProfileDialog(context, s),
-      borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
+          border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
         ),
-        child: Column(
+        child: Row(
           children: [
-            Row(
-              children: [
-                CircleAvatar(radius: 18, backgroundColor: kBrandOlive.withOpacity(0.1), child: Text(_initialsOf(s['name']!), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: kBrandBrown))),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(s['name']!, style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: 14)),
-                      Text("${s['scholarId']} • ${s['class']}", style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-                    ],
-                  ),
-                ),
-                _badge(s['status']!, isActive ? kBrandOlive : Colors.red),
-              ],
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: kBrandOlive.withOpacity(0.1),
+              child: Text(_initialsOf(s['name']!), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kBrandBrown))
             ),
-            const Divider(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(s['name']!, style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: 14)),
+                  const SizedBox(height: 2),
+                  Text("${s['scholarId']} • ${s['school']}",
+                    maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text("INSTITUTION", style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.grey)),
-                      Text(s['school']!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
-                    ],
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                _badge(s['status']!, isActive ? kBrandOlive : Colors.red),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text("PROGRESSION", style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.grey)),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(moving ? Icons.arrow_upward : (failed ? Icons.warning_rounded : Icons.remove), size: 12, color: moving ? kBrandOlive : (failed ? Colors.red : Colors.grey)),
-                        const SizedBox(width: 4),
-                        Text(s['progressionStatus']!, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: moving ? kBrandOlive : (failed ? Colors.red : Colors.grey))),
-                      ],
-                    ),
+                    Icon(moving ? Icons.trending_up : (failed ? Icons.warning_amber_rounded : Icons.remove), size: 10, color: moving ? kBrandOlive : (failed ? Colors.red : Colors.grey)),
+                    const SizedBox(width: 4),
+                    Text(s['class']!, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
                   ],
                 ),
               ],
             ),
+            const SizedBox(width: 4),
+            const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
           ],
         ),
       ),

@@ -560,7 +560,7 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
       physics: isMobile ? const NeverScrollableScrollPhysics() : const BouncingScrollPhysics(),
       child: Container(
         color: Colors.white,
-        padding: EdgeInsets.all(isMobile ? 24 : 40),
+        padding: EdgeInsets.all(isMobile ? 16 : 40),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -654,11 +654,11 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
             const SizedBox(height: 48),
 
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: EdgeInsets.all(isMobile ? 0 : 24),
               decoration: BoxDecoration(
-                color: Colors.grey.shade50,
+                color: isMobile ? Colors.transparent : Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade200),
+                border: isMobile ? null : Border.all(color: Colors.grey.shade200),
               ),
               child: Column(
                 children: [
