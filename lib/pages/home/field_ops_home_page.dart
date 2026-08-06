@@ -21,6 +21,7 @@ import 'package:scholar_management_system/pages/scholarPages/register_scholar.da
 import 'package:scholar_management_system/pages/schoolPages/view_schools.dart';
 import 'package:scholar_management_system/pages/schoolPages/register_school.dart';
 import 'package:scholar_management_system/pages/attendancePages/scholar_attendance.dart';
+import 'package:scholar_management_system/pages/academicPages/performance_analysis.dart';
 
 class FieldOpsSidebarCategory {
   final String title;
@@ -88,9 +89,11 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
     
     // Safety: ensure loading spinner doesn't stay forever
     Future.delayed(const Duration(seconds: 5), () {
-      if (mounted && _isLoading) {
-        debugPrint("FIELD OPS: Safety timeout reached, forcing load completion.");
-        setState(() => _isLoading = false);
+      if (mounted) {
+        if (_isLoading) {
+          debugPrint("FIELD OPS: Safety timeout reached, forcing load completion.");
+          setState(() => _isLoading = false);
+        }
       }
     });
   }
@@ -227,14 +230,28 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
         icon: Icons.explore_rounded,
         subItems: [
           FieldOpsSidebarSubItem(
-            title: "Scholar Registry",
+            title: "Secondary Registry",
             page: const SizedBox(),
-            icon: Icons.people_rounded,
+            icon: Icons.school_outlined,
             builder: (onBack, onPush, onPushProfile) => ViewScholarsPage(
               onViewProfile: onPushProfile,
               forcedSchoolType: 'Secondary',
               hideUniversity: true,
               onRegisterScholar: () => onPush("Register Scholar"),
+              onViewGraduates: () => onPush("University Graduates"),
+            ),
+          ),
+          FieldOpsSidebarSubItem(
+            title: "University Registry",
+            page: const SizedBox(),
+            icon: Icons.account_balance_outlined,
+            builder: (onBack, onPush, onPushProfile) => ViewScholarsPage(
+              onViewProfile: onPushProfile,
+              forcedSchoolType: 'University',
+              hideUniversity: false,
+              hideRegistration: true, // Universities usually handled by HQ
+              onRegisterScholar: () => onPush("Register Scholar"),
+              onViewGraduates: () => onPush("University Graduates"),
             ),
           ),
           FieldOpsSidebarSubItem(
@@ -269,7 +286,7 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
             title: "Performance Analysis",
             page: const SizedBox(),
             icon: Icons.insights_rounded,
-            builder: (onBack, onPush, onPushProfile) => const PerformanceAnalysisComponent(forcedSchoolType: SchoolType.secondary),
+            builder: (onBack, onPush, onPushProfile) => PerformanceAnalysisPage(forcedSchoolType: SchoolType.secondary),
           ),
         ],
       ),

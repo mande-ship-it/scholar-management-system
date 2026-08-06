@@ -21,12 +21,14 @@ class ViewScholarsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: ViewScholarsComponent(
         onRegisterScholar: onRegisterScholar,
         onViewProfile: onViewProfile,
         onViewGraduates: onViewGraduates,
         forcedSchoolType: forcedSchoolType,
         hideUniversity: hideUniversity,
+        hideRegistration: hideRegistration, // Pass through the parameter
       ),
     );
   }

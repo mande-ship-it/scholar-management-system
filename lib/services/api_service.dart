@@ -505,4 +505,21 @@ class ApiService {
   static Future<Response> allocateInternship(Map<String, dynamic> data) async {
     return await _dio.post('/internships/allocate', data: data);
   }
+
+  // Performance Intelligence (New)
+  static Future<Response> getScholarTrend(String id) async {
+    return await _dio.get('/performance/scholar/$id');
+  }
+
+  static Future<Response> getCohortAnalytics(String type) async {
+    return await _dio.get('/performance/cohort', queryParameters: {'schoolType': type});
+  }
+
+  static Future<Response> getSubjectInsights(String type) async {
+    return await _dio.get('/performance/subjects', queryParameters: {'schoolType': type});
+  }
+
+  static Future<Response> getEarlyWarningRisk() async {
+    return await _dio.get('/performance/risk-indicators');
+  }
 }

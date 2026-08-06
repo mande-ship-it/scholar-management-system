@@ -55,7 +55,7 @@ class _AcademicsManagementComponentState extends State<AcademicsManagementCompon
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
@@ -63,24 +63,24 @@ class _AcademicsManagementComponentState extends State<AcademicsManagementCompon
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: kBrandBrown.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(_isFieldOfficer ? Icons.edit_note_rounded : Icons.visibility_rounded, color: kBrandBrown, size: 28),
+            child: Icon(_isFieldOfficer ? Icons.edit_note_rounded : Icons.visibility_rounded, color: kBrandBrown, size: 20),
           ),
-          const SizedBox(width: 24),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(_isFieldOfficer ? "Academic Results Entry" : "View Academic Records", 
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.8)),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
                 Text(_isFieldOfficer 
-                    ? "Digitize and record scholar examination scores with automated grading."
-                    : "Analyze and review official scholar performance records. Modification restricted.", 
-                  style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
+                    ? "Digitize and record scholar examination scores."
+                    : "Review official scholar performance records.", 
+                  style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
@@ -462,13 +462,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
 
   Widget _buildSelectionPanel() {
     return Container(
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 20, offset: const Offset(0, 10))],
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -476,45 +470,45 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text("SCHOLAR & SESSION CONFIGURATION", 
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.2)),
               if (_isFieldOfficer)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
                   child: const Row(
                     children: [
-                      Icon(Icons.security_rounded, size: 14, color: kBrandOlive),
-                      SizedBox(width: 8),
-                      Text("VERIFIED ENTRY MODE", style: TextStyle(color: kBrandOlive, fontSize: 10, fontWeight: FontWeight.w900)),
+                      Icon(Icons.security_rounded, size: 12, color: kBrandOlive),
+                      SizedBox(width: 6),
+                      Text("VERIFIED ENTRY", style: TextStyle(color: kBrandOlive, fontSize: 9, fontWeight: FontWeight.w900)),
                     ],
                   ),
                 ),
             ],
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
           Row(
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text("Institution Level", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                    const SizedBox(height: 12),
+                    const Text("Institution Level", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                    const SizedBox(height: 8),
                     if (_isFieldOfficer)
                       Container(
-                        height: 52,
+                        height: 40,
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
                         decoration: BoxDecoration(
                           color: kBrandBrown.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: kBrandBrown.withOpacity(0.1)),
                         ),
                         child: const Row(
                           children: [
-                            Icon(Icons.school_rounded, size: 18, color: kBrandBrown),
-                            SizedBox(width: 12),
-                            Text("Secondary School Operations", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown)),
+                            Icon(Icons.school_rounded, size: 16, color: kBrandBrown),
+                            SizedBox(width: 10),
+                            Text("Secondary School", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: 13)),
                           ],
                         ),
                       )
@@ -525,15 +519,15 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                           opacity: widget.forcedSchoolType != null ? 0.6 : 1.0,
                           child: SegmentedButton<SchoolType>(
                             segments: const [
-                              ButtonSegment(value: SchoolType.secondary, label: Text("Secondary"), icon: Icon(Icons.school_outlined, size: 18)),
-                              ButtonSegment(value: SchoolType.university, label: Text("University"), icon: Icon(Icons.account_balance_outlined, size: 18)),
+                              ButtonSegment(value: SchoolType.secondary, label: Text("Secondary", style: TextStyle(fontSize: 12)), icon: Icon(Icons.school_outlined, size: 16)),
+                              ButtonSegment(value: SchoolType.university, label: Text("University", style: TextStyle(fontSize: 12)), icon: Icon(Icons.account_balance_outlined, size: 16)),
                             ],
                             selected: {_schoolType},
                             onSelectionChanged: (s) => _onTypeChanged(s.first),
                             style: SegmentedButton.styleFrom(
                               selectedBackgroundColor: kBrandOlive,
                               selectedForegroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
                             ),
                           ),
                         ),
@@ -541,7 +535,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                   ],
                 ),
               ),
-              const SizedBox(width: 32),
+              const SizedBox(width: 24),
               Expanded(
                 child: _dropdownField<String>(
                   label: "Academic Year", 
@@ -553,7 +547,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
@@ -571,7 +565,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                   }
                 ),
               ),
-              const SizedBox(width: 24),
+              const SizedBox(width: 16),
               Expanded(
                 flex: 2,
                 child: _dropdownField<String>(
@@ -585,7 +579,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           Row(
             children: [
               Expanded(
@@ -597,7 +591,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                   onChanged: (v) => setState(() => _selectedPeriod = v),
                 ),
               ),
-              const SizedBox(width: 24),
+              const SizedBox(width: 16),
               if (_schoolType == SchoolType.secondary)
                 Expanded(
                   child: _dropdownField<String>(
@@ -656,25 +650,23 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
         ),
         const SizedBox(height: 20),
         Container(
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey.shade200),
           ),
           clipBehavior: Clip.antiAlias,
           child: Column(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 color: Colors.grey.shade50,
                 child: Row(
                   children: [
                     Expanded(flex: 3, child: _tableHeader("SUBJECT / COURSE")),
-                    const SizedBox(width: 24),
+                    const SizedBox(width: 16),
                     Expanded(flex: 1, child: _tableHeader("SCORE (0-100)")),
-                    const SizedBox(width: 24),
+                    const SizedBox(width: 16),
                     Expanded(flex: 1, child: _tableHeader("STANDING")),
-                    const SizedBox(width: 48), // Space for delete button
+                    const SizedBox(width: 40), // Space for delete button
                   ],
                 ),
               ),
@@ -686,14 +678,14 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                 itemBuilder: (context, index) => _buildRow(_rows[index], index),
               ),
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 child: _isFieldOfficer ? OutlinedButton.icon(
                   onPressed: _addRow,
-                  icon: const Icon(Icons.add_rounded),
-                  label: const Text("Add Subject Row"),
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text("Add Subject Row", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                 ) : const SizedBox(),
               ),
@@ -711,56 +703,64 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
     final hasScore = row.scoreController.text.isNotEmpty;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
           Expanded(
             flex: 3,
             child: DropdownButtonFormField<String>(
               value: _subjectOptions.any((s) => s.name == row.subjectController.text) ? row.subjectController.text : null,
-              hint: const Text("Select subject..."),
+              hint: const Text("Select subject...", style: TextStyle(fontSize: 13)),
               isExpanded: true,
-              decoration: const InputDecoration(border: InputBorder.none),
-              items: _subjectOptions.map((s) => DropdownMenuItem(value: s.name, child: Text(s.name, overflow: TextOverflow.ellipsis))).toList(),
+              decoration: const InputDecoration(border: InputBorder.none, isDense: true),
+              items: _subjectOptions.map((s) => DropdownMenuItem(value: s.name, child: Text(s.name, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis))).toList(),
               onChanged: (v) => setState(() => row.subjectController.text = v ?? ''),
             ),
           ),
-          const SizedBox(width: 24),
+          const SizedBox(width: 16),
           Expanded(
             flex: 1,
-            child: TextField(
-              controller: row.scoreController,
-              enabled: _isFieldOfficer,
-              keyboardType: TextInputType.number,
-              textAlign: TextAlign.center,
-              style: TextStyle(fontWeight: FontWeight.bold, color: hasScore ? color : kBrandBrown),
-              decoration: InputDecoration(
-                hintText: "0",
-                filled: true,
-                fillColor: hasScore ? color.withValues(alpha: 0.05) : Colors.transparent,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: color, width: 2)),
+            child: SizedBox(
+              height: 36,
+              child: TextField(
+                controller: row.scoreController,
+                enabled: _isFieldOfficer,
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: hasScore ? color : kBrandBrown),
+                decoration: InputDecoration(
+                  hintText: "0",
+                  hintStyle: const TextStyle(fontSize: 13),
+                  filled: true,
+                  fillColor: hasScore ? color.withValues(alpha: 0.05) : Colors.transparent,
+                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: Colors.grey.shade200)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: Colors.grey.shade200)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: color, width: 1.5)),
+                ),
+                onChanged: (_) => setState(() {}),
               ),
-              onChanged: (_) => setState(() {}),
             ),
           ),
-          const SizedBox(width: 24),
+          const SizedBox(width: 16),
           Expanded(
             flex: 1,
             child: hasScore 
                 ? Container(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
                     alignment: Alignment.center,
-                    child: Text(label.toUpperCase(), style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
+                    child: Text(label.toUpperCase(), style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 9, letterSpacing: 0.5)),
                   )
                 : const SizedBox(),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
           IconButton(
             onPressed: () => _removeRow(index),
-            icon: const Icon(Icons.remove_circle_outline_rounded, color: Colors.grey),
+            icon: const Icon(Icons.remove_circle_outline_rounded, color: Colors.grey, size: 20),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
             tooltip: "Remove Row",
           ),
         ],
@@ -770,32 +770,32 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
 
   Widget _buildActionFooter() {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       decoration: BoxDecoration(
-        color: kBrandBrown.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(24),
+        color: kBrandBrown.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          const Icon(Icons.info_outline_rounded, color: kBrandBrown, size: 20),
-          const SizedBox(width: 16),
-          const Expanded(child: Text("Ensure all examination data is verified against physical marksheets before authorizing submission to the central database.", 
-            style: TextStyle(fontSize: 13, color: kBrandBrown, fontWeight: FontWeight.w500))),
-          const SizedBox(width: 32),
+          const Icon(Icons.info_outline_rounded, color: kBrandBrown, size: 18),
+          const SizedBox(width: 12),
+          const Expanded(child: Text("Ensure all examination data is verified against physical marksheets.", 
+            style: TextStyle(fontSize: 12, color: kBrandBrown, fontWeight: FontWeight.w500))),
+          const SizedBox(width: 24),
           SizedBox(
-            width: 280,
+            width: 220,
             child: ElevatedButton.icon(
               onPressed: _isSaving ? null : _save,
               icon: _isSaving 
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) 
-                  : const Icon(Icons.verified_user_rounded),
-              label: Text(_isSaving ? "AUTHORIZED SYNC..." : "AUTHORIZE & SAVE", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 0.5)),
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) 
+                  : const Icon(Icons.verified_user_rounded, size: 18),
+              label: Text(_isSaving ? "SYNCING..." : "AUTHORIZE & SAVE", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 0.5)),
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 24),
+                padding: const EdgeInsets.symmetric(vertical: 18),
                 backgroundColor: kBrandOlive,
                 foregroundColor: Colors.white,
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
             ),
           ),
@@ -806,27 +806,17 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
 
   Widget _buildMissingSelectionHint() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 120),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: Colors.grey.shade100),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 10)],
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 80),
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.05), shape: BoxShape.circle),
-            child: const Icon(Icons.fact_check_rounded, size: 64, color: kBrandOlive),
-          ),
-          const SizedBox(height: 32),
+          Icon(Icons.fact_check_rounded, size: 48, color: Colors.grey.shade200),
+          const SizedBox(height: 24),
           const Text("Secure Result Entry Portal", 
-            style: TextStyle(color: kBrandBrown, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
-          const SizedBox(height: 12),
+            style: TextStyle(color: kBrandBrown, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+          const SizedBox(height: 8),
           Text("Select a scholar and specify the academic period above\nto initialize the examination scorecard.", 
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 14, height: 1.5)),
+            style: TextStyle(color: Colors.grey.shade500, fontSize: 12, height: 1.5)),
         ],
       ),
     );
@@ -853,23 +843,25 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: kBrandBrown)),
-        const SizedBox(height: 10),
+        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kBrandBrown)),
+        const SizedBox(height: 6),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          height: 40,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             color: Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(color: Colors.grey.shade200),
           ),
           child: DropdownButton<T>(
             value: filteredItems.contains(value) ? value : null,
             isExpanded: true,
-            hint: const Text("Select...", style: TextStyle(fontSize: 14)),
+            hint: const Text("Select...", style: TextStyle(fontSize: 13)),
             underline: const SizedBox(),
+            icon: const Icon(Icons.arrow_drop_down, size: 20),
             items: filteredItems.map((e) => DropdownMenuItem<T>(
               value: e, 
-              child: Text(itemLabel != null ? itemLabel(e) : e.toString(), style: const TextStyle(fontSize: 14))
+              child: Text(itemLabel != null ? itemLabel(e) : e.toString(), style: const TextStyle(fontSize: 13))
             )).toList(),
             onChanged: onChanged,
           ),
@@ -882,25 +874,26 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: kBrandBrown)),
-        const SizedBox(height: 10),
+        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kBrandBrown)),
+        const SizedBox(height: 6),
         InkWell(
           onTap: () async {
             final picked = await showDatePicker(context: context, initialDate: _resultsDate, firstDate: DateTime(2020), lastDate: DateTime.now());
             if (picked != null) setState(() => _resultsDate = picked);
           },
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            height: 40,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
               color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(color: Colors.grey.shade200),
             ),
             child: Row(
               children: [
-                const Icon(Icons.calendar_month_rounded, size: 20, color: kBrandBrown),
-                const SizedBox(width: 12),
-                Text(DateFormat('dd/MM/yyyy').format(_resultsDate), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                const Icon(Icons.calendar_month_rounded, size: 16, color: kBrandBrown),
+                const SizedBox(width: 8),
+                Text(DateFormat('dd/MM/yyyy').format(_resultsDate), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
               ],
             ),
           ),

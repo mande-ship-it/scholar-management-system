@@ -87,6 +87,11 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
           previousSchool: item['previous_school'] ?? 'N/A',
           startYear: item['start_year']?.toString() ?? '2026',
           endYear: item['end_year']?.toString() ?? '2030',
+          registeredClass: item['registeredClass'] ?? item['registered_class'],
+          programStartYearLabel: item['programStartYearLabel'] ?? item['program_start_year_label'],
+          programDurationYears: item['programDurationYears'] ?? item['program_duration_years'] ?? 4,
+          yearsCompleted: item['yearsCompleted'] ?? item['years_completed'] ?? 0,
+          flag: item['flag'],
           guardianName: item['guardian_name'],
           guardianPhone: item['guardian_phone'],
           guardianEmail: item['guardian_email'],
@@ -253,6 +258,10 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
                     _badge("Scholar ID: ${student.scholarId}", Colors.grey.shade100, Colors.grey.shade600),
                     const SizedBox(width: 8),
                     _badge(status, isActive ? Colors.green.shade50 : Colors.red.shade50, isActive ? Colors.green.shade700 : Colors.red.shade700),
+                    if (student.flag != null) ...[
+                      const SizedBox(width: 8),
+                      _badge(student.flag!, Colors.orange.shade50, Colors.orange.shade900),
+                    ],
                   ],
                 ),
               ],
@@ -487,8 +496,15 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
               const Divider(height: 32),
               Row(
                 children: [
-                  Expanded(child: _infoTile("Level", student.schoolType == SchoolType.secondary ? "Secondary" : "University")),
-                  Expanded(child: _infoTile("Class / Year", student.calculatedAcademicYear)),
+                  Expanded(child: _infoTile("Relative Year", student.calculatedRelativeYear)),
+                  Expanded(child: _infoTile("Current Label", student.calculatedAcademicYear)),
+                ],
+              ),
+              const Divider(height: 32),
+              Row(
+                children: [
+                  Expanded(child: _infoTile("Program Duration", "${student.programDurationYears} Years")),
+                  Expanded(child: _infoTile("Years Remaining", "${student.calculatedRemainingYears} Years")),
                 ],
               ),
               const Divider(height: 32),

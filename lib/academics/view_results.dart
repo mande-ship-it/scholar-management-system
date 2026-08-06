@@ -12,7 +12,7 @@ import 'academics_utils.dart';
 import 'package:scholar_management_system/services/api_service.dart';
 
 // ============================================================
-// Shared Brand Color Palette
+// Shared Brand Color Palette & UI Helpers
 // ============================================================
 const Color kSurfaceMuted = Color(0xFFF7F6F2);
 
@@ -26,6 +26,10 @@ String _initialsOf(String name) {
       .toUpperCase();
 }
 
+enum ViewResultsMode { selection, secondary, university }
+
+/// -------------------------------------------------------
+/// MAIN COMPONENT
 /// -------------------------------------------------------
 
 class ViewResultsComponent extends StatefulWidget {
@@ -48,11 +52,16 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
   final TextEditingController _searchController = TextEditingController();
   late TabController _tabController;
 
-  SchoolType? _schoolTypeFilter; // null = All
-  String? _schoolNameFilter; // null = All
-  String? _districtFilter; // null = All
-  String? _selectedYearFilter; // To filter the result count in the list
-  bool _isExportingRoster = false;
+  ViewResultsMode _mode = ViewResultsMode.selection;
+  
+  String? _selectedDistrict;
+  String? _selectedSchool;
+  String? _selectedScholarId;
+  String? _selectedYear;
+  String? _selectedTerm;
+  String? _selectedSemester;
+  String _statusFilter = 'All'; // 'All', 'Complete', 'Incomplete', 'Passed', 'Failing'
+
   bool _isLoading = false;
 
   final List<String> _academicYears = academicYearOptions();
@@ -73,6 +82,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
   }
 
   Future<void> _fetchData() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final resultsRes = await ApiService.getResultsBySchool(null);
@@ -94,7 +104,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
             scholarId: item['scholar_id'] ?? 'N/A',
             name: item['full_name'] ?? 'N/A',
             age: item['age'] != null ? int.tryParse(item['age'].toString()) ?? 18 : 18,
-            schoolType: item['school_type'].toString().toLowerCase() == 'university' || item['schoolType'].toString().toLowerCase() == 'university'
+            schoolType: item['school_type'].toString().toLowerCase() == 'university'
                 ? SchoolType.university
                 : SchoolType.secondary,
             schoolName: item['display_school_name'] ?? 'N/A',
@@ -119,40 +129,109 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
     }
   }
 
-  List<String> get _schoolNameOptions {
-    final students = _schoolTypeFilter == null
-        ? kStudents
-        : kStudents.where((s) => s.schoolType == _schoolTypeFilter).toList();
-    final names = students.map((s) => s.schoolName).toSet().toList()..sort();
-    return names;
+  List<String> get _availableSchools {
+    final type = _mode == ViewResultsMode.university ? SchoolType.university : SchoolType.secondary;
+    final students = kStudents.where((s) => s.schoolType == type);
+    
+    Iterable<Student> filtered = students;
+    if (_selectedDistrict != null && _mode == ViewResultsMode.secondary) {
+      filtered = filtered.where((s) => s.district == _selectedDistrict);
+    }
+    
+    return filtered.map((s) => s.schoolName).toSet().toList()..sort();
+  }
+
+  List<Student> get _availableScholars {
+    final type = _mode == ViewResultsMode.university ? SchoolType.university : SchoolType.secondary;
+    Iterable<Student> filtered = kStudents.where((s) => s.schoolType == type);
+    
+    if (_selectedDistrict != null && _mode == ViewResultsMode.secondary) {
+      filtered = filtered.where((s) => s.district == _selectedDistrict);
+    }
+    if (_selectedSchool != null) {
+      filtered = filtered.where((s) => s.schoolName == _selectedSchool);
+    }
+    
+    return filtered.toList()..sort((a, b) => a.name.compareTo(b.name));
   }
 
   List<Student> get _filteredStudents {
     final query = _searchController.text.trim().toLowerCase();
     final bool showingArchive = _tabController.index == 1;
+    final type = _mode == ViewResultsMode.university ? SchoolType.university : SchoolType.secondary;
 
     return kStudents.where((s) {
-      // 0. Filter by status based on tab
+      if (s.schoolType != type) return false;
+
       final bool isGraduated = ['Graduated', 'Alumni', 'Completed'].contains(s.status);
       if (showingArchive && !isGraduated) return false;
       if (!showingArchive && isGraduated) return false;
 
       final matchesQuery = query.isEmpty || s.name.toLowerCase().contains(query);
-      final matchesType =
-          _schoolTypeFilter == null || s.schoolType == _schoolTypeFilter;
-      final matchesSchool =
-          _schoolNameFilter == null || s.schoolName == _schoolNameFilter;
-      final matchesDistrict = 
-          _districtFilter == null || s.district == _districtFilter;
+      final matchesDistrict = _selectedDistrict == null || s.district == _selectedDistrict;
+      final matchesSchool = _selectedSchool == null || s.schoolName == _selectedSchool;
+      final matchesScholar = _selectedScholarId == null || s.id == _selectedScholarId;
 
-      if (_schoolTypeFilter == SchoolType.secondary) {
-         return matchesQuery && matchesType && matchesSchool && matchesDistrict;
-      } else if (_schoolTypeFilter == SchoolType.university) {
-         return matchesQuery && matchesType && matchesSchool;
+      if (!(matchesQuery && matchesDistrict && matchesSchool && matchesScholar)) return false;
+
+      // Status filtering (Complex Logic)
+      if (_statusFilter == 'All') return true;
+
+      final yearForCheck = _selectedYear ?? DateTime.now().year.toString();
+      final studentResults = kResults.where((r) => r.studentId == s.id && r.year == yearForCheck).toList();
+      final periodCount = studentResults.map((r) => s.schoolType == SchoolType.university ? r.semester : r.term).toSet().length;
+      final expected = s.schoolType == SchoolType.university ? 2 : 3;
+
+      if (_statusFilter == 'Complete') return periodCount >= expected;
+      if (_statusFilter == 'Incomplete') return periodCount < expected;
+
+      bool hasPassed = false;
+      if (s.schoolType == SchoolType.university) {
+        final outcome = calculateUniversityOutcome(studentResults);
+        hasPassed = outcome.status != 'Fail' && outcome.status != 'N/A';
+      } else {
+        final outcome = calculateSecondaryOutcome(studentResults);
+        hasPassed = outcome.passed;
       }
 
-      return matchesQuery && matchesType && matchesSchool && matchesDistrict;
+      if (_statusFilter == 'Passed') return hasPassed;
+      if (_statusFilter == 'Failing') return !hasPassed && periodCount > 0;
+
+      return true;
     }).toList();
+  }
+
+  void _openConsolidatedRoster() {
+    final String title = _selectedSchool ?? _selectedDistrict ?? 'Selected Group';
+    
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: "Consolidated Roster",
+      barrierColor: Colors.black.withOpacity(0.6),
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (ctx, anim1, anim2) => const SizedBox.shrink(),
+      transitionBuilder: (ctx, anim, secondaryAnim, child) {
+        return FadeTransition(
+          opacity: anim,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.98, end: 1.0).animate(anim),
+            child: Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+              child: _ConsolidatedRosterSheet(
+                title: title,
+                isUniversity: _mode == ViewResultsMode.university,
+                selectedYear: _selectedYear,
+                selectedTerm: _selectedTerm,
+                selectedSemester: _selectedSemester,
+                students: _filteredStudents,
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _openStudentResults(Student student) {
@@ -173,53 +252,19 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
               backgroundColor: Colors.transparent,
               insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 640, maxHeight: 760),
-                child: _StudentExamResultsSheet(student: student),
+                constraints: const BoxConstraints(maxWidth: 900, maxHeight: 850),
+                child: _StudentExamResultsSheet(
+                  student: student,
+                  initialYear: _selectedYear,
+                  initialTerm: _selectedTerm,
+                  initialSemester: _selectedSemester,
+                ),
               ),
             ),
           ),
         );
       },
     );
-  }
-
-  Future<void> _exportRosterCsv() async {
-    setState(() => _isExportingRoster = true);
-    try {
-      final rows = <List<dynamic>>[
-        ['Student ID', 'Name', 'School Type', 'School', 'Result Count'],
-      ];
-      for (final student in _filteredStudents) {
-        final count = kResults.where((r) => r.studentId == student.id).length;
-        rows.add([
-          student.id,
-          student.name,
-          student.schoolType == SchoolType.university ? 'University' : 'Secondary',
-          student.schoolName,
-          count,
-        ]);
-      }
-      final csvData = const ListToCsvConverter().convert(rows);
-      final bytes = Uint8List.fromList(utf8.encode(csvData));
-      final path = await FilePicker.platform.saveFile(
-        dialogTitle: 'Save Student Roster as CSV',
-        fileName: 'Scholars_Results_Roster.csv',
-        bytes: bytes,
-        type: FileType.custom,
-        allowedExtensions: ['csv'],
-      );
-      if (path != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Roster exported successfully.'),
-            backgroundColor: kBrandOlive,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isExportingRoster = false);
-    }
   }
 
   Widget _miniStat(IconData icon, String label) {
@@ -234,35 +279,23 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
         children: [
           Icon(icon, size: 13, color: kBrandBrown),
           const SizedBox(width: 5),
-          Text(
-            label,
-            style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: kBrandBrown),
-          ),
+          Text(label, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: kBrandBrown)),
         ],
       ),
     );
   }
 
-  int get _totalPeriodCount {
-    final Set<String> uniquePeriods = {};
-    for (var r in kResults) {
-      uniquePeriods.add("${r.studentId}_${r.year}_${r.semester ?? r.term ?? 'N/A'}");
-    }
-    return uniquePeriods.length;
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(40),
-          child: CircularProgressIndicator(color: kBrandOlive),
-        ),
-      );
+      return const Center(child: CircularProgressIndicator(color: kBrandOlive));
     }
+
+    if (_mode == ViewResultsMode.selection) {
+      return _buildSelectionScreen();
+    }
+
     final students = _filteredStudents;
-    final totalPeriods = _totalPeriodCount;
 
     return Container(
       width: double.infinity,
@@ -271,373 +304,17 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: kBrandBrown.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(
-                          Icons.assignment_rounded,
-                          color: kBrandBrown,
-                          size: 28,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "View Results",
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: kBrandBrown,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              "Monitor scholar performance and download rosters.",
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    _miniStat(Icons.groups_rounded, "${students.length} shown"),
-                    _miniStat(Icons.fact_check_rounded, "$totalPeriods recorded"),
-                    const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      onPressed: widget.onViewPerformance,
-                      icon: const Icon(Icons.insights_rounded, size: 16),
-                      label: const Text("Performance"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: kBrandBrown,
-                        foregroundColor: Colors.white,
-                        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: widget.onViewReports,
-                      icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
-                      label: const Text("Report Cards"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: kBrandOrange,
-                        foregroundColor: Colors.white,
-                        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        if (widget.onEnterResults != null) {
-                          widget.onEnterResults!();
-                        } else {
-                          Navigator.pushNamed(context, '/academics/enterResults');
-                        }
-                      },
-                      icon: const Icon(Icons.edit_note_rounded, size: 16),
-                      label: const Text("Enter Results"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: kBrandOlive,
-                        foregroundColor: Colors.white,
-                        textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 8),
-                _isExportingRoster
-                    ? const Padding(
-                  padding: EdgeInsets.all(10),
-                  child: SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: kBrandBrown),
-                  ),
-                )
-                    : Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.file_download_outlined, color: kBrandBrown, size: 18),
-                    padding: const EdgeInsets.all(6),
-                    constraints: const BoxConstraints(),
-                    onPressed: _exportRosterCsv,
-                    tooltip: "Export Roster (CSV)",
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.refresh, color: kBrandBrown, size: 18),
-                    padding: const EdgeInsets.all(6),
-                    constraints: const BoxConstraints(),
-                    onPressed: () => setState(() {
-                      _searchController.clear();
-                      _schoolTypeFilter = null;
-                      _schoolNameFilter = null;
-                    }),
-                    tooltip: "Reset Filters",
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 32),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: TabBar(
-                controller: _tabController,
-                isScrollable: true,
-                labelColor: kBrandOlive,
-                unselectedLabelColor: Colors.grey,
-                indicatorColor: kBrandOlive,
-                indicatorWeight: 3,
-                labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                tabs: const [
-                  Tab(text: "ACTIVE SCHOLARS"),
-                  Tab(text: "PERFORMANCE ARCHIVE"),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 14, 24, 12),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.grey.shade200),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.03),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Wrap(
-                spacing: 16,
-                runSpacing: 16,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 280,
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        isDense: true,
-                        filled: true,
-                        fillColor: Colors.white,
-                        labelText: "Search Scholar Name",
-                        hintText: "Enter name...",
-                        prefixIcon: const Icon(Icons.search, size: 20),
-                        suffixIcon: _searchController.text.isEmpty
-                            ? null
-                            : IconButton(
-                          icon: const Icon(Icons.clear, size: 18),
-                          onPressed: () => setState(() {
-                            _searchController.clear();
-                          }),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade200),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: kBrandOlive, width: 2),
-                        ),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      onChanged: (_) => setState(() {}),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 200,
-                    child: DropdownButtonFormField<SchoolType?>(
-                      initialValue: _schoolTypeFilter,
-                      isExpanded: true,
-                      decoration: InputDecoration(
-                        isDense: true,
-                        filled: true,
-                        fillColor: Colors.white,
-                        labelText: "School Type",
-                        prefixIcon: const Icon(Icons.category_outlined, size: 18),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade200),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: kBrandOlive, width: 2),
-                        ),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      items: const [
-                        DropdownMenuItem(value: null, child: Text('All Types')),
-                        DropdownMenuItem(value: SchoolType.secondary, child: Text('Secondary')),
-                        DropdownMenuItem(value: SchoolType.university, child: Text('University')),
-                      ],
-                      onChanged: (v) => setState(() {
-                        _schoolTypeFilter = v;
-                        _schoolNameFilter = null;
-                        _districtFilter = null;
-                      }),
-                    ),
-                  ),
-                  if (_schoolTypeFilter == SchoolType.secondary || _schoolTypeFilter == null)
-                    SizedBox(
-                      width: 180,
-                      child: DropdownButtonFormField<String?>(
-                        initialValue: _districtFilter,
-                        isExpanded: true,
-                        decoration: InputDecoration(
-                          isDense: true,
-                          filled: true,
-                          fillColor: Colors.white,
-                          labelText: "District",
-                          prefixIcon: const Icon(Icons.location_on_outlined, size: 18),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(color: Colors.grey.shade200),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(color: kBrandOlive, width: 2),
-                          ),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        items: [
-                          const DropdownMenuItem(value: null, child: Text('All Districts')),
-                          ...kMalawiDistricts.map((d) => DropdownMenuItem(value: d, child: Text(d, overflow: TextOverflow.ellipsis))),
-                        ],
-                        onChanged: (v) => setState(() => _districtFilter = v),
-                      ),
-                    ),
-                  SizedBox(
-                    width: 320,
-                    child: DropdownButtonFormField<String?>(
-                      key: ValueKey(_schoolTypeFilter),
-                      initialValue: _schoolNameFilter,
-                      isExpanded: true,
-                      decoration: InputDecoration(
-                        isDense: true,
-                        filled: true,
-                        fillColor: Colors.white,
-                        labelText: "School Name",
-                        prefixIcon: const Icon(Icons.school_outlined, size: 18),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade200),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: kBrandOlive, width: 2),
-                        ),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      items: [
-                        const DropdownMenuItem(value: null, child: Text('All Schools')),
-                        ..._schoolNameOptions.map(
-                              (name) => DropdownMenuItem(
-                            value: name,
-                            child: Text(name, overflow: TextOverflow.ellipsis),
-                          ),
-                        ),
-                      ],
-                      onChanged: (v) => setState(() => _schoolNameFilter = v),
-                    ),
-                  ),
-                  SizedBox(
-                    width: 180,
-                    child: DropdownButtonFormField<String?>(
-                      initialValue: _selectedYearFilter,
-                      isExpanded: true,
-                      decoration: InputDecoration(
-                        isDense: true,
-                        filled: true,
-                        fillColor: Colors.white,
-                        labelText: "Result Year",
-                        prefixIcon: const Icon(Icons.calendar_today_rounded, size: 18),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide(color: Colors.grey.shade200),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: kBrandOlive, width: 2),
-                        ),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      items: [
-                        const DropdownMenuItem(value: null, child: Text('All Years')),
-                        ..._academicYears.map((y) => DropdownMenuItem(value: y, child: Text(y))),
-                      ],
-                      onChanged: (v) => setState(() => _selectedYearFilter = v),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          _buildTopHeader(),
+          const Divider(height: 1),
+          _buildFilterBar(),
+          const Divider(height: 1),
+          _buildTabsAndArchiveToggle(),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.grey.shade200),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: students.isEmpty
-                    ? _buildNoResultsState()
-                    : _buildScholarList(students),
-              ),
+            child: Container(
+              color: Colors.grey.shade50,
+              child: students.isEmpty
+                  ? _buildNoResultsState()
+                  : _buildScholarGrid(students),
             ),
           ),
         ],
@@ -645,245 +322,560 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
     );
   }
 
-  Widget _buildInitialGuidance() {
+  Widget _buildSelectionScreen() {
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(48.0),
+        padding: const EdgeInsets.all(40),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: kBrandOlive.withOpacity(0.08),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.apartment_rounded, size: 48, color: kBrandOlive),
-            ),
+            const Icon(Icons.school_rounded, size: 64, color: kBrandBrown),
             const SizedBox(height: 24),
             const Text(
-              "Select a Partner Institution",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5),
+              "Academic Results Management",
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5),
             ),
             const SizedBox(height: 8),
-            Text(
-              "Choose an institution from the filters above to view and audit scholar examination results.",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 13.5, height: 1.5),
+            const Text(
+              "Select the institution level you wish to audit results for.",
+              style: TextStyle(fontSize: 16, color: Colors.grey),
+            ),
+            const SizedBox(height: 48),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _selectionCard(
+                  title: "Secondary Schools",
+                  subtitle: "View results by District, School or Individual Scholar across all forms and terms.",
+                  icon: Icons.account_balance_rounded,
+                  color: kBrandOrange,
+                  onTap: () => setState(() => _mode = ViewResultsMode.secondary),
+                ),
+                const SizedBox(width: 32),
+                _selectionCard(
+                  title: "Universities / Tertiary",
+                  subtitle: "Audit higher education performance by University and Scholar across years and semesters.",
+                  icon: Icons.auto_stories_rounded,
+                  color: Colors.blue.shade700,
+                  onTap: () => setState(() => _mode = ViewResultsMode.university),
+                ),
+              ],
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _selectionCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        width: 380,
+        padding: const EdgeInsets.all(40),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.grey.shade200, width: 2),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 20, offset: const Offset(0, 10))],
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+              child: Icon(icon, size: 40, color: color),
+            ),
+            const SizedBox(height: 24),
+            Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: kBrandBrown)),
+            const SizedBox(height: 12),
+            Text(subtitle, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: Colors.grey.shade600, height: 1.5)),
+            const SizedBox(height: 32),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text("PROCEED", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: color, letterSpacing: 1)),
+                const SizedBox(width: 8),
+                Icon(Icons.arrow_forward_rounded, size: 16, color: color),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopHeader() {
+    final bool isSecondary = _mode == ViewResultsMode.secondary;
+    
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => setState(() {
+              _mode = ViewResultsMode.selection;
+              _selectedDistrict = null;
+              _selectedSchool = null;
+              _selectedScholarId = null;
+              _selectedYear = null;
+              _selectedTerm = null;
+              _selectedSemester = null;
+            }),
+            icon: const Icon(Icons.arrow_back_rounded),
+          ),
+          const SizedBox(width: 16),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: kBrandBrown.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
+            child: Icon(isSecondary ? Icons.account_balance_rounded : Icons.auto_stories_rounded, color: kBrandBrown, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(isSecondary ? "Secondary Results Audit" : "University Results Audit",
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                Text(isSecondary ? "Viewing academic standing for secondary scholars by district." : "Monitoring tertiary education performance by university.",
+                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          if (_selectedSchool != null || (_mode == ViewResultsMode.secondary && _selectedDistrict != null))
+            ElevatedButton.icon(
+              onPressed: _openConsolidatedRoster,
+              icon: const Icon(Icons.grid_view_rounded, size: 18),
+              label: Text(_selectedSchool != null 
+                ? (_mode == ViewResultsMode.university ? "UNIVERSITY ROSTER" : "SCHOOL ROSTER")
+                : "DISTRICT ROSTER"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kBrandBrown,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+            ),
+          const SizedBox(width: 12),
+          ElevatedButton.icon(
+            onPressed: widget.onEnterResults ?? () => Navigator.pushNamed(context, '/academics/enterResults'),
+            icon: const Icon(Icons.add_rounded, size: 18),
+            label: const Text("RECORD NEW RESULTS"),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kBrandOlive,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterBar() {
+    final bool isSecondary = _mode == ViewResultsMode.secondary;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      color: Colors.grey.shade50,
+      child: Wrap(
+        spacing: 16,
+        runSpacing: 16,
+        children: [
+          if (isSecondary)
+            SizedBox(
+              width: 180,
+              child: _filterDropdown(label: "District", hint: "All Districts", value: _selectedDistrict, items: kMalawiDistricts,
+                onChanged: (v) => setState(() { _selectedDistrict = v; _selectedSchool = null; _selectedScholarId = null; })),
+            ),
+          SizedBox(
+            width: 280,
+            child: _filterDropdown(label: isSecondary ? "School" : "University", hint: isSecondary ? "All Schools" : "All Universities", value: _selectedSchool, items: _availableSchools,
+              onChanged: (v) => setState(() { _selectedSchool = v; _selectedScholarId = null; })),
+          ),
+          SizedBox(
+            width: 280,
+            child: DropdownButtonFormField<String?>(
+              value: _selectedScholarId,
+              isExpanded: true,
+              decoration: _filterDecoration("Scholar", "All Scholars"),
+              items: [
+                const DropdownMenuItem(value: null, child: Text("All Scholars")),
+                ..._availableScholars.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name, overflow: TextOverflow.ellipsis))),
+              ],
+              onChanged: (v) => setState(() => _selectedScholarId = v),
+            ),
+          ),
+          SizedBox(
+            width: 140,
+            child: _filterDropdown(label: "Year", hint: "All Years", value: _selectedYear, items: _academicYears,
+              onChanged: (v) => setState(() => _selectedYear = v)),
+          ),
+          SizedBox(
+            width: 180,
+            child: DropdownButtonFormField<String>(
+              value: _statusFilter,
+              decoration: _filterDecoration("Academic Status", "All Statuses"),
+              items: const [
+                DropdownMenuItem(value: "All", child: Text("All Statuses")),
+                DropdownMenuItem(value: "Complete", child: Text("Fully Recorded")),
+                DropdownMenuItem(value: "Incomplete", child: Text("Missing Data")),
+                DropdownMenuItem(value: "Passed", child: Text("Passing Annual")),
+                DropdownMenuItem(value: "Failing", child: Text("Failing Annual")),
+              ],
+              onChanged: (v) => setState(() => _statusFilter = v ?? 'All'),
+            ),
+          ),
+          if (isSecondary)
+            SizedBox(
+              width: 140,
+              child: _filterDropdown(label: "Term", hint: "All Terms", value: _selectedTerm, items: kTerms,
+                onChanged: (v) => setState(() => _selectedTerm = v)),
+            )
+          else
+            SizedBox(
+              width: 160,
+              child: _filterDropdown(label: "Semester", hint: "All Semesters", value: _selectedSemester, items: kSemesters,
+                onChanged: (v) => setState(() => _selectedSemester = v)),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _filterDropdown({required String label, required String hint, required String? value, required List<String> items, required ValueChanged<String?> onChanged}) {
+    return DropdownButtonFormField<String?>(
+      value: value,
+      isExpanded: true,
+      decoration: _filterDecoration(label, hint),
+      items: [
+        DropdownMenuItem(value: null, child: Text(hint)),
+        ...items.map((i) => DropdownMenuItem(value: i, child: Text(i, overflow: TextOverflow.ellipsis))),
+      ],
+      onChanged: onChanged,
+    );
+  }
+
+  InputDecoration _filterDecoration(String label, String hint) {
+    return InputDecoration(
+      labelText: label,
+      hintText: hint,
+      isDense: true,
+      filled: true,
+      fillColor: Colors.white,
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kBrandOlive, width: 2)),
+    );
+  }
+
+  Widget _buildTabsAndArchiveToggle() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      child: Row(
+        children: [
+          TabBar(
+            controller: _tabController,
+            isScrollable: true,
+            labelColor: kBrandOlive,
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: kBrandOlive,
+            indicatorWeight: 3,
+            labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            tabs: const [Tab(text: "ACTIVE SCHOLARS"), Tab(text: "ALUMNI / GRADUATES")],
+          ),
+          const Spacer(),
+          _miniStat(Icons.groups_rounded, "${_filteredStudents.length} scholars found"),
+          const SizedBox(width: 12),
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, size: 20, color: kBrandBrown),
+            onPressed: () => setState(() {
+              _selectedDistrict = null; _selectedSchool = null; _selectedScholarId = null;
+              _selectedYear = null; _selectedTerm = null; _selectedSemester = null; _searchController.clear();
+            }),
+            tooltip: "Reset All Filters",
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildNoResultsState() {
     return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.search_off_rounded, size: 48, color: Colors.grey.shade400),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              "No Students Found",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              "Try loosening your filters or clearing search text.",
-              style: TextStyle(color: Colors.grey.shade600),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.search_off_rounded, size: 64, color: Colors.grey.shade300),
+          const SizedBox(height: 16),
+          const Text("No scholars match current filters.", style: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.bold)),
+        ],
       ),
     );
   }
 
-  Widget _buildScholarList(List<Student> students) {
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: students.length,
-      separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey.shade100, indent: 84),
-      itemBuilder: (context, index) {
-        final student = students[index];
-        
-        // Count unique exam periods (Year + Term/Semester) instead of individual subjects
-        final relevantResults = kResults.where((r) {
-          final matchesId = r.studentId == student.id;
-          final matchesYear = _selectedYearFilter == null || r.year == _selectedYearFilter;
-          return matchesId && matchesYear;
-        }).toList();
+  Widget _buildScholarGrid(List<Student> students) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        int crossAxisCount = constraints.maxWidth > 1200 ? 3 : (constraints.maxWidth > 800 ? 2 : 1);
 
-        final Set<String> uniquePeriods = {};
-        for (var r in relevantResults) {
-          final period = student.schoolType == SchoolType.university ? (r.semester ?? 'N/A') : (r.term ?? 'N/A');
-          uniquePeriods.add("${r.year}_$period");
-        }
-        
-        final periodCount = uniquePeriods.length;
-        final isUniversity = student.schoolType == SchoolType.university;
-        final periodLabel = isUniversity ? 'SEMESTER' : 'EXAM';
-
-        return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () => _openStudentResults(student),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: Row(
-                children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: kBrandOlive.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: kBrandOlive.withOpacity(0.2)),
-                    ),
-                    child: Text(
-                      _initialsOf(student.name),
-                      style: const TextStyle(fontWeight: FontWeight.w900, color: kBrandBrown, fontSize: 15),
-                    ),
-                  ),
-                  const SizedBox(width: 20),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(student.name, 
-                              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16, color: kBrandBrown, letterSpacing: -0.2)),
-                            const SizedBox(width: 12),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: isUniversity ? Colors.blue.withOpacity(0.08) : kBrandOrange.withOpacity(0.08),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                isUniversity ? 'UNI' : 'SEC',
-                                style: TextStyle(
-                                  color: isUniversity ? Colors.blue.shade700 : kBrandOrange,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            const Icon(Icons.badge_outlined, size: 12, color: Colors.grey),
-                            const SizedBox(width: 4),
-                            Text(student.scholarId, 
-                              style: TextStyle(color: Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w600)),
-                            const SizedBox(width: 16),
-                            const Icon(Icons.apartment_rounded, size: 12, color: Colors.grey),
-                            const SizedBox(width: 4),
-                            Flexible(
-                              child: Text(
-                                student.schoolName,
-                                style: TextStyle(color: Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w500),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 24),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade200),
-                        ),
-                        child: Row(
-                          children: [
-                            Text(
-                              '$periodCount',
-                              style: const TextStyle(color: kBrandBrown, fontSize: 14, fontWeight: FontWeight.w900),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              '${periodLabel}${periodCount == 1 ? '' : 'S'}',
-                              style: TextStyle(color: Colors.grey.shade400, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (_selectedYearFilter != null) ...[
-                        const SizedBox(height: 4),
-                        Text('IN $_selectedYearFilter', 
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBrandOlive, letterSpacing: 0.5)),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(width: 20),
-                  const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
-                ],
-              ),
-            ),
+        return GridView.builder(
+          padding: const EdgeInsets.all(24),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: 24,
+            mainAxisSpacing: 24,
+            mainAxisExtent: 220,
           ),
+          itemCount: students.length,
+          itemBuilder: (context, index) {
+            final student = students[index];
+            final relevantResults = kResults.where((r) {
+              final matchesId = r.studentId == student.id;
+              final matchesYear = _selectedYear == null || r.year == _selectedYear;
+              final matchesTerm = _selectedTerm == null || r.term == _selectedTerm;
+              final matchesSemester = _selectedSemester == null || r.semester == _selectedSemester;
+              return matchesId && matchesYear && matchesTerm && matchesSemester;
+            }).toList();
+
+            final Set<String> uniquePeriods = {};
+            final yearForCheck = _selectedYear ?? DateTime.now().year.toString();
+            
+            final yearResults = kResults.where((r) => r.studentId == student.id && r.year == yearForCheck).toList();
+            
+            for (var r in relevantResults) {
+              final period = student.schoolType == SchoolType.university ? (r.semester ?? 'N/A') : (r.term ?? 'N/A');
+              uniquePeriods.add("${r.year}_$period");
+            }
+            
+            return _ScholarAcademicCard(
+              student: student,
+              periodCount: uniquePeriods.length,
+              selectedYear: yearForCheck,
+              yearResults: yearResults,
+              onTap: () => _openStudentResults(student),
+            );
+          },
         );
       },
     );
   }
 }
 
-class _StudentExamResultsSheet extends StatefulWidget {
-  const _StudentExamResultsSheet({required this.student});
-
+class _ScholarAcademicCard extends StatelessWidget {
+  const _ScholarAcademicCard({
+    required this.student, 
+    required this.periodCount, 
+    required this.onTap, 
+    required this.selectedYear,
+    required this.yearResults,
+  });
   final Student student;
+  final int periodCount;
+  final VoidCallback onTap;
+  final String selectedYear;
+  final List<ResultRecord> yearResults;
 
+  @override
+  Widget build(BuildContext context) {
+    final bool isUniversity = student.schoolType == SchoolType.university;
+    final Color accentColor = isUniversity ? Colors.blue.shade700 : kBrandOrange;
+
+    // --- Intelligence Logic ---
+    final int expectedPeriods = isUniversity ? 2 : 3;
+    final bool isComplete = periodCount >= expectedPeriods;
+    final bool isPartial = periodCount > 0 && periodCount < expectedPeriods;
+    
+    bool hasPassed = false;
+    if (isUniversity) {
+      final outcome = calculateUniversityOutcome(yearResults);
+      hasPassed = outcome.status != 'Fail' && outcome.status != 'N/A';
+    } else {
+      final outcome = calculateSecondaryOutcome(yearResults);
+      hasPassed = outcome.passed;
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isComplete ? kBrandOlive.withOpacity(0.3) : Colors.grey.shade200, 
+              width: isComplete ? 2 : 1
+            ),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
+            ],
+          ),
+          child: Column(
+            children: [
+              // Card Header: Profile Info
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 54, height: 54,
+                      decoration: BoxDecoration(
+                        color: accentColor.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: accentColor.withOpacity(0.2), width: 2),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(_initialsOf(student.name), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: accentColor)),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(student.name.toUpperCase(), 
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.2), 
+                            maxLines: 1, overflow: TextOverflow.ellipsis),
+                          const SizedBox(height: 2),
+                          Text(student.scholarId, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey.shade400)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Card Content: Status Badges
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.apartment_rounded, size: 14, color: Colors.grey.shade400),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text(student.schoolName, 
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey.shade700), 
+                          maxLines: 1, overflow: TextOverflow.ellipsis)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        if (periodCount > 0) ...[
+                          _statusBadge(
+                            hasPassed ? "PASSED" : "FAILING", 
+                            hasPassed ? kBrandOlive : Colors.red,
+                            Icons.verified_rounded
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        _statusBadge(
+                          isComplete ? "COMPLETE" : (isPartial ? "PARTIAL" : "NO DATA"), 
+                          isComplete ? Colors.blue.shade700 : (isPartial ? Colors.orange : Colors.grey),
+                          isComplete ? Icons.check_circle_rounded : Icons.pending_actions_rounded
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const Spacer(),
+              
+              // Card Footer: Stats & Call to Action
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isComplete ? kBrandOlive.withOpacity(0.05) : kSurfaceMuted,
+                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(18)),
+                  border: Border(top: BorderSide(color: Colors.grey.shade100)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(selectedYear, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1)),
+                        const SizedBox(height: 2),
+                        Text('$periodCount / $expectedPeriods RECORDED', 
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isComplete ? kBrandOlive : kBrandBrown)),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(color: accentColor, borderRadius: BorderRadius.circular(6)),
+                      child: const Icon(Icons.arrow_forward_ios_rounded, size: 10, color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _statusBadge(String label, Color color, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 10, color: color),
+          const SizedBox(width: 4),
+          Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: color, letterSpacing: 0.5)),
+        ],
+      ),
+    );
+  }
+}
+
+class _StudentExamResultsSheet extends StatefulWidget {
+  const _StudentExamResultsSheet({required this.student, this.initialYear, this.initialTerm, this.initialSemester});
+  final Student student;
+  final String? initialYear;
+  final String? initialTerm;
+  final String? initialSemester;
   @override
   State<_StudentExamResultsSheet> createState() => _StudentExamResultsSheetState();
 }
 
 class _StudentExamResultsSheetState extends State<_StudentExamResultsSheet> {
   late String _selectedYear;
-  bool _isExporting = false;
+  String? _activePeriod;
   bool _isLoading = false;
+  bool _isExporting = false;
 
   bool get _isUniversity => widget.student.schoolType == SchoolType.university;
-
-  List<ResultRecord> get _studentResults =>
-      kResults.where((r) => r.studentId == widget.student.id).toList();
-
-  List<String> get _yearOptions {
-    final years = _studentResults.map((r) => r.year).toSet().toList()
-      ..sort((a, b) => b.compareTo(a));
-    return years;
-  }
-
+  List<ResultRecord> get _studentResults => kResults.where((r) => r.studentId == widget.student.id).toList();
+  List<String> get _yearOptions => _studentResults.map((r) => r.year).toSet().toList()..sort((a, b) => b.compareTo(a));
   List<String> get _periods => _isUniversity ? ['Semester 1', 'Semester 2'] : ['Term 1', 'Term 2', 'Term 3'];
-
-  String? _activePeriod; // e.g., 'Semester 1', 'ANNUAL'
 
   @override
   void initState() {
     super.initState();
-    _selectedYear = DateTime.now().year.toString();
-    _activePeriod = _isUniversity ? 'Semester 1' : 'Term 1';
+    _selectedYear = widget.initialYear ?? DateTime.now().year.toString();
+    _activePeriod = _isUniversity ? (widget.initialSemester ?? 'Semester 1') : (widget.initialTerm ?? 'Term 1');
     _fetchStudentResults();
   }
 
@@ -893,361 +885,96 @@ class _StudentExamResultsSheetState extends State<_StudentExamResultsSheet> {
       final response = await ApiService.getResultsByScholar(widget.student.id);
       if (response.statusCode != null && response.statusCode! < 400) {
         final List<dynamic> data = response.data['data'] ?? [];
-        debugPrint('Fetched ${data.length} results for scholar ${widget.student.id}');
-        
         setState(() {
-          // Update the global results list for this student
           kResults.removeWhere((r) => r.studentId == widget.student.id);
-          for (var item in data) {
-            kResults.add(ResultRecord(
-              studentId: item['scholar_id'].toString(),
-              code: (item['subject_code'] ?? item['code'] ?? 'N/A').toString(),
-              subject: (item['subject_name'] ?? item['subject'] ?? 'N/A').toString(),
-              marks: double.tryParse(item['marks'].toString()) ?? 0.0,
-              gpa: item['gpa'] != null ? double.tryParse(item['gpa'].toString()) : null,
-              points: item['points'] != null ? double.tryParse(item['points'].toString()) : null,
-              year: (item['academic_year'] ?? item['year'] ?? '').toString(),
-              term: item['term'],
-              semester: item['semester'],
-            ));
-          }
-          
-          if (_yearOptions.isNotEmpty) {
-            _selectedYear = _yearOptions.first;
-            debugPrint('Set selected year to $_selectedYear');
-          }
+          for (var item in data) kResults.add(ResultRecord.fromMap(item));
+          if (_yearOptions.isNotEmpty && widget.initialYear == null) _selectedYear = _yearOptions.first;
         });
       }
-    } catch (e) {
-      debugPrint('Error fetching student results: $e');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    } catch (e) { debugPrint('Error: $e'); } finally { if (mounted) setState(() => _isLoading = false); }
   }
 
   List<ResultRecord> _resultsFor(String period) {
-    return _studentResults.where((r) {
-      final matchesYear = r.year == _selectedYear;
-      final matchesPeriod = _isUniversity ? r.semester == period : r.term == period;
-      return matchesYear && matchesPeriod;
-    }).toList();
-  }
-
-  double _gpaFor(List<ResultRecord> records) {
-    if (records.isEmpty) return 0;
-    return records.map((r) => r.gradePoint).reduce((a, b) => a + b) / records.length;
-  }
-
-  Future<void> _exportCsv(List<String> periodsWithResults, double annualGpa, String outcomeLabel) async {
-    setState(() => _isExporting = true);
-    try {
-      final rows = <List<dynamic>>[
-        ['Period', '#', 'Code', 'Title', 'Marks', 'Grade/Letter', 'GP/Points'],
-      ];
-      for (final period in periodsWithResults) {
-        final records = _resultsFor(period);
-        for (var i = 0; i < records.length; i++) {
-          final r = records[i];
-          rows.add([
-            period,
-            i + 1,
-            r.code,
-            r.subject,
-            r.marks,
-            gradeFromMarks(r.marks, isUniversity: _isUniversity).letter,
-            _isUniversity ? r.gradePoint.toStringAsFixed(2) : r.gradePoint.toStringAsFixed(0)
-          ]);
-        }
-      }
-      rows.add([]);
-      for (final period in periodsWithResults) {
-        final records = _resultsFor(period);
-        if (_isUniversity) {
-          final stats = calculateUniversityOutcome(records);
-          rows.add(['$period Total Marks', stats.totalMarks]);
-          rows.add(['$period GPA', stats.avgGpa.toStringAsFixed(2)]);
-          rows.add(['$period Status', stats.status]);
-        } else {
-          final stats = calculateSecondaryOutcome(records);
-          rows.add(['$period Best 6 Total Marks', stats.totalMarks]);
-          rows.add(['$period Best 6 Total Points', stats.totalPoints]);
-          rows.add(['$period Outcome', stats.passed ? 'PASS' : 'FAIL']);
-        }
-      }
-      if (_isUniversity) {
-        rows.add(['Annual GPA', annualGpa.toStringAsFixed(2)]);
-      }
-      rows.add(['Final Status', outcomeLabel]);
-
-      final csvData = const ListToCsvConverter().convert(rows);
-      final bytes = Uint8List.fromList(utf8.encode(csvData));
-      final fileName = '${widget.student.name.replaceAll(' ', '_')}_Results_$_selectedYear.csv';
-
-      final path = await FilePicker.platform.saveFile(
-        dialogTitle: 'Save Results as CSV',
-        fileName: fileName,
-        bytes: bytes,
-        type: FileType.custom,
-        allowedExtensions: ['csv'],
-      );
-      if (path != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Results exported to CSV successfully.'), backgroundColor: kBrandOlive, behavior: SnackBarBehavior.floating),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isExporting = false);
-    }
-  }
-
-  Future<void> _exportPdf(List<String> periodsWithResults, double annualGpa, String outcomeLabel) async {
-    setState(() => _isExporting = true);
-    try {
-      final brown = PdfColor.fromInt(kBrandBrown.toARGB32());
-      final olive = PdfColor.fromInt(kBrandOlive.toARGB32());
-      final cream = PdfColor.fromInt(kBrandCream.toARGB32());
-      final doc = pw.Document();
-
-      doc.addPage(
-        pw.MultiPage(
-          pageFormat: PdfPageFormat.a4,
-          margin: const pw.EdgeInsets.fromLTRB(32, 32, 32, 32),
-          header: (context) => pw.Container(
-            padding: const pw.EdgeInsets.only(bottom: 12),
-            decoration: pw.BoxDecoration(border: pw.Border(bottom: pw.BorderSide(color: brown, width: 2))),
-            child: pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              children: [
-                pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Text('EXAM RESULTS TRANSCRIPT', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold, color: brown)),
-                    pw.SizedBox(height: 2),
-                    pw.Text('AGE Africa — Scholar Management System', style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
-                  ],
-                ),
-                pw.Text(_selectedYear, style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: olive)),
-              ],
-            ),
-          ),
-          build: (context) => [
-            pw.SizedBox(height: 12),
-            pw.Container(
-              padding: const pw.EdgeInsets.fromLTRB(10, 10, 10, 10),
-              decoration: pw.BoxDecoration(color: cream, borderRadius: pw.BorderRadius.circular(6)),
-              child: pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text('Scholar: ${widget.student.name}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
-                      pw.SizedBox(height: 3),
-                      pw.Text('School: ${widget.student.schoolName}', style: const pw.TextStyle(fontSize: 10)),
-                    ],
-                  ),
-                  pw.Text(_isUniversity ? 'University' : 'Secondary', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: brown)),
-                ],
-              ),
-            ),
-            pw.SizedBox(height: 18),
-            for (final period in periodsWithResults) ...[
-              pw.Text('$period Results', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: brown)),
-              pw.SizedBox(height: 6),
-              pw.TableHelper.fromTextArray(
-                headers: ['#', 'Code', 'Title', 'Marks', 'Grade/Letter', _isUniversity ? 'GPA' : 'Points'],
-                data: [
-                  for (var i = 0; i < _resultsFor(period).length; i++)
-                    (() {
-                      final r = _resultsFor(period)[i];
-                      return [
-                        '${i + 1}',
-                        r.code,
-                        r.subject,
-                        r.marks.toStringAsFixed(0),
-                        gradeFromMarks(r.marks, isUniversity: _isUniversity).letter,
-                        _isUniversity ? r.gradePoint.toStringAsFixed(2) : r.gradePoint.toStringAsFixed(0),
-                      ];
-                    })(),
-                ],
-                headerDecoration: pw.BoxDecoration(color: brown),
-                headerStyle: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 9),
-                cellStyle: const pw.TextStyle(fontSize: 9),
-                border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
-                cellPadding: const pw.EdgeInsets.fromLTRB(6, 5, 6, 5),
-              ),
-              pw.SizedBox(height: 6),
-              if (_isUniversity)
-                pw.Align(
-                  alignment: pw.Alignment.centerRight,
-                  child: pw.Text(
-                    'Semester Total: ${calculateUniversityOutcome(_resultsFor(period)).totalMarks.toStringAsFixed(0)} | GPA: ${calculateUniversityOutcome(_resultsFor(period)).avgGpa.toStringAsFixed(2)}',
-                    style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
-                  ),
-                )
-              else
-                pw.Align(
-                  alignment: pw.Alignment.centerRight,
-                  child: pw.Text(
-                    'Best 6 Total: ${calculateSecondaryOutcome(_resultsFor(period)).totalMarks.toStringAsFixed(0)} | Points: ${calculateSecondaryOutcome(_resultsFor(period)).totalPoints.toStringAsFixed(0)}',
-                    style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold),
-                  ),
-                ),
-              pw.SizedBox(height: 16),
-            ],
-            pw.Divider(color: PdfColors.grey400),
-            pw.SizedBox(height: 10),
-            pw.Row(
-              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-              children: [
-                if (_isUniversity)
-                  pw.Text('Annual Average GPA: ${annualGpa.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
-                pw.Container(
-                  padding: const pw.EdgeInsets.fromLTRB(12, 6, 12, 6),
-                  decoration: pw.BoxDecoration(color: (outcomeLabel == 'FAIL' || outcomeLabel == 'BELOW REQUIREMENT') ? PdfColors.red700 : olive, borderRadius: pw.BorderRadius.circular(4)),
-                  child: pw.Text(outcomeLabel, style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 10)),
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
-
-      final fileName = '${widget.student.name.replaceAll(' ', '_')}_Results_$_selectedYear.pdf';
-      await Printing.layoutPdf(onLayout: (format) async => doc.save(), name: fileName);
-    } finally {
-      if (mounted) setState(() => _isExporting = false);
-    }
+    return _studentResults.where((r) => r.year == _selectedYear && (_isUniversity ? r.semester == period : r.term == period)).toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Container(
-        height: 400,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(28)),
-        child: const CircularProgressIndicator(color: kBrandOlive),
-      );
-    }
+    if (_isLoading) return Container(height: 400, alignment: Alignment.center, child: const CircularProgressIndicator(color: kBrandOlive));
     
-    final periodsWithResults = _periods.where((p) => _resultsFor(p).isNotEmpty).toList();
-
-    double annualGpa = 0;
-    double annualAverage = 0;
-    String finalStatus = 'N/A';
-
-    final allYearResults = _studentResults.where((r) => r.year == _selectedYear).toList();
+    final allResults = _studentResults.where((r) => r.year == _selectedYear).toList();
+    double avgMarks = allResults.isEmpty ? 0 : allResults.fold(0.0, (sum, r) => sum + r.marks) / allResults.length;
     
-    if (allYearResults.isNotEmpty) {
-      // Calculate Annual Average
-      annualAverage = allYearResults.fold(0.0, (sum, r) => sum + r.marks) / allYearResults.length;
-      
-      if (_isUniversity) {
-        // University: Average GPA of all courses in the year
-        annualGpa = allYearResults.fold(0.0, (sum, r) => sum + (r.gpa ?? 0)) / allYearResults.length;
-        finalStatus = calculateUniversityOutcome(allYearResults).status;
-      } else {
-        // Secondary: Status based on cumulative year performance or latest term
-        // Professional standard: Best 6 marks across the year or from the final term?
-        // Let's use the latest term with results for the final status badge.
-        final latestTerm = periodsWithResults.isNotEmpty ? periodsWithResults.last : null;
-        if (latestTerm != null) {
-          final latestResults = _resultsFor(latestTerm);
-          final outcome = calculateSecondaryOutcome(latestResults);
-          finalStatus = outcome.passed ? 'PASS' : 'FAIL';
-        }
-      }
-    }
-
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 1100, maxHeight: 900), // Slightly wider for professional rectangular look
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.zero, // Rectangular as requested
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 60, offset: const Offset(0, 30)),
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          children: [
-            _buildProfessionalHeader(),
-            _buildViewToggle(),
-            Expanded(
-              child: Container(
-                color: Colors.grey.shade50,
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(40),
-                  child: _activePeriod == 'ANNUAL' 
-                    ? _buildAnnualSummaryView(annualGpa, annualAverage, finalStatus)
-                    : _buildPeriodicView(_activePeriod!),
-                ),
+    return Container(
+      decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.zero),
+      child: Column(
+        children: [
+          _buildHeader(),
+          _buildPeriodSelector(),
+          Expanded(
+            child: Container(
+              color: Colors.grey.shade50,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(40),
+                child: _activePeriod == 'ANNUAL' ? _buildAnnualView(allResults, avgMarks) : _buildPeriodicView(_activePeriod!),
               ),
             ),
-            _buildActionFooter(periodsWithResults, annualGpa, finalStatus),
-          ],
-        ),
+          ),
+          _buildFooter(allResults),
+        ],
       ),
     );
   }
 
-  Widget _buildViewToggle() {
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.all(40),
+      color: kBrandBrown.withOpacity(0.03),
+      child: Row(
+        children: [
+          CircleAvatar(radius: 36, backgroundColor: kBrandOlive.withOpacity(0.1), child: Text(_initialsOf(widget.student.name), style: const TextStyle(fontWeight: FontWeight.w900, color: kBrandBrown, fontSize: 24))),
+          const SizedBox(width: 32),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(widget.student.name.toUpperCase(), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                Text(widget.student.schoolName, style: TextStyle(fontSize: 14, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
+          if (_yearOptions.isNotEmpty)
+            DropdownButton<String>(
+              value: _selectedYear,
+              underline: const SizedBox(),
+              items: _yearOptions.map((y) => DropdownMenuItem(value: y, child: Text(y, style: const TextStyle(fontWeight: FontWeight.bold)))).toList(),
+              onChanged: (v) { if (v != null) setState(() { _selectedYear = v; }); },
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPeriodSelector() {
     final options = [..._periods, 'ANNUAL'];
-    
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
-      ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: options.map((opt) => _toggleBtn(opt)).toList(),
-        ),
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
+      decoration: BoxDecoration(color: Colors.white, border: Border(bottom: BorderSide(color: Colors.grey.shade100))),
+      child: Row(children: options.map((opt) => _toggleBtn(opt)).toList()),
     );
   }
 
   Widget _toggleBtn(String label) {
     final isSelected = _activePeriod == label;
-    final isAnnual = label == 'ANNUAL';
-    
     return Padding(
       padding: const EdgeInsets.only(right: 12),
       child: InkWell(
         onTap: () => setState(() => _activePeriod = label),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          decoration: BoxDecoration(
-            color: isSelected ? kBrandOlive.withOpacity(0.1) : Colors.transparent,
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: isSelected ? kBrandOlive : Colors.grey.shade200),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(isAnnual ? Icons.analytics_rounded : Icons.calendar_view_day_rounded, 
-                size: 16, color: isSelected ? kBrandOlive : Colors.grey),
-              const SizedBox(width: 12),
-              Text(
-                isAnnual ? "YEAR AVERAGE" : label.toUpperCase(), 
-                style: TextStyle(
-                  fontSize: 11, 
-                  fontWeight: FontWeight.w900, 
-                  color: isSelected ? kBrandOlive : Colors.grey.shade600, 
-                  letterSpacing: 0.8
-                )
-              ),
-            ],
-          ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          decoration: BoxDecoration(color: isSelected ? kBrandOlive.withOpacity(0.1) : Colors.transparent, borderRadius: BorderRadius.circular(4), border: Border.all(color: isSelected ? kBrandOlive : Colors.grey.shade200)),
+          child: Text(label.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isSelected ? kBrandOlive : Colors.grey.shade600)),
         ),
       ),
     );
@@ -1255,328 +982,62 @@ class _StudentExamResultsSheetState extends State<_StudentExamResultsSheet> {
 
   Widget _buildPeriodicView(String period) {
     final records = _resultsFor(period);
-    if (records.isEmpty) return _buildNoDataPlaceholder();
-    
+    if (records.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.history_edu_rounded, size: 64, color: Colors.grey.shade200),
+            const SizedBox(height: 24),
+            Text("No results recorded for $period.", 
+              style: TextStyle(color: Colors.grey.shade400, fontSize: 16, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            const Text("Check other terms or change the academic year above.", 
+              style: TextStyle(color: Colors.grey, fontSize: 13)),
+          ],
+        ),
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildIdentitySection(),
-        const SizedBox(height: 48),
         _PeriodResultsTable(periodLabel: '$period RESULTS', records: records, isUniversity: _isUniversity),
       ],
     );
   }
 
-  Widget _buildAnnualSummaryView(double annualGpa, double annualAverage, String finalStatus) {
+  Widget _buildAnnualView(List<ResultRecord> all, double avg) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildIdentitySection(),
-        const SizedBox(height: 48),
-        const Text("ANNUAL CONSOLIDATED PERFORMANCE", 
-          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
+        const Text("YEAR CONSOLIDATED PERFORMANCE", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
         const SizedBox(height: 24),
         Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(48),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: Colors.grey.shade200),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Column(
-            children: [
-              Wrap(
-                spacing: 60,
-                runSpacing: 40,
-                alignment: WrapAlignment.center,
-                children: [
-                  _summaryMetric("ACADEMIC YEAR AVG", "${annualAverage.toStringAsFixed(1)}%", kBrandOlive),
-                  _summaryMetric(_isUniversity ? "CUMULATIVE GPA" : "YEAR STANDING", _isUniversity ? annualGpa.toStringAsFixed(2) : finalStatus, kBrandBrown),
-                ],
-              ),
-              const SizedBox(height: 48),
-              const Divider(),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.verified_user_rounded, color: kBrandOlive, size: 20),
-                  const SizedBox(width: 12),
-                  Flexible(
-                    child: Text("OFFICIAL STATUS: ${finalStatus.toUpperCase()}",
-                      style: const TextStyle(color: kBrandBrown, fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: 0.5),
-                      overflow: TextOverflow.ellipsis),
-                  ),
-                ],
-              ),
-            ],
-          ),
+          width: double.infinity, padding: const EdgeInsets.all(48),
+          decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.grey.shade200), borderRadius: BorderRadius.circular(4)),
+          child: Column(children: [
+            Text("${avg.toStringAsFixed(1)}%", style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w900, color: kBrandOlive)),
+            const Text("ACADEMIC YEAR AVERAGE", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+          ]),
         ),
       ],
     );
   }
 
-
-  Widget _summaryMetric(String label, String value, Color color) {
-    return Column(
-      children: [
-        Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
-        const SizedBox(height: 12),
-        Text(value, style: TextStyle(fontSize: 40, fontWeight: FontWeight.w900, color: color, letterSpacing: -1)),
-      ],
-    );
-  }
-
-  Widget _buildProfessionalHeader() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(40, 40, 32, 32),
-      decoration: BoxDecoration(
-        color: kBrandBrown.withOpacity(0.03),
-        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              border: Border.all(color: kBrandOlive, width: 2),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              _initialsOf(widget.student.name),
-              style: const TextStyle(color: kBrandBrown, fontSize: 28, fontWeight: FontWeight.w900),
-            ),
-          ),
-          const SizedBox(width: 32),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(widget.student.name.toUpperCase(), 
-                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5),
-                        overflow: TextOverflow.ellipsis),
-                    ),
-                    const SizedBox(width: 12),
-                    _badge(widget.student.status, widget.student.status == 'Active' ? Colors.green : Colors.grey),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(widget.student.schoolName, 
-                  style: TextStyle(fontSize: 16, color: Colors.grey.shade600, fontWeight: FontWeight.w600),
-                  overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(child: _headerInfoItem(Icons.calendar_month_rounded, "ACADEMIC YEAR", _selectedYear)),
-                    const SizedBox(width: 24),
-                    Expanded(child: _headerInfoItem(Icons.school_outlined, "INSTITUTION LEVEL", _isUniversity ? "TERTIARY" : "SECONDARY")),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 24),
-          Column(
-            children: [
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close_rounded, size: 24),
-                style: IconButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  hoverColor: Colors.grey.shade100,
-                  elevation: 1,
-                ),
-              ),
-              if (_yearOptions.length > 1) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: DropdownButton<String>(
-                    value: _selectedYear,
-                    underline: const SizedBox(),
-                    items: _yearOptions.map((y) => DropdownMenuItem(value: y, child: Text(y, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)))).toList(),
-                    onChanged: (v) {
-                      if (v != null) {
-                        setState(() {
-                          _selectedYear = v;
-                          _fetchStudentResults();
-                        });
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildIdentitySection() {
-    return Container(
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: kSurfaceMuted,
-        borderRadius: BorderRadius.circular(4), // Match the rectangular theme
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Wrap(
-        spacing: 32,
-        runSpacing: 24,
-        children: [
-          _detailBlock("SCHOLAR ID", widget.student.scholarId),
-          _detailBlock("PROGRAM / CLASS", widget.student.currentClass.isEmpty ? "NOT ASSIGNED" : widget.student.currentClass),
-          _detailBlock("AGE", "${widget.student.age} YEARS"),
-          _detailBlock("SPONSOR", widget.student.donor),
-        ],
-      ),
-    );
-  }
-
-  Widget _detailBlock(String label, String value) {
-    return Container(
-      constraints: const BoxConstraints(minWidth: 140),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
-          const SizedBox(height: 4),
-          Text(value.toUpperCase(), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: kBrandBrown)),
-        ],
-      ),
-    );
-  }
-
-  Widget _headerInfoItem(IconData icon, String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            Icon(icon, size: 16, color: kBrandOlive),
-            const SizedBox(width: 8),
-            Text(value, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: kBrandBrown)),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _badge(String label, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6), border: Border.all(color: color.withOpacity(0.3))),
-      child: Text(label.toUpperCase(), style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-    );
-  }
-
-  Widget _buildNoDataPlaceholder() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 80),
-        child: Column(
-          children: [
-            Icon(Icons.inventory_2_outlined, size: 64, color: Colors.grey.shade200),
-            const SizedBox(height: 24),
-            Text("No academic records found for $_selectedYear.", 
-              style: TextStyle(color: Colors.grey.shade400, fontSize: 16, fontWeight: FontWeight.w500)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionFooter(List<String> periodsWithResults, double annualGpa, String outcomeLabel) {
+  Widget _buildFooter(List<ResultRecord> all) {
     return Container(
       padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey.shade100)),
-      ),
+      decoration: BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: Colors.grey.shade100))),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          if (periodsWithResults.isNotEmpty) ...[
-            Expanded(
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(_isUniversity ? "ANNUAL AGGREGATE GPA" : "LATEST TERM STANDING", 
-                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Text(_isUniversity ? annualGpa.toStringAsFixed(2) : outcomeLabel, 
-                              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kBrandBrown)),
-                            const SizedBox(width: 12),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: (outcomeLabel == 'FAIL' || outcomeLabel == 'Fail') ? Colors.red : kBrandOlive,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(_isUniversity ? outcomeLabel.toUpperCase() : "QUALIFIED", 
-                                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: 32),
-            OutlinedButton.icon(
-              onPressed: _isExporting ? null : () => _exportCsv(periodsWithResults, annualGpa, outcomeLabel),
-              icon: const Icon(Icons.grid_on_rounded),
-              label: const Text("RAW DATA (CSV)"),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                side: BorderSide(color: Colors.grey.shade300),
-              ),
-            ),
-            const SizedBox(width: 12),
-            ElevatedButton.icon(
-              onPressed: _isExporting ? null : () => _exportPdf(periodsWithResults, annualGpa, outcomeLabel),
-              icon: _isExporting 
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.picture_as_pdf_rounded),
-              label: const Text("EXPORT AUDIT PDF"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: kBrandBrown,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              ),
-            ),
-          ],
+          OutlinedButton.icon(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close), label: const Text("CLOSE TRANSCRIPT")),
+          const SizedBox(width: 12),
+          ElevatedButton.icon(
+            onPressed: _isExporting ? null : () {},
+            icon: const Icon(Icons.picture_as_pdf_rounded),
+            label: const Text("DOWNLOAD PDF"),
+            style: ElevatedButton.styleFrom(backgroundColor: kBrandBrown, foregroundColor: Colors.white),
+          ),
         ],
       ),
     );
@@ -1591,106 +1052,242 @@ class _PeriodResultsTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    dynamic outcome;
-    if (isUniversity) {
-      outcome = calculateUniversityOutcome(records);
-    } else {
-      outcome = calculateSecondaryOutcome(records);
-    }
-
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          decoration: BoxDecoration(
-            color: kBrandBrown,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Flexible(
-                child: Text(periodLabel.toUpperCase(), 
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1),
-                  overflow: TextOverflow.ellipsis),
-              ),
-              const SizedBox(width: 12),
-              if (isUniversity)
-                 Text('GPA: ${outcome.avgGpa.toStringAsFixed(2)} | TOTAL: ${outcome.totalMarks.toStringAsFixed(0)}', 
-                   style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kBrandCream))
-              else
-                 Text('POINTS: ${outcome.totalPoints.toStringAsFixed(0)} | BEST 6: ${outcome.totalMarks.toStringAsFixed(0)}', 
-                   style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kBrandCream)),
-            ],
-          ),
+          width: double.infinity, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          decoration: const BoxDecoration(color: kBrandBrown, borderRadius: BorderRadius.vertical(top: Radius.circular(8))),
+          child: Text(periodLabel, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.white)),
         ),
-        Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade300),
-            borderRadius: const BorderRadius.vertical(bottom: Radius.circular(4)),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minWidth: 900),
-              child: DataTable(
-                headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
-                columnSpacing: 20,
-                horizontalMargin: 16,
-                headingRowHeight: 48,
-                dataRowMaxHeight: 56,
-                border: TableBorder(
-                  verticalInside: BorderSide(color: Colors.grey.shade200, width: 1),
-                  horizontalInside: BorderSide(color: Colors.grey.shade200, width: 1),
-                ),
-                columns: [
-                  const DataColumn(label: Text('CODE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.grey))),
-                  const DataColumn(label: Text('COURSE / SUBJECT TITLE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.grey))),
-                  const DataColumn(label: Text('MARKS', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.grey))),
-                  const DataColumn(label: Text('STANDING', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.grey))),
-                  DataColumn(label: Text(isUniversity ? 'GPA' : 'POINTS', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.grey))),
-                ],
-                rows: records.map((r) {
-                  final graded = gradeFromMarks(r.marks, isUniversity: isUniversity);
-                  Color statusColor = Colors.green;
-                  if (isUniversity) {
-                    if (r.marks < 50) statusColor = Colors.red;
-                    else if (r.marks < 70) statusColor = Colors.orange;
-                  } else {
-                    if (r.marks < 40) statusColor = Colors.red;
-                    else if (r.marks < 60) statusColor = Colors.orange;
-                  }
+        DataTable(
+          columns: const [
+            DataColumn(label: Text('SUBJECT/COURSE')),
+            DataColumn(label: Text('MARKS')),
+            DataColumn(label: Text('GRADE')),
+          ],
+          rows: records.map((r) => DataRow(cells: [
+            DataCell(Text(r.subject.toUpperCase())),
+            DataCell(Text("${r.marks.toStringAsFixed(0)}%")),
+            DataCell(Text(gradeFromMarks(r.marks, isUniversity: isUniversity).letter)),
+          ])).toList(),
+        ),
+      ],
+    );
+  }
+}
 
-                  return DataRow(
-                    cells: [
-                      DataCell(Text(r.code.isEmpty ? 'N/A' : r.code, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                      DataCell(
-                        ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 300),
-                          child: Text(r.subject.toUpperCase(), 
-                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
-                            overflow: TextOverflow.ellipsis),
-                        )
-                      ),
-                      DataCell(Text('${r.marks.toStringAsFixed(0)}%', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14))),
-                      DataCell(Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
-                        child: Text(graded.letter.toUpperCase(), style: TextStyle(color: statusColor, fontWeight: FontWeight.w900, fontSize: 10)),
-                      )),
-                      DataCell(Text(isUniversity ? r.gradePoint.toStringAsFixed(2) : r.gradePoint.toStringAsFixed(0), 
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+/// ---------------------------------------------------------------------
+/// CONSOLIDATED ACADEMIC ROSTER
+/// ---------------------------------------------------------------------
+
+class _ConsolidatedRosterSheet extends StatelessWidget {
+  const _ConsolidatedRosterSheet({
+    required this.title,
+    required this.isUniversity,
+    this.selectedYear,
+    this.selectedTerm,
+    this.selectedSemester,
+    required this.students,
+  });
+
+  final String title;
+  final bool isUniversity;
+  final String? selectedYear;
+  final String? selectedTerm;
+  final String? selectedSemester;
+  final List<Student> students;
+
+  @override
+  Widget build(BuildContext context) {
+    final periodLabel = isUniversity ? (selectedSemester ?? 'Semester 1') : (selectedTerm ?? 'Term 1');
+    final yearLabel = selectedYear ?? DateTime.now().year.toString();
+
+    // 1. Get unique subjects for this group and sitting
+    final relevantResults = kResults.where((r) {
+      final matchesYear = selectedYear == null || r.year == selectedYear;
+      final matchesPeriod = isUniversity ? r.semester == selectedSemester : r.term == selectedTerm;
+      final isStudentInGroup = students.any((s) => s.id == r.studentId);
+      return matchesYear && matchesPeriod && isStudentInGroup;
+    }).toList();
+
+    final subjects = relevantResults.map((r) => r.subject).toSet().toList()..sort();
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.zero,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.all(32),
+            color: kBrandBrown,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title.toUpperCase(),
+                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -0.5)),
+                      const SizedBox(height: 4),
+                      Text("CONSOLIDATED ACADEMIC ROSTER — $yearLabel $periodLabel",
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white.withOpacity(0.6), letterSpacing: 1)),
                     ],
-                  );
-                }).toList(),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded, color: Colors.white),
+                ),
+              ],
+            ),
+          ),
+
+          // Main Table
+          Expanded(
+            child: Container(
+              color: Colors.grey.shade50,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (subjects.isEmpty) 
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 100),
+                          child: Text("No records found for the selected year and sitting.", 
+                            style: TextStyle(color: Colors.grey.shade400, fontSize: 16)),
+                        ),
+                      )
+                    else
+                      _buildRosterTable(subjects, relevantResults),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      ],
+
+          // Footer
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border(top: BorderSide(color: Colors.grey.shade200)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text("${students.length} SCHOLARS AUDITED", 
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: 0.5)),
+                ElevatedButton.icon(
+                  onPressed: () {}, // Future PDF export
+                  icon: const Icon(Icons.download_rounded),
+                  label: const Text("EXPORT ROSTER PDF"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kBrandOlive,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRosterTable(List<String> subjects, List<ResultRecord> results) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: DataTable(
+        headingRowColor: WidgetStateProperty.all(kSurfaceMuted),
+        border: TableBorder.all(color: Colors.grey.shade200),
+        horizontalMargin: 20,
+        columnSpacing: 24,
+        columns: [
+          const DataColumn(label: Text("SCHOLAR NAME", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11))),
+          ...subjects.map((sub) => DataColumn(
+            label: SizedBox(
+              width: 80,
+              child: Text(sub, 
+                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, overflow: TextOverflow.ellipsis),
+                textAlign: TextAlign.center),
+            ),
+          )),
+          const DataColumn(label: Text("AVERAGE", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11))),
+          const DataColumn(label: Text("COMPLETENESS", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11))),
+          const DataColumn(label: Text("OUTCOME", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11))),
+        ],
+        rows: students.map((student) {
+          final studentResults = results.where((r) => r.studentId == student.id).toList();
+          
+          // Year-wide check for completeness
+          final yearResults = kResults.where((r) => r.studentId == student.id && r.year == (selectedYear ?? DateTime.now().year.toString())).toList();
+          final uniqueYearPeriods = yearResults.map((r) => isUniversity ? r.semester : r.term).toSet().length;
+          final expected = isUniversity ? 2 : 3;
+          final bool isComplete = uniqueYearPeriods >= expected;
+
+          double totalMarks = 0;
+          int count = 0;
+          
+          final cells = subjects.map((sub) {
+            final record = studentResults.firstWhere((r) => r.subject == sub, orElse: () => const ResultRecord(studentId: '', code: '', subject: '', marks: -1, year: ''));
+            if (record.marks != -1) {
+              totalMarks += record.marks;
+              count++;
+              return DataCell(Center(child: Text("${record.marks.toInt()}%", style: const TextStyle(fontWeight: FontWeight.bold))));
+            }
+            return const DataCell(Center(child: Text("—", style: TextStyle(color: Colors.grey))));
+          }).toList();
+
+          final double average = count > 0 ? totalMarks / count : 0;
+          
+          bool hasPassed = false;
+          if (isUniversity) {
+            final outcome = calculateUniversityOutcome(yearResults);
+            hasPassed = outcome.status != 'Fail' && outcome.status != 'N/A';
+          } else {
+            final outcome = calculateSecondaryOutcome(yearResults);
+            hasPassed = outcome.passed;
+          }
+
+          return DataRow(
+            cells: [
+              DataCell(Text(student.name.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12))),
+              ...cells,
+              DataCell(Text(count > 0 ? "${average.toStringAsFixed(1)}%" : "N/A", style: const TextStyle(fontWeight: FontWeight.w900))),
+              DataCell(
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isComplete ? kBrandOlive.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(isComplete ? "COMPLETE" : "$uniqueYearPeriods/$expected", 
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isComplete ? kBrandOlive : Colors.orange)),
+                ),
+              ),
+              DataCell(
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: hasPassed ? kBrandOlive.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(hasPassed ? "PASSED" : "FAILED", 
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: hasPassed ? kBrandOlive : Colors.red)),
+                ),
+              ),
+            ],
+          );
+        }).toList(),
+      ),
     );
   }
 }

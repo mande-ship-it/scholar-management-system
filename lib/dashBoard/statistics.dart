@@ -70,9 +70,11 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
       return const Center(child: Padding(padding: EdgeInsets.all(100), child: CircularProgressIndicator(color: primary)));
     }
 
-    return Column(
-      children: [
-        _buildStatsGrid(),
+    return Container(
+      color: Colors.white,
+      child: Column(
+        children: [
+          _buildStatsGrid(),
         const SizedBox(height: 24),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -89,8 +91,9 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
         const SizedBox(height: 24),
         _buildEngagementImpactCard(),
       ],
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildRegionCard() {
     final List regions = _data!['regions'] ?? [];

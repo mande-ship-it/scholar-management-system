@@ -9,6 +9,16 @@ const Color kBrandCreamDark = Color(0xFFF3E7C4);
 const Color kBrandOlive = Color(0xFF9AB334);
 const Color kBrandOrange = Color(0xFFE05B1C);
 
+String getInitials(String name) {
+  return name
+      .trim()
+      .split(RegExp(r'\s+'))
+      .map((e) => e.isNotEmpty ? e[0] : '')
+      .take(2)
+      .join()
+      .toUpperCase();
+}
+
 /// ---------------------------------------------------------------------
 /// SHARED MODELS & ENUMS
 /// ---------------------------------------------------------------------
@@ -45,6 +55,14 @@ class Student {
   final String startYear;
   final String endYear;
 
+  // --- Progression Tracking (New Fields - Spec Section 1) ---
+  final String? registeredClass; 
+  final String? programStartYearLabel;
+  final int programDurationYears;
+  final int yearsCompleted;
+  final String? flag; // REPEAT, SUPPLEMENTARY
+  // ----------------------------------------------------------
+
   // Guardian Details
   final String? guardianName;
   final String? guardianPhone;
@@ -52,7 +70,7 @@ class Student {
   final String? guardianRelation;
   final String? guardianOccupation;
 
-  // Progression Tracking (New Fields)
+  // Progression Tracking (Legacy/UI compatibility)
   final String progressionStatus; // Moved, Failed, Pending
   final List<dynamic> progressionHistory;
   final int yearsRemaining;
@@ -62,28 +80,36 @@ class Student {
   final List<dynamic> payments;
 
   int get calculatedRemainingYears {
-    if (['Graduated', 'Alumni', 'Completed'].contains(status)) return 0;
-    
-    final end = int.tryParse(endYear);
-    if (end == null) return 0;
-
-    final currentYear = DateTime.now().year;
-    
-    // Remaining = (End Year - Current Year) + 1
-    final remaining = (end - currentYear) + 1;
+    // Spec Section 2: yearsRemaining = programDurationYears - yearsCompleted
+    final remaining = programDurationYears - yearsCompleted;
     return remaining > 0 ? remaining : 0;
   }
 
+  String get calculatedRelativeYear {
+    // Spec Section 2: currentRelativeYear = yearsCompleted + 1
+    return "Year ${yearsCompleted + 1} of $programDurationYears";
+  }
+
   String get calculatedAcademicYear {
-    final start = int.tryParse(startYear);
-    if (start == null) return currentClass;
+    // Robust detection: prioritize actual labels over placeholders
+    final List<String> placeholders = ['N/A', 'nv', 'NV', 'none', 'null', ''];
+    
+    if (currentClass.isNotEmpty && !placeholders.contains(currentClass.trim())) {
+      return currentClass;
+    }
+    
+    if (programStartYearLabel != null && 
+        programStartYearLabel!.isNotEmpty && 
+        !placeholders.contains(programStartYearLabel!.trim())) {
+      return programStartYearLabel!;
+    }
+    
+    // Fallback for Secondary: use registeredClass if available
+    if (schoolType == SchoolType.secondary && registeredClass != null && !placeholders.contains(registeredClass!.trim())) {
+      return registeredClass!;
+    }
 
-    final cur = DateTime.now().year;
-    final yearOfStudy = (cur - start) + 1;
-    if (yearOfStudy <= 0) return currentClass;
-
-    final prefix = schoolType == SchoolType.university ? 'Year' : 'Form';
-    return "$prefix $yearOfStudy";
+    return 'N/A';
   }
 
   const Student({
@@ -108,6 +134,11 @@ class Student {
     this.previousSchool = '',
     this.startYear = '2026',
     this.endYear = '2030',
+    this.registeredClass,
+    this.programStartYearLabel,
+    this.programDurationYears = 4,
+    this.yearsCompleted = 0,
+    this.flag,
     this.guardianName,
     this.guardianPhone,
     this.guardianEmail,
@@ -142,6 +173,11 @@ class Student {
     String? previousSchool,
     String? startYear,
     String? endYear,
+    String? registeredClass,
+    String? programStartYearLabel,
+    int? programDurationYears,
+    int? yearsCompleted,
+    String? flag,
     String? guardianName,
     String? guardianPhone,
     String? guardianEmail,
@@ -175,6 +211,11 @@ class Student {
       previousSchool: previousSchool ?? this.previousSchool,
       startYear: startYear ?? this.startYear,
       endYear: endYear ?? this.endYear,
+      registeredClass: registeredClass ?? this.registeredClass,
+      programStartYearLabel: programStartYearLabel ?? this.programStartYearLabel,
+      programDurationYears: programDurationYears ?? this.programDurationYears,
+      yearsCompleted: yearsCompleted ?? this.yearsCompleted,
+      flag: flag ?? this.flag,
       guardianName: guardianName ?? this.guardianName,
       guardianPhone: guardianPhone ?? this.guardianPhone,
       guardianEmail: guardianEmail ?? this.guardianEmail,

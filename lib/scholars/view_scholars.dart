@@ -23,7 +23,16 @@ class ViewScholarsComponent extends StatefulWidget {
   final VoidCallback? onViewGraduates;
   final String? forcedSchoolType;
   final bool hideUniversity;
-  const ViewScholarsComponent({super.key, this.onRegisterScholar, this.onViewProfile, this.onViewGraduates, this.forcedSchoolType, this.hideUniversity = false});
+  final bool hideRegistration; // Added this parameter
+  const ViewScholarsComponent({
+    super.key,
+    this.onRegisterScholar,
+    this.onViewProfile,
+    this.onViewGraduates,
+    this.forcedSchoolType,
+    this.hideUniversity = false,
+    this.hideRegistration = false, // Default to false
+  });
 
   @override
   State<ViewScholarsComponent> createState() => _ViewScholarsComponentState();
@@ -54,8 +63,23 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
     final bool isField = ['Field Officer', 'Field Coordinator', 'Field Operations', 'Operational Officer'].contains(currentRole);
     _selectedSchoolType = isField ? 'Secondary' : (widget.forcedSchoolType ?? 'All');
     _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() => setState(() {}));
     _fetchUserRole();
     _fetchScholars();
+  }
+
+  @override
+  void didUpdateWidget(ViewScholarsComponent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.forcedSchoolType != oldWidget.forcedSchoolType) {
+      setState(() {
+        _selectedSchoolType = widget.forcedSchoolType ?? 'All';
+        _selectedSchoolName = 'All';
+        _selectedDistrict = 'All';
+        _selectedClass = 'All';
+      });
+      _fetchScholars();
+    }
   }
 
   Future<void> _fetchUserRole() async {
@@ -69,7 +93,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
             _assignedDistrict = data['assignedDistrict'];
             if (_isFieldOfficer) {
               _selectedSchoolType = 'Secondary';
-              if (_assignedDistrict != null && _assignedDistrict!.isNotEmpty) {
+              if (_assignedDistrict != null && _assignedDistrict!.isNotEmpty && _assignedDistrict != "All Regions") {
                 _selectedDistrict = _assignedDistrict!;
               }
             }
@@ -96,8 +120,6 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
       final response = results[0];
       final schoolsRes = results[1];
 
-      debugPrint('Scholars Status: ${response.statusCode}, Schools Status: ${schoolsRes.statusCode}');
-
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data['data'] ?? [];
 
@@ -106,10 +128,13 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
             kStudents.clear();
             for (var item in data) {
               try {
+                // Ensure we catch all variants of field names from the backend
+                final String rawClass = (item['academic_year'] ?? item['academicYear'] ?? item['current_class'] ?? item['currentClass'] ?? '').toString();
+
                 kStudents.add(Student(
-                  id: item['id'].toString(),
-                  scholarId: item['scholar_id']?.toString() ?? 'N/A',
-                  name: item['full_name'] ?? 'N/A',
+                  id: (item['id'] ?? item['_id']).toString(),
+                  scholarId: item['scholar_id']?.toString() ?? item['scholarId']?.toString() ?? 'N/A',
+                  name: item['full_name'] ?? item['fullName'] ?? 'N/A',
                   age: item['dob'] != null && item['dob'].toString().isNotEmpty
                       ? DateTime.now().year - DateTime.parse(item['dob'].toString()).year
                       : 16,
@@ -117,8 +142,8 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
                               (item['schoolType']?.toString().toLowerCase().contains('university') ?? false)
                       ? SchoolType.university
                       : SchoolType.secondary,
-                  schoolName: item['display_school_name'] ?? 'N/A',
-                  currentClass: item['academic_year'] ?? 'N/A',
+                  schoolName: item['display_school_name'] ?? item['schoolName'] ?? 'N/A',
+                  currentClass: rawClass.isEmpty ? 'N/A' : rawClass,
                   status: item['status'] ?? 'Active',
                   district: item['district'] ?? 'N/A',
                   village: item['village'] ?? 'N/A',
@@ -127,19 +152,24 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
                   email: item['email'] ?? 'N/A',
                   sex: item['sex'] ?? 'Female',
                   dob: item['dob']?.toString() ?? '',
-                  programType: item['program_type'] ?? '',
-                  programName: item['program_name'] ?? 'N/A',
-                  previousSchool: item['previous_primary_school'] ?? item['previous_school'] ?? 'N/A',
-                  startYear: item['start_year']?.toString() ?? '2026',
-                  endYear: item['end_year']?.toString() ?? '2030',
-                  guardianName: item['guardian_name'],
-                  guardianPhone: item['guardian_phone'],
-                  guardianEmail: item['guardian_email'],
-                  guardianRelation: item['guardian_relation'],
-                  guardianOccupation: item['guardian_occupation'],
-                  progressionStatus: item['progression_status'] ?? 'Pending',
-                  progressionHistory: item['progression_history'] ?? [],
-                  yearsRemaining: int.tryParse(item['years_remaining']?.toString() ?? '0') ?? 0,
+                  programType: item['program_type'] ?? item['programType'] ?? '',
+                  programName: item['program_name'] ?? item['programName'] ?? 'N/A',
+                  previousSchool: item['previous_primary_school'] ?? item['previous_school'] ?? item['previousSchool'] ?? 'N/A',
+                  startYear: item['start_year']?.toString() ?? item['startYear']?.toString() ?? '2026',
+                  endYear: item['end_year']?.toString() ?? item['endYear']?.toString() ?? '2030',
+                  guardianName: item['guardian_name'] ?? item['guardianName'],
+                  guardianPhone: item['guardian_phone'] ?? item['guardianPhone'],
+                  guardianEmail: item['guardian_email'] ?? item['guardianEmail'],
+                  guardianRelation: item['guardian_relation'] ?? item['guardianRelation'],
+                  guardianOccupation: item['guardian_occupation'] ?? item['guardianOccupation'],
+                  progressionStatus: item['progression_status'] ?? item['progressionStatus'] ?? 'Pending',
+                  progressionHistory: item['progression_history'] ?? item['progressionHistory'] ?? [],
+                  yearsRemaining: int.tryParse(item['years_remaining']?.toString() ?? item['yearsRemaining']?.toString() ?? '0') ?? 0,
+                  registeredClass: item['registered_class'] ?? item['registeredClass'],
+                  programStartYearLabel: item['program_start_year_label'] ?? item['programStartYearLabel'],
+                  programDurationYears: item['program_duration_years'] ?? item['programDurationYears'] ?? 4,
+                  yearsCompleted: item['years_completed'] ?? item['yearsCompleted'] ?? 0,
+                  flag: item['flag'],
                 ));
               } catch (e) {
                 debugPrint('Failed to map scholar: $e');
@@ -236,7 +266,17 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
 
     return _allScholars.where((scholar) {
       // 0. Filter by status based on tab
-      if (scholar['status'] != statusFilter) return false;
+      // For University Registry, we might want to see Active or Graduated
+      if (_selectedSchoolType == 'University') {
+        if (_tabController.index == 0) {
+           // Show both Active and Graduated/Awaiting Allocation in the active tab for University
+           if (scholar['status'] != 'Active' && scholar['status'] != 'Graduated' && scholar['status'] != 'Awaiting Allocation') return false;
+        } else {
+           if (scholar['status'] != 'Pending') return false;
+        }
+      } else {
+        if (scholar['status'] != statusFilter) return false;
+      }
 
       // 1. Search by name (case-insensitive text search)
       final nameMatches = scholar['name']!
@@ -266,14 +306,6 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
       // 6. Filter by class
       final classMatches =
           _selectedClass == 'All' || scholar['class'] == _selectedClass;
-
-      if (_selectedSchoolType == 'Secondary') {
-         // For secondary, we allow filtering by district AND school name if selected
-         return nameMatches && typeMatches && schoolMatches && districtMatches && sexMatches && classMatches;
-      } else if (_selectedSchoolType == 'University') {
-         // For university, usually we don't care about district of origin as much as the institution
-         return nameMatches && typeMatches && schoolMatches && sexMatches && classMatches;
-      }
 
       return nameMatches && typeMatches && schoolMatches && districtMatches && sexMatches && classMatches;
     }).toList();
@@ -727,7 +759,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
                               children: [
                                 Row(
                                   children: [
-                                    if (_userRole == 'Administrator')
+                                    if (_userRole == 'Administrator' || PermissionService.hasPermission('scholars.edit'))
                                       Expanded(
                                         child: ElevatedButton.icon(
                                           onPressed: () {
@@ -747,7 +779,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
                                           ),
                                         ),
                                       ),
-                                    if (_userRole == 'Administrator') const SizedBox(width: 12),
+                                    if (_userRole == 'Administrator' || PermissionService.hasPermission('scholars.edit')) const SizedBox(width: 12),
                                     Expanded(
                                       child: OutlinedButton.icon(
                                         onPressed: () {
@@ -929,13 +961,18 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
   Widget build(BuildContext context) {
     final filteredScholars = _getFilteredScholars();
     final availableSchools = _getAvailableSchoolsForFilter();
-    final activeCount = _allScholars.where((s) => s['status'] == 'Active').length;
-    final universityCount = _allScholars.where((s) => s['schoolType'] == 'University' && s['status'] != 'Graduated').length;
+
+    // Executive Metrics Calculation
+    final totalInSelection = filteredScholars.length;
+    final activeInSelection = filteredScholars.where((s) => s['status'] == 'Active').length;
+    final movingWell = filteredScholars.where((s) => s['progressionStatus'] == 'Moved').length;
+    final atRisk = filteredScholars.where((s) => s['progressionStatus'] == 'Failed' || (int.tryParse(s['yearsRemaining'] ?? '5') ?? 5) <= 1).length;
 
     final availableClasses = _allScholars
-        .where((s) => _selectedSchoolName == 'All' || s['school'] == _selectedSchoolName)
+        .where((s) => (_selectedSchoolType == 'All' || s['schoolType'] == _selectedSchoolType) &&
+                      (_selectedSchoolName == 'All' || s['school'] == _selectedSchoolName))
         .map((s) => s['class'] ?? '')
-        .where((c) => c.isNotEmpty)
+        .where((c) => c.isNotEmpty && c != 'N/A')
         .toSet()
         .toList();
     availableClasses.sort();
@@ -943,731 +980,388 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: Colors.white,
+      color: const Color(0xFFF9FAFB), // Very light grey/white background
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 1. Clean Header (No Banners)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
-            ),
-            child: Column(
-              children: [
-                Wrap(
-                  alignment: WrapAlignment.spaceBetween,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 16,
-                  runSpacing: 12,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: kBrandBrown.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(Icons.groups_rounded, color: kBrandBrown, size: 20),
-                        ),
-                        const SizedBox(width: 16),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              _isFieldOfficer && _assignedDistrict != null ? "District Registry • $_assignedDistrict" : "Scholars Registry",
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
-                                color: kBrandBrown,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              _isFieldOfficer
-                                  ? "Viewing all secondary scholars across the district."
-                                  : "${filteredScholars.length} scholars in current selection.",
-                              style: const TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.w500),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        _miniStat(Icons.check_circle_rounded, "$activeCount Active", kBrandOlive),
-                        if (!_isFieldOfficer)
-                          _miniStat(Icons.account_balance_rounded, "$universityCount University", kBrandBrown),
-                        if (!_isFieldOfficer) ...[
-                          const SizedBox(width: 4),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              if (widget.onViewGraduates != null) {
-                                widget.onViewGraduates!();
-                              } else {
-                                Navigator.pushNamed(context, '/scholars/graduates');
-                              }
-                            },
-                            icon: const Icon(Icons.workspace_premium_rounded, size: 16),
-                            label: const Text("GRADUATES", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: kBrandBrown,
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                          ),
-                        ],
-                        if (_isFieldOfficer || _userRole == 'Administrator' || PermissionService.hasPermission('scholars.create'))
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              if (widget.onRegisterScholar != null) {
-                                widget.onRegisterScholar!();
-                              } else {
-                                Navigator.pushNamed(context, '/registerScholar');
-                              }
-                            },
-                            icon: const Icon(Icons.person_add_rounded, size: 16),
-                            label: const Text("REGISTER", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: kBrandOlive,
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                          ),
-                        // Export Buttons
-                        _exportAction(Icons.table_view_rounded, "EXCEL", Colors.green.shade700, _exportToExcel),
-                        _exportAction(Icons.picture_as_pdf_rounded, "PDF", Colors.red.shade700, _exportToPDF),
-                        IconButton(
-                          icon: const Icon(Icons.refresh, color: kBrandBrown, size: 18),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          tooltip: "Reset Filters",
-                          onPressed: () {
-                            _fetchScholars();
-                            setState(() {
-                              _searchQuery = '';
-                              _selectedSchoolType = _isFieldOfficer ? 'Secondary' : 'All';
-                              _selectedSchoolName = 'All';
-                              _selectedSex = 'All';
-                              _selectedDistrict = 'All';
-                              _selectedClass = 'All';
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                if (PermissionService.hasAnyPermission(['scholars.approve', 'scholars.edit'])) ...[
-                  const SizedBox(height: 12),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TabBar(
-                      controller: _tabController,
-                      isScrollable: true,
-                      labelColor: kBrandOlive,
-                      unselectedLabelColor: Colors.grey,
-                      indicatorColor: kBrandOlive,
-                      indicatorWeight: 2,
-                      labelPadding: const EdgeInsets.symmetric(horizontal: 16),
-                      labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                      onTap: (index) => setState(() {}),
-                      tabs: const [
-                        Tab(text: "ACTIVE REGISTRY", height: 36),
-                        Tab(text: "PENDING APPROVAL", height: 36),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const Divider(height: 1, color: Color(0xFFEEEEEE)),
-
-          // 2. Search & Filter Bar
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  // Name Search Field
-                  SizedBox(
-                    width: 240,
-                    child: TextField(
-                      style: const TextStyle(fontSize: 13),
-                      decoration: InputDecoration(
-                        isDense: true,
-                        filled: true,
-                        fillColor: Colors.white,
-                        labelText: "Search by Name",
-                        hintText: "Enter name...",
-                        prefixIcon: const Icon(Icons.search, size: 18),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey.shade200),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: kBrandOlive, width: 1.5),
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          _searchQuery = value;
-                        });
-                      },
-                    ),
-                  ),
-
-                  // School Type Filter
-                  if (!_isFieldOfficer && widget.forcedSchoolType == null)
-                    SizedBox(
-                      width: 150,
-                      child: DropdownButtonFormField<String>(
-                        isDense: true,
-                        isExpanded: true,
-                        initialValue: _selectedSchoolType,
-                        style: const TextStyle(fontSize: 13, color: Colors.black87),
-                        decoration: InputDecoration(
-                          isDense: true,
-                          filled: true,
-                          fillColor: Colors.white,
-                          labelText: "Type",
-                          prefixIcon: const Icon(Icons.category_outlined, size: 16),
-                          contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey.shade200),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: kBrandOlive, width: 1.5),
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: "All", child: Text("All Types")),
-                          DropdownMenuItem(value: "Secondary", child: Text("Secondary")),
-                          DropdownMenuItem(value: "University", child: Text("University")),
-                        ],
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedSchoolType = value ?? 'All';
-                            _selectedSchoolName = 'All';
-                            _selectedDistrict = 'All';
-                            _selectedClass = 'All';
-                          });
-                        },
-                      ),
-                    ),
-
-                  // District Filter
-                  if (!_isFieldOfficer && _selectedSchoolType != 'University')
-                    SizedBox(
-                      width: 150,
-                      child: DropdownButtonFormField<String>(
-                        isDense: true,
-                        isExpanded: true,
-                        initialValue: _selectedDistrict,
-                        style: const TextStyle(fontSize: 13, color: Colors.black87),
-                        decoration: InputDecoration(
-                          isDense: true,
-                          filled: true,
-                          fillColor: Colors.white,
-                          labelText: "District",
-                          prefixIcon: const Icon(Icons.location_on_outlined, size: 16),
-                          contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey.shade200),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: kBrandOlive, width: 1.5),
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        items: [
-                          const DropdownMenuItem(value: "All", child: Text("All Districts")),
-                          ...kMalawiDistricts.map((d) => DropdownMenuItem(value: d, child: Text(d))),
-                        ],
-                        onChanged: (value) => setState(() => _selectedDistrict = value ?? 'All'),
-                      ),
-                    ),
-
-                  // School Name Filter
-                  SizedBox(
-                    width: 260,
-                    child: DropdownButtonFormField<String>(
-                      isDense: true,
-                      isExpanded: true,
-                      key: ValueKey(_selectedSchoolType),
-                      initialValue: _selectedSchoolName,
-                      style: const TextStyle(fontSize: 13, color: Colors.black87),
-                      decoration: InputDecoration(
-                        isDense: true,
-                        filled: true,
-                        fillColor: Colors.white,
-                        labelText: "Institution",
-                        prefixIcon: const Icon(Icons.school_outlined, size: 16),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey.shade200),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: kBrandOlive, width: 1.5),
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      items: [
-                        const DropdownMenuItem(value: "All", child: Text("All Schools")),
-                        ...availableSchools.map((school) => DropdownMenuItem(value: school, child: Text(school, overflow: TextOverflow.ellipsis))),
-                      ],
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedSchoolName = value ?? 'All';
-                          _selectedClass = 'All';
-                        });
-                      },
-                    ),
-                  ),
-
-                  // Class Filter
-                  SizedBox(
-                    width: 150,
-                    child: DropdownButtonFormField<String>(
-                      isDense: true,
-                      isExpanded: true,
-                      key: ValueKey('class_filter_${_selectedSchoolName}'),
-                      initialValue: _selectedClass,
-                      style: const TextStyle(fontSize: 13, color: Colors.black87),
-                      decoration: InputDecoration(
-                        isDense: true,
-                        filled: true,
-                        fillColor: Colors.white,
-                        labelText: "Class",
-                        prefixIcon: const Icon(Icons.class_outlined, size: 16),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey.shade200),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: kBrandOlive, width: 1.5),
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      items: [
-                        const DropdownMenuItem(value: "All", child: Text("All Classes")),
-                        ...availableClasses.map((c) => DropdownMenuItem(value: c, child: Text(c))),
-                      ],
-                      onChanged: (value) => setState(() => _selectedClass = value ?? 'All'),
-                    ),
-                  ),
-
-                  // Sex Filter
-                  if (!_isFieldOfficer)
-                    SizedBox(
-                      width: 130,
-                      child: DropdownButtonFormField<String>(
-                        isDense: true,
-                        isExpanded: true,
-                        initialValue: _selectedSex,
-                        style: const TextStyle(fontSize: 13, color: Colors.black87),
-                        decoration: InputDecoration(
-                          isDense: true,
-                          filled: true,
-                          fillColor: Colors.white,
-                          labelText: "Sex",
-                          prefixIcon: const Icon(Icons.wc_outlined, size: 16),
-                          contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(color: Colors.grey.shade200),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: kBrandOlive, width: 1.5),
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: "All", child: Text("All")),
-                          DropdownMenuItem(value: "Female", child: Text("Female")),
-                          DropdownMenuItem(value: "Male", child: Text("Male")),
-                        ],
-                        onChanged: (value) => setState(() => _selectedSex = value ?? 'All'),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ),
-
-          // 3. Scrollable Table Card
+          _buildExecutiveHeader(totalInSelection, activeInSelection, movingWell, atRisk),
+          _buildFilterArchitecture(availableSchools, availableClasses),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+              padding: const EdgeInsets.fromLTRB(32, 0, 32, 32),
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: Colors.grey.shade200),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
                   boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
-                    ),
+                    BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 20, offset: const Offset(0, 10)),
                   ],
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: _isLoading 
-                    ? const BeautifulLoader(isOverlay: false, message: "Syncing Registry...")
-                    : filteredScholars.isEmpty
-                    ? Center(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(32.0),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade50,
-                            shape: BoxShape.circle,
+                    ? const BeautifulLoader(isOverlay: false, message: "Synchronizing Data...")
+                    : Column(
+                        children: [
+                          _buildTabNavigation(),
+                          Expanded(
+                            child: TabBarView(
+                              controller: _tabController,
+                              children: [
+                                _buildRegistrySurface(filteredScholars),
+                                _buildRegistrySurface(filteredScholars),
+                              ],
+                            ),
                           ),
-                          child: Icon(Icons.search_off_rounded, size: 48, color: Colors.grey.shade400),
-                        ),
-                        const SizedBox(height: 16),
-                        const Text(
-                          "No Scholars Found",
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          "Try loosening your filters or clearing search text.",
-                          style: TextStyle(color: Colors.grey.shade600),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                )
-                    : SingleChildScrollView(
-                  scrollDirection: Axis.vertical,
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minWidth: MediaQuery.of(context).size.width - 120,
-                      ),
-                      child: DataTable(
-                        showCheckboxColumn: false,
-                        headingRowColor: WidgetStateProperty.all(kBrandCream),
-                        headingRowHeight: 48,
-                        dataRowMinHeight: 60,
-                        dataRowMaxHeight: 64,
-                        columnSpacing: 24,
-                        horizontalMargin: 24,
-                        dividerThickness: 0.6,
-                        columns: [
-                          const DataColumn(label: Text("ID", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown))),
-                          const DataColumn(label: Text("Name", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown))),
-                          if (!_isFieldOfficer)
-                            const DataColumn(label: Text("School Type", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown))),
-                          const DataColumn(label: Text("School", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown))),
-                          const DataColumn(label: Text("Year / Form", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown))),
-                          const DataColumn(label: Text("Remaining", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown))),
-                          const DataColumn(label: Text("Progression", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown))),
-                          const DataColumn(label: Text("Status", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown))),
-                          const DataColumn(label: Text("Actions", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown))),
                         ],
-                        rows: filteredScholars.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final scholar = entry.value;
-                          final isActive = scholar['status'] == 'Active';
-                          final hasProgram = scholar['programType'] != null && scholar['programType']!.isNotEmpty;
-                          return DataRow(
-                            color: WidgetStateProperty.resolveWith((states) {
-                              if (states.contains(WidgetState.hovered)) {
-                                return kBrandCream.withOpacity(0.6);
-                              }
-                              return Colors.white;
-                            }),
-                            onSelectChanged: (selected) {
-                              if (selected != null) {
-                                _showScholarProfileDialog(context, scholar);
-                              }
-                            },
-                            cells: [
-                              DataCell(Text(scholar['scholarId']!, style: TextStyle(color: Colors.grey.shade600))),
-                              DataCell(
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      width: 30,
-                                      height: 30,
-                                      alignment: Alignment.center,
-                                      decoration: BoxDecoration(
-                                        color: kBrandOlive.withOpacity(0.15),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Text(
-                                        _initialsOf(scholar['name']!),
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                          color: kBrandBrown,
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Text(
-                                      scholar['name']!,
-                                      style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              if (!_isFieldOfficer)
-                                DataCell(
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: scholar['schoolType'] == 'University'
-                                          ? kBrandBrown.withOpacity(0.08)
-                                          : kBrandOrange.withOpacity(0.12),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Text(
-                                      scholar['schoolType']!,
-                                      style: TextStyle(
-                                        color: scholar['schoolType'] == 'University'
-                                            ? kBrandBrown
-                                            : kBrandOrange,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              DataCell(
-                                SizedBox(
-                                  width: 220,
-                                  child: Text(
-                                    scholar['school']!,
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 1,
-                                  ),
-                                ),
-                              ),
-                              DataCell(Text(scholar['class']!)),
-                              DataCell(
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: int.parse(scholar['yearsRemaining']!) <= 1
-                                        ? Colors.red.withOpacity(0.1)
-                                        : Colors.blue.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    "${scholar['yearsRemaining']} yrs",
-                                    style: TextStyle(
-                                      color: int.parse(scholar['yearsRemaining']!) <= 1
-                                          ? Colors.red.shade700
-                                          : Colors.blue.shade700,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              DataCell(
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: scholar['progressionStatus'] == 'Moved'
-                                        ? Colors.green.withOpacity(0.1)
-                                        : scholar['progressionStatus'] == 'Failed'
-                                            ? Colors.red.withOpacity(0.1)
-                                            : Colors.grey.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        scholar['progressionStatus'] == 'Moved'
-                                            ? Icons.arrow_upward_rounded
-                                            : scholar['progressionStatus'] == 'Failed'
-                                                ? Icons.warning_amber_rounded
-                                                : Icons.hourglass_empty_rounded,
-                                        size: 14,
-                                        color: scholar['progressionStatus'] == 'Moved'
-                                            ? Colors.green.shade700
-                                            : scholar['progressionStatus'] == 'Failed'
-                                                ? Colors.red.shade700
-                                                : Colors.grey.shade700,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        scholar['progressionStatus']!,
-                                        style: TextStyle(
-                                          color: scholar['progressionStatus'] == 'Moved'
-                                              ? Colors.green.shade900
-                                              : scholar['progressionStatus'] == 'Failed'
-                                                  ? Colors.red.shade900
-                                                  : Colors.grey.shade900,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              DataCell(
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: isActive ? kBrandOlive.withOpacity(0.12) : Colors.red.shade50,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: isActive ? kBrandOlive.withOpacity(0.4) : Colors.red.shade200,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                        width: 6,
-                                        height: 6,
-                                        decoration: BoxDecoration(
-                                          color: isActive ? kBrandOlive : Colors.red.shade600,
-                                          shape: BoxShape.circle,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        scholar['status']!,
-                                        style: TextStyle(
-                                          color: isActive ? kBrandOlive : Colors.red.shade900,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              DataCell(
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (_tabController.index == 1 && PermissionService.hasPermission('scholars.approve'))
-                                      IconButton(
-                                        icon: const Icon(Icons.verified_user_rounded, color: kBrandOlive),
-                                        onPressed: () => _approveScholar(scholar),
-                                        tooltip: "Approve Registration",
-                                      ),
-                                    IconButton(
-                                      icon: const Icon(Icons.person_search_outlined, color: kBrandOlive),
-                                      onPressed: () {
-                                        if (widget.onViewProfile != null) {
-                                          widget.onViewProfile!(scholar['id']!);
-                                        } else {
-                                          Navigator.pushNamed(
-                                            context,
-                                            '/scholarProfile',
-                                            arguments: {'id': scholar['id']},
-                                          ).then((_) => _fetchScholars()); // Sync if deleted from profile
-                                        }
-                                      },
-                                      tooltip: "View Profile",
-                                    ),
-                                    if (PermissionService.hasPermission('scholars.edit')) ...[
-                                      IconButton(
-                                        icon: const Icon(Icons.edit_note, color: kBrandBrown),
-                                        onPressed: () {
-                                          showEditScholarDialog(context, scholar).then((_) {
-                                            _fetchScholars(); // Refresh list after edit
-                                          });
-                                        },
-                                        tooltip: "Edit Scholar",
-                                      ),
-                                      IconButton(
-                                        icon: Icon(
-                                          isActive ? Icons.toggle_on_rounded : Icons.toggle_off_rounded,
-                                          color: isActive ? kBrandOlive : Colors.grey.shade500,
-                                          size: 26,
-                                        ),
-                                        onPressed: () => _toggleScholarStatus(scholar),
-                                        tooltip: isActive ? "Deactivate" : "Activate",
-                                      ),
-                                    ],
-                                    if (PermissionService.hasPermission('scholars.delete'))
-                                      IconButton(
-                                        icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                                        onPressed: () => _deleteScholar(scholar),
-                                        tooltip: "Delete Scholar",
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          );
-                        }).toList(),
                       ),
-                    ),
-                  ),
-                ),
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildExecutiveHeader(int total, int active, int moving, int risk) {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      color: Colors.white,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: kBrandBrown.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  _selectedSchoolType == 'University' ? Icons.account_balance_rounded : Icons.school_rounded,
+                  color: kBrandBrown, size: 28
+                ),
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _selectedSchoolType == 'University' ? "University Scholars Registry" : "Secondary Scholars Registry",
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -1),
+                    ),
+                    Text(
+                      _isFieldOfficer && _assignedDistrict != null ? "Monitoring Region: $_assignedDistrict" : "Program-wide longitudinal tracking and oversight.",
+                      style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ),
+              _buildGlobalActions(),
+            ],
+          ),
+          const SizedBox(height: 32),
+          Row(
+            children: [
+              _metricCard("TOTAL ENROLLMENT", total.toString(), Icons.groups_outlined, kBrandBrown),
+              const SizedBox(width: 20),
+              _metricCard("ACTIVE STATUS", active.toString(), Icons.check_circle_outline, kBrandOlive),
+              const SizedBox(width: 20),
+              _metricCard("PROGRESSED", moving.toString(), Icons.trending_up_rounded, Colors.blue),
+              const SizedBox(width: 20),
+              _metricCard("AT RISK", risk.toString(), Icons.warning_amber_rounded, kBrandOrange),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _metricCard(String label, String value, IconData icon, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFF3F4F6)),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 10)],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: color.withOpacity(0.08), shape: BoxShape.circle),
+              child: Icon(icon, size: 18, color: color),
+            ),
+            const SizedBox(width: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.grey, letterSpacing: 1)),
+                Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: color)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGlobalActions() {
+    return Row(
+      children: [
+        if (_selectedSchoolType != 'University' && !_isFieldOfficer)
+          TextButton.icon(
+            onPressed: widget.onViewGraduates,
+            icon: const Icon(Icons.workspace_premium_rounded, size: 18),
+            label: const Text("GRADUATES", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+            style: TextButton.styleFrom(foregroundColor: kBrandBrown),
+          ),
+        const SizedBox(width: 12),
+        ElevatedButton.icon(
+          onPressed: widget.onRegisterScholar,
+          icon: const Icon(Icons.add, size: 18),
+          label: const Text("NEW REGISTRATION"),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: kBrandOlive,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            elevation: 0,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFilterArchitecture(List<String> availableSchools, List<String> availableClasses) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF9FAFB),
+        border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                _compactSearchField(),
+                const SizedBox(width: 16),
+                _compactFilterDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() => _selectedDistrict = v ?? 'All')),
+                const SizedBox(width: 12),
+                _compactFilterDropdown("Institution", _selectedSchoolName, availableSchools, (v) => setState(() => _selectedSchoolName = v ?? 'All')),
+                const SizedBox(width: 12),
+                _compactFilterDropdown("Level", _selectedClass, availableClasses, (v) => setState(() => _selectedClass = v ?? 'All')),
+              ],
+            ),
+          ),
+          const SizedBox(width: 24),
+          _exportButton(Icons.description_outlined, "PDF", _exportToPDF),
+          const SizedBox(width: 8),
+          _exportButton(Icons.table_view_outlined, "EXCEL", _exportToExcel),
+        ],
+      ),
+    );
+  }
+
+  Widget _compactSearchField() {
+    return Container(
+      width: 280,
+      height: 40,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: TextField(
+        onChanged: (v) => setState(() => _searchQuery = v),
+        style: const TextStyle(fontSize: 13),
+        decoration: const InputDecoration(
+          hintText: "Search by scholar name...",
+          prefixIcon: Icon(Icons.search, size: 18, color: Colors.grey),
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(vertical: 10),
+        ),
+      ),
+    );
+  }
+
+  Widget _compactFilterDropdown(String label, String value, List<String> items, ValueChanged<String?> onChanged) {
+    return Container(
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: DropdownButton<String>(
+        value: value == 'All' ? null : value,
+        hint: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+        underline: const SizedBox(),
+        icon: const Icon(Icons.keyboard_arrow_down, size: 16, color: Colors.grey),
+        items: [
+          DropdownMenuItem(value: null, child: Text("All $label", style: const TextStyle(fontSize: 13))),
+          ...items.map((i) => DropdownMenuItem(value: i, child: Text(i, style: const TextStyle(fontSize: 13)))),
+        ],
+        onChanged: onChanged,
+      ),
+    );
+  }
+
+  Widget _exportButton(IconData icon, String label, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: kBrandBrown),
+            const SizedBox(width: 8),
+            Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kBrandBrown)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTabNavigation() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFF3F4F6))),
+      ),
+      child: TabBar(
+        controller: _tabController,
+        isScrollable: true,
+        labelColor: kBrandOlive,
+        unselectedLabelColor: Colors.grey,
+        indicatorColor: kBrandOlive,
+        indicatorWeight: 3,
+        labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
+        padding: EdgeInsets.zero,
+        tabs: const [
+          Tab(text: "ACTIVE REGISTRY", height: 48),
+          Tab(text: "PENDING APPROVAL", height: 48),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRegistrySurface(List<Map<String, String>> filteredScholars) {
+    if (filteredScholars.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.person_search_rounded, size: 64, color: Colors.grey.shade200),
+            const SizedBox(height: 16),
+            const Text("No scholars found matching criteria.", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500)),
+          ],
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.vertical,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width - 64),
+          child: DataTable(
+            headingRowColor: WidgetStateProperty.all(const Color(0xFFF9FAFB)),
+            headingRowHeight: 52,
+            dataRowMaxHeight: 64,
+            columnSpacing: 24,
+            horizontalMargin: 24,
+            showCheckboxColumn: false,
+            columns: [
+              _headerCell("ID"),
+              _headerCell("FULL NAME"),
+              _headerCell("INSTITUTION"),
+              _headerCell("ACADEMIC YEAR"),
+              _headerCell("REMAINING"),
+              _headerCell("PROGRESSION"),
+              _headerCell("STATUS"),
+              _headerCell("ACTIONS"),
+            ],
+            rows: filteredScholars.map((s) => _buildDataRow(s)).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  DataColumn _headerCell(String label) {
+    return DataColumn(label: Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF6B7280), letterSpacing: 1)));
+  }
+
+  DataRow _buildDataRow(Map<String, String> s) {
+    final isActive = s['status'] == 'Active';
+    final moving = s['progressionStatus'] == 'Moved';
+    final failed = s['progressionStatus'] == 'Failed';
+    final remaining = int.tryParse(s['yearsRemaining'] ?? '0') ?? 0;
+
+    return DataRow(
+      onSelectChanged: (_) => _showScholarProfileDialog(context, s),
+      cells: [
+        DataCell(Text(s['scholarId']!, style: const TextStyle(fontFamily: 'monospace', fontSize: 12, color: Colors.grey))),
+        DataCell(
+          Row(
+            children: [
+              CircleAvatar(radius: 14, backgroundColor: kBrandOlive.withOpacity(0.1), child: Text(_initialsOf(s['name']!), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: kBrandBrown))),
+              const SizedBox(width: 12),
+              Text(s['name']!, style: const TextStyle(fontWeight: FontWeight.w700, color: kBrandBrown, fontSize: 13)),
+            ],
+          ),
+        ),
+        DataCell(Text(s['school']!, style: const TextStyle(fontSize: 13))),
+        DataCell(Text(s['class']!, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
+        DataCell(
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(color: remaining <= 1 ? Colors.red.shade50 : Colors.blue.shade50, borderRadius: BorderRadius.circular(4)),
+            child: Text("$remaining Years", style: TextStyle(color: remaining <= 1 ? Colors.red.shade700 : Colors.blue.shade700, fontWeight: FontWeight.bold, fontSize: 11)),
+          ),
+        ),
+        DataCell(
+          Row(
+            children: [
+              Icon(moving ? Icons.arrow_upward : (failed ? Icons.warning_rounded : Icons.remove), size: 14, color: moving ? kBrandOlive : (failed ? Colors.red : Colors.grey)),
+              const SizedBox(width: 8),
+              Text(s['progressionStatus']!, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: moving ? kBrandOlive : (failed ? Colors.red : Colors.grey))),
+            ],
+          ),
+        ),
+        DataCell(
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: isActive ? kBrandOlive.withOpacity(0.1) : Colors.red.shade50,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(s['status']!.toUpperCase(), style: TextStyle(color: isActive ? kBrandOlive : Colors.red.shade700, fontWeight: FontWeight.w900, fontSize: 9)),
+          ),
+        ),
+        DataCell(
+          Row(
+            children: [
+              IconButton(icon: const Icon(Icons.person_search_outlined, size: 18), onPressed: () => _showScholarProfileDialog(context, s), tooltip: "Quick View"),
+              IconButton(icon: const Icon(Icons.edit_outlined, size: 18), onPressed: () => showEditScholarDialog(context, s).then((_) => _fetchScholars())),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

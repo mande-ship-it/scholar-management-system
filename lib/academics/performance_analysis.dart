@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'academics_utils.dart';
-import 'package:scholar_management_system/services/api_service.dart';
 import 'package:intl/intl.dart';
-
-enum AnalysisMode { scholar, school }
+import '../services/api_service.dart';
+import 'academics_utils.dart';
 
 class PerformanceAnalysisComponent extends StatefulWidget {
   final SchoolType? forcedSchoolType;
@@ -14,162 +12,119 @@ class PerformanceAnalysisComponent extends StatefulWidget {
   State<PerformanceAnalysisComponent> createState() => _PerformanceAnalysisComponentState();
 }
 
-class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisComponent> {
-  AnalysisMode _mode = AnalysisMode.scholar;
-  String? _selectedId; // Could be studentId or schoolName
-  bool _isLoading = false;
-  String? _assignedDistrict;
-  bool _isFieldOfficer = false;
+class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisComponent> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  bool _isLoading = true;
+  late String _selectedType; // Secondary or University
   
-  List<ResultRecord> _analysisData = [];
-  List<Student> _relevantStudents = [];
-
-  // Filters
-  String _startYear = (DateTime.now().year - 3).toString();
-  String _endYear = DateTime.now().year.toString();
-  late SchoolType _schoolType;
+  // Data for views
+  dynamic _cohortData;
+  List<dynamic> _subjectData = [];
+  List<dynamic> _riskData = [];
+  Map<String, dynamic>? _individualData;
+  Student? _selectedScholar;
+  String _aiNarrative = "";
+  bool _isGeneratingAI = false;
 
   @override
   void initState() {
     super.initState();
-    _schoolType = widget.forcedSchoolType ?? SchoolType.secondary;
-    _fetchUserRole();
-    _fetchBaseData();
+    _selectedType = widget.forcedSchoolType == SchoolType.university ? 'University' : 'Secondary';
+    _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) _fetchCurrentTabData();
+    });
+    _fetchCurrentTabData();
   }
 
-  Future<void> _fetchUserRole() async {
-    try {
-      final response = await ApiService.getAccountProfile();
-      if (response.statusCode == 200) {
-        final data = response.data['data'];
-        if (data != null && mounted) {
-          setState(() {
-            final role = (data['role_name'] ?? '').toString().toLowerCase();
-            _isFieldOfficer = role.contains('field');
-            _assignedDistrict = data['assignedDistrict'];
-            if (_isFieldOfficer) {
-              _schoolType = SchoolType.secondary;
-            }
-          });
-        }
-      }
-    } catch (_) {}
-  }
-
-  Future<void> _fetchBaseData() async {
+  Future<void> _fetchCurrentTabData() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      final res = await ApiService.getAllScholars();
-      if (res.statusCode == 200) {
-        final List<dynamic> data = res.data['data'] ?? [];
-        kStudents.clear();
-        for (var item in data) {
-          kStudents.add(Student(
-            id: (item['id'] ?? item['_id'] ?? '').toString(),
-            scholarId: item['scholar_id'] ?? 'N/A',
-            name: item['full_name'] ?? 'N/A',
-            status: item['status'] ?? 'Active',
-            district: item['district'] ?? 'N/A', // Crucial for filtering
-            age: item['age'] != null ? int.tryParse(item['age'].toString()) ?? 16 : 16,
-            schoolType: item['school_type'] == 'University' || item['schoolType'] == 'University' ? SchoolType.university : SchoolType.secondary,
-            schoolName: item['display_school_name'] ?? 'N/A',
-            currentClass: item['academic_year'] ?? 'N/A',
-          ));
-        }
+      switch (_tabController.index) {
+        case 0: // Scholar Trend
+          if (_selectedScholar != null) await _fetchIndividualTrend(_selectedScholar!.id);
+          break;
+        case 1: // Cohort Analytics
+          final res = await ApiService.getCohortAnalytics(_selectedType);
+          _cohortData = res.data['data'];
+          break;
+        case 2: // Subject Intelligence
+          final res = await ApiService.getSubjectInsights(_selectedType);
+          _subjectData = res.data['data'];
+          break;
+        case 3: // Risk Indicators
+          final res = await ApiService.getEarlyWarningRisk();
+          _riskData = res.data['data'];
+          break;
       }
     } catch (e) {
-      debugPrint('Error fetching scholars: $e');
+      debugPrint('Error fetching performance data: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _fetchAnalysisData() async {
-    if (_selectedId == null) return;
-    setState(() => _isLoading = true);
-    try {
-      if (_mode == AnalysisMode.scholar) {
-        final res = await ApiService.getResultsByScholar(_selectedId!);
-        if (res.statusCode == 200) {
-          final List<dynamic> data = res.data['data'] ?? [];
-          _analysisData = data.map((json) => ResultRecord.fromMap(json)).toList();
-        }
-      } else {
-        final res = await ApiService.getResultsBySchool(_selectedId!);
-        if (res.statusCode == 200) {
-          final List<dynamic> data = res.data['data'] ?? [];
-          final allResults = data.map((json) => ResultRecord.fromMap(json)).toList();
-          
-          // Filter analysis to only include active scholars in the assigned district
-          var studentsPool = kStudents.where((s) => s.status == 'Active').toList();
-          if (_isFieldOfficer && _assignedDistrict != null && _assignedDistrict != "All Regions") {
-            studentsPool = studentsPool.where((s) => s.district == _assignedDistrict).toList();
-          }
-          
-          final activeScholarIds = studentsPool.map((s) => s.id).toSet();
-          _analysisData = allResults.where((r) => activeScholarIds.contains(r.studentId)).toList();
-        }
-        
-        var relevantPool = kStudents.where((s) => s.schoolName == _selectedId && s.status == 'Active').toList();
-        if (_isFieldOfficer && _assignedDistrict != null && _assignedDistrict != "All Regions") {
-          relevantPool = relevantPool.where((s) => s.district == _assignedDistrict).toList();
-        }
-        _relevantStudents = relevantPool;
-      }
-    } catch (e) {
-      debugPrint('Error fetching analysis data: $e');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  void _onModeChanged(Set<AnalysisMode> selection) {
+  Future<void> _fetchIndividualTrend(String scholarId) async {
+    final res = await ApiService.getScholarTrend(scholarId);
     setState(() {
-      _mode = selection.first;
-      _selectedId = null;
-      _analysisData = [];
+      _individualData = res.data['data'];
+      _aiNarrative = ""; // Clear old narrative
     });
   }
 
-  List<String> get _schoolOptions {
-    var students = widget.forcedSchoolType == null
-        ? kStudents
-        : kStudents.where((s) => s.schoolType == widget.forcedSchoolType).toList();
-    
-    if (_isFieldOfficer && _assignedDistrict != null && _assignedDistrict != "All Regions") {
-      students = students.where((s) => s.district == _assignedDistrict).toList();
-    }
+  Future<void> _generateAINarrative() async {
+    if (_individualData == null) return;
+    setState(() => _isGeneratingAI = true);
+    try {
+      final info = _individualData!['scholarInfo'];
+      final timeline = _individualData!['timeline'] as List;
+      
+      final prompt = "Analyze this student's academic performance. Name: ${info['fullName']}, Level: ${info['schoolType']}, "
+          "Current: ${info['currentRelativeYear']}, Remaining: ${info['yearsRemaining']}. "
+          "Historical Scores: ${timeline.map((t) => '${t['period']}: ${t['average']}%').join(', ')}. "
+          "Explain trends, identify weak areas, and suggest interventions.";
 
-    return students.map((s) => s.schoolName).toSet().toList()..sort();
+      final res = await ApiService.chatWithAI(prompt, currentPage: 'Performance Analysis');
+      if (mounted) {
+        setState(() {
+          _aiNarrative = res.data['data']['reply'] ?? "AI analysis unavailable.";
+        });
+      }
+    } catch (e) {
+      debugPrint('AI Narrative Error: $e');
+    } finally {
+      if (mounted) setState(() => _isGeneratingAI = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 5))],
-      ),
-      clipBehavior: Clip.antiAlias,
+      color: Colors.white,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildHeader(),
-          const Divider(height: 1),
+          _buildExecutiveHeader(),
+          _buildMainTabBar(),
           Expanded(
-            child: _isLoading && kStudents.isEmpty
-                ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
-                : _buildContent(),
+            child: _isLoading 
+              ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
+              : TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildIndividualView(),
+                    _buildCohortView(),
+                    _buildSubjectView(),
+                    _buildRiskView(),
+                  ],
+                ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildExecutiveHeader() {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: const BoxDecoration(
@@ -180,295 +135,418 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: kBrandBrown.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.insights_rounded, color: kBrandBrown, size: 28),
+            decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
+            child: const Icon(Icons.analytics_rounded, color: kBrandOlive, size: 28),
           ),
-          const SizedBox(width: 24),
-          Expanded(
+          const SizedBox(width: 20),
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(_isFieldOfficer && _assignedDistrict != null ? "Regional Performance Intelligence • $_assignedDistrict" : "Performance Analysis Hub", 
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.8)),
-                Text(_isFieldOfficer ? "Analyzing secondary scholars in $_assignedDistrict district." : "Comparative academic intelligence and trend forecasting.", 
-                  style: const TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
+                Text("Performance Intelligence Hub", 
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.8)),
+                Text("Longitudinal trends, risk forecasting, and subject-level support mapping.", 
+                  style: TextStyle(fontSize: 13, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
-          _buildYearRangeSelector(),
+          _buildTypeToggle(),
         ],
       ),
     );
   }
 
-  Widget _buildYearRangeSelector() {
-    final years = academicYearOptions();
+  Widget _buildTypeToggle() {
+    return SegmentedButton<String>(
+      segments: const [
+        ButtonSegment(value: 'Secondary', label: Text("SECONDARY"), icon: Icon(Icons.school_outlined)),
+        ButtonSegment(value: 'University', label: Text("UNIVERSITY"), icon: Icon(Icons.account_balance_outlined)),
+      ],
+      selected: {_selectedType},
+      onSelectionChanged: (val) {
+        setState(() => _selectedType = val.first);
+        _fetchCurrentTabData();
+      },
+      style: SegmentedButton.styleFrom(
+        selectedBackgroundColor: kBrandBrown,
+        selectedForegroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+      ),
+    );
+  }
+
+  Widget _buildMainTabBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.date_range_rounded, size: 16, color: Colors.grey),
-          const SizedBox(width: 12),
-          DropdownButton<String>(
-            value: _startYear,
-            underline: const SizedBox(),
-            isDense: true,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBrandBrown),
-            items: years.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
-            onChanged: (v) {
-              if (v != null) {
-                setState(() => _startYear = v);
-                _fetchAnalysisData();
-              }
-            },
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8.0),
-            child: Text("to", style: TextStyle(color: Colors.grey, fontSize: 12)),
-          ),
-          DropdownButton<String>(
-            value: _endYear,
-            underline: const SizedBox(),
-            isDense: true,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: kBrandBrown),
-            items: years.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
-            onChanged: (v) {
-              if (v != null) {
-                setState(() => _endYear = v);
-                _fetchAnalysisData();
-              }
-            },
-          ),
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      decoration: const BoxDecoration(color: Colors.white, border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE)))),
+      child: TabBar(
+        controller: _tabController,
+        labelColor: kBrandOlive,
+        unselectedLabelColor: Colors.grey,
+        indicatorColor: kBrandOlive,
+        indicatorWeight: 3,
+        labelPadding: const EdgeInsets.symmetric(vertical: 16),
+        labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
+        tabs: const [
+          Tab(text: "SCHOLAR TREND"),
+          Tab(text: "COHORT ANALYTICS"),
+          Tab(text: "SUBJECT INTELLIGENCE"),
+          Tab(text: "RISK INDICATORS"),
         ],
       ),
     );
   }
 
-  Widget _buildContent() {
+  // --- VIEW 1: INDIVIDUAL ---
+  Widget _buildIndividualView() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildTopControls(),
+          _buildScholarPicker(),
           const SizedBox(height: 32),
-          if (_selectedId == null)
-            _buildEmptyState()
-          else if (_isLoading)
-            const Center(child: Padding(padding: EdgeInsets.all(100), child: CircularProgressIndicator(color: kBrandOlive)))
-          else
-            _buildAnalysisDashboard(),
+          if (_individualData != null) ...[
+            _buildIndividualInsightsSummary(),
+            const SizedBox(height: 32),
+            if (_aiNarrative.isNotEmpty) _buildAINarrativeBox(),
+            const SizedBox(height: 32),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(flex: 3, child: _buildScoreTrendLine()),
+                const SizedBox(width: 32),
+                Expanded(flex: 2, child: _buildFlagHistory()),
+              ],
+            ),
+            const SizedBox(height: 32),
+            _buildPeriodBreakdownTable(),
+          ] else
+            _buildEmptyIndividualState(),
         ],
       ),
     );
   }
 
-  Widget _buildTopControls() {
-    return Row(
-      children: [
-        SegmentedButton<AnalysisMode>(
-          segments: const [
-            ButtonSegment(value: AnalysisMode.scholar, label: Text('Scholar'), icon: Icon(Icons.person_outline_rounded)),
-            ButtonSegment(value: AnalysisMode.school, label: Text('Institution'), icon: Icon(Icons.business_rounded)),
-          ],
-          selected: {_mode},
-          onSelectionChanged: _onModeChanged,
-          style: SegmentedButton.styleFrom(
-            selectedBackgroundColor: kBrandOlive,
-            selectedForegroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-          ),
-        ),
-        const SizedBox(width: 24),
-        Expanded(
-          child: _mode == AnalysisMode.scholar
-              ? _buildScholarSearch()
-              : _buildSchoolSearch(),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildScholarSearch() {
+  Widget _buildScholarPicker() {
     return Autocomplete<Student>(
       displayStringForOption: (s) => s.name,
-      optionsBuilder: (textValue) {
-        final query = textValue.text.trim().toLowerCase();
-        var activeStudents = kStudents.where((s) => s.status == 'Active').toList();
-        
-        if (_isFieldOfficer && _assignedDistrict != null && _assignedDistrict != "All Regions") {
-          activeStudents = activeStudents.where((s) => s.district == _assignedDistrict).toList();
-        }
-
-        if (query.isEmpty) return activeStudents;
-        return activeStudents.where((s) => s.name.toLowerCase().contains(query) || s.scholarId.toLowerCase().contains(query));
+      optionsBuilder: (val) {
+        if (val.text.isEmpty) return const Iterable<Student>.empty();
+        return kStudents.where((s) => s.name.toLowerCase().contains(val.text.toLowerCase()));
       },
       onSelected: (s) {
-        setState(() => _selectedId = s.id);
-        _fetchAnalysisData();
+        setState(() => _selectedScholar = s);
+        _fetchIndividualTrend(s.id);
       },
-      fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
+      fieldViewBuilder: (ctx, ctrl, focus, onSubmitted) {
         return TextField(
-          controller: controller,
-          focusNode: focusNode,
-          decoration: _inputDeco('Enter scholar name or ID...', Icons.person_search_rounded).copyWith(
-            suffixIcon: controller.text.isEmpty ? null : IconButton(icon: const Icon(Icons.clear), onPressed: () {
-              controller.clear();
-              setState(() => _selectedId = null);
-            }),
+          controller: ctrl,
+          focusNode: focus,
+          decoration: InputDecoration(
+            hintText: "Search scholar for detailed mapping...",
+            prefixIcon: const Icon(Icons.person_search_rounded, color: kBrandOlive),
+            filled: true,
+            fillColor: Colors.grey.shade50,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
           ),
         );
       },
     );
   }
 
-  Widget _buildSchoolSearch() {
-    return Autocomplete<String>(
-      optionsBuilder: (textValue) {
-        final query = textValue.text.trim().toLowerCase();
-        if (query.isEmpty) return _schoolOptions;
-        return _schoolOptions.where((n) => n.toLowerCase().contains(query));
-      },
-      onSelected: (n) {
-        setState(() => _selectedId = n);
-        _fetchAnalysisData();
-      },
-      fieldViewBuilder: (context, controller, focusNode, onSubmitted) {
-        return TextField(
-          controller: controller,
-          focusNode: focusNode,
-          decoration: _inputDeco('Enter institution name...', Icons.search_rounded).copyWith(
-            suffixIcon: controller.text.isEmpty ? null : IconButton(icon: const Icon(Icons.clear), onPressed: () {
-              controller.clear();
-              setState(() => _selectedId = null);
-            }),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildAnalysisDashboard() {
-    final startY = int.tryParse(_startYear) ?? 0;
-    final endY = int.tryParse(_endYear) ?? 9999;
-
-    final filteredData = _analysisData.where((r) {
-      final y = int.tryParse(r.year) ?? 0;
-      return y >= startY && y <= endY;
-    }).toList();
-
-    if (filteredData.isEmpty) {
-      return const Center(child: Padding(padding: EdgeInsets.all(60), child: Text("No data found for the selected period.", style: TextStyle(color: Colors.grey))));
-    }
-
-    final avgScore = filteredData.map((e) => e.marks).reduce((a, b) => a + b) / filteredData.length;
-    
-    // Performance comparison logic: Best 6 for Secondary
-    double displayAvg = avgScore;
-    if (_schoolType == SchoolType.secondary) {
-      displayAvg = calculateSecondaryBestSixAverage(filteredData);
-    }
-
-    final passRate = (filteredData.where((r) => r.marks >= 50).length / filteredData.length) * 100;
-    
-    // Grouping for trend - using best 6 logic per year for secondary
-    final Map<String, List<double>> yearlyAvg = {};
-    for (var r in filteredData) {
-      yearlyAvg.putIfAbsent(r.year, () => []).add(r.marks);
-    }
-    
-    final sortedYears = yearlyAvg.keys.toList()..sort();
-    final trendPoints = sortedYears.map((y) {
-      final marks = yearlyAvg[y]!;
-      double yearAvg;
-      if (_schoolType == SchoolType.secondary) {
-        final yearResults = filteredData.where((r) => r.year == y).toList();
-        yearAvg = calculateSecondaryBestSixAverage(yearResults);
-      } else {
-        yearAvg = marks.reduce((a, b) => a + b) / marks.length;
-      }
-      return (year: y, avg: yearAvg);
-    }).toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            _MetricCard(label: _schoolType == SchoolType.secondary ? "Best-6 Average" : "Aggregated Average", value: "${displayAvg.toStringAsFixed(1)}%", icon: Icons.auto_graph_rounded, color: kBrandBrown),
-            const SizedBox(width: 20),
-            _MetricCard(label: "Success Rate", value: "${passRate.toStringAsFixed(1)}%", icon: Icons.verified_user_rounded, color: kBrandOlive),
-            const SizedBox(width: 20),
-            _MetricCard(label: "Observation Count", value: "${filteredData.length}", icon: Icons.analytics_outlined, color: kBrandOrange),
-          ],
-        ),
-        const SizedBox(height: 32),
-        
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              flex: 3,
-              child: _ComparisonChart(title: "Performance Trajectory", points: trendPoints),
-            ),
-            const SizedBox(width: 32),
-            Expanded(
-              flex: 2,
-              child: _SubjectBreakdown(data: filteredData),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 32),
-        _DetailedAnalysisTable(data: filteredData, mode: _mode),
-      ],
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
+  Widget _buildAINarrativeBox() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: kBrandOlive.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: kBrandOlive.withOpacity(0.2)),
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 60),
-          Icon(Icons.query_stats_rounded, size: 80, color: Colors.grey.shade100),
-          const SizedBox(height: 20),
-          Text("Awaiting Parameters", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.grey.shade300)),
-          const SizedBox(height: 8),
-          Text("Select a scholar or institution to begin comparative performance mapping.", 
-              style: TextStyle(color: Colors.grey.shade400, fontSize: 13)),
+          const Row(
+            children: [
+              Icon(Icons.auto_awesome_rounded, color: kBrandOlive, size: 20),
+              SizedBox(width: 12),
+              Text("AI ANALYST INSIGHT", style: TextStyle(fontWeight: FontWeight.w900, color: kBrandOlive, fontSize: 11, letterSpacing: 1)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(_aiNarrative, style: const TextStyle(fontSize: 14, color: Colors.black87, height: 1.6)),
         ],
       ),
     );
   }
 
-  InputDecoration _inputDeco(String label, IconData icon) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(fontSize: 14),
-      prefixIcon: Icon(icon, size: 20, color: kBrandBrown.withOpacity(0.5)),
-      isDense: true,
-      filled: true,
-      fillColor: Colors.grey.shade50,
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kBrandOlive, width: 2)),
+  Widget _buildScoreTrendLine() {
+    final timeline = _individualData!['timeline'] as List;
+    if (timeline.isEmpty) return const SizedBox();
+
+    return _AnalysisCard(
+      title: "Academic Trajectory",
+      subtitle: "Term/Semester average scores over time",
+      child: SizedBox(
+        height: 300,
+        child: LineChart(
+          LineChartData(
+            gridData: const FlGridData(show: true, drawVerticalLine: false, horizontalInterval: 20),
+            titlesData: FlTitlesData(
+              leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40)),
+              bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, m) {
+                if (v.toInt() < timeline.length) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(timeline[v.toInt()]['period'].toString().replaceAll('-', '\n'), 
+                      textAlign: TextAlign.center, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold)),
+                  );
+                }
+                return const SizedBox();
+              })),
+              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            ),
+            borderData: FlBorderData(show: false),
+            lineBarsData: [
+              LineChartBarData(
+                spots: timeline.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value['average'].toDouble())).toList(),
+                isCurved: true,
+                color: kBrandOlive,
+                barWidth: 4,
+                dotData: const FlDotData(show: true),
+                belowBarData: BarAreaData(show: true, color: kBrandOlive.withOpacity(0.05)),
+              ),
+            ],
+            minY: 0, maxY: 100,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFlagHistory() {
+    final history = _individualData!['flagHistory'] as List;
+    return _AnalysisCard(
+      title: "Persistence Audit",
+      subtitle: "Chronological flags and promotion outcomes",
+      child: Column(
+        children: [
+          if (history.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 40),
+              child: Text("No progression flags on record.", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)),
+            )
+          else
+            ...history.map((h) => ListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              leading: Icon(Icons.flag_rounded, color: h['result'].toString().contains('Fail') ? Colors.red : kBrandOlive),
+              title: Text("${h['year']} | ${h['result']}", style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text("Avg: ${h['average']}% | ${h['from_class']} → ${h['to_class']}"),
+            )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPeriodBreakdownTable() {
+    final timeline = _individualData!['timeline'] as List;
+    return _AnalysisCard(
+      title: "Granular Period Analysis",
+      subtitle: "Detailed performance and distance-to-threshold mapping",
+      child: DataTable(
+        columnSpacing: 24,
+        horizontalMargin: 0,
+        columns: const [
+          DataColumn(label: Text("ACADEMIC PERIOD")),
+          DataColumn(label: Text("AVG SCORE")),
+          DataColumn(label: Text("GAP TO PASS")),
+          DataColumn(label: Text("BEST SUBJECT")),
+        ],
+        rows: timeline.map((t) {
+          final dist = t['distanceToThreshold'] as double;
+          final best6 = t['best6'] as List;
+          return DataRow(cells: [
+            DataCell(Text(t['period'], style: const TextStyle(fontWeight: FontWeight.bold))),
+            DataCell(Text("${t['average']}%")),
+            DataCell(Text("${dist > 0 ? '+' : ''}$dist%", 
+              style: TextStyle(color: dist >= 0 ? kBrandOlive : Colors.red, fontWeight: FontWeight.w900))),
+            DataCell(Text(best6.isNotEmpty ? best6[0]['subject'] : 'N/A')),
+          ]);
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildIndividualInsightsSummary() {
+    final info = _individualData!['scholarInfo'];
+    return Row(
+      children: [
+        _MetricIndicator(label: "CURRENT YEAR", value: "Year ${info['currentRelativeYear']} of ${info['programDurationYears']}", icon: Icons.timeline),
+        const SizedBox(width: 24),
+        _MetricIndicator(label: "YEARS REMAINING", value: "${info['yearsRemaining']} Years", icon: Icons.hourglass_empty_rounded),
+        const SizedBox(width: 24),
+        _MetricIndicator(
+          label: "RISK LEVEL", 
+          value: info['academicFlag'] ?? "Stable", 
+          icon: Icons.shield_rounded, 
+          color: info['academicFlag'] == null ? kBrandOlive : Colors.orange
+        ),
+        const Spacer(),
+        ElevatedButton.icon(
+          onPressed: _isGeneratingAI ? null : _generateAINarrative,
+          icon: _isGeneratingAI 
+            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+            : const Icon(Icons.auto_awesome_rounded),
+          label: const Text("ASK AI ANALYST"),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: kBrandOlive,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // --- VIEW 2: COHORT ---
+  Widget _buildCohortView() {
+    if (_cohortData == null) return const SizedBox();
+    final groups = _cohortData['classGroups'] as Map? ?? {};
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(40),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              _MetricIndicator(label: "ON-TRACK SCHOLARS", value: "${_cohortData['summary']['onTrack']}", icon: Icons.check_circle_rounded, color: kBrandOlive),
+              const SizedBox(width: 24),
+              _MetricIndicator(label: "DELAYED (REPEATS)", value: "${_cohortData['summary']['atRisk']}", icon: Icons.warning_rounded, color: Colors.orange),
+              const SizedBox(width: 24),
+              _MetricIndicator(label: "TOTAL COHORT", value: "${_cohortData['summary']['totalScholars']}", icon: Icons.groups_rounded),
+            ],
+          ),
+          const SizedBox(height: 32),
+          _AnalysisCard(
+            title: "Performance Distribution by Class",
+            subtitle: "Analysis of pass rates and academic flags per Form/Year",
+            child: DataTable(
+              columns: const [
+                DataColumn(label: Text("CLASS / FORM")),
+                DataColumn(label: Text("TOTAL")),
+                DataColumn(label: Text("SUPPLEMENTARY")),
+                DataColumn(label: Text("REPEAT")),
+                DataColumn(label: Text("SUCCESS RATE")),
+              ],
+              rows: groups.entries.map((e) {
+                final val = e.value;
+                final double success = (val['total'] - val['repeat'] - val['supplementary']) / (val['total'] == 0 ? 1 : val['total']) * 100;
+                return DataRow(cells: [
+                  DataCell(Text(e.key, style: const TextStyle(fontWeight: FontWeight.bold))),
+                  DataCell(Text("${val['total']}")),
+                  DataCell(Text("${val['supplementary']}", style: TextStyle(color: val['supplementary'] > 0 ? Colors.orange : null))),
+                  DataCell(Text("${val['repeat']}", style: TextStyle(color: val['repeat'] > 0 ? Colors.red : null))),
+                  DataCell(Text("${success.toStringAsFixed(1)}%")),
+                ]);
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- VIEW 3: SUBJECT ---
+  Widget _buildSubjectView() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(40),
+      child: Column(
+        children: [
+          _AnalysisCard(
+            title: "Institutional Subject Audit",
+            subtitle: "Mapping failure density and average scores across curriculum",
+            child: DataTable(
+              columns: const [
+                DataColumn(label: Text("SUBJECT / COURSE")),
+                DataColumn(label: Text("AVERAGE MARK")),
+                DataColumn(label: Text("FAIL COUNT")),
+                DataColumn(label: Text("TOTAL ENTRIES")),
+              ],
+              rows: _subjectData.map((s) {
+                final double avg = s['avgMark']?.toDouble() ?? 0.0;
+                return DataRow(cells: [
+                  DataCell(Text(s['_id'], style: const TextStyle(fontWeight: FontWeight.bold))),
+                  DataCell(Text("${avg.toStringAsFixed(1)}%")),
+                  DataCell(Text("${s['failCount']}", style: TextStyle(color: s['failCount'] > 0 ? Colors.red : null))),
+                  DataCell(Text("${s['totalCount']}")),
+                ]);
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- VIEW 4: RISK ---
+  Widget _buildRiskView() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(40),
+      child: Column(
+        children: [
+          _AnalysisCard(
+            title: "Early Warning Matrix",
+            subtitle: "Scholars within critical distance (-10% to +5%) of pass threshold",
+            child: DataTable(
+              columns: const [
+                DataColumn(label: Text("SCHOLAR NAME")),
+                DataColumn(label: Text("INSTITUTION TYPE")),
+                DataColumn(label: Text("AVG SCORE")),
+                DataColumn(label: Text("GAP TO PASS")),
+                DataColumn(label: Text("ACTION")),
+              ],
+              rows: _riskData.map((r) {
+                final double dist = r['distance']?.toDouble() ?? 0.0;
+                return DataRow(cells: [
+                  DataCell(Text(r['name'], style: const TextStyle(fontWeight: FontWeight.bold))),
+                  DataCell(Text(r['schoolType'])),
+                  DataCell(Text("${r['average'].toStringAsFixed(1)}%")),
+                  DataCell(Text("${dist > 0 ? '+' : ''}${dist.toStringAsFixed(1)}%", 
+                    style: TextStyle(color: dist >= 0 ? Colors.orange : Colors.red, fontWeight: FontWeight.w900))),
+                  DataCell(TextButton(onPressed: () {}, child: const Text("NOTIFY COORDINATOR"))),
+                ]);
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyIndividualState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.only(top: 80),
+        child: Column(
+          children: [
+            Icon(Icons.person_search_rounded, size: 64, color: Colors.grey.shade100),
+            const SizedBox(height: 20),
+            const Text("Please select a scholar to generate a performance mapping.", 
+              style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w500)),
+          ],
+        ),
+      ),
     );
   }
 }
 
-class _MetricCard extends StatelessWidget {
-  const _MetricCard({required this.label, required this.value, required this.icon, required this.color});
+class _MetricIndicator extends StatelessWidget {
   final String label, value;
   final IconData icon;
-  final Color color;
+  final Color? color;
+  const _MetricIndicator({required this.label, required this.value, required this.icon, this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -481,18 +559,22 @@ class _MetricCard extends StatelessWidget {
           border: Border.all(color: Colors.grey.shade100),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: (color ?? kBrandBrown).withOpacity(0.1), shape: BoxShape.circle),
+              child: Icon(icon, color: color ?? kBrandBrown, size: 20),
+            ),
+            const SizedBox(width: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-                Icon(icon, size: 18, color: color.withOpacity(0.5)),
+                Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
+                const SizedBox(height: 4),
+                Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: color ?? kBrandBrown)),
               ],
             ),
-            const SizedBox(height: 12),
-            Text(value, style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: color)),
           ],
         ),
       ),
@@ -500,241 +582,30 @@ class _MetricCard extends StatelessWidget {
   }
 }
 
-class _ComparisonChart extends StatelessWidget {
-  const _ComparisonChart({required this.title, required this.points});
-  final String title;
-  final List<({String year, double avg})> points;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 380,
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: kBrandBrown,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title.toUpperCase(), 
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1.5)),
-          const SizedBox(height: 4),
-          const Text("Average score trend across academic sessions", 
-            style: TextStyle(color: Colors.white60, fontSize: 11)),
-          const SizedBox(height: 48),
-          Expanded(
-            child: LineChart(
-              LineChartData(
-                gridData: const FlGridData(show: false),
-                titlesData: FlTitlesData(
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (val, meta) {
-                        if (val.toInt() >= 0 && val.toInt() < points.length) {
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 12),
-                            child: Text(points[val.toInt()].year, 
-                              style: const TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.bold)),
-                          );
-                        }
-                        return const SizedBox();
-                      },
-                      reservedSize: 32,
-                    ),
-                  ),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (val, meta) => Text("${val.toInt()}%", 
-                        style: const TextStyle(color: Colors.white30, fontSize: 9)),
-                      reservedSize: 32,
-                    ),
-                  ),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                ),
-                borderData: FlBorderData(show: false),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: points.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value.avg)).toList(),
-                    isCurved: true,
-                    color: kBrandOlive,
-                    barWidth: 4,
-                    isStrokeCapRound: true,
-                    dotData: const FlDotData(show: true),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      color: kBrandOlive.withOpacity(0.1),
-                    ),
-                  ),
-                ],
-                minY: 0,
-                maxY: 100,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SubjectBreakdown extends StatelessWidget {
-  const _SubjectBreakdown({required this.data});
-  final List<ResultRecord> data;
-
-  @override
-  Widget build(BuildContext context) {
-    final Map<String, List<double>> subjectGroups = {};
-    for (var r in data) {
-      subjectGroups.putIfAbsent(r.subject, () => []).add(r.marks);
-    }
-    
-    final sortedSubjects = subjectGroups.entries.map((e) => (
-      name: e.key,
-      avg: e.value.reduce((a, b) => a + b) / e.value.length
-    )).toList()..sort((a, b) => b.avg.compareTo(a.avg));
-
-    return Container(
-      height: 380,
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.shade100),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text("SUBJECT INTELLIGENCE", 
-            style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: kBrandBrown, letterSpacing: 1)),
-          const SizedBox(height: 24),
-          Expanded(
-            child: ListView.separated(
-              itemCount: sortedSubjects.take(6).length,
-              separatorBuilder: (_, __) => const SizedBox(height: 18),
-              itemBuilder: (context, index) {
-                final s = sortedSubjects[index];
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(s.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                        Text("${s.avg.toStringAsFixed(1)}%", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: kBrandOlive)),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(4),
-                      child: LinearProgressIndicator(
-                        value: s.avg / 100,
-                        minHeight: 6,
-                        backgroundColor: Colors.grey.shade100,
-                        color: s.avg >= 70 ? kBrandOlive : (s.avg >= 50 ? Colors.blue : kBrandOrange),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DetailedAnalysisTable extends StatelessWidget {
-  const _DetailedAnalysisTable({required this.data, required this.mode});
-  final List<ResultRecord> data;
-  final AnalysisMode mode;
+class _AnalysisCard extends StatelessWidget {
+  final String title, subtitle;
+  final Widget child;
+  const _AnalysisCard({required this.title, required this.subtitle, required this.child});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.grey.shade100),
       ),
-      clipBehavior: Clip.antiAlias,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            color: Colors.grey.shade50,
-            child: const Text("GRANULAR SCORE AUDIT", 
-              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.grey, letterSpacing: 1)),
-          ),
-          DataTable(
-            headingRowHeight: 48,
-            horizontalMargin: 24,
-            columnSpacing: 24,
-            columns: [
-              if (mode == AnalysisMode.school)
-                const DataColumn(label: Text("SCHOLAR ID")),
-              const DataColumn(label: Text("SUBJECT / COURSE")),
-              const DataColumn(label: Text("YEAR")),
-              const DataColumn(label: Text("PERIOD")),
-              const DataColumn(label: Text("SCORE")),
-              const DataColumn(label: Text("STANDING")),
-            ],
-            rows: data.reversed.take(10).map((r) {
-              final band = performanceBand(r.marks);
-              return DataRow(
-                cells: [
-                  if (mode == AnalysisMode.school)
-                    DataCell(Text(r.studentId, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
-                  DataCell(Text(r.subject, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600))),
-                  DataCell(Text(r.year, style: const TextStyle(fontSize: 12))),
-                  DataCell(Text(r.term ?? r.semester ?? '-', style: const TextStyle(fontSize: 12))),
-                  DataCell(Text("${r.marks.toInt()}%", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13))),
-                  DataCell(Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(color: band.color.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
-                    child: Text(band.label.toUpperCase(), style: TextStyle(color: band.color, fontSize: 9, fontWeight: FontWeight.bold)),
-                  )),
-                ],
-              );
-            }).toList(),
-          ),
+          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kBrandBrown)),
+          Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 32),
+          child,
         ],
       ),
     );
   }
-}
-
-double calculateSecondaryBestSixAverage(List<ResultRecord> records) {
-  if (records.isEmpty) return 0.0;
-
-  // Group records by student, year, and term
-  final Map<String, List<ResultRecord>> groups = {};
-  for (var r in records) {
-    final key = "${r.studentId}_${r.year}_${r.term ?? ''}";
-    groups.putIfAbsent(key, () => []).add(r);
-  }
-
-  double totalAveragesSum = 0.0;
-  int groupCount = 0;
-
-  for (var groupRecords in groups.values) {
-    if (groupRecords.isEmpty) continue;
-    // Calculate best 6 for this group
-    final sorted = List<ResultRecord>.from(groupRecords)
-      ..sort((a, b) => (a.points ?? 9).compareTo(b.points ?? 9));
-    final bestSix = sorted.take(6).toList();
-    
-    double groupSum = bestSix.fold(0.0, (sum, r) => sum + r.marks);
-    double groupAvg = groupSum / (bestSix.length < 6 ? bestSix.length : 6);
-    totalAveragesSum += groupAvg;
-    groupCount++;
-  }
-
-  return groupCount > 0 ? totalAveragesSum / groupCount : 0.0;
 }

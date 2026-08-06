@@ -231,10 +231,12 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
         'fullName': _fullNameController.text.trim(),
         'schoolType': _selectedSchoolType,
         'schoolName': _selectedSchool,
-        'schoolId': _selectedSchoolId, // MongoDB ObjectId string
+        'schoolId': _selectedSchoolId,
         'sex': _selectedSex,
         'dob': _dobController.text.trim(),
-        'currentClass': _yearController.text.trim(),
+        'registeredClass': _yearController.text.trim(), // Spec Section 1
+        'programDurationYears': _selectedDuration ?? 4, // Spec Section 1
+        'academicYear': _yearController.text.trim(),
         'district': _selectedDistrict,
         'village': _homeVillageController.text.trim(),
         'donor': _selectedDonor,

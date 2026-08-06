@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import '../academics/academics_utils.dart';
+import '../widgets/custom_loaders.dart';
 
 // ============================================================
 // MODELS & ENUMS
@@ -97,19 +98,14 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   bool _isLoadingScholars = false;
   List<Map<String, dynamic>> _registeredSchools = [];
 
-  final List<String> _months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-
   @override
   void initState() {
     super.initState();
-    // Strictly University for general dashboard
-    _schoolType = SchoolType.university;
-    _moduleType = AttendanceModuleType.chats;
+    // Default config
+    _schoolType = widget.forcedSchoolType ?? SchoolType.university;
+    _moduleType = widget.forcedModuleType ?? AttendanceModuleType.chats;
     
-    _selectedPeriod = kSemesters.first;
+    _selectedPeriod = _schoolType == SchoolType.university ? kSemesters.first : kTerms.first;
     _fetchSchools();
     _checkRole();
   }
@@ -121,7 +117,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
         final role = (res.data['data']['role_name'] ?? '').toString().toLowerCase();
         if (mounted) {
           setState(() {
-            _isFieldOfficer = role.contains('field');
+            _isFieldOfficer = role.contains('field') || role.contains('admin') || role.contains('manager');
           });
         }
       }
@@ -187,17 +183,17 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
                 scholarId: item['scholar_id'] ?? 'N/A',
                 name: item['full_name'] ?? 'N/A',
                 age: item['age'] ?? 18,
-                schoolType: item['school_type'] == 'University' || item['schoolType'] == 'University' ? SchoolType.university : SchoolType.secondary,
+                schoolType: (item['school_type']?.toString().toLowerCase() == 'university') ? SchoolType.university : SchoolType.secondary,
                 schoolName: item['display_school_name'] ?? _selectedSchool!['name'],
                 currentClass: item['academic_year'] ?? 'N/A',
               ),
             )).toList();
+            _isLoadingScholars = false;
           });
         }
       }
     } catch (e) {
       debugPrint('Error loading scholars: $e');
-    } finally {
       if (mounted) setState(() => _isLoadingScholars = false);
     }
   }
@@ -224,6 +220,8 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
         'week_number': _selectedWeek,
         'term': _schoolType == SchoolType.secondary ? _selectedPeriod : null,
         'semester': _schoolType == SchoolType.university ? _selectedPeriod : null,
+        'facilitator': _facilitatorController.text.trim(),
+        'location': _locationController.text.trim(),
         'entries': _entries.map((e) => {
           'scholarId': e.scholar.id,
           'status': e.status.label.toLowerCase(),
@@ -265,29 +263,37 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
-      color: Colors.white,
+      color: isDark ? theme.scaffoldBackgroundColor : Colors.white,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildHeader(),
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildConfigSection(),
-                  const SizedBox(height: 32),
-                  if (_isLoadingScholars)
-                    const Center(child: Padding(padding: EdgeInsets.all(100), child: CircularProgressIndicator(color: kBrandOlive)))
-                  else if (_entries.isNotEmpty) ...[
-                    _buildFacilitatorSection(),
-                    const SizedBox(height: 32),
-                    _buildAttendanceTable()
-                  ] else
-                    _buildPlaceholder(),
-                ],
+              padding: const EdgeInsets.fromLTRB(40, 32, 40, 48),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1100),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildConfigSection(),
+                      const SizedBox(height: 48),
+                      if (_isLoadingScholars)
+                        const Center(child: Padding(padding: EdgeInsets.all(100), child: BeautifulLoader(isOverlay: false, message: "Opening School Registry")))
+                      else if (_entries.isNotEmpty) ...[
+                        _buildFacilitatorSection(),
+                        const SizedBox(height: 48),
+                        _buildAttendanceTable()
+                      ] else
+                        _buildPlaceholder(),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -298,15 +304,14 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   }
 
   Widget _buildHeader() {
-    final String targetText = _schoolType == SchoolType.university
-        ? "Target: 1 Session / Week"
-        : "Target: 1 Session / Week";
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+        color: isDark ? theme.cardColor : Colors.white,
+        border: Border(bottom: BorderSide(color: theme.dividerColor)),
       ),
       child: Row(
         children: [
@@ -316,7 +321,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
               color: kBrandBrown.withOpacity(0.05),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(_moduleType.icon, color: kBrandBrown, size: 20),
+            child: Icon(_moduleType.icon, color: kBrandBrown, size: 18),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -324,16 +329,16 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(_isFieldOfficer ? "Attendance Management" : "Attendance Records",
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.2)),
                 Row(
                   children: [
-                    Text(_isFieldOfficer ? "Recording ${_moduleType.label}" : "Reviewing data",
-                      style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                    Text(_isFieldOfficer ? "Recording ${_moduleType.label} Session" : "Reviewing group telemetry",
+                      style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                     const SizedBox(width: 12),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
-                      child: Text(targetText, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: kBrandOlive)),
+                      child: const Text("Target: 1 Session / Week", style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: kBrandOlive, letterSpacing: 0.5)),
                     ),
                   ],
                 ),
@@ -342,13 +347,17 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
           ),
           if (!_isFieldOfficer)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(color: Colors.amber.withOpacity(0.1), borderRadius: BorderRadius.circular(6), border: Border.all(color: Colors.amber.shade300)),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.amber.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.amber.withOpacity(0.3))
+              ),
               child: const Row(
                 children: [
-                  Icon(Icons.lock_outline_rounded, size: 12, color: Colors.orange),
-                  SizedBox(width: 6),
-                  Text("READ-ONLY", style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.orange)),
+                  Icon(Icons.lock_rounded, size: 14, color: Colors.orange),
+                  SizedBox(width: 8),
+                  Text("READ-ONLY", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.orange, letterSpacing: 0.5)),
                 ],
               ),
             ),
@@ -360,13 +369,13 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
                 });
               },
               icon: const Icon(Icons.done_all_rounded, size: 16),
-              label: const Text("MARK ALL PRESENT", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
+              label: const Text("MARK ALL PRESENT", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.0)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green.shade700,
                 foregroundColor: Colors.white,
-                elevation: 0,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                elevation: 0,
               ),
             ),
         ],
@@ -375,146 +384,99 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   }
 
   Widget _buildConfigSection() {
-    final periodLabel = "Semester Period";
-    final periods = kSemesters;
+    final periodLabel = _schoolType == SchoolType.university ? "Academic Semester" : "School Term";
+    final periods = _schoolType == SchoolType.university ? kSemesters : kTerms;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade100),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 10, offset: const Offset(0, 4))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: _configColumn(
-                  label: "Program Module",
-                  child: Container(
-                    height: 48,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: kBrandOlive.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: kBrandOlive.withOpacity(0.2)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.forum_rounded, size: 18, color: kBrandOlive),
-                        const SizedBox(width: 12),
-                        const Text("University CHATs Session", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandOlive, fontSize: 13)),
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(color: kBrandOlive, borderRadius: BorderRadius.circular(4)),
-                          child: const Text("LOCKED", style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
-                        ),
-                      ],
-                    ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              flex: 2,
+              child: _dropdownField("Partner Institution", _selectedSchool, _schoolOptions, (v) {
+                setState(() {
+                  _selectedSchool = v;
+                  _loadRegister();
+                });
+              }),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _dropdownFieldString(periodLabel, _selectedPeriod, periods, (v) => setState(() => _selectedPeriod = v!)),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _dropdownFieldString("Year", _selectedYear, academicYearOptions(), (v) => setState(() => _selectedYear = v!)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 2,
+              child: _datePickerField(),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _configColumn(
+                label: "METADATA",
+                child: Container(
+                  height: 40,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.auto_awesome_rounded, size: 14, color: Colors.grey),
+                      const SizedBox(width: 10),
+                      Text(
+                        "Cycle: $_selectedMonth | Week $_selectedWeek",
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.grey.shade700),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: _dropdownField("Partner Institution", _selectedSchool, _schoolOptions, (v) {
-                  setState(() {
-                    _selectedSchool = v;
-                    _loadRegister();
-                  });
-                }),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _dropdownFieldString(periodLabel, _selectedPeriod, periods, (v) => setState(() => _selectedPeriod = v!)),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _dropdownFieldString("Year", _selectedYear, academicYearOptions(), (v) => setState(() => _selectedYear = v!)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 2,
-                child: _datePickerField(),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _configColumn(
-                  label: "Metadata Detection",
-                  child: Container(
-                    height: 44,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade50,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.grey.shade200),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.auto_awesome_rounded, size: 14, color: Colors.grey),
-                        const SizedBox(width: 10),
-                        Text(
-                          "Cycle: $_selectedMonth, Week $_selectedWeek",
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey.shade700),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
   Widget _buildFacilitatorSection() {
-    return Container(
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.shade100),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 20, offset: const Offset(0, 10))],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text("LOGISTICS & FACILITATION", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(child: _textField(_facilitatorController, "Session Facilitator", Icons.person_pin_rounded, "Enter full name...")),
-              const SizedBox(width: 24),
-              Expanded(child: _textField(_locationController, "Venue / Location", Icons.place_rounded, "Physical meeting point...")),
-            ],
-          ),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text("SESSION LOGISTICS", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.0)),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(child: _textField(_facilitatorController, "Primary Facilitator", Icons.person_pin_rounded, "Name...")),
+            const SizedBox(width: 16),
+            Expanded(child: _textField(_locationController, "Venue", Icons.place_rounded, "e.g. Science Lab...")),
+          ],
+        ),
+      ],
     );
   }
 
   Widget _buildAttendanceTable() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade100),
+        color: theme.cardColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: theme.dividerColor),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 10)],
       ),
       clipBehavior: Clip.antiAlias,
@@ -522,45 +484,56 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            color: Colors.grey.shade50,
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+            color: isDark ? Colors.white.withOpacity(0.03) : Colors.grey.shade50,
             child: Row(
               children: [
-                const Text("ATTENDANCE REGISTER", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.grey, letterSpacing: 1)),
+                Text("SCHOLAR ATTENDANCE REGISTER",
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: isDark ? Colors.white70 : Colors.grey, letterSpacing: 1.2)),
                 const Spacer(),
-                Text("${_entries.where((e) => e.status == AttendanceStatus.present).length} PRESENT", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.green)),
-                const SizedBox(width: 16),
-                Text("${_entries.where((e) => e.status == AttendanceStatus.absent).length} ABSENT", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.red)),
+                _countBadge("${_entries.where((e) => e.status == AttendanceStatus.present).length} PRESENT", Colors.green),
+                const SizedBox(width: 20),
+                _countBadge("${_entries.where((e) => e.status == AttendanceStatus.absent).length} ABSENT", Colors.red),
               ],
             ),
           ),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: ConstrainedBox(
-              constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width - 400),
+              constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width - 200),
               child: DataTable(
-                headingRowHeight: 50,
-                dataRowMaxHeight: 70,
-                horizontalMargin: 24,
-                columnSpacing: 24,
+                headingRowHeight: 64,
+                dataRowMaxHeight: 80,
+                horizontalMargin: 32,
+                columnSpacing: 32,
                 dividerThickness: 0.5,
-                columns: const [
-                  DataColumn(label: Text("SCHOLAR ID", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: kBrandBrown))),
-                  DataColumn(label: Text("FULL NAME", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: kBrandBrown))),
-                  DataColumn(label: Text("MARK ATTENDANCE", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: kBrandBrown))),
-                  DataColumn(label: Text("SESSION NOTES", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: kBrandBrown))),
+                columns: [
+                  DataColumn(label: Text("IDENTIFIER", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: isDark ? Colors.white38 : kBrandBrown, letterSpacing: 1))),
+                  DataColumn(label: Text("SCHOLAR IDENTITY", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: isDark ? Colors.white38 : kBrandBrown, letterSpacing: 1))),
+                  DataColumn(label: Text("PARTICIPATION STATUS", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: isDark ? Colors.white38 : kBrandBrown, letterSpacing: 1))),
+                  DataColumn(label: Text("SITTING REMARKS", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: isDark ? Colors.white38 : kBrandBrown, letterSpacing: 1))),
                 ],
                 rows: _entries.map((entry) {
                   return DataRow(
                     cells: [
-                      DataCell(Text(entry.scholar.scholarId, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueGrey, fontSize: 13))),
+                      DataCell(Text(entry.scholar.scholarId, style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? kBrandOrange : Colors.blueGrey, fontSize: 13))),
                       DataCell(
-                        Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        Row(
                           children: [
-                            Text(entry.scholar.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: kBrandBrown)),
-                            Text(entry.scholar.currentClass, style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
+                            CircleAvatar(
+                              radius: 18,
+                              backgroundColor: kBrandOlive.withOpacity(0.1),
+                              child: Text(getInitials(entry.scholar.name), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBrandOlive)),
+                            ),
+                            const SizedBox(width: 16),
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(entry.scholar.name, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: isDark ? Colors.white : kBrandBrown)),
+                                Text(entry.scholar.currentClass, style: TextStyle(fontSize: 11, color: Colors.grey.shade500, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
                           ],
                         )
                       ),
@@ -568,13 +541,13 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
                       DataCell(
                         TextField(
                           onChanged: (v) => entry.note = v,
+                          style: TextStyle(fontSize: 13, color: isDark ? Colors.white : kBrandBrown),
                           decoration: InputDecoration(
-                            hintText: "Add remarks...",
-                            hintStyle: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                            hintText: "Add specific sitting notes...",
+                            hintStyle: TextStyle(fontSize: 12, color: isDark ? Colors.white24 : Colors.grey.shade400),
                             border: InputBorder.none,
                             isDense: true,
                           ),
-                          style: const TextStyle(fontSize: 13),
                         ),
                       ),
                     ],
@@ -588,89 +561,91 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
     );
   }
 
+  Widget _countBadge(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: color.withOpacity(0.2))),
+      child: Text(label, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: color, letterSpacing: 0.5)),
+    );
+  }
+
   Widget _buildStatusPicker(AttendanceEntry entry) {
     return IgnorePointer(
       ignoring: !_isFieldOfficer,
-      child: Opacity(
-        opacity: _isFieldOfficer ? 1.0 : 0.8,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: AttendanceStatus.values.map((status) {
-            final isSelected = entry.status == status;
-            final bool isPresent = status == AttendanceStatus.present;
-            final bool isAbsent = status == AttendanceStatus.absent;
-
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Tooltip(
-                message: status.label,
-                child: InkWell(
-                  onTap: () => setState(() => entry.status = status),
-                  borderRadius: BorderRadius.circular(12),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: isSelected ? status.color : Colors.grey.shade50,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isSelected ? status.color : Colors.grey.shade200, 
-                        width: 1.5
-                      ),
-                      boxShadow: isSelected ? [BoxShadow(color: status.color.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))] : null,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(status.icon, size: 16, color: isSelected ? Colors.white : Colors.grey.shade400),
-                        if (isSelected) ...[
-                          const SizedBox(width: 8),
-                          Text(
-                            status.label.toUpperCase(),
-                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-                          ),
-                        ],
-                      ],
-                    ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: AttendanceStatus.values.map((status) {
+          final isSelected = entry.status == status;
+          return Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: InkWell(
+              onTap: () => setState(() => entry.status = status),
+              borderRadius: BorderRadius.circular(14),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isSelected ? status.color : Colors.transparent,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isSelected ? status.color : Colors.grey.shade300,
+                    width: 1.5
                   ),
                 ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(status.icon, size: 16, color: isSelected ? Colors.white : Colors.grey.shade400),
+                    if (isSelected) ...[
+                      const SizedBox(width: 10),
+                      Text(
+                        status.label.toUpperCase(),
+                        style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.0),
+                      ),
+                    ],
+                  ],
+                ),
               ),
-            );
-          }).toList(),
-        ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
 
   Widget _buildFooterActions() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(40),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey.shade100)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))],
+        color: theme.cardColor,
+        border: Border(top: BorderSide(color: theme.dividerColor)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20, offset: const Offset(0, -10))],
       ),
       child: Row(
         children: [
-          const Icon(Icons.info_outline_rounded, color: Colors.grey, size: 20),
-          const SizedBox(width: 12),
+          Icon(Icons.verified_user_rounded, color: kBrandOlive.withOpacity(0.6), size: 24),
+          const SizedBox(width: 20),
           const Expanded(
             child: Text(
-              "By saving, you confirm that this attendance record is accurate and adheres to the program's weekly and monthly engagement restrictions.",
-              style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
+              "AUDIT DECLARATION: By authorizing, you certify that the telemetry recorded for this session is accurate and consistent with program engagement standards.",
+              style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600, height: 1.5),
             ),
           ),
-          const SizedBox(width: 40),
+          const SizedBox(width: 60),
           if (_isFieldOfficer)
             SizedBox(
-              width: 320,
-              height: 60,
+              width: 380,
+              height: 64,
               child: ElevatedButton.icon(
                 onPressed: _isSaving ? null : _saveRegister,
-                icon: _isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.verified_user_rounded),
-                label: Text(_isSaving ? "SYNCING..." : "AUTHORIZE & SAVE REGISTER", style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                icon: _isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.cloud_upload_rounded),
+                label: Text(_isSaving ? "SYNCHRONIZING..." : "VALIDATE & SAVE REGISTER",
+                  style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.2, fontSize: 13)),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: kBrandOlive,
+                  backgroundColor: kBrandBrown,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   elevation: 0,
@@ -683,24 +658,33 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   }
 
   Widget _buildPlaceholder() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Center(
       child: Column(
         children: [
-          const SizedBox(height: 100),
-          Icon(Icons.assignment_ind_rounded, size: 80, color: Colors.grey.shade100),
-          const SizedBox(height: 20),
-          Text(_selectedSchool == null ? "Select a school to load the scholar registry." : "No scholars found for the selected criteria.",
-            style: const TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 120),
+          Container(
+            padding: const EdgeInsets.all(48),
+            decoration: BoxDecoration(color: isDark ? Colors.white12 : Colors.grey.shade50, shape: BoxShape.circle),
+            child: Icon(Icons.assignment_ind_rounded, size: 80, color: isDark ? Colors.white10 : Colors.grey.shade200),
+          ),
+          const SizedBox(height: 32),
+          Text(_selectedSchool == null ? "Select an institution to load the register" : "No active scholars found in this cohort",
+            style: TextStyle(color: isDark ? Colors.white38 : Colors.grey.shade400, fontSize: 16, fontWeight: FontWeight.w700, letterSpacing: -0.2)),
         ],
       ),
     );
   }
 
   Widget _configColumn({required String label, required Widget child}) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label.toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 0.5)),
+        Text(label.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isDark ? Colors.white38 : Colors.grey, letterSpacing: 1.5)),
         const SizedBox(height: 12),
         child,
       ],
@@ -708,20 +692,25 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   }
 
   Widget _dropdownField(String label, dynamic value, List<Map<String, dynamic>> items, ValueChanged<Map<String, dynamic>?> onChanged) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label.toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 0.5)),
-        const SizedBox(height: 10),
+        Text(label.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isDark ? Colors.white38 : Colors.grey, letterSpacing: 1.5)),
+        const SizedBox(height: 12),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+          decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(12), border: Border.all(color: theme.dividerColor)),
           child: DropdownButton<Map<String, dynamic>>(
             value: value,
             isExpanded: true,
-            hint: const Text("Select option...", style: TextStyle(fontSize: 14)),
+            dropdownColor: theme.cardColor,
+            hint: const Text("Select institution...", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
             underline: const SizedBox(),
-            items: items.map((s) => DropdownMenuItem(value: s, child: Text(s['name'] ?? '', style: const TextStyle(fontSize: 14)))).toList(),
+            items: items.map((s) => DropdownMenuItem(value: s, child: Text(s['name'] ?? '',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: isDark ? Colors.white : kBrandBrown)))).toList(),
             onChanged: onChanged,
           ),
         ),
@@ -730,19 +719,24 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   }
 
   Widget _dropdownFieldString(String label, String? value, List<String> items, ValueChanged<String?> onChanged) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label.toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 0.5)),
-        const SizedBox(height: 10),
+        Text(label.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isDark ? Colors.white38 : Colors.grey, letterSpacing: 1.5)),
+        const SizedBox(height: 12),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+          decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(12), border: Border.all(color: theme.dividerColor)),
           child: DropdownButton<String>(
             value: value,
             isExpanded: true,
+            dropdownColor: theme.cardColor,
             underline: const SizedBox(),
-            items: items.map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)))).toList(),
+            items: items.map((s) => DropdownMenuItem(value: s, child: Text(s,
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: isDark ? Colors.white : kBrandBrown)))).toList(),
             onChanged: onChanged,
           ),
         ),
@@ -751,26 +745,30 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   }
 
   Widget _textField(TextEditingController controller, String label, IconData icon, String hint) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label.toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 0.5)),
-        const SizedBox(height: 10),
+        Text(label.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isDark ? Colors.white38 : Colors.grey, letterSpacing: 1.5)),
+        const SizedBox(height: 12),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.grey.shade50,
+            color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.grey.shade50,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200),
+            border: Border.all(color: theme.dividerColor),
           ),
           child: TextField(
             controller: controller,
             enabled: _isFieldOfficer,
+            style: TextStyle(fontSize: 14, color: isDark ? Colors.white : kBrandBrown, fontWeight: FontWeight.w700),
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: const TextStyle(fontSize: 14, color: Colors.grey),
+              hintStyle: TextStyle(fontSize: 14, color: isDark ? Colors.white24 : Colors.grey),
               border: InputBorder.none,
-              icon: Icon(icon, size: 20, color: kBrandBrown.withOpacity(0.6)),
+              icon: Icon(icon, size: 20, color: kBrandOlive),
             ),
           ),
         ),
@@ -787,12 +785,25 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
     });
   }
 
+  String _initialsOf(String name) {
+    return name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .map((e) => e.isNotEmpty ? e[0] : '')
+        .take(2)
+        .join()
+        .toUpperCase();
+  }
+
   Widget _datePickerField() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("SESSION DATE", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 0.5)),
-        const SizedBox(height: 10),
+        Text("SESSION DATE", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isDark ? Colors.white38 : Colors.grey, letterSpacing: 1.5)),
+        const SizedBox(height: 12),
         InkWell(
           onTap: () async {
             final picked = await showDatePicker(
@@ -816,15 +827,16 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
             if (picked != null) _updateMetadata(picked);
           },
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: BoxDecoration(color: theme.cardColor, borderRadius: BorderRadius.circular(12), border: Border.all(color: theme.dividerColor)),
             child: Row(
               children: [
-                const Icon(Icons.calendar_month_rounded, size: 20, color: kBrandBrown),
-                const SizedBox(width: 12),
-                Text(DateFormat('dd MMM yyyy').format(_selectedDate), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                const Icon(Icons.calendar_month_rounded, size: 20, color: kBrandOlive),
+                const SizedBox(width: 16),
+                Text(DateFormat('dd MMM yyyy').format(_selectedDate),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: isDark ? Colors.white : kBrandBrown)),
                 const Spacer(),
-                Text("Week $_selectedWeek, $_selectedMonth", style: TextStyle(fontSize: 11, color: kBrandOlive, fontWeight: FontWeight.bold)),
+                Text("Cycle: $_selectedMonth", style: const TextStyle(fontSize: 11, color: kBrandOlive, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
               ],
             ),
           ),

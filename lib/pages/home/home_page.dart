@@ -549,10 +549,22 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         icon: Icons.school,
         subItems: [
           SidebarSubItem(
-            title: Translator.translate("View Scholars"),
-            page: const ViewScholarsPage(),
-            icon: Icons.people,
+            title: "Secondary Registry",
+            page: const ViewScholarsPage(forcedSchoolType: 'Secondary'),
+            icon: Icons.school_outlined,
             builder: (onBack, onPush, onPushProfile) => ViewScholarsPage(
+              forcedSchoolType: 'Secondary',
+              onRegisterScholar: () => onPush("Register Scholar"),
+              onViewProfile: onPushProfile,
+              onViewGraduates: () => onPush("University Graduates"),
+            ),
+          ),
+          SidebarSubItem(
+            title: "University Registry",
+            page: const ViewScholarsPage(forcedSchoolType: 'University'),
+            icon: Icons.account_balance_outlined,
+            builder: (onBack, onPush, onPushProfile) => ViewScholarsPage(
+              forcedSchoolType: 'University',
               onRegisterScholar: () => onPush("Register Scholar"),
               onViewProfile: onPushProfile,
               onViewGraduates: () => onPush("University Graduates"),

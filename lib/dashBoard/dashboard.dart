@@ -76,7 +76,7 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7F5),
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
           Column(
