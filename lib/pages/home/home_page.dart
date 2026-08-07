@@ -159,7 +159,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           final String role = data['role_name'] ?? "";
           final String normalizedRole = role.trim().toLowerCase();
           
-          if (normalizedRole == 'administrator') {
+          final bool hasAdminAccess = [
+            'administrator', 'program manager', 'program coordinator', 'country director'
+          ].contains(normalizedRole);
+
+          if (hasAdminAccess) {
             Navigator.pushReplacementNamed(context, '/admin/home');
             return;
           }

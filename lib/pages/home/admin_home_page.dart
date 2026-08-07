@@ -148,8 +148,11 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
           final String role = (data['role_name'] ?? "").toString().trim();
           final String normalizedRole = role.toLowerCase();
           
-          // Case-insensitive check for Admin access
-          if (normalizedRole != 'administrator') {
+          final bool hasAdminAccess = [
+            'administrator', 'program manager', 'program coordinator', 'country director'
+          ].contains(normalizedRole);
+
+          if (!hasAdminAccess) {
             _redirectToHome();
           } else {
             setState(() {
@@ -167,7 +170,10 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
     } catch (e) {
       debugPrint('Access check error: $e');
     }
-    _redirectToHome();
+    // Only redirect if we explicitly failed the checks above
+    if (mounted && _isLoading) {
+      _redirectToHome();
+    }
   }
 
   void _redirectToHome() {

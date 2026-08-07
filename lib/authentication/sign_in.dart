@@ -85,7 +85,7 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
           if (mounted) {
             setState(() => _isLoading = false);
             
-            final String role = userData['role'] ?? 'User';
+            final String role = userData['role'] ?? userData['role_name'] ?? 'User';
             final String normalizedRole = role.trim().toLowerCase();
 
             if (userData['mustResetPassword'] == true || userData['isFirstLogin'] == true) {
