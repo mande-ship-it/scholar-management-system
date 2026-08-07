@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:scholar_management_system/services/api_service.dart';
 import '../academics/academics_utils.dart';
 import 'package:intl/intl.dart';
+import 'allocation_list.dart';
 
 class InternshipAllocationComponent extends StatefulWidget {
   const InternshipAllocationComponent({super.key});
@@ -13,9 +14,6 @@ class InternshipAllocationComponent extends StatefulWidget {
 class _InternshipAllocationComponentState extends State<InternshipAllocationComponent> {
   bool _isLoading = true;
   List<dynamic> _graduates = [];
-  List<dynamic> _internships = [];
-  List<dynamic> _filteredInternships = [];
-  String _internshipSearchQuery = '';
 
   // Selection
   dynamic _selectedGraduate;
@@ -37,18 +35,14 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
     setState(() => _isLoading = true);
     try {
       final resGrads = await ApiService.getUniversityGraduates();
-      final resInterns = await ApiService.getAllInternships();
-
       if (mounted) {
         setState(() {
-          _graduates = resGrads.data['data'];
-          _internships = resInterns.data['data'];
-          _applyInternshipFilter();
+          _graduates = resGrads.data['data'] ?? [];
           _isLoading = false;
         });
       }
     } catch (e) {
-      debugPrint('Error fetching internship data: $e');
+      debugPrint('Error fetching graduates: $e');
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -118,28 +112,18 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
       color: const Color(0xFFF8F9FA),
       child: Column(
         children: [
-          if (!isMobile) _buildHeader(isMobile),
+          _buildHeader(isMobile),
           Expanded(
             child: _isLoading
-              ? const SizedBox.shrink()
+              ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
               : SingleChildScrollView(
-                  padding: EdgeInsets.all(isMobile ? 12 : 32),
-                  child: isMobile 
-                    ? Column(
-                        children: [
-                          _buildAllocationForm(isMobile),
-                          const SizedBox(height: 24),
-                          _buildRecentAllocations(isMobile),
-                        ],
-                      )
-                    : Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(flex: 3, child: _buildAllocationForm(isMobile)),
-                          const SizedBox(width: 32),
-                          Expanded(flex: 2, child: _buildRecentAllocations(isMobile)),
-                        ],
-                      ),
+                  padding: EdgeInsets.all(isMobile ? 16 : 40),
+                  child: Center(
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 800),
+                      child: _buildAllocationForm(isMobile),
+                    ),
+                  ),
                 ),
           ),
         ],
@@ -155,7 +139,7 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: kBrandOrange.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(color: kBrandOrange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
             child: const Icon(Icons.handshake_rounded, color: kBrandOrange, size: 20),
           ),
           const SizedBox(width: 16),
@@ -163,14 +147,25 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Internship Allocation Hub", 
+                Text("Internship Allocation", 
                   style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                const Text("Strategic workforce placement for alumni.", 
+                const Text("Enrol graduates into strategic work placements.", 
                   style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
               ],
             ),
           ),
-          IconButton(onPressed: _fetchData, icon: const Icon(Icons.sync_rounded, color: kBrandOlive, size: 20)),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const AllocationListPage()));
+            },
+            icon: const Icon(Icons.list_alt_rounded, size: 16),
+            label: Text(isMobile ? "LIST" : "VIEW ALLOCATED", style: const TextStyle(fontSize: 11)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kBrandOlive.withValues(alpha: 0.1),
+              foregroundColor: kBrandOlive,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            ),
+          ),
         ],
       ),
     );
@@ -178,19 +173,20 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
 
   Widget _buildAllocationForm(bool isMobile) {
     return Container(
-      padding: EdgeInsets.all(isMobile ? 20 : 32),
+      padding: EdgeInsets.all(isMobile ? 24 : 40),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 20)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text("NEW ALLOCATION", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: kBrandOrange, letterSpacing: 1.5)),
-          const SizedBox(height: 24),
+          const Text("ALLOTMENT DETAILS", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kBrandOrange, letterSpacing: 1.5)),
+          const SizedBox(height: 32),
 
-          _formLabel("SELECT GRADUATED SCHOLAR"),
+          _formLabel("SEARCH GRADUATED SCHOLAR"),
           _buildScholarDropdown(),
           const SizedBox(height: 24),
 
@@ -202,7 +198,7 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
             Row(
               children: [
                 Expanded(child: _buildTextField("WORKPLACE NAME", _workplaceController, Icons.business_rounded)),
-                const SizedBox(width: 16),
+                const SizedBox(width: 24),
                 Expanded(child: _buildTextField("LOCATION / DISTRICT", _locationController, Icons.place_rounded)),
               ],
             ),
@@ -212,58 +208,62 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
           if (isMobile) ...[
             _buildTextField("ASSIGNED SUPERVISOR", _supervisorController, Icons.person_pin_rounded),
             const SizedBox(height: 24),
-            _buildTextField("SCHOLAR EMAIL (VERIFY)", _emailController, Icons.alternate_email_rounded),
+            _buildTextField("CONTACT EMAIL", _emailController, Icons.alternate_email_rounded),
           ] else ...[
             Row(
               children: [
                 Expanded(child: _buildTextField("ASSIGNED SUPERVISOR", _supervisorController, Icons.person_pin_rounded)),
-                const SizedBox(width: 16),
-                Expanded(child: _buildTextField("SCHOLAR EMAIL (VERIFY)", _emailController, Icons.alternate_email_rounded)),
+                const SizedBox(width: 24),
+                Expanded(child: _buildTextField("CONTACT EMAIL", _emailController, Icons.alternate_email_rounded)),
               ],
             ),
           ],
           const SizedBox(height: 24),
 
           if (isMobile) ...[
-            _buildDatePicker("START DATE", _startDate, (d) => setState(() => _startDate = d)),
+            _buildDatePicker("PLACEMENT START", _startDate, (d) => setState(() => _startDate = d)),
             const SizedBox(height: 24),
-            _buildDatePicker("END DATE (1 YEAR TYPICAL)", _endDate, (d) => setState(() => _endDate = d)),
+            _buildDatePicker("EXPECTED COMPLETION", _endDate, (d) => setState(() => _endDate = d)),
           ] else ...[
             Row(
               children: [
-                Expanded(child: _buildDatePicker("START DATE", _startDate, (d) => setState(() => _startDate = d))),
-                const SizedBox(width: 16),
-                Expanded(child: _buildDatePicker("END DATE (1 YEAR TYPICAL)", _endDate, (d) => setState(() => _endDate = d))),
+                Expanded(child: _buildDatePicker("PLACEMENT START", _startDate, (d) => setState(() => _startDate = d))),
+                const SizedBox(width: 24),
+                Expanded(child: _buildDatePicker("EXPECTED COMPLETION", _endDate, (d) => setState(() => _endDate = d))),
               ],
             ),
           ],
           const SizedBox(height: 24),
 
-          _formLabel("ALLOCATION DETAILS / TERMS"),
+          _formLabel("PLACEMENT TERMS & NOTES"),
           TextField(
             controller: _detailsController,
             maxLines: 4,
-            style: const TextStyle(fontSize: 14),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             decoration: InputDecoration(
               filled: true, fillColor: const Color(0xFFF8F9FA),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
               contentPadding: const EdgeInsets.all(16),
+              hintText: "Enter specific duties or scholarship terms...",
+              hintStyle: TextStyle(color: Colors.grey.shade400, fontWeight: FontWeight.normal),
             ),
           ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 40),
 
           SizedBox(
             width: double.infinity,
-            height: 54,
+            height: 60,
             child: ElevatedButton(
-              onPressed: _submitAllocation,
+              onPressed: _isLoading ? null : _submitAllocation,
               style: ElevatedButton.styleFrom(
                 backgroundColor: kBrandBrown,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 elevation: 0,
               ),
-              child: const Text("FINALIZE ALLOCATION", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+              child: _isLoading 
+                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+                : const Text("SAVE & NOTIFY SCHOLAR", style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
             ),
           ),
         ],
@@ -296,12 +296,13 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
           controller: controller,
           focusNode: focusNode,
           onSubmitted: (v) => onFieldSubmitted(),
+          style: const TextStyle(fontWeight: FontWeight.w600),
           decoration: InputDecoration(
-            prefixIcon: const Icon(Icons.school_rounded, size: 20, color: kBrandOlive),
+            prefixIcon: const Icon(Icons.search_rounded, size: 20, color: kBrandOlive),
             filled: true, fillColor: const Color(0xFFF8F9FA),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            hintText: "Search unallocated graduates...",
-            hintStyle: const TextStyle(fontSize: 13),
+            hintText: "Type scholar name or ID...",
+            hintStyle: TextStyle(fontSize: 13, color: Colors.grey.shade400, fontWeight: FontWeight.normal),
           ),
         );
       },
@@ -309,11 +310,15 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
         return Align(
           alignment: Alignment.topLeft,
           child: Material(
-            elevation: 4,
-            borderRadius: BorderRadius.circular(12),
+            elevation: 10,
+            borderRadius: BorderRadius.circular(16),
             child: Container(
               width: MediaQuery.of(context).size.width * (MediaQuery.of(context).size.width < 900 ? 0.8 : 0.4),
               constraints: const BoxConstraints(maxHeight: 300),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade100),
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: ListView.builder(
                 padding: EdgeInsets.zero,
                 shrinkWrap: true,
@@ -321,8 +326,10 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
                 itemBuilder: (BuildContext context, int index) {
                   final Map<String, dynamic> option = options.elementAt(index);
                   return ListTile(
-                    title: Text(option['full_name'] ?? 'N/A', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                    subtitle: Text("${option['scholar_id'] ?? 'N/A'} - ${option['display_school_name'] ?? 'N/A'}", style: const TextStyle(fontSize: 11)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                    title: Text(option['full_name'] ?? 'N/A', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                    subtitle: Text("${option['scholar_id'] ?? 'N/A'} • ${option['display_school_name'] ?? 'N/A'}", style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                    hoverColor: kBrandOlive.withValues(alpha: 0.05),
                     onTap: () => onSelected(option),
                   );
                 },
@@ -341,11 +348,12 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
         _formLabel(label),
         TextField(
           controller: controller,
+          style: const TextStyle(fontWeight: FontWeight.w600),
           decoration: InputDecoration(
             prefixIcon: Icon(icon, size: 18, color: kBrandOlive),
             filled: true, fillColor: const Color(0xFFF8F9FA),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            contentPadding: const EdgeInsets.symmetric(vertical: 14),
+            contentPadding: const EdgeInsets.symmetric(vertical: 16),
           ),
         ),
       ],
@@ -359,17 +367,28 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
         _formLabel(label),
         InkWell(
           onTap: () async {
-            final picked = await showDatePicker(context: context, initialDate: date, firstDate: DateTime(2020), lastDate: DateTime(2030));
+            final picked = await showDatePicker(
+              context: context, 
+              initialDate: date, 
+              firstDate: DateTime(2020), 
+              lastDate: DateTime(2035),
+              builder: (context, child) => Theme(
+                data: Theme.of(context).copyWith(
+                  colorScheme: const ColorScheme.light(primary: kBrandBrown, onPrimary: Colors.white, onSurface: kBrandBrown),
+                ),
+                child: child!,
+              ),
+            );
             if (picked != null) onSelect(picked);
           },
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             decoration: BoxDecoration(color: const Color(0xFFF8F9FA), borderRadius: BorderRadius.circular(12)),
             child: Row(
               children: [
                 const Icon(Icons.calendar_today_rounded, size: 18, color: kBrandOlive),
                 const SizedBox(width: 12),
-                Text(DateFormat('dd MMM yyyy').format(date), style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text(DateFormat('dd MMMM yyyy').format(date), style: const TextStyle(fontWeight: FontWeight.w700, color: kBrandBrown)),
               ],
             ),
           ),
@@ -379,123 +398,7 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
   }
 
   Widget _formLabel(String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 8, left: 4),
-    child: Text(text, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
+    padding: const EdgeInsets.only(bottom: 10, left: 4),
+    child: Text(text, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey.shade500, letterSpacing: 1.2)),
   );
-
-  void _applyInternshipFilter() {
-    setState(() {
-      _filteredInternships = _internships.where((i) {
-        final name = (i['scholar_name'] ?? (i['scholarId'] != null ? i['scholarId']['fullName'] ?? i['scholarId']['full_name'] : 'N/A')).toString().toLowerCase();
-        final workplace = (i['workplace_name'] ?? i['workplaceName'] ?? 'N/A').toString().toLowerCase();
-        final query = _internshipSearchQuery.toLowerCase();
-        return name.contains(query) || workplace.contains(query);
-      }).toList();
-    });
-  }
-
-  Widget _buildRecentAllocations(bool isMobile) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text("ACTIVE INTERNSHIPS", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBrandBrown)),
-            Text("${_filteredInternships.length} Found", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
-          ],
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          onChanged: (v) {
-            _internshipSearchQuery = v;
-            _applyInternshipFilter();
-          },
-          decoration: InputDecoration(
-            hintText: "Filter internships...",
-            prefixIcon: const Icon(Icons.search_rounded, size: 18),
-            isDense: true,
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
-          ),
-        ),
-        const SizedBox(height: 16),
-        if (_filteredInternships.isEmpty)
-          const Padding(padding: EdgeInsets.symmetric(vertical: 40), child: Center(child: Text("No matching allocations found.", style: TextStyle(color: Colors.grey))))
-        else
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _filteredInternships.length,
-            itemBuilder: (context, index) => _allocationCard(_filteredInternships[index]),
-          ),
-      ],
-    );
-  }
-
-  Widget _allocationCard(dynamic i) {
-    final bool isCompleted = i['status'] == 'Completed';
-    final scholarName = i['scholar_name'] ?? (i['scholarId'] != null ? i['scholarId']['fullName'] ?? i['scholarId']['full_name'] : 'N/A');
-    final workplace = i['workplace_name'] ?? i['workplaceName'] ?? 'N/A';
-    final status = i['status'] ?? 'Active';
-
-    String durationStr = "TBD";
-    try {
-      final start = i['start_date'] ?? i['startDate'];
-      final end = i['end_date'] ?? i['endDate'];
-      if (start != null && end != null) {
-        durationStr = "${DateFormat('MMM yyyy').format(DateTime.parse(start.toString()))} - ${DateFormat('MMM yyyy').format(DateTime.parse(end.toString()))}";
-      } else if (start != null) {
-        durationStr = "From ${DateFormat('MMM yyyy').format(DateTime.parse(start.toString()))}";
-      }
-    } catch (_) {}
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isCompleted ? Colors.grey.shade100 : kBrandOlive.withOpacity(0.1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(scholarName.toString(),
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                  overflow: TextOverflow.ellipsis),
-              ),
-              _statusBadge(status),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(workplace.toString(),
-            style: TextStyle(color: kBrandOrange, fontWeight: FontWeight.w800, fontSize: 12, letterSpacing: 0.5)),
-          const Divider(height: 24),
-          Row(
-            children: [
-              const Icon(Icons.access_time_rounded, size: 14, color: Colors.grey),
-              const SizedBox(width: 8),
-              Text(durationStr,
-                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _statusBadge(String status) {
-    final bool active = status == 'Active';
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: active ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
-      child: Text(status.toUpperCase(), style: TextStyle(color: active ? Colors.green : Colors.grey, fontSize: 9, fontWeight: FontWeight.w900)),
-    );
-  }
 }
