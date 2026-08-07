@@ -219,57 +219,92 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
 
   Widget _buildKPISection(bool isMobile) {
     final kpis = [
-      ("Users", "$_totalUsers", Icons.people_alt_rounded, kBrandOlive, "Manage Users"),
-      ("Pending", "$_pendingApprovals", Icons.gavel_rounded, kBrandOrange, "Pending Approvals"),
-      ("Schools", "$_totalSchools", Icons.business_rounded, kBrandBrown, "Manage Institutions"),
-      ("Sponsors", "$_totalSponsors", Icons.volunteer_activism_rounded, const Color(0xFF1976D2), "Sponsors Directory"),
+      ("System Users", "$_totalUsers", Icons.people_alt_rounded, kBrandOlive, "Manage Users"),
+      ("Pending Approvals", "$_pendingApprovals", Icons.gavel_rounded, kBrandOrange, "Pending Approvals"),
+      ("Institutions", "$_totalSchools", Icons.domain_rounded, kBrandBrown, "Manage Institutions"),
+      ("Global Sponsors", "$_totalSponsors", Icons.volunteer_activism_rounded, const Color(0xFF1976D2), "Sponsors Directory"),
     ];
 
-    if (isMobile) {
-      return GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
-          childAspectRatio: 1.4,
-        ),
-        itemCount: kpis.length,
-        itemBuilder: (context, i) => _buildKPICard(kpis[i].$1, kpis[i].$2, kpis[i].$3, kpis[i].$4, () => widget.onNavigate?.call(kpis[i].$5), isMobile),
-      );
-    }
-
-    return Row(
-      children: kpis.map((k) => Expanded(
-        child: Padding(
-          padding: const EdgeInsets.only(right: 16),
-          child: _buildKPICard(k.$1, k.$2, k.$3, k.$4, () => widget.onNavigate?.call(k.$5), isMobile),
-        ),
-      )).toList(),
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: isMobile ? 2 : 4,
+        crossAxisSpacing: 20,
+        mainAxisSpacing: 20,
+        childAspectRatio: isMobile ? 1.4 : 1.8,
+      ),
+      itemCount: kpis.length,
+      itemBuilder: (context, i) => _buildPortalCard(
+        kpis[i].$1, 
+        kpis[i].$2, 
+        kpis[i].$3, 
+        kpis[i].$4, 
+        () => widget.onNavigate?.call(kpis[i].$5),
+      ),
     );
   }
 
-  Widget _buildKPICard(String label, String value, IconData icon, Color color, VoidCallback onTap, bool isMobile) {
-    return InkWell(
-      onTap: onTap,
+  Widget _buildPortalCard(String label, String value, IconData icon, Color color, VoidCallback onTap) {
+    return Material(
+      color: Colors.white,
       borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: EdgeInsets.all(isMobile ? 12 : 20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: isMobile ? 18 : 24),
-            const SizedBox(height: 8),
-            Text(value, style: TextStyle(fontSize: isMobile ? 18 : 24, fontWeight: FontWeight.w900, color: kBrandBrown)),
-            Text(label.toUpperCase(), style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.grey, letterSpacing: 0.5)),
-          ],
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade200),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 28),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      value,
+                      style: const TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                        color: kBrandBrown,
+                        letterSpacing: -1,
+                      ),
+                    ),
+                    Text(
+                      label.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.grey.shade400,
+                        letterSpacing: 1.0,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -439,18 +474,32 @@ class _DashboardCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(isMobile ? 16 : 24),
+      padding: EdgeInsets.all(isMobile ? 16 : 32),
       decoration: BoxDecoration(
         color: Colors.white, 
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade100),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.015), blurRadius: 10, offset: const Offset(0, 4))],
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.2)),
-          const SizedBox(height: 20),
+          Text(
+            title.toUpperCase(), 
+            style: const TextStyle(
+              fontSize: 11, 
+              fontWeight: FontWeight.w900, 
+              color: Color(0xFF9AB334), 
+              letterSpacing: 1.5
+            ),
+          ),
+          const SizedBox(height: 24),
           child,
         ],
       ),

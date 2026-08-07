@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../services/api_service.dart';
 import '../../academics/academics_utils.dart';
@@ -151,11 +152,9 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
           final String role = (data['role_name'] ?? "").toString().trim();
           final String normalizedRole = role.toLowerCase();
           
-          final bool hasAdminAccess = [
-            'administrator', 'program manager', 'program coordinator', 'country director'
-          ].contains(normalizedRole);
+          final bool isStrictAdmin = normalizedRole == 'administrator';
 
-          if (!hasAdminAccess) {
+          if (!isStrictAdmin) {
             _redirectToHome();
           } else {
             setState(() {
@@ -602,16 +601,17 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: const Color(0xFFF4F7F5),
+      backgroundColor: const Color(0xFFF8F9FA),
       drawer: isMobile ? _buildDrawer(context) : null,
       appBar: AppBar(
-        elevation: 2,
-        shadowColor: kBrandBrown.withOpacity(0.3),
-        backgroundColor: kBrandBrown,
+        elevation: 1,
+        shadowColor: Colors.black.withOpacity(0.05),
+        backgroundColor: Colors.white,
+        foregroundColor: kBrandBrown,
         leadingWidth: isMobile ? null : 280,
         leading: isMobile 
           ? IconButton(
-              icon: const Icon(Icons.menu, color: Colors.white),
+              icon: const Icon(Icons.menu, color: kBrandBrown),
               onPressed: () => _scaffoldKey.currentState?.openDrawer(),
             )
           : Row(
@@ -627,17 +627,14 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
                   ),
                 ),
                 const SizedBox(width: 8),
-                SizedBox(
-                  width: 40,
-                  child: IconButton(
-                    icon: const Icon(Icons.menu, color: Colors.white),
-                    tooltip: "Toggle Sidebar",
-                    onPressed: () {
-                      setState(() {
-                        _isSidebarVisible = !_isSidebarVisible;
-                      });
-                    },
-                  ),
+                IconButton(
+                  icon: const Icon(Icons.menu, color: kBrandBrown, size: 20),
+                  tooltip: "Toggle Sidebar",
+                  onPressed: () {
+                    setState(() {
+                      _isSidebarVisible = !_isSidebarVisible;
+                    });
+                  },
                 ),
               ],
             ),
@@ -647,7 +644,7 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
               width: isMobile ? null : 450,
               height: 42,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: const Color(0xFFF1F3F4),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: CompositedTransformTarget(
@@ -668,49 +665,19 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
                       constraints: const BoxConstraints(),
                     ),
                     border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(vertical: 11),
                   ),
                 ),
               ),
             )
-          : Row(
-              children: [
-                if (isMobile && _navigationHistory.isNotEmpty && activeSubItem.title != "Pending Approvals") ...[
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
-                    onPressed: _popSubItem,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                  const SizedBox(width: 12),
-                ],
-                Expanded(
-                  child: Text(
-                    isMobile ? activeSubItem.title : "AGE Africa System",
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: isMobile ? 16 : 16),
-                  ),
-                ),
-                if (!isMobile) ...[
-                  const SizedBox(width: 12),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: kBrandOrange,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Text(
-                      "SECURE",
-                      style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.8),
-                    ),
-                  ),
-                ],
-              ],
-            ),
+          : Text(isMobile ? activeSubItem.title : "AGE Africa Management Portal", 
+              style: const TextStyle(color: kBrandBrown, fontWeight: FontWeight.w900, fontSize: 17, letterSpacing: -0.5)),
         actions: [
           if (!_isSearching)
             IconButton(
-              icon: const Icon(Icons.search, color: Colors.white),
+              icon: const Icon(Icons.search, color: kBrandBrown),
               tooltip: "Search Portal",
               onPressed: _startSearching,
             ),
@@ -719,7 +686,7 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
               ScaleTransition(
                 scale: _notificationIconAnimation,
                 child: IconButton(
-                  icon: const Icon(Icons.notifications_active_rounded, color: Colors.white),
+                  icon: const Icon(Icons.notifications_none_rounded, color: kBrandBrown),
                   tooltip: "Notifications",
                   onPressed: () {
                     setState(() => _notificationCount = 0);
@@ -737,12 +704,12 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
                     decoration: BoxDecoration(
                       color: kBrandOrange,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: kBrandBrown, width: 1.5),
+                      border: Border.all(color: Colors.white, width: 1.5),
                     ),
-                    constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+                    constraints: const BoxConstraints(minWidth: 16, minHeight: 18),
                     child: Text(
                       '$_notificationCount',
-                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                      style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -751,16 +718,23 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
           ),
           if (!isMobile) ...[
             const SizedBox(width: 8),
-            const VerticalDivider(color: Colors.white24, width: 1, indent: 12, endIndent: 12),
+            const VerticalDivider(color: Color(0xFFEEEEEE), width: 1, indent: 16, endIndent: 16),
             const SizedBox(width: 12),
             GestureDetector(
               onTap: () => _navigateToSubItem("User Profile"),
-              child: SizedBox(
-                width: 120,
-                child: _MovingText(
-                  text: _fullName,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
-                ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  SizedBox(
+                    width: 120,
+                    child: _MovingText(
+                      text: _fullName,
+                      style: const TextStyle(color: kBrandBrown, fontWeight: FontWeight.w900, fontSize: 13),
+                    ),
+                  ),
+                  Text(_userRole.toUpperCase(), style: TextStyle(color: kBrandOlive, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                ],
               ),
             ),
           ],
@@ -836,24 +810,50 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
                 if (!isMobile)
                 Container(
                   width: double.infinity,
-                  padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 16),
-                  color: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+                  ),
                   child: Row(
                     children: [
                       if (_navigationHistory.isNotEmpty && activeSubItem.title != "Pending Approvals") ...[
-                        IconButton(icon: const Icon(Icons.arrow_back, color: Colors.black87, size: 20), onPressed: _popSubItem),
-                        const SizedBox(width: 4),
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kBrandBrown, size: 14), 
+                          onPressed: _popSubItem,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        const SizedBox(width: 16),
                       ],
-                      if (!isMobile) ...[
-                        Text(activeCategory.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black54)),
-                        const SizedBox(width: 8),
-                        const Icon(Icons.chevron_right, color: Colors.grey, size: 18),
-                        const SizedBox(width: 8),
-                      ],
+                      GestureDetector(
+                        onTap: () => _navigateToSubItem("Admin Overview"),
+                        child: Text(activeCategory.title.toUpperCase(), 
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1))),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8.0),
+                        child: Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 14),
+                      ),
                       Expanded(
                         child: Text(activeSubItem.title, 
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kBrandBrown)),
+                      ),
+                      const SizedBox(width: 20),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: kBrandOlive.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_today_rounded, size: 12, color: kBrandOlive),
+                            const SizedBox(width: 8),
+                            Text(DateFormat('EEE, d MMM yyyy').format(DateTime.now()), 
+                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kBrandOlive)),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -867,12 +867,45 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
                       : activeSubItem.page,
                   ),
                 ),
+                _buildPortalFooter(isMobile),
               ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildPortalFooter(bool isMobile) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Colors.grey.shade100)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text("© 2026 AGE Africa Management Portal", 
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey.shade400)),
+          if (!isMobile)
+            Row(
+              children: [
+                _footerLink("System Privacy"),
+                const SizedBox(width: 20),
+                _footerLink("User Manual"),
+                const SizedBox(width: 20),
+                _footerLink("Technical Support"),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _footerLink(String label) {
+    return Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kBrandOlive));
   }
 
   Widget _buildDrawer(BuildContext context) {
@@ -884,124 +917,142 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
   }
 
   Widget _buildSidebar({bool isDrawer = false}) {
+    const Color brandBrown = Color(0xFF4C3C32);
+    const Color brandCream = Color(0xFFFAF2DB);
+    const Color brandCreamDark = Color(0xFFF3E7C4);
+    const Color brandOrange = Color(0xFFE05B1C);
+    const Color brandOlive = Color(0xFF9AB334);
+
     return Container(
-      color: kBrandCream,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(right: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
       child: Column(
         children: [
+          // Sidebar Profile Header Section
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-            color: kBrandCreamDark,
+            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+            color: Colors.white,
             child: Column(
               children: [
-                CircleAvatar(
-                  radius: 40,
-                  backgroundColor: kBrandBrown,
-                  child: ClipOval(
-                    child: _profileImageUrl != null
-                        ? Image.network(
-                            ApiService.getFullUrl(_profileImageUrl),
-                            fit: BoxFit.cover,
-                            width: 80,
-                            height: 80,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const Icon(Icons.person_rounded, size: 45, color: kBrandCream),
-                          )
-                        : const Icon(Icons.person_rounded, size: 45, color: kBrandCream),
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: brandOlive.withOpacity(0.2), width: 2),
+                  ),
+                  child: CircleAvatar(
+                    radius: 38,
+                    backgroundColor: brandBrown,
+                    backgroundImage: _profileImageUrl != null
+                        ? NetworkImage(ApiService.getFullUrl(_profileImageUrl))
+                        : null,
+                    child: _profileImageUrl == null
+                        ? const Icon(Icons.admin_panel_settings_rounded, size: 40, color: Colors.white)
+                        : null,
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 Text(
                   _fullName,
-                  style: const TextStyle(color: kBrandBrown, fontSize: 16, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: brandBrown, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: -0.5),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  _userRole.toUpperCase(),
-                  style: const TextStyle(color: kBrandOrange, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: brandOlive.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    _userRole.toUpperCase(),
+                    style: const TextStyle(color: brandOlive, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+                  ),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1, color: Color(0xFFDCD1B4)),
+          const Divider(height: 1),
+
+          // Navigation Menu Header
           Padding(
-            padding: const EdgeInsets.only(left: 16, top: 16, right: 16, bottom: 8),
+            padding: const EdgeInsets.only(left: 24, top: 24, right: 16, bottom: 12),
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                "ADMINISTRATIVE SERVICES",
+                "SYSTEM NAVIGATION",
                 style: TextStyle(
-                  color: kBrandBrown.withOpacity(0.6),
+                  color: Colors.grey.shade400,
                   fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.1,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.5,
                 ),
               ),
             ),
           ),
+
+          // Scrollable list of ExpansionTiles
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.only(bottom: 20),
-              itemCount: _categories.length + 1,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              itemCount: _categories.length,
               itemBuilder: (context, index) {
-                if (index == _categories.length) {
-                  return Column(
-                    children: [
-                      const Divider(height: 1, color: Color(0xFFDCD1B4)),
-                      ListTile(
-                        leading: const Icon(Icons.logout_rounded, color: Colors.redAccent),
-                        title: const Text(
-                          "Logout Session",
-                          style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 14),
-                        ),
-                        onTap: () {
-                          ApiService.logout();
-                          Navigator.pushReplacementNamed(context, '/login');
-                        },
-                      ),
-                    ],
-                  );
-                }
-
                 final category = _categories[index];
                 final isSelectedCategory = activeCategoryIndex == index;
 
                 return Theme(
-                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                  data: Theme.of(context).copyWith(
+                    dividerColor: Colors.transparent,
+                    hoverColor: brandCream.withOpacity(0.3),
+                  ),
                   child: ExpansionTile(
                     key: PageStorageKey('admin_cat_${category.title}'),
                     initiallyExpanded: isSelectedCategory,
-                    collapsedIconColor: kBrandBrown,
-                    iconColor: kBrandOrange,
-                    collapsedTextColor: kBrandBrown,
-                    textColor: kBrandBrown,
-                    leading: Icon(category.icon),
+                    collapsedIconColor: Colors.grey.shade500,
+                    iconColor: brandOlive,
+                    collapsedTextColor: brandBrown,
+                    textColor: brandBrown,
+                    tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    leading: Icon(category.icon, size: 20),
                     title: Text(
                       category.title,
-                      style: TextStyle(fontWeight: isSelectedCategory ? FontWeight.bold : FontWeight.w500, fontSize: 14),
+                      style: TextStyle(
+                        fontWeight: isSelectedCategory ? FontWeight.w900 : FontWeight.w600,
+                        fontSize: 13,
+                        color: isSelectedCategory ? brandBrown : Colors.grey.shade700,
+                      ),
                     ),
                     children: category.subItems.where((s) => s.isVisible).map((subItem) {
                       int subIdx = category.subItems.indexOf(subItem);
                       final isSelectedSubItem = isSelectedCategory && activeSubIndex == subIdx;
 
                       return Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+                        margin: const EdgeInsets.only(left: 8, bottom: 2),
                         decoration: BoxDecoration(
-                          color: isSelectedSubItem ? kBrandOlive.withOpacity(0.15) : Colors.transparent,
-                          borderRadius: BorderRadius.circular(8),
+                          color: isSelectedSubItem
+                              ? brandOlive.withOpacity(0.08)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: ListTile(
                           dense: true,
-                          leading: Icon(subItem.icon, size: 18, color: isSelectedSubItem ? kBrandOrange : Colors.black54),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                          leading: Icon(
+                            subItem.icon,
+                            size: 16,
+                            color: isSubSelected(isSelectedCategory, activeSubIndex, subIdx) ? brandOlive : Colors.grey.shade500,
+                          ),
                           title: Text(
                             subItem.title,
                             style: TextStyle(
-                              color: isSelectedSubItem ? kBrandOrange : Colors.black87,
-                              fontWeight: isSelectedSubItem ? FontWeight.bold : FontWeight.normal,
-                              fontSize: 13,
+                              color: isSubSelected(isSelectedCategory, activeSubIndex, subIdx) ? brandBrown : Colors.grey.shade600,
+                              fontWeight: isSubSelected(isSelectedCategory, activeSubIndex, subIdx) ? FontWeight.w900 : FontWeight.w500,
+                              fontSize: 12.5,
                             ),
                           ),
-                          trailing: isSelectedSubItem ? const Icon(Icons.circle, size: 8, color: kBrandOrange) : null,
                           onTap: () {
                             setState(() {
                               activeCategoryIndex = index;
@@ -1014,6 +1065,22 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
                     }).toList(),
                   ),
                 );
+              },
+            ),
+          ),
+          
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: ListTile(
+              leading: const Icon(Icons.logout_rounded, color: Colors.redAccent, size: 20),
+              title: const Text(
+                "End Session",
+                style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w900, fontSize: 13),
+              ),
+              onTap: () {
+                ApiService.logout();
+                Navigator.pushReplacementNamed(context, '/login');
               },
             ),
           ),

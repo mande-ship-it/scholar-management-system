@@ -763,14 +763,15 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ),
         ),
         appBar: AppBar(
-          elevation: 2,
+          elevation: 1,
           toolbarHeight: 48,
-          shadowColor: brandBrown.withOpacity(0.3),
-          backgroundColor: brandBrown,
+          shadowColor: Colors.black.withOpacity(0.05),
+          backgroundColor: Colors.white,
+          foregroundColor: brandBrown,
           leadingWidth: isMobile ? 56 : 280,
           leading: isMobile 
             ? IconButton(
-                icon: const Icon(Icons.menu, color: Colors.white, size: 24),
+                icon: const Icon(Icons.menu, color: brandBrown, size: 24),
                 onPressed: () => _scaffoldKey.currentState?.openDrawer(),
               )
             : Row(
@@ -783,7 +784,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     child: Image.asset('assets/images/age-logo.png', fit: BoxFit.contain),
                   ),
                   const SizedBox(width: 8),
-                  IconButton(icon: const Icon(Icons.menu, color: Colors.white, size: 20), onPressed: () => setState(() => _isSidebarVisible = !_isSidebarVisible)),
+                  IconButton(
+                    icon: const Icon(Icons.menu, color: brandBrown, size: 20), 
+                    onPressed: () => setState(() => _isSidebarVisible = !_isSidebarVisible)),
                 ],
               ),
           title: _isSearching
@@ -791,7 +794,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 alignment: Alignment.centerLeft,
                 width: 450,
                 height: 42,
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F3F4),
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 child: CompositedTransformTarget(
                   link: _searchLayerLink,
                   child: TextField(
@@ -804,38 +810,57 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       prefixIcon: const Icon(Icons.search, color: brandOlive, size: 20),
                       suffixIcon: IconButton(icon: const Icon(Icons.close, color: Colors.grey, size: 18), onPressed: _stopSearching),
                       border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(vertical: 11),
                     ),
                   ),
                 ),
               )
-            : Text(isMobile ? "AGE System" : "AGE Africa System", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 16)),
+            : Text(isMobile ? "AGE System" : "AGE Africa Student Portal", 
+                style: const TextStyle(color: brandBrown, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: -0.5)),
           actions: [
-            IconButton(icon: const Icon(Icons.auto_awesome, color: Colors.white), onPressed: () => _scaffoldKey.currentState?.openEndDrawer()),
-            if (!isMobile) IconButton(icon: const Icon(Icons.search, color: Colors.white), onPressed: _startSearching),
+            IconButton(icon: const Icon(Icons.auto_awesome_outlined, color: brandOlive), onPressed: () => _scaffoldKey.currentState?.openEndDrawer()),
+            if (!isMobile) IconButton(icon: const Icon(Icons.search, color: brandBrown), onPressed: _startSearching),
             Stack(
               children: [
-                IconButton(icon: const Icon(Icons.notifications, color: Colors.white), onPressed: () {
+                IconButton(icon: const Icon(Icons.notifications_none_rounded, color: brandBrown), onPressed: () {
                   setState(() => _notificationCount = 0);
                   ApiService.markAllNotificationsRead();
                   _navigateToSubItem("Notifications");
                 }),
                 if (_notificationCount > 0)
-                  Positioned(right: 8, top: 8, child: Container(padding: const EdgeInsets.all(2), decoration: BoxDecoration(color: brandOrange, shape: BoxShape.circle), constraints: const BoxConstraints(minWidth: 18, minHeight: 18), child: Text('$_notificationCount', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold), textAlign: TextAlign.center))),
+                  Positioned(
+                    right: 8, 
+                    top: 8, 
+                    child: Container(
+                      padding: const EdgeInsets.all(2), 
+                      decoration: BoxDecoration(color: brandOrange, shape: BoxShape.circle), 
+                      constraints: const BoxConstraints(minWidth: 16, minHeight: 18), 
+                      child: Text('$_notificationCount', 
+                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold), 
+                        textAlign: TextAlign.center))),
               ],
             ),
             const SizedBox(width: 8),
-            if (!isMobile) const VerticalDivider(color: Colors.white24, width: 1, indent: 12, endIndent: 12),
+            if (!isMobile) const VerticalDivider(color: Color(0xFFEEEEEE), width: 1, indent: 16, endIndent: 16),
             if (!isMobile) const SizedBox(width: 12),
             if (!isMobile)
               GestureDetector(
                 onTap: () => _navigateToSubItem("User Profile"),
-                child: SizedBox(
-                  width: 120,
-                  child: _MovingText(
-                    text: _fullName,
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
-                  ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    SizedBox(
+                      width: 120,
+                      child: _MovingText(
+                        text: _fullName,
+                        style: const TextStyle(color: brandBrown, fontWeight: FontWeight.w900, fontSize: 13),
+                      ),
+                    ),
+                    Text(_userRole.toUpperCase(), style: TextStyle(color: brandOlive, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                  ],
                 ),
               ),
             const SizedBox(width: 12),
@@ -857,7 +882,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     value: 'profile',
                     child: Row(
                       children: [
-                        const Icon(Icons.person_outline, size: 20, color: Color(0xFF4C3C32)),
+                        const Icon(Icons.person_outline, size: 20, color: brandBrown),
                         const SizedBox(width: 12),
                         const Text("View Profile", style: TextStyle(fontWeight: FontWeight.w600)),
                       ],
@@ -910,27 +935,59 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 children: [
                   Container(
                     width: double.infinity,
-                    padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 8),
-                    color: Colors.white,
+                    padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 12),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+                    ),
                     child: Row(
                       children: [
                         if (_navigationHistory.isNotEmpty || _currentDetailScholarId != null) 
-                          IconButton(icon: const Icon(Icons.arrow_back, color: Colors.black87, size: 18), onPressed: _popSubItem),
+                          IconButton(
+                            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF4C3C32), size: 16), 
+                            onPressed: _popSubItem,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                        if (_navigationHistory.isNotEmpty || _currentDetailScholarId != null) const SizedBox(width: 16),
                         if (!isMobile) ...[
-                          Text(activeCategory.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black54)),
-                          const Icon(Icons.chevron_right, color: Colors.grey, size: 16),
+                          GestureDetector(
+                            onTap: () => _navigateToSubItem("Overview"),
+                            child: Text(activeCategory.title.toUpperCase(), 
+                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1))),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8.0),
+                            child: Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 14),
+                          ),
                         ],
                         Expanded(
                           child: Text(
                             _currentDetailScholarId != null ? "Scholar Profile" : activeSubItem.title, 
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF4C3C32)),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        if (!isMobile) ...[
+                          const SizedBox(width: 20),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF9AB334).withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.calendar_today_rounded, size: 12, color: Color(0xFF9AB334)),
+                                const SizedBox(width: 8),
+                                Text(DateFormat('EEE, d MMM yyyy').format(DateTime.now()), 
+                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF9AB334))),
+                              ],
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
-                  const Divider(height: 1),
                   Expanded(
                     child: Padding(
                       padding: EdgeInsets.all(isMobile ? 12 : 24),
@@ -941,6 +998,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           : activeSubItem.page,
                     ),
                   ),
+                  _buildPortalFooter(isMobile),
                 ],
               ),
             ),
@@ -950,113 +1008,198 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
+  Widget _buildPortalFooter(bool isMobile) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Colors.grey.shade100)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text("© 2026 AGE Africa Student Portal", 
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey.shade400)),
+          if (!isMobile)
+            Row(
+              children: [
+                _footerLink("Privacy Policy"),
+                const SizedBox(width: 20),
+                _footerLink("Help Center"),
+                const SizedBox(width: 20),
+                _footerLink("Contact Registrar"),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _footerLink(String label) {
+    return Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF9AB334)));
+  }
+
   Widget _buildSidebar(List<SidebarCategory> visibleCategories, bool isMobile) {
     const Color brandBrown = Color(0xFF4C3C32);
     const Color brandCream = Color(0xFFFAF2DB);
     const Color brandCreamDark = Color(0xFFF3E7C4);
     const Color brandOrange = Color(0xFFE05B1C);
+    const Color brandOlive = Color(0xFF9AB334);
 
     return Container(
-      color: brandCream,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(right: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
       child: Column(
         children: [
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-            color: brandCreamDark,
+            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+            color: Colors.white,
             child: Column(
               children: [
                 if (isMobile) ...[
                   Align(
                     alignment: Alignment.centerLeft,
-                    child: Image.asset('assets/images/age-logo.png', height: 40, fit: BoxFit.contain),
+                    child: Image.asset('assets/images/age-logo.png', height: 36, fit: BoxFit.contain),
                   ),
                   const SizedBox(height: 20),
                 ],
                 GestureDetector(
                   onTap: _pickAndUploadImage,
-                  child: Stack(
-                    children: [
-                      CircleAvatar(
-                        radius: 40,
-                        backgroundColor: brandBrown,
-                        child: ClipOval(
-                          child: _profileImageUrl != null
-                              ? Image.network(
-                                  ApiService.getFullUrl(_profileImageUrl),
-                                  fit: BoxFit.cover,
-                                  width: 80,
-                                  height: 80,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      const Icon(Icons.person, size: 45, color: brandCream),
-                                )
-                              : const Icon(Icons.person, size: 45, color: brandCream),
-                        ),
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: brandOlive.withOpacity(0.2), width: 2),
+                    ),
+                    child: CircleAvatar(
+                      radius: 38,
+                      backgroundColor: brandBrown,
+                      child: ClipOval(
+                        child: _profileImageUrl != null
+                            ? Image.network(
+                                ApiService.getFullUrl(_profileImageUrl),
+                                fit: BoxFit.cover,
+                                width: 76,
+                                height: 76,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const Icon(Icons.person, size: 40, color: Colors.white),
+                              )
+                            : const Icon(Icons.person, size: 40, color: Colors.white),
                       ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(color: Color(0xFFE05B1C), shape: BoxShape.circle),
-                          child: const Icon(Icons.camera_alt, size: 14, color: Colors.white),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                Text(_fullName, style: const TextStyle(color: brandBrown, fontSize: 16, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 16),
+                Text(_fullName, 
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: brandBrown, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
                 const SizedBox(height: 4),
-                Text(_userRole, style: const TextStyle(color: Colors.black54, fontSize: 12)),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: brandOlive.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(_userRole.toUpperCase(), 
+                    style: const TextStyle(color: brandOlive, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                ),
               ],
             ),
           ),
-          const Divider(height: 1, color: Color(0xFFDCD1B4)),
+          const Divider(height: 1),
+          
+          Padding(
+            padding: const EdgeInsets.only(left: 24, top: 24, right: 16, bottom: 12),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                "MAIN NAVIGATION",
+                style: TextStyle(
+                  color: Colors.grey.shade400,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.5,
+                ),
+              ),
+            ),
+          ),
+
           Expanded(
             child: ListView.builder(
-              padding: EdgeInsets.zero,
-              itemCount: visibleCategories.length + 1,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              itemCount: visibleCategories.length,
               itemBuilder: (context, index) {
-                if (index == visibleCategories.length) {
-                  return ListTile(
-                    leading: const Icon(Icons.logout_rounded, color: Colors.redAccent), 
-                    title: const Text("Logout Session", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 14)), 
-                    onTap: () { 
-                      ApiService.logout(); 
-                      Navigator.pushReplacementNamed(context, '/login'); 
-                    }
-                  );
-                }
                 final category = visibleCategories[index];
                 int originalIdx = _categories.indexWhere((c) => c.title == category.title);
                 final isSelected = activeCategoryIndex == originalIdx;
 
                 return Theme(
-                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                  data: Theme.of(context).copyWith(
+                    dividerColor: Colors.transparent,
+                    hoverColor: brandCream.withOpacity(0.3),
+                  ),
                   child: ExpansionTile(
                     initiallyExpanded: isSelected,
-                    leading: Icon(category.icon),
-                    title: Text(category.title, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.w500, fontSize: 14)),
+                    collapsedIconColor: Colors.grey.shade500,
+                    iconColor: brandOlive,
+                    collapsedTextColor: brandBrown,
+                    textColor: brandBrown,
+                    tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    leading: Icon(category.icon, size: 20),
+                    title: Text(category.title, 
+                      style: TextStyle(
+                        fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600, 
+                        fontSize: 13,
+                        color: isSelected ? brandBrown : Colors.grey.shade700,
+                      )),
                     children: category.subItems.where((s) => s.isVisible).map((subItem) {
                       int subIdx = _categories[originalIdx].subItems.indexWhere((s) => s.title == subItem.title);
                       final isSubSelected = isSelected && activeSubIndex == subIdx;
-                      return ListTile(
-                        dense: true,
-                        leading: Icon(subItem.icon, size: 18, color: isSubSelected ? brandOrange : Colors.black54),
-                        title: Text(subItem.title, style: TextStyle(color: isSubSelected ? brandOrange : Colors.black87, fontWeight: isSubSelected ? FontWeight.bold : FontWeight.normal, fontSize: 13)),
-                        onTap: () {
-                          setState(() { 
-                            activeCategoryIndex = originalIdx; 
-                            activeSubIndex = subIdx; 
-                          });
-                          if (isMobile) Navigator.pop(context);
-                        },
+                      
+                      return Container(
+                        margin: const EdgeInsets.only(left: 8, bottom: 2),
+                        decoration: BoxDecoration(
+                          color: isSubSelected ? brandOlive.withOpacity(0.08) : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: ListTile(
+                          dense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                          leading: Icon(subItem.icon, size: 16, color: isSubSelected ? brandOlive : Colors.grey.shade500),
+                          title: Text(subItem.title, 
+                            style: TextStyle(
+                              color: isSubSelected ? brandBrown : Colors.grey.shade600, 
+                              fontWeight: isSubSelected ? FontWeight.w900 : FontWeight.w500, 
+                              fontSize: 12.5)),
+                          onTap: () {
+                            setState(() { 
+                              activeCategoryIndex = originalIdx; 
+                              activeSubIndex = subIdx; 
+                            });
+                            if (isMobile) Navigator.pop(context);
+                          },
+                        ),
                       );
                     }).toList(),
                   ),
                 );
               },
+            ),
+          ),
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: ListTile(
+              leading: const Icon(Icons.logout_rounded, color: Colors.redAccent, size: 20), 
+              title: const Text("End Session", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w900, fontSize: 13)), 
+              onTap: () { 
+                ApiService.logout(); 
+                Navigator.pushReplacementNamed(context, '/login'); 
+              }
             ),
           ),
         ],

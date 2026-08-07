@@ -198,33 +198,58 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
 
   Widget _summaryCard(dynamic item, Color color, bool isExpanded) {
     Widget content = Container(
-      margin: const EdgeInsets.only(right: 0),
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 1)],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
-      child: Column(
+      child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: color.withOpacity(0.1),
-              shape: BoxShape.circle,
+              borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(_getIcon(item['icon']), color: color, size: 18),
+            child: Icon(_getIcon(item['icon']), color: color, size: 28),
           ),
-          const SizedBox(height: 12),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text("${item['value']}", 
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: textPrimary, letterSpacing: -0.5)),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  "${item['value']}", 
+                  style: const TextStyle(
+                    fontSize: 26, 
+                    fontWeight: FontWeight.w900, 
+                    color: Color(0xFF4C3C32), 
+                    letterSpacing: -1
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  item['label'].toString().toUpperCase(), 
+                  style: TextStyle(
+                    fontSize: 10, 
+                    fontWeight: FontWeight.w900, 
+                    color: Colors.grey.shade400, 
+                    letterSpacing: 1.0
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 4),
-          Text(item['label'].toString().toUpperCase(), 
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: textSecondary, letterSpacing: 0.5)),
         ],
       ),
     );
@@ -564,18 +589,42 @@ class _DashboardCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         color: Colors.white, 
-        borderRadius: BorderRadius.circular(12), 
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 1)]
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF1C2B20), letterSpacing: -0.3)),
-          Text(subtitle, style: const TextStyle(fontSize: 13, color: Color(0xFF6B7A6E), fontWeight: FontWeight.w500)),
-          const SizedBox(height: 24),
+          Text(
+            title.toUpperCase(), 
+            style: const TextStyle(
+              fontSize: 11, 
+              fontWeight: FontWeight.w900, 
+              color: Color(0xFF9AB334), 
+              letterSpacing: 1.5
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            subtitle, 
+            style: const TextStyle(
+              fontSize: 15, 
+              fontWeight: FontWeight.w900, 
+              color: Color(0xFF4C3C32), 
+              letterSpacing: -0.5
+            ),
+          ),
+          const SizedBox(height: 32),
           child,
         ],
       ),

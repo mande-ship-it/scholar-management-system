@@ -92,13 +92,76 @@ class MyApp extends StatelessWidget {
           themeMode: mode,
           theme: ThemeData(
             useMaterial3: true,
+            scaffoldBackgroundColor: const Color(0xFFF8F9FA),
             colorScheme: ColorScheme.fromSeed(
               seedColor: Colors.green,
+              primary: const Color(0xFF4C3C32),
+              secondary: const Color(0xFF9AB334),
+              surface: Colors.white,
+              error: const Color(0xFFE05B1C),
               brightness: Brightness.light,
+            ),
+            cardTheme: CardThemeData(
+              color: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: const BorderSide(color: Color(0xFFEEEEEE), width: 1),
+              ),
+            ),
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Color(0xFF4C3C32),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              centerTitle: false,
+              titleTextStyle: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+                letterSpacing: -0.2,
+              ),
+            ),
+            inputDecorationTheme: InputDecorationTheme(
+              filled: true,
+              fillColor: const Color(0xFFF1F3F4),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Color(0xFF9AB334), width: 1.5),
+              ),
+              labelStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+              hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+            ),
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4C3C32),
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+            ),
+            textTheme: const TextTheme(
+              displayLarge: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), letterSpacing: -1),
+              titleLarge: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF4C3C32), letterSpacing: -0.5),
+              bodyLarge: TextStyle(fontSize: 16, color: Colors.black87),
+              bodyMedium: TextStyle(fontSize: 14, color: Colors.black54),
             ),
           ),
           darkTheme: ThemeData(
             useMaterial3: true,
+            brightness: Brightness.dark,
             colorScheme: ColorScheme.fromSeed(
               seedColor: Colors.green,
               brightness: Brightness.dark,

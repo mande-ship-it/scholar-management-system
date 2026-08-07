@@ -272,77 +272,89 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
   }
 
   Widget _buildQuickActions(bool isSmallScreen) {
-    if (isSmallScreen) {
-      return Column(
-        children: [
-          _buildLevelToggle(true),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              _actionBtn("Scholars", Icons.people_outline_rounded, kBrandBrown, true),
-              const SizedBox(width: 12),
-              _actionBtn("Academics", Icons.school_outlined, kBrandOlive, true),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _actionBtn("University CHATs", Icons.forum_rounded, kBrandOrange, false),
-        ],
-      );
-    }
-    return Row(
-      children: [
-        _actionBtn("View Scholars", Icons.people_outline_rounded, kBrandBrown, true),
-        const SizedBox(width: 14),
-        _actionBtn("Academics", Icons.school_outlined, kBrandOlive, true),
-        const SizedBox(width: 14),
-        _actionBtn("University CHATs", Icons.forum_rounded, kBrandOrange, true),
-      ],
+    final actions = [
+      ("Scholars Registry", Icons.people_outline_rounded, kBrandBrown, "View Scholars"),
+      ("Academic Records", Icons.school_outlined, kBrandOlive, "View Results"),
+      ("Session Attendance", Icons.forum_rounded, kBrandOrange, "Scholar Attendance"),
+      ("Program Events", Icons.event_available_rounded, const Color(0xFF1976D2), "Events & Programs"),
+    ];
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: isSmallScreen ? 2 : 4,
+        crossAxisSpacing: isSmallScreen ? 12 : 20,
+        mainAxisSpacing: isSmallScreen ? 12 : 20,
+        childAspectRatio: isSmallScreen ? 1.3 : 1.6,
+      ),
+      itemCount: actions.length,
+      itemBuilder: (context, i) => _buildPortalActionCard(
+        actions[i].$1, 
+        actions[i].$2, 
+        actions[i].$3, 
+        actions[i].$4,
+        isSmallScreen
+      ),
     );
   }
 
-  Widget _actionBtn(String label, IconData icon, Color color, bool isExpanded) {
-    String target;
-    if (label.contains("Scholars")) {
-      target = "View Scholars";
-    } else if (label.contains("Academics")) {
-      target = "View Results";
-    } else {
-      target = "Scholar Attendance";
-    }
-
-    Widget content = InkWell(
-      onTap: () {
-        if (target == "Scholar Attendance") {
-           // For University on general dashboard, force CHATS attendance
-           Navigator.pushNamed(context, '/scholarAttendance', arguments: {
-             'forcedSchoolType': SchoolType.university,
-             'forcedModuleType': 'chats'
-           });
-        } else {
-          widget.onNavigate?.call(target);
-        }
-      },
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.2), width: 1.2),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 2))],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: 18),
-            const SizedBox(width: 8),
-            Text(label, style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 13, letterSpacing: -0.2)),
-          ],
+  Widget _buildPortalActionCard(String label, IconData icon, Color color, String target, bool isSmallScreen) {
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: () {
+          if (target == "Scholar Attendance") {
+            Navigator.pushNamed(context, '/scholarAttendance', arguments: {
+              'forcedSchoolType': SchoolType.university,
+              'forcedModuleType': 'chats'
+            });
+          } else {
+            widget.onNavigate?.call(target);
+          }
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: EdgeInsets.all(isSmallScreen ? 16 : 20),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade200),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: isSmallScreen ? 20 : 24),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: isSmallScreen ? 11 : 13,
+                  fontWeight: FontWeight.w900,
+                  color: kBrandBrown,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
-
-    return isExpanded ? Expanded(child: content) : content;
   }
 
   Widget _buildAdminControlPanel(bool isSmallScreen) {

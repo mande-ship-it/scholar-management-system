@@ -93,15 +93,13 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
               return;
             }
 
-            final bool hasAdminAccess = [
-              'administrator', 'program manager', 'program coordinator', 'country director'
-            ].contains(normalizedRole);
+            final bool isStrictAdmin = normalizedRole == 'administrator';
 
             final bool isFieldOfficer = [
               'field officer', 'field coordinator', 'field operations'
             ].contains(normalizedRole);
 
-            if (hasAdminAccess) {
+            if (isStrictAdmin) {
               Navigator.pushReplacementNamed(context, '/admin/home', arguments: {
                 'username': userData['fullName'] ?? _usernameController.text.trim(),
                 'role': role,

@@ -448,119 +448,87 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
     final bool isMobile = MediaQuery.of(context).size.width < 900;
     
     return Container(
-      padding: EdgeInsets.fromLTRB(isMobile ? 16 : 24, 20, isMobile ? 16 : 24, 20),
-      child: isMobile
-        ? Column(
-            children: [
-              Row(
-                children: [
-                  IconButton(
-                    onPressed: () => setState(() {
-                      _mode = ViewResultsMode.selection;
-                      _selectedDistrict = null;
-                      _selectedSchool = null;
-                      _selectedScholarId = null;
-                      _selectedYear = null;
-                      _selectedTerm = null;
-                      _selectedSemester = null;
-                    }),
-                    icon: const Icon(Icons.arrow_back_rounded),
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(isMobile ? 16 : 32, 32, isMobile ? 16 : 32, 24),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Row(
+        children: [
+          IconButton.filledTonal(
+            onPressed: () => setState(() {
+              _mode = ViewResultsMode.selection;
+              _selectedDistrict = null;
+              _selectedSchool = null;
+              _selectedScholarId = null;
+              _selectedYear = null;
+              _selectedTerm = null;
+              _selectedSemester = null;
+            }),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16),
+            style: IconButton.styleFrom(
+              backgroundColor: kBrandBrown.withOpacity(0.05),
+              foregroundColor: kBrandBrown,
+            ),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isSecondary ? "SECONDARY ACADEMIC AUDIT" : "TERTIARY ACADEMIC AUDIT",
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF9AB334),
+                    letterSpacing: 1.5,
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(isSecondary ? "Secondary Audit" : "University Audit",
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Examination Performance Ledger",
+                  style: TextStyle(
+                    fontSize: isMobile ? 18 : 22, 
+                    fontWeight: FontWeight.w900, 
+                    color: kBrandBrown, 
+                    letterSpacing: -0.5
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    if (_selectedSchool != null || (isSecondary && _selectedDistrict != null)) ...[
-                      _headerActionBtn(
-                        onTap: _openConsolidatedRoster,
-                        icon: Icons.grid_view_rounded,
-                        label: "ROSTER",
-                        color: kBrandBrown,
-                      ),
-                      const SizedBox(width: 12),
-                    ],
-                    _headerActionBtn(
-                      onTap: widget.onEnterResults ?? () => Navigator.pushNamed(context, '/academics/enterResults'),
-                      icon: Icons.add_rounded,
-                      label: "RECORD NEW",
-                      color: kBrandOlive,
-                    ),
-                  ],
                 ),
-              ),
-            ],
-          )
-        : Row(
+              ],
+            ),
+          ),
+          Wrap(
+            spacing: 12,
             children: [
-              IconButton(
-                onPressed: () => setState(() {
-                  _mode = ViewResultsMode.selection;
-                  _selectedDistrict = null;
-                  _selectedSchool = null;
-                  _selectedScholarId = null;
-                  _selectedYear = null;
-                  _selectedTerm = null;
-                  _selectedSemester = null;
-                }),
-                icon: const Icon(Icons.arrow_back_rounded),
-              ),
-              const SizedBox(width: 16),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: kBrandBrown.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
-                child: Icon(isSecondary ? Icons.account_balance_rounded : Icons.auto_stories_rounded, color: kBrandBrown, size: 24),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(isSecondary ? "Secondary Results Audit" : "University Results Audit",
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                    Text(isSecondary ? "Viewing standings by district." : "Monitoring performance by university.",
-                      style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              if (_selectedSchool != null || (_mode == ViewResultsMode.secondary && _selectedDistrict != null))
-                ElevatedButton.icon(
+              if (_selectedSchool != null || (isSecondary && _selectedDistrict != null))
+                OutlinedButton.icon(
                   onPressed: _openConsolidatedRoster,
-                  icon: const Icon(Icons.grid_view_rounded, size: 18),
-                  label: Text(_selectedSchool != null 
-                    ? (_mode == ViewResultsMode.university ? "UNIVERSITY ROSTER" : "SCHOOL ROSTER")
-                    : "DISTRICT ROSTER"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kBrandBrown,
-                    foregroundColor: Colors.white,
+                  icon: const Icon(Icons.grid_view_rounded, size: 16),
+                  label: const Text("GENERATE ROSTER"),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: kBrandBrown,
+                    side: const BorderSide(color: Color(0xFFEEEEEE)),
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                 ),
-              const SizedBox(width: 12),
               ElevatedButton.icon(
                 onPressed: widget.onEnterResults ?? () => Navigator.pushNamed(context, '/academics/enterResults'),
                 icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text("RECORD NEW RESULTS"),
+                label: const Text("RECORD RESULTS"),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: kBrandOlive,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
               ),
             ],
           ),
+        ],
+      ),
     );
   }
 

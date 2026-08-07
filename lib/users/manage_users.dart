@@ -325,43 +325,59 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
 
   Widget _buildProfessionalHeader(bool isMobile) {
     return Container(
-      padding: EdgeInsets.fromLTRB(isMobile ? 16 : 32, 24, isMobile ? 16 : 32, 12),
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(isMobile ? 16 : 32, 32, isMobile ? 16 : 32, 24),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
       child: Row(
         children: [
-          if (!isMobile) ...[
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: kBrandBrown.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.manage_accounts_rounded, color: kBrandBrown, size: 20),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: kBrandOlive.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
             ),
-            const SizedBox(width: 16),
-          ],
+            child: const Icon(Icons.manage_accounts_rounded, color: kBrandOlive, size: 24),
+          ),
+          const SizedBox(width: 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("User Administration", 
-                  style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                const Text("Identity and access control center.", 
-                  style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                const Text(
+                  "USER ADMINISTRATION",
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF9AB334),
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Identity & Access Governance",
+                  style: TextStyle(
+                    fontSize: isMobile ? 18 : 22, 
+                    fontWeight: FontWeight.w900, 
+                    color: kBrandBrown, 
+                    letterSpacing: -0.5
+                  ),
+                ),
               ],
             ),
           ),
           if (PermissionService.hasPermission('users.create'))
             ElevatedButton.icon(
               onPressed: widget.onAddUser,
-              icon: Icon(Icons.person_add_alt_1_rounded, size: isMobile ? 14 : 16),
-              label: Text(isMobile ? "ADD" : "REGISTER"),
+              icon: Icon(Icons.person_add_alt_1_rounded, size: 18),
+              label: const Text("REGISTER IDENTITY"),
               style: ElevatedButton.styleFrom(
-                backgroundColor: kBrandOlive,
+                backgroundColor: kBrandBrown,
                 foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: 14),
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
             ),
         ],
