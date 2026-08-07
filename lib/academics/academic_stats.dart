@@ -79,34 +79,33 @@ class _AcademicStatsComponentState extends State<AcademicStatsComponent> {
   }
 
   Widget _buildPortalHeader(bool isMobile) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "PERFORMANCE ANALYTICS",
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w900,
-            color: Color(0xFF9AB334),
-            letterSpacing: 2.0,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Academic Achievement Data",
+                  style: TextStyle(
+                    fontSize: isMobile ? 14 : 16, 
+                    fontWeight: FontWeight.w900, 
+                    color: const Color(0xFF4C3C32), 
+                    letterSpacing: -0.2
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          "Academic Achievement Data",
-          style: TextStyle(
-            fontSize: isMobile ? 22 : 28, 
-            fontWeight: FontWeight.w900, 
-            color: const Color(0xFF4C3C32), 
-            letterSpacing: -0.5
-          ),
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          "Longitudinal breakdown of scholarly achievements and historical performance trends.",
-          style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

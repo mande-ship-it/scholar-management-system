@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../academics/academics_utils.dart';
 import '../services/api_service.dart';
-import '../widgets/custom_loaders.dart';
 
 class PromoteScholarsComponent extends StatefulWidget {
   const PromoteScholarsComponent({super.key});
@@ -198,7 +197,7 @@ class _PromoteScholarsComponentState extends State<PromoteScholarsComponent> {
           _buildPortalFilterToolbar(isMobile),
           Expanded(
             child: _isLoading 
-                ? BeautifulLoader(isOverlay: false, message: "Auditing Promotion Eligibility...")
+                ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
                 : ListView.separated(
                     padding: EdgeInsets.all(isMobile ? 12 : 32),
                     itemCount: filteredStudents.length,
@@ -214,7 +213,7 @@ class _PromoteScholarsComponentState extends State<PromoteScholarsComponent> {
   Widget _buildPortalHeader(bool isMobile, List<Student> filtered) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(32, 32, 32, 24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
@@ -226,29 +225,14 @@ class _PromoteScholarsComponentState extends State<PromoteScholarsComponent> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "ACADEMIC PROMOTION",
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF9AB334),
-                    letterSpacing: 2.0,
-                  ),
-                ),
-                const SizedBox(height: 4),
                 Text(
                   "Progression Audit Portal",
                   style: TextStyle(
-                    fontSize: isMobile ? 20 : 26, 
+                    fontSize: isMobile ? 14 : 16, 
                     fontWeight: FontWeight.w900, 
                     color: const Color(0xFF4C3C32), 
-                    letterSpacing: -0.5
+                    letterSpacing: -0.2
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "Authorized personnel only: Upgrade scholar cohorts for the new academic cycle.",
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade400, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
@@ -256,13 +240,13 @@ class _PromoteScholarsComponentState extends State<PromoteScholarsComponent> {
           if (!isMobile && filtered.isNotEmpty)
             ElevatedButton.icon(
               onPressed: _isLoading ? null : () => _promoteAllFiltered(filtered),
-              icon: const Icon(Icons.verified_user_rounded, size: 18),
-              label: const Text("PROMOTIONAL UPGRADE (BULK)"),
+              icon: const Icon(Icons.verified_user_rounded, size: 14),
+              label: const Text("BULK UPGRADE", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFE05B1C),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
         ],

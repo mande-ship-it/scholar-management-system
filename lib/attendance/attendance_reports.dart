@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../academics/academics_utils.dart';
 import 'package:scholar_management_system/services/api_service.dart';
-import '../widgets/custom_loaders.dart';
 
 class AttendanceReportsComponent extends StatefulWidget {
   const AttendanceReportsComponent({super.key});
@@ -106,7 +105,7 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
                       const SizedBox(height: 32),
 
                       if (_isLoading)
-                        Center(child: Padding(padding: const EdgeInsets.all(100), child: BeautifulLoader(isOverlay: false, message: "Aggregating Report Data")))
+                        const Center(child: Padding(padding: EdgeInsets.all(100), child: CircularProgressIndicator(color: kBrandOlive)))
                       else if (_selectedSchool == null)
                         _buildSelectionPlaceholder(isMobile)
                       else ...[
@@ -135,7 +134,7 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: isMobile ? 24 : 40, vertical: isMobile ? 16 : 24),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 24 : 40, vertical: 8),
       decoration: BoxDecoration(
         color: isDark ? theme.cardColor : Colors.white,
         border: Border(bottom: BorderSide(color: theme.dividerColor)),
@@ -144,37 +143,22 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
         ? Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.analytics_rounded, color: kBrandOlive, size: 24),
-                  const SizedBox(width: 12),
-                  Text('Attendance Intel',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.5)),
-                ],
-              ),
-              const SizedBox(height: 16),
+              Text('Attendance Intel',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.5)),
+              const SizedBox(height: 8),
               _buildActionButtons(isMobile),
             ],
           )
         : Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: kBrandOlive.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.analytics_rounded, color: kBrandOlive, size: 24),
-              ),
-              const SizedBox(width: 20),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Attendance Intelligence',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.5)),
-                    const Text('Analyze program participation telemetry and targets.',
-                      style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.5)),
+                    const Text('Analyze program participation telemetry.',
+                      style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w500)),
                   ],
                 ),
               ),

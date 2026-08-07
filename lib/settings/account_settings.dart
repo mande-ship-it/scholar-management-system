@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:scholar_management_system/services/api_service.dart';
 import '../academics/academics_utils.dart';
-import '../widgets/custom_loaders.dart';
 
 class AccountSettingsComponent extends StatefulWidget {
   const AccountSettingsComponent({super.key});
@@ -140,7 +139,7 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
       ),
       clipBehavior: Clip.antiAlias,
       child: _isLoading 
-        ? Center(child: BeautifulLoader(isOverlay: false, message: "Syncing Profile"))
+        ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
         : Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -223,32 +222,19 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
 
   Widget _buildExecutiveHeader(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: Row(
         children: [
-          if (!isMobile) ...[
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: kBrandBrown.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.manage_accounts_rounded, color: kBrandBrown, size: 20),
-            ),
-            const SizedBox(width: 16),
-          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Account Preferences",
-                  style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                const Text("Update your digital identity.",
-                  style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                  style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.2)),
               ],
             ),
           ),
@@ -441,7 +427,7 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
   }
 
   Widget _sectionLabel(String text) {
-    return Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kBrandOlive.withValues(alpha: 0.8), letterSpacing: 1.5));
+    return Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kBrandOlive.withOpacity(0.8), letterSpacing: 1.5));
   }
 
   void _showChangePasswordDialog(BuildContext context) {

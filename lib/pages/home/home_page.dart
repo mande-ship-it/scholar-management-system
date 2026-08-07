@@ -156,11 +156,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       if (response.statusCode == 200) {
         final data = response.data['data'];
         if (data != null && mounted) {
-          final String role = data['role_name'] ?? "";
-          final String normalizedRole = role.trim().toLowerCase();
+          final String role = (data['role_name'] ?? "").toString().trim();
+          final String normalizedRole = role.toLowerCase();
           
           // 1. Strict Administrator -> Admin Portal
           if (normalizedRole == 'administrator') {
+            debugPrint('HOME PAGE: Admin detected, moving to Admin Portal.');
             Navigator.pushReplacementNamed(context, '/admin/home');
             return;
           }
@@ -174,6 +175,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ].contains(normalizedRole);
 
           if (isFieldOfficer) {
+            debugPrint('HOME PAGE: Field Officer detected, moving to Field Portal.');
             Navigator.pushReplacementNamed(
               context,
               '/field-operations/home',
@@ -186,12 +188,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             return;
           }
           // 3. Country Director, Program Coordinator, etc. -> Stay here (HomePage)
+          debugPrint('HOME PAGE: $role detected. Loading General Dashboard.');
 
           setState(() {
-            _fullName = data['full_name'] ?? "User";
+            _fullName = data['full_name'] ?? data['fullName'] ?? "User";
             _userRole = role;
-            _profileImageUrl = data['profile_picture'];
-            _currentUserId = data['id'];
+            _profileImageUrl = data['profile_picture'] ?? data['profilePicture'];
+            _currentUserId = data['id'] ?? data['_id'];
             _userPermissions = data['permissions'] ?? {};
           });
 
@@ -737,7 +740,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
     const Color brandBrown = Color(0xFF4C3C32);
     const Color brandCream = Color(0xFFFAF2DB);
-    const Color brandCreamDark = Color(0xFFF3E7C4);
     const Color brandOlive = Color(0xFF9AB334);
     const Color brandOrange = Color(0xFFE05B1C);
 
@@ -762,15 +764,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ),
         ),
         appBar: AppBar(
-          elevation: 1,
+          elevation: 2,
           toolbarHeight: 48,
-          shadowColor: Colors.black.withOpacity(0.05),
-          backgroundColor: Colors.white,
-          foregroundColor: brandBrown,
+          backgroundColor: brandBrown,
+          foregroundColor: Colors.white,
           leadingWidth: isMobile ? 56 : 280,
           leading: isMobile 
             ? IconButton(
-                icon: const Icon(Icons.menu, color: brandBrown, size: 24),
+                icon: const Icon(Icons.menu, color: Colors.white, size: 24),
                 onPressed: () => _scaffoldKey.currentState?.openDrawer(),
               )
             : Row(
@@ -784,7 +785,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   ),
                   const SizedBox(width: 8),
                   IconButton(
-                    icon: const Icon(Icons.menu, color: brandBrown, size: 20), 
+                    icon: const Icon(Icons.menu, color: Colors.white, size: 20), 
                     onPressed: () => setState(() => _isSidebarVisible = !_isSidebarVisible)),
                 ],
               ),
@@ -794,7 +795,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 width: 450,
                 height: 42,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1F3F4),
+                  color: Colors.white.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: CompositedTransformTarget(
@@ -803,11 +804,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     controller: _searchController,
                     focusNode: _searchFocusNode,
                     onChanged: _onSearchChanged,
-                    style: const TextStyle(color: brandBrown, fontSize: 14, fontWeight: FontWeight.w500),
+                    style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
                     decoration: InputDecoration(
                       hintText: "Search features...",
-                      prefixIcon: const Icon(Icons.search, color: brandOlive, size: 20),
-                      suffixIcon: IconButton(icon: const Icon(Icons.close, color: Colors.grey, size: 18), onPressed: _stopSearching),
+                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                      prefixIcon: const Icon(Icons.search, color: Colors.white, size: 20),
+                      suffixIcon: IconButton(icon: const Icon(Icons.close, color: Colors.white70, size: 18), onPressed: _stopSearching),
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
                       focusedBorder: InputBorder.none,
@@ -817,13 +819,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 ),
               )
             : Text(isMobile ? "AGE System" : "AGE Africa Student Portal", 
-                style: const TextStyle(color: brandBrown, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: -0.5)),
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: -0.5)),
           actions: [
-            IconButton(icon: const Icon(Icons.auto_awesome_outlined, color: brandOlive), onPressed: () => _scaffoldKey.currentState?.openEndDrawer()),
-            if (!isMobile) IconButton(icon: const Icon(Icons.search, color: brandBrown), onPressed: _startSearching),
+            IconButton(icon: const Icon(Icons.auto_awesome_outlined, color: Colors.white), onPressed: () => _scaffoldKey.currentState?.openEndDrawer()),
+            if (!isMobile) IconButton(icon: const Icon(Icons.search, color: Colors.white), onPressed: _startSearching),
             Stack(
               children: [
-                IconButton(icon: const Icon(Icons.notifications_none_rounded, color: brandBrown), onPressed: () {
+                IconButton(icon: const Icon(Icons.notifications_none_rounded, color: Colors.white), onPressed: () {
                   setState(() => _notificationCount = 0);
                   ApiService.markAllNotificationsRead();
                   _navigateToSubItem("Notifications");
@@ -842,7 +844,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ],
             ),
             const SizedBox(width: 8),
-            if (!isMobile) const VerticalDivider(color: Color(0xFFEEEEEE), width: 1, indent: 16, endIndent: 16),
+            if (!isMobile) VerticalDivider(color: Colors.white.withOpacity(0.2), width: 1, indent: 16, endIndent: 16),
             if (!isMobile) const SizedBox(width: 12),
             if (!isMobile)
               GestureDetector(
@@ -855,10 +857,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       width: 120,
                       child: _MovingText(
                         text: _fullName,
-                        style: const TextStyle(color: brandBrown, fontWeight: FontWeight.w900, fontSize: 13),
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13),
                       ),
                     ),
-                    Text(_userRole.toUpperCase(), style: TextStyle(color: brandOlive, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                    Text(_userRole.toUpperCase(), style: const TextStyle(color: brandOlive, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                   ],
                 ),
               ),
@@ -1043,12 +1045,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     const Color brandBrown = Color(0xFF4C3C32);
     const Color brandCream = Color(0xFFFAF2DB);
     const Color brandCreamDark = Color(0xFFF3E7C4);
-    const Color brandOrange = Color(0xFFE05B1C);
     const Color brandOlive = Color(0xFF9AB334);
 
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: brandCream,
         border: Border(right: BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: Column(
@@ -1056,7 +1057,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
-            color: Colors.white,
+            color: brandCreamDark,
             child: Column(
               children: [
                 if (isMobile) ...[
@@ -1118,7 +1119,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               child: Text(
                 "MAIN NAVIGATION",
                 style: TextStyle(
-                  color: Colors.grey.shade400,
+                  color: brandBrown.withOpacity(0.4),
                   fontSize: 10,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1.5,
@@ -1139,11 +1140,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 return Theme(
                   data: Theme.of(context).copyWith(
                     dividerColor: Colors.transparent,
-                    hoverColor: brandCream.withOpacity(0.3),
+                    hoverColor: brandCreamDark.withOpacity(0.3),
                   ),
                   child: ExpansionTile(
                     initiallyExpanded: isSelected,
-                    collapsedIconColor: Colors.grey.shade500,
+                    collapsedIconColor: brandBrown.withOpacity(0.5),
                     iconColor: brandOlive,
                     collapsedTextColor: brandBrown,
                     textColor: brandBrown,
@@ -1153,7 +1154,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       style: TextStyle(
                         fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600, 
                         fontSize: 13,
-                        color: isSelected ? brandBrown : Colors.grey.shade700,
+                        color: isSelected ? brandBrown : brandBrown.withOpacity(0.7),
                       )),
                     children: category.subItems.where((s) => s.isVisible).map((subItem) {
                       int subIdx = _categories[originalIdx].subItems.indexWhere((s) => s.title == subItem.title);
@@ -1168,10 +1169,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         child: ListTile(
                           dense: true,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-                          leading: Icon(subItem.icon, size: 16, color: isSubSelected ? brandOlive : Colors.grey.shade500),
+                          leading: Icon(subItem.icon, size: 16, color: isSubSelected ? brandOlive : brandBrown.withOpacity(0.4)),
                           title: Text(subItem.title, 
                             style: TextStyle(
-                              color: isSubSelected ? brandBrown : Colors.grey.shade600, 
+                              color: isSubSelected ? brandBrown : brandBrown.withOpacity(0.6),
                               fontWeight: isSubSelected ? FontWeight.w900 : FontWeight.w500, 
                               fontSize: 12.5)),
                           onTap: () {

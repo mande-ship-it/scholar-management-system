@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
-/// ---------------------------------------------------------------------
-/// MODEL
-/// ---------------------------------------------------------------------
 class UserRole {
   final String id;
   String name;
@@ -40,11 +37,7 @@ class _RoleFormResult {
   });
 }
 
-/// ---------------------------------------------------------------------
-/// ROLES COMPONENT
-/// ---------------------------------------------------------------------
 class UserRolesComponent extends StatefulWidget {
-  /// Optional hook — called when "Manage Permissions" is tapped on a role card.
   final void Function(UserRole role)? onManagePermissions;
 
   const UserRolesComponent({super.key, this.onManagePermissions});
@@ -56,6 +49,35 @@ class UserRolesComponent extends StatefulWidget {
 class _UserRolesComponentState extends State<UserRolesComponent> {
   List<UserRole> _roles = [];
   bool _isLoading = false;
+  String _searchQuery = '';
+
+  final List<IconData> _iconChoices = const [
+    Icons.shield_rounded,
+    Icons.supervisor_account_rounded,
+    Icons.storage_rounded,
+    Icons.attach_money_rounded,
+    Icons.map_rounded,
+    Icons.volunteer_activism_rounded,
+    Icons.badge_rounded,
+    Icons.work_rounded,
+    Icons.security_rounded,
+    Icons.admin_panel_settings_rounded,
+    Icons.groups_rounded,
+    Icons.person_rounded,
+  ];
+
+  final List<Color> _colorChoices = [
+    Colors.purple.shade600,
+    Colors.blue.shade600,
+    Colors.teal.shade600,
+    Colors.orange.shade700,
+    Colors.indigo.shade600,
+    Colors.blueGrey.shade600,
+    Colors.red.shade600,
+    Colors.pink.shade600,
+    Colors.brown.shade500,
+    Colors.green.shade700,
+  ];
 
   @override
   void initState() {
@@ -106,7 +128,6 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
   }
 
   IconData _getIconData(String? iconName) {
-    // Basic mapping from icon name string to IconData
     switch (iconName) {
       case 'shield_rounded': return Icons.shield_rounded;
       case 'supervisor_account_rounded': return Icons.supervisor_account_rounded;
@@ -132,40 +153,6 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
     }
   }
 
-  String _searchQuery = '';
-
-  // Icon & color palettes offered in the create/edit dialog
-  final List<IconData> _iconChoices = const [
-    Icons.shield_rounded,
-    Icons.supervisor_account_rounded,
-    Icons.storage_rounded,
-    Icons.attach_money_rounded,
-    Icons.map_rounded,
-    Icons.volunteer_activism_rounded,
-    Icons.badge_rounded,
-    Icons.work_rounded,
-    Icons.security_rounded,
-    Icons.admin_panel_settings_rounded,
-    Icons.groups_rounded,
-    Icons.person_rounded,
-  ];
-
-  final List<Color> _colorChoices = [
-    Colors.purple.shade600,
-    Colors.blue.shade600,
-    Colors.teal.shade600,
-    Colors.orange.shade700,
-    Colors.indigo.shade600,
-    Colors.blueGrey.shade600,
-    Colors.red.shade600,
-    Colors.pink.shade600,
-    Colors.brown.shade500,
-    Colors.green.shade700,
-  ];
-
-  // ---------------------------------------------------------------------
-  // DERIVED DATA
-  // ---------------------------------------------------------------------
   List<UserRole> get _filteredRoles {
     if (_searchQuery.trim().isEmpty) return _roles;
     final q = _searchQuery.trim().toLowerCase();
@@ -176,11 +163,6 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
         .toList();
   }
 
-  int get _systemRoleCount => _roles.where((r) => r.isSystemRole).length;
-
-  // ---------------------------------------------------------------------
-  // ACTIONS
-  // ---------------------------------------------------------------------
   Future<void> _openRoleDialog({UserRole? role}) async {
     final nameController = TextEditingController(text: role?.name ?? '');
     final descController = TextEditingController(text: role?.description ?? '');
@@ -211,7 +193,7 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: selectedColor.withValues(alpha: 0.12),
+                                  color: selectedColor.withOpacity(0.12),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Icon(selectedIcon, color: selectedColor, size: 22),
@@ -282,7 +264,7 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
                                   alignment: Alignment.center,
                                   decoration: BoxDecoration(
                                     color: isSelected
-                                        ? selectedColor.withValues(alpha: 0.14)
+                                        ? selectedColor.withOpacity(0.14)
                                         : Colors.grey.shade50,
                                     borderRadius: BorderRadius.circular(10),
                                     border: Border.all(
@@ -312,8 +294,8 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
                             spacing: 10,
                             runSpacing: 10,
                             children: _colorChoices.map((color) {
-                              final isSelected = color.toARGB32() ==
-                                  selectedColor.toARGB32();
+                              final isSelected = color.value ==
+                                  selectedColor.value;
                               return InkWell(
                                 borderRadius: BorderRadius.circular(20),
                                 onTap: () =>
@@ -406,42 +388,30 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
         'name': result.name,
         'description': result.description,
         'icon': _getIconString(result.icon),
-        'color': '#${result.color.toARGB32().toRadixString(16).substring(2)}',
+        'color': '#${result.color.value.toRadixString(16).substring(2).padLeft(6, '0').toUpperCase()}',
       };
 
       try {
         if (role == null) {
           final response = await ApiService.createRole(roleData);
-          if (response.statusCode == 201) {
-            _fetchRoles();
-          }
+          if (response.statusCode == 201) _fetchRoles();
         } else {
           final response = await ApiService.updateRole(role.id, roleData);
-          if (response.statusCode == 200) {
-            _fetchRoles();
-          }
+          if (response.statusCode == 200) _fetchRoles();
         }
 
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(role == null
-                ? "Role '${result.name}' created."
-                : "Role '${result.name}' updated."),
+            content: Text(role == null ? "Role created." : "Role updated."),
             backgroundColor: Colors.green.shade700,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text("Error saving role. Please try again."),
-            backgroundColor: Colors.redAccent,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
+          const SnackBar(content: Text("Error saving role."), backgroundColor: Colors.redAccent),
         );
       }
     }
@@ -465,55 +435,7 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
   Future<void> _confirmDelete(UserRole role) async {
     if (role.isSystemRole) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("'${role.name}' is a system role and cannot be deleted."),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
-      return;
-    }
-
-    if (role.userCount > 0) {
-      await showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(Icons.warning_amber_rounded,
-                    color: Colors.orange.shade700, size: 22),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(child: Text("Role In Use", style: TextStyle(fontSize: 17))),
-            ],
-          ),
-          content: Text(
-            "${role.userCount} user${role.userCount == 1 ? '' : 's'} "
-                "${role.userCount == 1 ? 'is' : 'are'} currently assigned to "
-                "'${role.name}'. Reassign ${role.userCount == 1 ? 'this user' : 'these users'} "
-                "to a different role before deleting it.",
-            style: TextStyle(color: Colors.grey.shade700, height: 1.4),
-          ),
-          actions: [
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green.shade700,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              child: const Text("Got it"),
-            ),
-          ],
-        ),
+        const SnackBar(content: Text("System roles cannot be deleted.")),
       );
       return;
     }
@@ -521,42 +443,11 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.red.shade50,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(Icons.delete_outline_rounded,
-                  color: Colors.red.shade600, size: 22),
-            ),
-            const SizedBox(width: 12),
-            const Text("Delete Role", style: TextStyle(fontSize: 17)),
-          ],
-        ),
-        content: Text(
-          "Are you sure you want to permanently delete '${role.name}'? "
-              "This action cannot be undone.",
-          style: TextStyle(color: Colors.grey.shade700, height: 1.4),
-        ),
+        title: const Text("Delete Role"),
+        content: Text("Permanently delete '${role.name}'?"),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text("Cancel", style: TextStyle(color: Colors.grey.shade700)),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade600,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            child: const Text("Delete"),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
+          ElevatedButton(onPressed: () => Navigator.pop(context, true), child: const Text("Delete")),
         ],
       ),
     );
@@ -567,49 +458,35 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
         if (response.statusCode == 200) {
           _fetchRoles();
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text("Role '${role.name}' was deleted."),
-              backgroundColor: Colors.red.shade600,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-          );
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Role deleted.")));
         }
       } catch (e) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text("Error deleting role. Please try again."),
-            backgroundColor: Colors.redAccent,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Error deleting role.")));
       }
     }
   }
 
-  // ---------------------------------------------------------------------
-  // BUILD
-  // ---------------------------------------------------------------------
   @override
   Widget build(BuildContext context) {
     final filtered = _filteredRoles;
     final bool isMobile = MediaQuery.of(context).size.width < 900;
 
-    return Card(
-      elevation: 2,
-      margin: EdgeInsets.all(isMobile ? 0 : 4),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildHeader(isMobile),
-          // ---------------- Stats (Banners Removed) ----------------
           Padding(
-            padding: EdgeInsets.fromLTRB(24, 18, 24, 8),
+            padding: const EdgeInsets.fromLTRB(24, 18, 24, 8),
             child: TextField(
               onChanged: (val) => setState(() => _searchQuery = val),
               decoration: InputDecoration(
@@ -619,16 +496,7 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
                 isDense: true,
                 filled: true,
                 fillColor: Colors.grey.shade50,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: Colors.grey.shade200),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide(color: Colors.green.shade400, width: 1.4),
-                ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
               ),
             ),
           ),
@@ -636,17 +504,12 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : filtered.isEmpty
-                    ? _buildEmptyState()
+                    ? const Center(child: Text("No roles found"))
                     : LayoutBuilder(
                         builder: (context, constraints) {
-                          int columns = 3;
-                          if (constraints.maxWidth < 620) {
-                            columns = 1;
-                          } else if (constraints.maxWidth < 980) {
-                            columns = 2;
-                          }
+                          int columns = constraints.maxWidth < 620 ? 1 : (constraints.maxWidth < 980 ? 2 : 3);
                           return GridView.builder(
-                            padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                            padding: const EdgeInsets.all(24),
                             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: columns,
                               crossAxisSpacing: 16,
@@ -654,8 +517,7 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
                               childAspectRatio: isMobile ? 1.4 : 1.55,
                             ),
                             itemCount: filtered.length,
-                            itemBuilder: (context, index) =>
-                                _buildRoleCard(filtered[index]),
+                            itemBuilder: (context, index) => _buildRoleCard(filtered[index]),
                           );
                         },
                       ),
@@ -665,48 +527,37 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
     );
   }
 
-  // ---------------- CLEAN HEADER (Banner Removed) ----------------
   Widget _buildHeader(bool isMobile) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(isMobile ? 16 : 24, 12, isMobile ? 16 : 24, 12),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
       child: Row(
         children: [
-          if (!isMobile) ...[
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.badge_rounded, color: Colors.green, size: 20),
-            ),
-            const SizedBox(width: 16),
-          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "User Roles",
+                  "Define system access models",
                   style: TextStyle(
-                      color: const Color(0xFF4C3C32), fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.bold),
-                ),
-                const Text(
-                  "Define system access models.",
-                  style: TextStyle(color: Colors.grey, fontSize: 11),
+                      color: const Color(0xFF4C3C32), fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.w900, letterSpacing: -0.2),
                 ),
               ],
             ),
           ),
           ElevatedButton.icon(
             onPressed: () => _openRoleDialog(),
-            icon: Icon(Icons.add_rounded, size: isMobile ? 14 : 16),
+            icon: const Icon(Icons.add_rounded, size: 14),
             label: Text(isMobile ? "ADD" : "REGISTER"),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF4C3C32),
               foregroundColor: Colors.white,
               elevation: 0,
-              padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
             ),
@@ -716,9 +567,6 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
     );
   }
 
-  // ---------------------------------------------------------------------
-  // ROLE CARD
-  // ---------------------------------------------------------------------
   Widget _buildRoleCard(UserRole role) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -726,24 +574,16 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: role.color.withValues(alpha: 0.12),
+                  color: role.color.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(role.icon, color: role.color, size: 20),
@@ -753,132 +593,27 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            role.name,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                fontSize: 14.5, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                        if (role.isSystemRole) ...[
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              "SYSTEM",
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.3,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 3),
-                    Row(
-                      children: [
-                        Icon(Icons.people_alt_rounded,
-                            size: 12, color: Colors.grey.shade500),
-                        const SizedBox(width: 4),
-                        Text(
-                          "${role.userCount} user${role.userCount == 1 ? '' : 's'}",
-                          style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600),
-                        ),
-                      ],
-                    ),
+                    Text(role.name, style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.bold)),
+                    Text("${role.userCount} users", style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600)),
                   ],
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          Expanded(
-            child: Text(
-              role.description,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600, height: 1.4),
-            ),
-          ),
-          Divider(color: Colors.grey.shade100, height: 20),
+          Expanded(child: Text(role.description, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: Colors.grey.shade600))),
+          const Divider(),
           Row(
             children: [
-              Expanded(
-                child: TextButton.icon(
-                  onPressed: () {
-                    if (widget.onManagePermissions != null) {
-                      widget.onManagePermissions!(role);
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                              "Hook this up to the Permissions tab for '${role.name}'."),
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                        ),
-                      );
-                    }
-                  },
-                  icon: Icon(Icons.lock_outline_rounded, size: 15, color: role.color),
-                  label: Text("Permissions",
-                      style: TextStyle(fontSize: 12, color: role.color)),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                  ),
-                ),
+              TextButton(
+                onPressed: () => widget.onManagePermissions?.call(role),
+                child: const Text("Permissions", style: TextStyle(fontSize: 12)),
               ),
-              IconButton(
-                onPressed: () => _openRoleDialog(role: role),
-                icon: Icon(Icons.edit_outlined, size: 17, color: Colors.blue.shade600),
-                tooltip: "Edit",
-                splashRadius: 18,
-              ),
-              IconButton(
-                onPressed: () => _confirmDelete(role),
-                icon: Icon(
-                  Icons.delete_outline_rounded,
-                  size: 17,
-                  color: role.isSystemRole ? Colors.grey.shade400 : Colors.red.shade400,
-                ),
-                tooltip: role.isSystemRole ? "System role" : "Delete",
-                splashRadius: 18,
-              ),
+              const Spacer(),
+              IconButton(onPressed: () => _openRoleDialog(role: role), icon: const Icon(Icons.edit_outlined, size: 16)),
+              IconButton(onPressed: () => _confirmDelete(role), icon: const Icon(Icons.delete_outline, size: 16)),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(color: Colors.grey.shade100, shape: BoxShape.circle),
-            child: Icon(Icons.search_off_rounded, size: 36, color: Colors.grey.shade400),
-          ),
-          const SizedBox(height: 14),
-          Text("No roles found",
-              style: TextStyle(
-                  fontSize: 15, fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
-          const SizedBox(height: 4),
-          Text("Try a different search term",
-              style: TextStyle(fontSize: 12.5, color: Colors.grey.shade500)),
         ],
       ),
     );

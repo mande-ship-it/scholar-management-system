@@ -289,7 +289,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFF9AB334)));
+      return const Center(child: CircularProgressIndicator(color: kBrandOlive));
     }
 
     if (_mode == ViewResultsMode.selection) {
@@ -325,12 +325,12 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
   }
 
   Widget _buildPortalHeader() {
-    final bool isSecondary = _mode == ViewResultsMode.secondary;
     final bool isMobile = MediaQuery.of(context).size.width < 900;
+    final bool isSecondary = _mode == ViewResultsMode.secondary;
     
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(32, 32, 32, 24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
@@ -347,34 +347,25 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
               _selectedTerm = null;
               _selectedSemester = null;
             }),
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 12),
             style: IconButton.styleFrom(
               backgroundColor: Color(0xFF4C3C32).withOpacity(0.05),
               foregroundColor: const Color(0xFF4C3C32),
+              padding: EdgeInsets.zero,
             ),
           ),
-          const SizedBox(width: 20),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isSecondary ? "SECONDARY ACADEMIC AUDIT" : "TERTIARY ACADEMIC AUDIT",
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF9AB334),
-                    letterSpacing: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
                   "Examination Performance Ledger",
                   style: TextStyle(
-                    fontSize: isMobile ? 18 : 22, 
+                    fontSize: isMobile ? 14 : 16, 
                     fontWeight: FontWeight.w900, 
                     color: const Color(0xFF4C3C32), 
-                    letterSpacing: -0.5
+                    letterSpacing: -0.2
                   ),
                 ),
               ],
@@ -385,14 +376,14 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
               _portalHeaderActionBtn(
                 onTap: _openConsolidatedRoster,
                 icon: Icons.grid_view_rounded,
-                label: "GENERATE ROSTER",
+                label: "ROSTER",
                 color: const Color(0xFF4C3C32),
               ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
             _portalHeaderActionBtn(
               onTap: widget.onEnterResults ?? () => Navigator.pushNamed(context, '/academics/enterResults'),
               icon: Icons.add_rounded,
-              label: "RECORD RESULTS",
+              label: "RECORD",
               color: const Color(0xFF9AB334),
             ),
           ],

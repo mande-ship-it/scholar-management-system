@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import '../academics/academics_utils.dart';
-import '../widgets/custom_loaders.dart';
 
 // ============================================================
 // MODELS & ENUMS
@@ -286,7 +285,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
                       const SizedBox(height: 48),
                       
                       if (_isLoadingScholars)
-                        Center(child: Padding(padding: const EdgeInsets.all(100), child: BeautifulLoader(isOverlay: false, message: "Opening Registry...")))
+                        const Center(child: Padding(padding: EdgeInsets.all(100), child: CircularProgressIndicator(color: kBrandOlive)))
                       else if (_entries.isNotEmpty) ...[
                         _sectionPortalLabel("SITTING LOGISTICS", Icons.local_shipping_rounded),
                         const SizedBox(height: 24),
@@ -317,43 +316,24 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   Widget _buildPortalHeader(bool isMobile) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(32, 32, 32, 24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Color(0xFF9AB334).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(_moduleType.icon, color: const Color(0xFF9AB334), size: 24),
-          ),
-          const SizedBox(width: 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "ATTENDANCE PORTAL",
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF9AB334),
-                    letterSpacing: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 4),
                 Text(
                   _isFieldOfficer ? "Session Telemetry Management" : "Historical Attendance Audit",
                   style: TextStyle(
-                    fontSize: isMobile ? 18 : 22, 
+                    fontSize: isMobile ? 14 : 16, 
                     fontWeight: FontWeight.w900, 
                     color: const Color(0xFF4C3C32), 
-                    letterSpacing: -0.5
+                    letterSpacing: -0.2
                   ),
                 ),
               ],

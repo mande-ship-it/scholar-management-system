@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 import 'scholar_attendance.dart';
 import 'package:scholar_management_system/services/api_service.dart';
 import '../academics/academics_utils.dart';
-import '../widgets/custom_loaders.dart';
 
 class AttendanceHistoryComponent extends StatefulWidget {
   const AttendanceHistoryComponent({super.key});
@@ -75,7 +74,7 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
                       ),
                       const SizedBox(height: 32),
                       if (_isLoading)
-                        Center(child: Padding(padding: const EdgeInsets.all(100), child: BeautifulLoader(isOverlay: false, message: "Retrieving Archive Data")))
+                        const Center(child: Padding(padding: EdgeInsets.all(100), child: CircularProgressIndicator(color: kBrandOlive)))
                       else if (_history.isEmpty)
                         _buildEmptyState(isMobile)
                       else
@@ -99,32 +98,21 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 40, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 40, vertical: 8),
       decoration: BoxDecoration(
         color: isDark ? theme.cardColor : Colors.white,
         border: Border(bottom: BorderSide(color: theme.dividerColor)),
       ),
       child: Row(
         children: [
-          if (!isMobile) ...[
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: kBrandBrown.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.history_edu_rounded, color: kBrandBrown, size: 20),
-            ),
-            const SizedBox(width: 16),
-          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Attendance Archives",
-                  style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.2)),
+                  style: TextStyle(fontSize: isMobile ? 13 : 15, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.2)),
                 const Text("Historical program engagement.",
-                  style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+                  style: TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
               ],
             ),
           ),

@@ -312,45 +312,33 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
 
   Widget _buildExecutiveHeader(bool isMobile) {
     return Container(
-      padding: EdgeInsets.all(isMobile ? 20 : 32),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: Row(
         children: [
-          if (!isMobile) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: kBrandBrown.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.event_available_rounded, color: kBrandBrown, size: 28),
-            ),
-            const SizedBox(width: 24),
-          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Events & Programs", 
-                  style: TextStyle(fontSize: isMobile ? 20 : 26, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -1.0)),
-                const Text("Institutional activities.", 
-                  style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                  style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.2)),
               ],
             ),
           ),
           ElevatedButton.icon(
             onPressed: _showCreateEventDialog,
-            icon: Icon(Icons.add_rounded, size: isMobile ? 18 : 20),
-            label: Text(isMobile ? "ADD" : "CREATE EVENT", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5)),
+            icon: Icon(Icons.add_rounded, size: 14),
+            label: Text(isMobile ? "ADD" : "CREATE", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
             style: ElevatedButton.styleFrom(
               backgroundColor: kBrandOlive,
               foregroundColor: Colors.white,
               elevation: 0,
-              padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),
         ],

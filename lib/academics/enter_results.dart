@@ -57,43 +57,24 @@ class _AcademicsManagementComponentState extends State<AcademicsManagementCompon
   Widget _buildHeader(bool isMobile) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(32, 32, 32, 24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Color(0xFF9AB334).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(_isFieldOfficer ? Icons.edit_note_rounded : Icons.visibility_rounded, color: const Color(0xFF9AB334), size: 24),
-          ),
-          const SizedBox(width: 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "ACADEMIC PORTAL",
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF9AB334),
-                    letterSpacing: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 4),
                 Text(
                   _isFieldOfficer ? "Examination Results Entry" : "Performance Records Audit",
                   style: TextStyle(
-                    fontSize: isMobile ? 18 : 22, 
+                    fontSize: isMobile ? 14 : 16, 
                     fontWeight: FontWeight.w900, 
                     color: const Color(0xFF4C3C32), 
-                    letterSpacing: -0.5
+                    letterSpacing: -0.2
                   ),
                 ),
               ],
@@ -101,17 +82,17 @@ class _AcademicsManagementComponentState extends State<AcademicsManagementCompon
           ),
           if (!_isFieldOfficer)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Color(0xFFE05B1C).withOpacity(0.1), 
-                borderRadius: BorderRadius.circular(8), 
-                border: Border.all(color: Color(0xFFE05B1C).withOpacity(0.2))
+                color: const Color(0xFFE05B1C).withOpacity(0.1), 
+                borderRadius: BorderRadius.circular(6), 
+                border: Border.all(color: const Color(0xFFE05B1C).withOpacity(0.2))
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.lock_outline_rounded, size: 14, color: Color(0xFFE05B1C)),
+                  Icon(Icons.lock_outline_rounded, size: 12, color: Color(0xFFE05B1C)),
                   SizedBox(width: 8),
-                  Text("AUDIT MODE (READ-ONLY)", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFFE05B1C), letterSpacing: 0.5)),
+                  Text("READ-ONLY", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFFE05B1C), letterSpacing: 0.5)),
                 ],
               ),
             ),

@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 import '../academics/academics_utils.dart';
 import 'package:scholar_management_system/services/api_service.dart';
 import 'package:scholar_management_system/services/permission_service.dart';
-import '../widgets/custom_loaders.dart';
 import 'sponsors_utils.dart';
 import 'register_sponsor.dart';
 
@@ -288,7 +287,7 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
           _buildPortalToolbar(isMobile),
           Expanded(
             child: _isLoading 
-                ? BeautifulLoader(isOverlay: false, message: "Synchronizing Registry...")
+                ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
                 : _buildPortalRegistryList(filtered, isMobile),
           ),
         ],
@@ -299,7 +298,7 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
   Widget _buildPortalHeader(bool isMobile) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(32, 32, 32, 24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
@@ -312,22 +311,12 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  "SPONSORSHIP DIRECTORY",
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF9AB334),
-                    letterSpacing: 2.0,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
                   "Strategic Partner Registry",
                   style: TextStyle(
-                    fontSize: 24, 
+                    fontSize: 16, 
                     fontWeight: FontWeight.w900, 
                     color: Color(0xFF4C3C32), 
-                    letterSpacing: -0.5
+                    letterSpacing: -0.2
                   ),
                 ),
               ],
@@ -342,13 +331,13 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
                   Navigator.pushNamed(context, '/sponsors/register').then((_) => _loadSponsors());
                 }
               },
-              icon: const Icon(Icons.volunteer_activism_rounded, size: 18),
-              label: const Text("REGISTER PARTNER"),
+              icon: const Icon(Icons.volunteer_activism_rounded, size: 14),
+              label: const Text("REGISTER", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF4C3C32),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 elevation: 0,
               ),
             ),

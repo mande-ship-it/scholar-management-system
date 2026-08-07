@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import '../../academics/academics_utils.dart';
-import '../../widgets/custom_loaders.dart';
 import '../../services/api_service.dart';
 import '../../services/permission_service.dart';
 
@@ -175,8 +174,8 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   
                   const SizedBox(height: 80),
                   
-                  // Professional Loader
-                  BeautifulLoader(isOverlay: false, message: "Initializing Secure Portal"),
+                  // Loader
+                  const CircularProgressIndicator(color: kBrandOlive),
                 ],
               ),
             ),

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'theme_controller.dart';
 import 'package:scholar_management_system/services/api_service.dart';
 import '../academics/academics_utils.dart';
-import '../widgets/custom_loaders.dart';
 
 class SystemSettingsComponent extends StatefulWidget {
   const SystemSettingsComponent({super.key});
@@ -81,7 +80,7 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
       ),
       clipBehavior: Clip.antiAlias,
       child: _isLoading 
-        ? Center(child: BeautifulLoader(isOverlay: false, message: "Syncing Environment"))
+        ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
         : Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -188,32 +187,19 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
     final isDark = theme.brightness == Brightness.dark;
     bool isChichewa = _language == "Chichewa";
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       decoration: BoxDecoration(
         color: theme.cardColor,
         border: Border(bottom: BorderSide(color: theme.dividerColor)),
       ),
       child: Row(
         children: [
-          if (!isMobile) ...[
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: (isDark ? Colors.white : kBrandBrown).withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(Icons.settings_suggest_rounded, color: isDark ? Colors.white : kBrandBrown, size: 20),
-            ),
-            const SizedBox(width: 16),
-          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(isChichewa ? "Makonzedwe" : "Environment Settings",
-                  style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.5)),
-                Text(isChichewa ? "Konshani pulogalamuyi." : "Configure terminal behavior.",
-                  style: TextStyle(fontSize: 11, color: isDark ? Colors.white60 : Colors.grey, fontWeight: FontWeight.w500)),
+                  style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.5)),
               ],
             ),
           ),

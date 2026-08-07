@@ -140,37 +140,16 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
   Widget _buildHeader() {
     return Row(
       children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: brandOlive.withOpacity(0.12),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: const Icon(
-            Icons.verified_user_rounded,
-            color: brandOlive,
-            size: 28,
-          ),
-        ),
-        const SizedBox(width: 16),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 "Pending Approvals",
                 style: TextStyle(
-                  fontSize: 22,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: brandBrown,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                "Review and authorize pending registrations and events.",
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
                 ),
               ),
             ],
@@ -178,7 +157,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
         ),
         IconButton(
           onPressed: _fetchPending,
-          icon: const Icon(Icons.refresh_rounded, color: brandBrown),
+          icon: const Icon(Icons.refresh_rounded, color: brandBrown, size: 20),
           tooltip: "Refresh",
         ),
       ],

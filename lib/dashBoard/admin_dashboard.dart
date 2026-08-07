@@ -188,10 +188,10 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
   Widget _buildAdminPortalHeader(bool isMobile) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFEEEEEE)),
       ),
       child: Row(
@@ -202,39 +202,20 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  "ADMINISTRATIVE GOVERNANCE",
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF9AB334),
-                    letterSpacing: 2.0,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
                   "System Intelligence Hub",
                   style: TextStyle(
-                    fontSize: 26,
+                    fontSize: 16,
                     fontWeight: FontWeight.w900,
                     color: Color(0xFF4C3C32),
-                    letterSpacing: -0.5,
+                    letterSpacing: -0.2,
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "Real-time monitoring and administrative control panel for scholarly operations.",
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade400, fontWeight: FontWeight.w500),
                 ),
               ],
             ),
           ),
-          IconButton.filledTonal(
+          IconButton(
             onPressed: _loadDashboardData,
-            icon: const Icon(Icons.refresh_rounded, size: 20),
-            style: IconButton.styleFrom(
-              backgroundColor: Color(0xFF4C3C32).withOpacity(0.05),
-              foregroundColor: const Color(0xFF4C3C32)
-            ),
+            icon: const Icon(Icons.refresh_rounded, size: 20, color: Color(0xFF4C3C32)),
           )
         ],
       ),

@@ -98,11 +98,11 @@ class _OrganisationProfileComponentState
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Row(
+            content: Row(
               children: [
-                Icon(Icons.check_circle_rounded, color: Colors.white),
-                SizedBox(width: 12),
-                Text("Organisation profile updated successfully."),
+                const Icon(Icons.check_circle_rounded, color: Colors.white),
+                const SizedBox(width: 12),
+                const Text("Organisation profile updated successfully."),
               ],
             ),
             backgroundColor: kBrandOlive,
@@ -140,84 +140,72 @@ class _OrganisationProfileComponentState
       child: _isLoading 
         ? const Center(child: CircularProgressIndicator(color: kBrandOlive, strokeWidth: 3))
         : Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (!isMobile) _buildExecutiveHeader(isMobile),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(isMobile ? 16 : 40),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1000),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildProfileOverviewSection(isMobile),
-                          const SizedBox(height: 48),
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (!isMobile) _buildExecutiveHeader(isMobile),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(isMobile ? 16 : 40),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1000),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildProfileOverviewSection(isMobile),
+                            const SizedBox(height: 48),
 
-                          if (isMobile)
-                            Column(
-                              children: [
-                                _buildGeneralSettingsSection(),
-                                const SizedBox(height: 40),
-                                _buildContactSettingsSection(),
-                              ],
-                            )
-                          else
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(flex: 3, child: _buildGeneralSettingsSection()),
-                                const SizedBox(width: 40),
-                                Expanded(flex: 2, child: _buildContactSettingsSection()),
-                              ],
-                            ),
+                            if (isMobile)
+                              Column(
+                                children: [
+                                  _buildGeneralSettingsSection(),
+                                  const SizedBox(height: 40),
+                                  _buildContactSettingsSection(),
+                                ],
+                              )
+                            else
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(flex: 3, child: _buildGeneralSettingsSection()),
+                                  const SizedBox(width: 40),
+                                  Expanded(flex: 2, child: _buildContactSettingsSection()),
+                                ],
+                              ),
 
-                          const SizedBox(height: 60),
-                          _buildSubmitAction(isMobile),
-                          const SizedBox(height: 20),
-                        ],
+                            const SizedBox(height: 60),
+                            _buildSubmitAction(isMobile),
+                            const SizedBox(height: 20),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
     );
   }
 
   Widget _buildExecutiveHeader(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: Row(
         children: [
-          if (!isMobile) ...[
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: kBrandBrown.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.corporate_fare_rounded, color: kBrandBrown, size: 20),
-            ),
-            const SizedBox(width: 16),
-          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Organisation Profile", 
-                  style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                const Text("Identity and communication channels.",
-                  style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                  style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.2)),
               ],
             ),
           ),
@@ -236,7 +224,7 @@ class _OrganisationProfileComponentState
         border: Border.all(color: Colors.grey.shade200, width: 4),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05),
             blurRadius: 15,
             offset: const Offset(0, 5),
           )
@@ -298,10 +286,10 @@ class _OrganisationProfileComponentState
 
     return Container(
       padding: EdgeInsets.all(isMobile ? 20 : 32),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.all(Radius.circular(24)),
+        border: Border.fromBorderSide(BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: isMobile 
         ? Column(
@@ -329,12 +317,12 @@ class _OrganisationProfileComponentState
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: kBrandOlive.withOpacity(0.2)),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.verified_rounded, size: 14, color: kBrandOlive),
-          SizedBox(width: 6),
-          Text("VERIFIED", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBrandOlive, letterSpacing: 1)),
+          const Icon(Icons.verified_rounded, size: 14, color: kBrandOlive),
+          const SizedBox(width: 6),
+          const Text("VERIFIED", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBrandOlive, letterSpacing: 1)),
         ],
       ),
     );
@@ -474,7 +462,7 @@ class _OrganisationProfileComponentState
         hintText: hint,
         prefixIcon: Icon(icon, size: 20, color: isDark ? Colors.white70 : kBrandBrown.withOpacity(0.4)),
         filled: true,
-        fillColor: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
+        fillColor: isDark ? Colors.grey.shade800 : Colors.white,
         labelStyle: TextStyle(color: isDark ? Colors.white60 : Colors.grey.shade500, fontWeight: FontWeight.w500, fontSize: 14),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: isDark ? theme.dividerColor : const Color(0xFFE5E7EB))),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kBrandOlive, width: 2)),
@@ -493,7 +481,7 @@ class _OrganisationProfileComponentState
     final isDark = theme.brightness == Brightness.dark;
 
     return DropdownButtonFormField<String>(
-      initialValue: value,
+      value: value,
       items: options.map((o) => DropdownMenuItem(value: o, child: Text(o, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
       onChanged: onChanged,
       dropdownColor: theme.cardColor,
@@ -502,7 +490,7 @@ class _OrganisationProfileComponentState
         labelText: label,
         prefixIcon: Icon(icon, size: 20, color: isDark ? Colors.white70 : kBrandBrown.withOpacity(0.4)),
         filled: true,
-        fillColor: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.white,
+        fillColor: isDark ? Colors.grey.shade800 : Colors.white,
         labelStyle: TextStyle(color: isDark ? Colors.white60 : Colors.grey.shade500, fontWeight: FontWeight.w500, fontSize: 14),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: isDark ? theme.dividerColor : const Color(0xFFE5E7EB))),
         focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kBrandOlive, width: 2)),

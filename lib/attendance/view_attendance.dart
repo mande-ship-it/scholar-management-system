@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import '../academics/academics_utils.dart';
-import '../widgets/custom_loaders.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -153,7 +152,7 @@ class _ViewAttendanceComponentState extends State<ViewAttendanceComponent> {
                       _buildSelectionPanel(isMobile),
                       const SizedBox(height: 24),
                       if (_isGeneratingReport)
-                        Center(child: Padding(padding: const EdgeInsets.all(100), child: BeautifulLoader(isOverlay: false, message: "Synthesizing Attendance Analytics")))
+                        const Center(child: Padding(padding: EdgeInsets.all(100), child: CircularProgressIndicator(color: kBrandOlive)))
                       else if (_attendanceReport.isEmpty)
                         _buildInitialState(isMobile)
                       else
@@ -208,7 +207,7 @@ class _ViewAttendanceComponentState extends State<ViewAttendanceComponent> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 40, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 40, vertical: 8),
       decoration: BoxDecoration(
         color: isDark ? theme.cardColor : Colors.white,
         border: Border(bottom: BorderSide(color: theme.dividerColor)),
@@ -217,40 +216,20 @@ class _ViewAttendanceComponentState extends State<ViewAttendanceComponent> {
         ? Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  const Icon(Icons.analytics_rounded, color: kBrandOlive, size: 20),
-                  const SizedBox(width: 12),
-                  Text("Participation Sheet",
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown)),
-                ],
-              ),
+              Text("Participation Sheet",
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown)),
             ],
           )
         : Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: kBrandOlive.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.analytics_rounded, color: kBrandOlive, size: 20),
-                  ),
-                  const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Participation Sheet",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.2)),
-                      const Text("Institutional attendance audit and analytics.",
-                        style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-                    ],
-                  ),
+                  Text("Participation Sheet",
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.2)),
+                  const Text("Institutional attendance audit.",
+                    style: TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
                 ],
               ),
               Row(

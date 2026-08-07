@@ -135,49 +135,30 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
   Widget _buildExecutiveHeader(bool isMobile) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(32, 32, 32, 24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Color(0xFF9AB334).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.analytics_rounded, color: Color(0xFF9AB334), size: 24),
-          ),
-          const SizedBox(width: 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "INTELLIGENCE HUB",
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF9AB334),
-                    letterSpacing: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 4),
                 Text(
                   "Performance Analysis Portal",
                   style: TextStyle(
-                    fontSize: isMobile ? 18 : 22, 
+                    fontSize: isMobile ? 14 : 16, 
                     fontWeight: FontWeight.w900, 
                     color: const Color(0xFF4C3C32), 
-                    letterSpacing: -0.5
+                    letterSpacing: -0.2
                   ),
                 ),
               ],
             ),
           ),
-          if (!isMobile) _buildTypeToggle(false),
+          _buildTypeToggle(isMobile),
         ],
       ),
     );

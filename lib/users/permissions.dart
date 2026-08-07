@@ -148,23 +148,19 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
 
   Widget _buildHeader(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(isMobile ? 16 : 24, 32, isMobile ? 16 : 24, 8),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
       child: Row(
         children: [
-          if (!isMobile) ...[
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-              child: const Icon(Icons.admin_panel_settings_rounded, color: kBrandOlive, size: 20),
-            ),
-            const SizedBox(width: 16),
-          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Permissions", style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                const Text("Define modular access.", style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                Text("Permissions", style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.2)),
               ],
             ),
           ),
@@ -172,12 +168,12 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
             onPressed: _isSaving ? null : _savePermissions,
             icon: _isSaving 
                 ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : Icon(Icons.verified_user_rounded, size: isMobile ? 14 : 16),
+                : Icon(Icons.verified_user_rounded, size: 14),
             label: Text(isMobile ? "SYNC" : "SYNC CHANGES", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10)),
             style: ElevatedButton.styleFrom(
               backgroundColor: kBrandBrown,
               foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: 14),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),

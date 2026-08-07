@@ -326,43 +326,24 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
   Widget _buildProfessionalHeader(bool isMobile) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(isMobile ? 16 : 32, 32, isMobile ? 16 : 32, 24),
+      padding: EdgeInsets.fromLTRB(isMobile ? 16 : 24, 32, isMobile ? 16 : 24, 8),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: kBrandOlive.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.manage_accounts_rounded, color: kBrandOlive, size: 24),
-          ),
-          const SizedBox(width: 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "USER ADMINISTRATION",
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF9AB334),
-                    letterSpacing: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 4),
                 Text(
                   "Identity & Access Governance",
                   style: TextStyle(
-                    fontSize: isMobile ? 18 : 22, 
+                    fontSize: isMobile ? 14 : 16, 
                     fontWeight: FontWeight.w900, 
                     color: kBrandBrown, 
-                    letterSpacing: -0.5
+                    letterSpacing: -0.2
                   ),
                 ),
               ],
@@ -371,13 +352,13 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
           if (PermissionService.hasPermission('users.create'))
             ElevatedButton.icon(
               onPressed: widget.onAddUser,
-              icon: Icon(Icons.person_add_alt_1_rounded, size: 18),
-              label: const Text("REGISTER IDENTITY"),
+              icon: Icon(Icons.person_add_alt_1_rounded, size: 14),
+              label: const Text("REGISTER", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: kBrandBrown,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
             ),
         ],

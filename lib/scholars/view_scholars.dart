@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import '../academics/academics_utils.dart';
 import 'package:scholar_management_system/services/api_service.dart';
 import 'package:scholar_management_system/services/permission_service.dart';
-import '../widgets/custom_loaders.dart';
 import '../services/file_download_service.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:excel/excel.dart' hide Border;
@@ -355,7 +354,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
           _buildIntegratedToolbar(availableSchools, availableClasses, isMobile),
           Expanded(
             child: _isLoading
-                ? BeautifulLoader(isOverlay: false, message: "Synchronizing Registry...")
+                ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
                 : Column(
                     children: [
                       _buildTabNavigation(),
@@ -379,7 +378,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
   Widget _buildProfessionalHeader(int scholarCount) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(32, 32, 32, 24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
@@ -387,46 +386,38 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "SCHOLARS REGISTRY",
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF9AB334),
-                  letterSpacing: 1.5,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.forcedSchoolType != null 
+                    ? "${widget.forcedSchoolType} Enrolment Overview"
+                    : "Central Program Register",
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF4C3C32),
+                    letterSpacing: -0.2,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                widget.forcedSchoolType != null 
-                  ? "${widget.forcedSchoolType} Enrolment Overview"
-                  : "Central Program Register",
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF4C3C32),
-                  letterSpacing: -0.5,
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
           Wrap(
-            spacing: 12,
+            spacing: 8,
             children: [
-              _exportButton(Icons.description_outlined, "PDF REPORT", _exportToPDF),
-              _exportButton(Icons.table_view_outlined, "EXCEL EXPORT", _exportToExcel),
+              _exportButton(Icons.description_outlined, "PDF", _exportToPDF),
+              _exportButton(Icons.table_view_outlined, "EXCEL", _exportToExcel),
               if (['Administrator', 'Data Officer', 'Program Coordinator'].contains(_userRole))
                 ElevatedButton.icon(
                   onPressed: widget.onRegisterScholar ?? () => Navigator.pushNamed(context, '/registerScholar').then((_) => _fetchScholars()),
-                  icon: const Icon(Icons.person_add_rounded, size: 16),
-                  label: const Text("REGISTER NEW"),
+                  icon: const Icon(Icons.person_add_rounded, size: 14),
+                  label: const Text("NEW", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4C3C32),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                 ),
             ],

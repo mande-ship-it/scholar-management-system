@@ -180,12 +180,7 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
 
   void _redirectToHome() {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Access Denied: Administrators Only"),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      debugPrint('ADMIN PORTAL: Access Denied. Redirecting to General Dashboard.');
       Navigator.pushReplacementNamed(context, '/home');
     }
   }
@@ -604,14 +599,13 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
       backgroundColor: const Color(0xFFF8F9FA),
       drawer: isMobile ? _buildDrawer(context) : null,
       appBar: AppBar(
-        elevation: 1,
-        shadowColor: Colors.black.withOpacity(0.05),
-        backgroundColor: Colors.white,
-        foregroundColor: kBrandBrown,
+        elevation: 2,
+        backgroundColor: kBrandBrown,
+        foregroundColor: Colors.white,
         leadingWidth: isMobile ? null : 280,
         leading: isMobile 
           ? IconButton(
-              icon: const Icon(Icons.menu, color: kBrandBrown),
+              icon: const Icon(Icons.menu, color: Colors.white),
               onPressed: () => _scaffoldKey.currentState?.openDrawer(),
             )
           : Row(
@@ -628,7 +622,7 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
                 ),
                 const SizedBox(width: 8),
                 IconButton(
-                  icon: const Icon(Icons.menu, color: kBrandBrown, size: 20),
+                  icon: const Icon(Icons.menu, color: Colors.white, size: 20),
                   tooltip: "Toggle Sidebar",
                   onPressed: () {
                     setState(() {
@@ -644,7 +638,7 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
               width: isMobile ? null : 450,
               height: 42,
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F3F4),
+                color: Colors.white.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: CompositedTransformTarget(
@@ -653,13 +647,13 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
                   controller: _searchController,
                   focusNode: _searchFocusNode,
                   onChanged: _onSearchChanged,
-                  style: const TextStyle(color: kBrandBrown, fontSize: 14, fontWeight: FontWeight.w500),
+                  style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
                   decoration: InputDecoration(
                     hintText: isMobile ? "Search..." : "Search admin features, pages, controls...",
-                    hintStyle: TextStyle(color: kBrandBrown.withOpacity(0.4)),
-                    prefixIcon: const Icon(Icons.search, color: kBrandOlive, size: 20),
+                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
+                    prefixIcon: const Icon(Icons.search, color: Colors.white, size: 20),
                     suffixIcon: IconButton(
-                      icon: const Icon(Icons.close, color: Colors.grey, size: 18),
+                      icon: const Icon(Icons.close, color: Colors.white70, size: 18),
                       onPressed: _stopSearching,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -673,11 +667,11 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
               ),
             )
           : Text(isMobile ? activeSubItem.title : "AGE Africa Management Portal", 
-              style: const TextStyle(color: kBrandBrown, fontWeight: FontWeight.w900, fontSize: 17, letterSpacing: -0.5)),
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 17, letterSpacing: -0.5)),
         actions: [
           if (!_isSearching)
             IconButton(
-              icon: const Icon(Icons.search, color: kBrandBrown),
+              icon: const Icon(Icons.search, color: Colors.white),
               tooltip: "Search Portal",
               onPressed: _startSearching,
             ),
@@ -686,7 +680,7 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
               ScaleTransition(
                 scale: _notificationIconAnimation,
                 child: IconButton(
-                  icon: const Icon(Icons.notifications_none_rounded, color: kBrandBrown),
+                  icon: const Icon(Icons.notifications_none_rounded, color: Colors.white),
                   tooltip: "Notifications",
                   onPressed: () {
                     setState(() => _notificationCount = 0);
@@ -718,7 +712,7 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
           ),
           if (!isMobile) ...[
             const SizedBox(width: 8),
-            const VerticalDivider(color: Color(0xFFEEEEEE), width: 1, indent: 16, endIndent: 16),
+            VerticalDivider(color: Colors.white.withOpacity(0.2), width: 1, indent: 16, endIndent: 16),
             const SizedBox(width: 12),
             GestureDetector(
               onTap: () => _navigateToSubItem("User Profile"),
@@ -730,10 +724,10 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
                     width: 120,
                     child: _MovingText(
                       text: _fullName,
-                      style: const TextStyle(color: kBrandBrown, fontWeight: FontWeight.w900, fontSize: 13),
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13),
                     ),
                   ),
-                  Text(_userRole.toUpperCase(), style: TextStyle(color: kBrandOlive, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                  Text(_userRole.toUpperCase(), style: const TextStyle(color: kBrandOlive, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                 ],
               ),
             ),
@@ -807,10 +801,9 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
           Expanded(
             child: Column(
               children: [
-                if (!isMobile)
                 Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 8),
                   decoration: const BoxDecoration(
                     color: Colors.white,
                     border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
@@ -819,49 +812,52 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
                     children: [
                       if (_navigationHistory.isNotEmpty && activeSubItem.title != "Pending Approvals") ...[
                         IconButton(
-                          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kBrandBrown, size: 14), 
+                          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kBrandBrown, size: 12), 
                           onPressed: _popSubItem,
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(width: 12),
                       ],
-                      GestureDetector(
-                        onTap: () => _navigateToSubItem("Admin Overview"),
-                        child: Text(activeCategory.title.toUpperCase(), 
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1))),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 14),
-                      ),
+                      if (!isMobile) ...[
+                        GestureDetector(
+                          onTap: () => _navigateToSubItem("Admin Overview"),
+                          child: Text(activeCategory.title.toUpperCase(), 
+                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1))),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8.0),
+                          child: Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 12),
+                        ),
+                      ],
                       Expanded(
                         child: Text(activeSubItem.title, 
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kBrandBrown)),
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: kBrandBrown)),
                       ),
                       const SizedBox(width: 20),
+                      if (!isMobile)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
                           color: kBrandOlive.withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(6),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.calendar_today_rounded, size: 12, color: kBrandOlive),
-                            const SizedBox(width: 8),
-                            Text(DateFormat('EEE, d MMM yyyy').format(DateTime.now()), 
-                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kBrandOlive)),
+                            const Icon(Icons.calendar_today_rounded, size: 10, color: kBrandOlive),
+                            const SizedBox(width: 6),
+                            Text(DateFormat('d MMM yyyy').format(DateTime.now()), 
+                              style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBrandOlive)),
                           ],
                         ),
                       ),
                     ],
                   ),
                 ),
-                if (!isMobile) const Divider(height: 1),
+                const Divider(height: 1),
                 Expanded(
                   child: Padding(
-                    padding: EdgeInsets.all(isMobile ? 0 : 24),
+                    padding: EdgeInsets.all(isMobile ? 0 : 20),
                     child: activeSubItem.builder != null
                       ? activeSubItem.builder!(_popSubItem, _pushSubItem)
                       : activeSubItem.page,
@@ -920,12 +916,11 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
     const Color brandBrown = Color(0xFF4C3C32);
     const Color brandCream = Color(0xFFFAF2DB);
     const Color brandCreamDark = Color(0xFFF3E7C4);
-    const Color brandOrange = Color(0xFFE05B1C);
     const Color brandOlive = Color(0xFF9AB334);
 
     return Container(
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: brandCream,
         border: Border(right: BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: Column(
@@ -934,7 +929,7 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
-            color: Colors.white,
+            color: brandCreamDark,
             child: Column(
               children: [
                 Container(
@@ -985,7 +980,7 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
               child: Text(
                 "SYSTEM NAVIGATION",
                 style: TextStyle(
-                  color: Colors.grey.shade400,
+                  color: brandBrown.withOpacity(0.4),
                   fontSize: 10,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1.5,
@@ -1006,12 +1001,12 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
                 return Theme(
                   data: Theme.of(context).copyWith(
                     dividerColor: Colors.transparent,
-                    hoverColor: brandCream.withOpacity(0.3),
+                    hoverColor: brandCreamDark.withOpacity(0.3),
                   ),
                   child: ExpansionTile(
                     key: PageStorageKey('admin_cat_${category.title}'),
                     initiallyExpanded: isSelectedCategory,
-                    collapsedIconColor: Colors.grey.shade500,
+                    collapsedIconColor: brandBrown.withOpacity(0.5),
                     iconColor: brandOlive,
                     collapsedTextColor: brandBrown,
                     textColor: brandBrown,
@@ -1022,7 +1017,7 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
                       style: TextStyle(
                         fontWeight: isSelectedCategory ? FontWeight.w900 : FontWeight.w600,
                         fontSize: 13,
-                        color: isSelectedCategory ? brandBrown : Colors.grey.shade700,
+                        color: isSelectedCategory ? brandBrown : brandBrown.withOpacity(0.7),
                       ),
                     ),
                     children: category.subItems.where((s) => s.isVisible).map((subItem) {
@@ -1043,12 +1038,12 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
                           leading: Icon(
                             subItem.icon,
                             size: 16,
-                            color: isSubSelected(isSelectedCategory, activeSubIndex, subIdx) ? brandOlive : Colors.grey.shade500,
+                            color: isSubSelected(isSelectedCategory, activeSubIndex, subIdx) ? brandOlive : brandBrown.withOpacity(0.4),
                           ),
                           title: Text(
                             subItem.title,
                             style: TextStyle(
-                              color: isSubSelected(isSelectedCategory, activeSubIndex, subIdx) ? brandBrown : Colors.grey.shade600,
+                              color: isSubSelected(isSelectedCategory, activeSubIndex, subIdx) ? brandBrown : brandBrown.withOpacity(0.6),
                               fontWeight: isSubSelected(isSelectedCategory, activeSubIndex, subIdx) ? FontWeight.w900 : FontWeight.w500,
                               fontSize: 12.5,
                             ),

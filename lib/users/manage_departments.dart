@@ -116,8 +116,12 @@ class _ManageDepartmentsComponentState extends State<ManageDepartmentsComponent>
 
   Widget _buildHeader(bool isMobile) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 12),
-      color: Colors.white,
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(isMobile ? 16 : 24, 32, isMobile ? 16 : 24, 8),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -125,19 +129,18 @@ class _ManageDepartmentsComponentState extends State<ManageDepartmentsComponent>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Departments", style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                const Text("Define institutional structure.", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                Text("Departments", style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.2)),
               ],
             ),
           ),
           ElevatedButton.icon(
             onPressed: () => _showDeptDialog(),
-            icon: Icon(Icons.add, size: isMobile ? 14 : 16),
+            icon: Icon(Icons.add, size: 14),
             label: Text(isMobile ? "ADD" : "CREATE"),
             style: ElevatedButton.styleFrom(
-              backgroundColor: kBrandOlive,
+              backgroundColor: kBrandBrown,
               foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
             ),
