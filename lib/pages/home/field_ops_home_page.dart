@@ -357,11 +357,12 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
 
     return Scaffold(
       key: scaffoldKey,
-      backgroundColor: const Color(0xFFF4F7F5),
+      backgroundColor: const Color(0xFFF8F9FA),
       drawer: isMobile ? _buildDrawer(context) : null,
       appBar: AppBar(
         elevation: 2,
         backgroundColor: kBrandBrown,
+        foregroundColor: Colors.white,
         leadingWidth: isMobile ? null : 280,
         leading: isMobile 
           ? IconButton(
@@ -379,7 +380,7 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
                 ),
                 const SizedBox(width: 8),
                 IconButton(
-                  icon: const Icon(Icons.menu, color: Colors.white), 
+                  icon: const Icon(Icons.menu, color: Colors.white, size: 20), 
                   onPressed: () => setState(() => _isSidebarVisible = !_isSidebarVisible),
                 ),
               ],
@@ -444,25 +445,41 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
                 if (!isMobile)
                 Container(
                   width: double.infinity,
-                  padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 16),
-                  color: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+                  ),
                   child: Row(
                     children: [
-                      if (_navigationHistory.isNotEmpty && activeSubItem.title != "Pending Approvals")
+                      if (_navigationHistory.isNotEmpty && activeSubItem.title != "Pending Approvals") ...[
                         IconButton(
-                          icon: const Icon(Icons.arrow_back, color: Colors.black87, size: 20),
-                          onPressed: _popSubItem
+                          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kBrandBrown, size: 12), 
+                          onPressed: _popSubItem,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
                         ),
+                        const SizedBox(width: 12),
+                      ],
                       if (!isMobile) ...[
-                        Text(activeCategory.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black54)),
-                        const SizedBox(width: 8),
-                        const Icon(Icons.chevron_right, color: Colors.grey, size: 18),
-                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: () => setState(() {
+                            activeCategoryIndex = 0;
+                            activeSubIndex = 0;
+                            _navigationHistory.clear();
+                            _currentDetailScholarId = null;
+                          }),
+                          child: Text(activeCategory.title.toUpperCase(), 
+                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1))),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8.0),
+                          child: Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 12),
+                        ),
                       ],
                       Expanded(
                         child: Text(activeSubItem.title, 
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: kBrandBrown)),
                       ),
                     ],
                   ),
@@ -495,71 +512,160 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
   }
 
   Widget _buildSidebar({bool isDrawer = false}) {
+    const Color brandBrown = Color(0xFF4C3C32);
+    const Color brandCream = Color(0xFFFAF2DB);
+    const Color brandCreamDark = Color(0xFFF3E7C4);
+    const Color brandOlive = Color(0xFF9AB334);
+
     return Container(
       width: 280,
-      color: kBrandCream,
+      decoration: const BoxDecoration(
+        color: brandCream,
+        border: Border(right: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
       child: Column(
         children: [
-          _buildUserHeader(),
+          _buildUserHeader(brandBrown, brandCreamDark, brandOlive),
+          const Divider(height: 1),
+          
+          Padding(
+            padding: const EdgeInsets.only(left: 24, top: 24, right: 16, bottom: 12),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                "FIELD OPERATIONS",
+                style: TextStyle(
+                  color: brandBrown.withOpacity(0.4),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.5,
+                ),
+              ),
+            ),
+          ),
+
           Expanded(
             child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
               itemCount: _categories.length,
               itemBuilder: (context, index) {
                 final category = _categories[index];
                 final isSelected = activeCategoryIndex == index;
-                return ExpansionTile(
-                  initiallyExpanded: isSelected,
-                  leading: Icon(category.icon, color: isSelected ? kBrandOrange : kBrandBrown),
-                  title: Text(category.title, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, fontSize: 14)),
-                  children: category.subItems.where((s) => s.isVisible).map((sub) {
-                    final subIdx = category.subItems.indexOf(sub);
-                    final isSubSelected = isSelected && activeSubIndex == subIdx;
-                    return ListTile(
-                      dense: true,
-                      leading: Icon(sub.icon, size: 18, color: isSubSelected ? kBrandOrange : Colors.black54),
-                      title: Text(sub.title, style: TextStyle(color: isSubSelected ? kBrandOrange : Colors.black87, fontWeight: isSubSelected ? FontWeight.bold : FontWeight.normal)),
-                      onTap: () {
-                        setState(() { activeCategoryIndex = index; activeSubIndex = subIdx; });
-                        if (isDrawer) Navigator.pop(context);
-                      },
-                    );
-                  }).toList(),
+
+                return Theme(
+                  data: Theme.of(context).copyWith(
+                    dividerColor: Colors.transparent,
+                    hoverColor: brandCreamDark.withOpacity(0.3),
+                  ),
+                  child: ExpansionTile(
+                    initiallyExpanded: isSelected,
+                    collapsedIconColor: brandBrown.withOpacity(0.5),
+                    iconColor: brandOlive,
+                    collapsedTextColor: brandBrown,
+                    textColor: brandBrown,
+                    tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    leading: Icon(category.icon, size: 20),
+                    title: Text(category.title, 
+                      style: TextStyle(
+                        fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600, 
+                        fontSize: 13,
+                        color: isSelected ? brandBrown : brandBrown.withOpacity(0.7),
+                      )),
+                    children: category.subItems.where((s) => s.isVisible).map((subItem) {
+                      final subIdx = category.subItems.indexOf(subItem);
+                      final isSubSelected = isSelected && activeSubIndex == subIdx;
+                      
+                      return Container(
+                        margin: const EdgeInsets.only(left: 8, bottom: 2),
+                        decoration: BoxDecoration(
+                          color: isSubSelected ? brandOlive.withOpacity(0.08) : Colors.transparent,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: ListTile(
+                          dense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                          leading: Icon(subItem.icon, size: 16, color: isSubSelected ? brandOlive : brandBrown.withOpacity(0.4)),
+                          title: Text(subItem.title, 
+                            style: TextStyle(
+                              color: isSubSelected ? brandBrown : brandBrown.withOpacity(0.6), 
+                              fontWeight: isSubSelected ? FontWeight.w900 : FontWeight.w500, 
+                              fontSize: 12.5)),
+                          onTap: () {
+                            setState(() { 
+                              activeCategoryIndex = index; 
+                              activeSubIndex = subIdx; 
+                            });
+                            if (isDrawer) Navigator.pop(context);
+                          },
+                        ),
+                      );
+                    }).toList(),
+                  ),
                 );
               },
             ),
           ),
-          _buildLogoutButton(),
+          const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: ListTile(
+              leading: const Icon(Icons.logout_rounded, color: Colors.redAccent, size: 20), 
+              title: const Text("End Session", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w900, fontSize: 13)), 
+              onTap: () { 
+                ApiService.logout(); 
+                Navigator.pushReplacementNamed(context, '/login'); 
+              }
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildUserHeader() {
+  Widget _buildUserHeader(Color brandBrown, Color brandCreamDark, Color brandOlive) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      color: kBrandCreamDark,
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+      color: brandCreamDark,
       child: Column(
         children: [
-          CircleAvatar(
-            radius: 40,
-            backgroundColor: kBrandBrown,
-            child: ClipOval(
-              child: _profileImageUrl != null
-                  ? Image.network(
-                      ApiService.getFullUrl(_profileImageUrl),
-                      fit: BoxFit.cover,
-                      width: 80,
-                      height: 80,
-                      errorBuilder: (context, error, stackTrace) =>
-                          const Icon(Icons.person, size: 40, color: kBrandCream),
-                    )
-                  : const Icon(Icons.person, size: 40, color: kBrandCream),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: brandOlive.withOpacity(0.2), width: 2),
+            ),
+            child: CircleAvatar(
+              radius: 38,
+              backgroundColor: brandBrown,
+              child: ClipOval(
+                child: _profileImageUrl != null
+                    ? Image.network(
+                        ApiService.getFullUrl(_profileImageUrl),
+                        fit: BoxFit.cover,
+                        width: 76,
+                        height: 76,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(Icons.person, size: 40, color: Colors.white),
+                      )
+                    : const Icon(Icons.person, size: 40, color: Colors.white),
+              ),
             ),
           ),
-          const SizedBox(height: 12),
-          Text(_fullName, style: const TextStyle(color: kBrandBrown, fontWeight: FontWeight.bold, fontSize: 16)),
-          Text(_userRole.toUpperCase(), style: const TextStyle(color: kBrandOrange, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+          const SizedBox(height: 16),
+          Text(_fullName, 
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: brandBrown, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: brandOlive.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(_userRole.toUpperCase(), 
+              style: const TextStyle(color: brandOlive, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+          ),
         ],
       ),
     );
