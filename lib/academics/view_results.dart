@@ -64,6 +64,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
   String _statusFilter = 'All'; // 'All', 'Complete', 'Incomplete', 'Passed', 'Failing'
 
   bool _isLoading = false;
+  bool _isSearchExpanded = false;
 
   final List<String> _academicYears = academicYearOptions();
 
@@ -322,8 +323,31 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
   }
 
   Widget _buildPortalHeader() {
-    final bool isMobile = MediaQuery.of(context).size.width < 900;
     final bool isSecondary = _mode == ViewResultsMode.secondary;
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
+
+    if (isMobile && _isSearchExpanded) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+        ),
+        child: Row(
+          children: [
+            Expanded(child: _portalCompactSearchField(true)),
+            IconButton(
+              icon: const Icon(Icons.close_rounded, color: Colors.grey),
+              onPressed: () => setState(() {
+                _isSearchExpanded = false;
+                _searchController.clear();
+              }),
+            ),
+          ],
+        ),
+      );
+    }
     
     return Container(
       width: double.infinity,
@@ -368,7 +392,24 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
               ],
             ),
           ),
-          if (!isMobile) ...[
+          if (isMobile) ...[
+            IconButton(
+              icon: const Icon(Icons.search_rounded, color: Color(0xFF4C3C32), size: 20),
+              onPressed: () => setState(() => _isSearchExpanded = true),
+              visualDensity: VisualDensity.compact,
+            ),
+            const SizedBox(width: 4),
+            IconButton(
+              onPressed: widget.onEnterResults ?? () => Navigator.pushNamed(context, '/academics/enterResults'),
+              icon: const Icon(Icons.add_rounded, color: Colors.white, size: 18),
+              style: IconButton.styleFrom(
+                backgroundColor: const Color(0xFF9AB334),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                minimumSize: const Size(36, 36),
+                padding: EdgeInsets.zero,
+              ),
+            ),
+          ] else ...[
             if (_selectedSchool != null || (isSecondary && _selectedDistrict != null))
               _portalHeaderActionBtn(
                 onTap: _openConsolidatedRoster,
@@ -415,23 +456,17 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
         border: Border(bottom: BorderSide(color: Color(0xFFF3F4F6))),
       ),
       child: isMobile
-        ? Column(
-            children: [
-              _portalCompactSearchField(true),
-              const SizedBox(height: 12),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    if (isSecondary) ...[
-                      _portalCompactDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() { _selectedDistrict = v; _selectedSchool = null; _selectedScholarId = null; })),
-                      const SizedBox(width: 8),
-                    ],
-                    _portalCompactDropdown(isSecondary ? "School" : "University", _selectedSchool, _availableSchools, (v) => setState(() { _selectedSchool = v; _selectedScholarId = null; })),
-                  ],
-                ),
-              ),
-            ],
+        ? SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                if (isSecondary) ...[
+                  _portalCompactDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() { _selectedDistrict = v; _selectedSchool = null; _selectedScholarId = null; })),
+                  const SizedBox(width: 8),
+                ],
+                _portalCompactDropdown(isSecondary ? "School" : "University", _selectedSchool, _availableSchools, (v) => setState(() { _selectedSchool = v; _selectedScholarId = null; })),
+              ],
+            ),
           )
         : Row(
             children: [
@@ -467,17 +502,18 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
       decoration: BoxDecoration(
         color: const Color(0xFFF8F9FA),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
+        border: isMobile ? Border.all(color: const Color(0xFFEEEEEE)) : null,
       ),
       child: TextField(
         controller: _searchController,
         onChanged: (v) => setState(() {}),
+        autofocus: isMobile,
         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-        decoration: const InputDecoration(
-          hintText: "Search scholar...",
-          prefixIcon: Icon(Icons.search, size: 18, color: Colors.grey),
+        decoration: InputDecoration(
+          hintText: isMobile ? "Search scholars..." : "Search scholar...",
+          prefixIcon: const Icon(Icons.search, size: 18, color: Colors.grey),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: 11),
+          contentPadding: const EdgeInsets.symmetric(vertical: 11),
         ),
       ),
     );

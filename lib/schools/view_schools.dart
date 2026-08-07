@@ -31,6 +31,7 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
   late String _selectedLevel;
   String _selectedRegion = 'All';
   bool _isLoading = true;
+  bool _isSearchExpanded = false;
   String _userRole = 'User';
 
   List<Map<String, dynamic>> _allSchools = [];
@@ -236,6 +237,30 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
   }
 
   Widget _buildPortalHeader(bool isMobile) {
+    if (isMobile && _isSearchExpanded) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+        ),
+        child: Row(
+          children: [
+            Expanded(child: _portalCompactSearchField(true)),
+            IconButton(
+              icon: const Icon(Icons.close_rounded, color: Colors.grey),
+              onPressed: () => setState(() {
+                _isSearchExpanded = false;
+                _searchQuery = '';
+                _fetchSchools(); // or just reset filter
+              }),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -254,18 +279,24 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
                   widget.forcedLevel != null 
                     ? "${widget.forcedLevel} Registry"
                     : "Central Institutional Registry",
-                  style: const TextStyle(
-                    fontSize: 16, 
+                  style: TextStyle(
+                    fontSize: isMobile ? 14 : 16, 
                     fontWeight: FontWeight.w900, 
-                    color: Color(0xFF4C3C32), 
+                    color: const Color(0xFF4C3C32), 
                     letterSpacing: -0.2
                   ),
                 ),
               ],
             ),
           ),
+          if (isMobile)
+            IconButton(
+              icon: const Icon(Icons.search_rounded, color: Color(0xFF4C3C32), size: 22),
+              onPressed: () => setState(() => _isSearchExpanded = true),
+            ),
+          const SizedBox(width: 8),
           if (!widget.hideRegistration && PermissionService.hasPermission('schools.create'))
-            ElevatedButton.icon(
+            ElevatedButton(
               onPressed: () async {
                 if (widget.onRegisterSchool != null) {
                   widget.onRegisterSchool!();
@@ -274,14 +305,23 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
                   if (result == true) _fetchSchools();
                 }
               },
-              icon: const Icon(Icons.add_business_rounded, size: 14),
-              label: const Text("REGISTER", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF4C3C32),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 elevation: 0,
+                minimumSize: isMobile ? Size.zero : null,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(isMobile ? Icons.add_rounded : Icons.add_business_rounded, size: 18),
+                  if (!isMobile) ...[
+                    const SizedBox(width: 8),
+                    const Text("REGISTER", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                  ],
+                ],
               ),
             ),
         ],
@@ -297,22 +337,16 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
         border: Border(bottom: BorderSide(color: Color(0xFFF3F4F6))),
       ),
       child: isMobile
-          ? Column(
-              children: [
-                _portalCompactSearchField(true),
-                const SizedBox(height: 12),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      if (widget.forcedLevel == null)
-                        _portalCompactDropdown("Type", _selectedLevel, _schoolLevels, (v) => setState(() => _selectedLevel = v!)),
-                      if (widget.forcedLevel == null) const SizedBox(width: 8),
-                      _portalCompactDropdown("Region", _selectedRegion, _regions, (v) => setState(() => _selectedRegion = v!)),
-                    ],
-                  ),
-                ),
-              ],
+          ? SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  if (widget.forcedLevel == null)
+                    _portalCompactDropdown("Type", _selectedLevel, _schoolLevels, (v) => setState(() => _selectedLevel = v!)),
+                  if (widget.forcedLevel == null) const SizedBox(width: 8),
+                  _portalCompactDropdown("Region", _selectedRegion, _regions, (v) => setState(() => _selectedRegion = v!)),
+                ],
+              ),
             )
           : Row(
               children: [
@@ -341,18 +375,19 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
       width: isMobile ? double.infinity : 280,
       height: 44,
       decoration: BoxDecoration(
-        color: Color(0xFFF8F9FA),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(20),
+        border: isMobile ? Border.all(color: const Color(0xFFEEEEEE)) : null,
       ),
       child: TextField(
         onChanged: (val) => setState(() => _searchQuery = val),
+        autofocus: isMobile,
         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-        decoration: const InputDecoration(
-          hintText: "Search name, code, district...",
-          prefixIcon: Icon(Icons.search_rounded, size: 18, color: Colors.grey),
+        decoration: InputDecoration(
+          hintText: isMobile ? "Search institutions..." : "Search name, code, district...",
+          prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Colors.grey),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: 11),
+          contentPadding: const EdgeInsets.symmetric(vertical: 11),
         ),
       ),
     );

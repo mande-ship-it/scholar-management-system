@@ -181,6 +181,7 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
+  bool _isSearchExpanded = false;
 
   @override
   void initState() {
@@ -292,7 +293,7 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (!isMobile) _buildExecutiveHeader(isMobile),
+          _buildExecutiveHeader(isMobile),
           _buildToolbar(isMobile),
           Expanded(
             child: _isLoading
@@ -311,6 +312,46 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
   }
 
   Widget _buildExecutiveHeader(bool isMobile) {
+    if (isMobile && _isSearchExpanded) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _searchController,
+                autofocus: true,
+                style: const TextStyle(fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: 'Search programs...',
+                  hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
+                  prefixIcon: Icon(Icons.search_rounded, size: 20, color: Colors.grey.shade400),
+                  isDense: true,
+                  filled: true,
+                  fillColor: const Color(0xFFF0F2F5),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close_rounded, color: Colors.grey),
+              onPressed: () => setState(() {
+                _isSearchExpanded = false;
+                _searchController.clear();
+                _query = '';
+              }),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -329,16 +370,31 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
               ],
             ),
           ),
-          ElevatedButton.icon(
+          if (isMobile)
+            IconButton(
+              icon: const Icon(Icons.search_rounded, color: kBrandBrown, size: 22),
+              onPressed: () => setState(() => _isSearchExpanded = true),
+            ),
+          const SizedBox(width: 8),
+          ElevatedButton(
             onPressed: _showCreateEventDialog,
-            icon: Icon(Icons.add_rounded, size: 14),
-            label: Text(isMobile ? "ADD" : "CREATE", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
             style: ElevatedButton.styleFrom(
               backgroundColor: kBrandOlive,
               foregroundColor: Colors.white,
               elevation: 0,
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: 12),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              minimumSize: isMobile ? Size.zero : null,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.add_rounded, size: 18),
+                if (!isMobile) ...[
+                  const SizedBox(width: 8),
+                  const Text("CREATE EVENT", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
+                ],
+              ],
             ),
           ),
         ],
@@ -349,36 +405,23 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
   Widget _buildToolbar(bool isMobile) {
     return Container(
       color: Colors.white,
-      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 32, vertical: isMobile ? 12 : 20),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 32, vertical: isMobile ? 8 : 20),
       child: isMobile 
-        ? Column(
+        ? Row(
             children: [
-              TabBar(
-                controller: _tabController,
-                isScrollable: true,
-                labelColor: kBrandOlive,
-                unselectedLabelColor: Colors.grey.shade400,
-                indicatorColor: kBrandOlive,
-                indicatorWeight: 3,
-                labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5),
-                tabs: const [
-                  Tab(text: 'UPCOMING'),
-                  Tab(text: 'HISTORY'),
-                ],
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search...',
-                  hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-                  prefixIcon: Icon(Icons.search_rounded, size: 18, color: Colors.grey.shade400),
-                  isDense: true,
-                  filled: true,
-                  fillColor: const Color(0xFFF0F2F5),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+              Expanded(
+                child: TabBar(
+                  controller: _tabController,
+                  isScrollable: true,
+                  labelColor: kBrandOlive,
+                  unselectedLabelColor: Colors.grey.shade400,
+                  indicatorColor: kBrandOlive,
+                  indicatorWeight: 3,
+                  labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5),
+                  tabs: const [
+                    Tab(text: 'UPCOMING'),
+                    Tab(text: 'HISTORY'),
+                  ],
                 ),
               ),
             ],

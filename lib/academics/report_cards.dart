@@ -22,6 +22,7 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
   List<Student> _filteredScholars = [];
   Student? _selectedStudent;
   bool _isLoading = true;
+  bool _isSearchExpanded = false;
   String _directorName = "Executive Director";
 
   // Selection Options
@@ -456,6 +457,51 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
   }
 
   Widget _buildPortalHeader(bool isMobile) {
+    if (isMobile && _isSearchExpanded) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Container(
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8F9FA),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFEEEEEE)),
+                ),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: _filterScholars,
+                  autofocus: true,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  decoration: const InputDecoration(
+                    hintText: "Search scholar...",
+                    prefixIcon: Icon(Icons.search, size: 18, color: Colors.grey),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close_rounded, color: Colors.grey),
+              onPressed: () => setState(() {
+                _isSearchExpanded = false;
+                _searchController.clear();
+                _filterScholars('');
+              }),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -481,6 +527,11 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
               ],
             ),
           ),
+          if (isMobile)
+            IconButton(
+              icon: const Icon(Icons.search_rounded, color: Color(0xFF4C3C32), size: 20),
+              onPressed: () => setState(() => _isSearchExpanded = true),
+            ),
         ],
       ),
     );
@@ -501,26 +552,28 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
                   "SCHOLAR DIRECTORY",
                   style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF9AB334), letterSpacing: 1.0),
                 ),
-                const SizedBox(height: 16),
-                Container(
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8F9FA),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFEEEEEE)),
-                  ),
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: _filterScholars,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                    decoration: const InputDecoration(
-                      hintText: "Search name or ID...",
-                      prefixIcon: Icon(Icons.search, size: 18, color: Colors.grey),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(vertical: 11),
+                if (!isMobile) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8F9FA),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFEEEEEE)),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: _filterScholars,
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      decoration: const InputDecoration(
+                        hintText: "Search name or ID...",
+                        prefixIcon: Icon(Icons.search, size: 18, color: Colors.grey),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: 11),
+                      ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ),

@@ -25,6 +25,7 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
   Student? _selectedScholar;
   String _aiNarrative = "";
   bool _isGeneratingAI = false;
+  bool _isSearchExpanded = false;
 
   @override
   void initState() {
@@ -255,7 +256,7 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
     );
   }
 
-  Widget _buildScholarPicker() {
+  Widget _buildScholarPicker({bool isMobile = false}) {
     return Autocomplete<Student>(
       displayStringForOption: (s) => s.name,
       optionsBuilder: (val) {
@@ -263,19 +264,33 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
         return kStudents.where((s) => s.name.toLowerCase().contains(val.text.toLowerCase()));
       },
       onSelected: (s) {
-        setState(() => _selectedScholar = s);
+        setState(() {
+          _selectedScholar = s;
+          _isSearchExpanded = false;
+        });
         _fetchIndividualTrend(s.id);
       },
       fieldViewBuilder: (ctx, ctrl, focus, onSubmitted) {
-        return TextField(
-          controller: ctrl,
-          focusNode: focus,
-          decoration: InputDecoration(
-            hintText: "Search scholar for detailed mapping...",
-            prefixIcon: const Icon(Icons.person_search_rounded, color: kBrandOlive),
-            filled: true,
-            fillColor: Colors.grey.shade50,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+        return Container(
+          height: isMobile ? 40 : null,
+          decoration: isMobile ? BoxDecoration(
+            color: const Color(0xFFF8F9FA),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFEEEEEE)),
+          ) : null,
+          child: TextField(
+            controller: ctrl,
+            focusNode: focus,
+            autofocus: isMobile,
+            style: TextStyle(fontSize: isMobile ? 13 : 14, fontWeight: isMobile ? FontWeight.w600 : FontWeight.normal),
+            decoration: InputDecoration(
+              hintText: isMobile ? "Search scholar..." : "Search scholar for detailed mapping...",
+              prefixIcon: Icon(isMobile ? Icons.search : Icons.person_search_rounded, color: kBrandOlive, size: isMobile ? 18 : 24),
+              filled: !isMobile,
+              fillColor: isMobile ? null : Colors.grey.shade50,
+              border: isMobile ? InputBorder.none : OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+              contentPadding: isMobile ? const EdgeInsets.symmetric(vertical: 10) : null,
+            ),
           ),
         );
       },

@@ -39,71 +39,51 @@ class _SchoolProfileDialogState extends State<SchoolProfileDialog> {
   }
 
   Widget _sectionTitle(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 0.4,
-        color: kBrandBrown,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12, top: 12),
+      child: Text(
+        text.toUpperCase(),
+        style: const TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.5,
+          color: kBrandOlive,
+        ),
       ),
     );
   }
 
-  Widget _infoGrid(List<_SchoolInfoItem> items) {
-    final visible = items.where((i) => i.value.trim().isNotEmpty).toList();
-    if (visible.isEmpty) return const SizedBox.shrink();
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = constraints.maxWidth > 380 ? 2 : 1;
-        final itemWidth = columns == 2 ? (constraints.maxWidth - 12) / 2 : constraints.maxWidth;
-        return Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: visible.map((item) {
-            return SizedBox(
-              width: itemWidth,
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.grey.shade200),
+  Widget _infoRow(String label, String value, IconData icon) {
+    if (value.trim().isEmpty || value == 'N/A') return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: kBrandOlive.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 16, color: kBrandOlive),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: kBrandBrown),
                 ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: kBrandOrange.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(item.icon, size: 16, color: kBrandOrange),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(item.label, style: TextStyle(fontSize: 11, color: Colors.grey.shade600)),
-                          const SizedBox(height: 2),
-                          Text(
-                            item.value,
-                            style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: Colors.black87),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }).toList(),
-        );
-      },
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -328,7 +308,7 @@ class _SchoolProfileDialogState extends State<SchoolProfileDialog> {
               // ---------------- Header ----------------
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(32, 40, 24, 32),
+                padding: const EdgeInsets.all(24),
                 decoration: const BoxDecoration(
                   color: Colors.white,
                   border: Border(bottom: BorderSide(color: Color(0xFFF0F0F0))),
@@ -337,8 +317,8 @@ class _SchoolProfileDialogState extends State<SchoolProfileDialog> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Container(
-                      width: 80,
-                      height: 80,
+                      width: 60,
+                      height: 60,
                       decoration: BoxDecoration(
                         color: kBrandOlive.withOpacity(0.1),
                         shape: BoxShape.circle,
@@ -348,35 +328,35 @@ class _SchoolProfileDialogState extends State<SchoolProfileDialog> {
                       child: initials.isNotEmpty
                           ? Text(
                         initials,
-                        style: const TextStyle(color: kBrandBrown, fontSize: 28, fontWeight: FontWeight.w900),
+                        style: const TextStyle(color: kBrandBrown, fontSize: 20, fontWeight: FontWeight.w900),
                       )
                           : Icon(
                         isTertiary ? Icons.account_balance : Icons.school,
                         color: kBrandBrown,
-                        size: 32,
+                        size: 24,
                       ),
                     ),
-                    const SizedBox(width: 24),
+                    const SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             (school['name'] ?? '').toUpperCase(),
-                            style: const TextStyle(color: kBrandBrown, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+                            style: const TextStyle(color: kBrandBrown, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -0.5),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 4),
                           Row(
                             children: [
                               Text(
                                 school['code'] ?? '',
-                                style: TextStyle(color: Colors.grey.shade600, fontSize: 14, fontWeight: FontWeight.bold),
+                                style: TextStyle(color: Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(width: 12),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                                 decoration: BoxDecoration(
                                   color: isActive ? kBrandOlive.withOpacity(0.1) : Colors.red.shade50,
                                   borderRadius: BorderRadius.circular(20),
@@ -386,7 +366,7 @@ class _SchoolProfileDialogState extends State<SchoolProfileDialog> {
                                   school['status']?.toUpperCase() ?? '',
                                   style: TextStyle(
                                     color: isActive ? kBrandOlive : Colors.red.shade800,
-                                    fontSize: 10,
+                                    fontSize: 8,
                                     fontWeight: FontWeight.w900,
                                     letterSpacing: 0.5,
                                   ),
@@ -396,6 +376,10 @@ class _SchoolProfileDialogState extends State<SchoolProfileDialog> {
                           ),
                         ],
                       ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close_rounded, color: Colors.grey, size: 20),
                     ),
                   ],
                 ),
@@ -426,34 +410,28 @@ class _SchoolProfileDialogState extends State<SchoolProfileDialog> {
                       ],
                       const SizedBox(height: 24),
 
+                      _sectionTitle("Institutional Profile"),
+                      _infoRow("Education Level", school['level'] ?? '', Icons.layers_outlined),
+                      _infoRow("Agency Type", school['type'] ?? '', Icons.account_balance_outlined),
+                      _infoRow("Gender Policy", school['genderPolicy'] ?? '', Icons.wc_outlined),
+
                       _sectionTitle("Location"),
-                      const SizedBox(height: 12),
-                      _infoGrid([
-                        _SchoolInfoItem(Icons.map, "Region", school['region'] ?? ''),
-                        _SchoolInfoItem(Icons.my_location, "District", school['district'] ?? ''),
-                        _SchoolInfoItem(Icons.home, "Address", school['address'] ?? ''),
-                        _SchoolInfoItem(Icons.local_post_office, "Postal", school['postal'] ?? ''),
-                      ]),
-                      const SizedBox(height: 24),
+                      _infoRow("Region", school['region'] ?? '', Icons.map_outlined),
+                      _infoRow("District", school['district'] ?? '', Icons.my_location_outlined),
+                      _infoRow("Address", school['address'] ?? '', Icons.home_outlined),
+                      _infoRow("Postal", school['postal'] ?? '', Icons.local_post_office_outlined),
 
                       _sectionTitle("School Contacts"),
-                      const SizedBox(height: 12),
-                      _infoGrid([
-                        _SchoolInfoItem(Icons.phone, "Phone", school['phone'] ?? ''),
-                        _SchoolInfoItem(Icons.phone_android, "Alt. Phone", school['altPhone'] ?? ''),
-                        _SchoolInfoItem(Icons.email, "Email", school['email'] ?? ''),
-                        _SchoolInfoItem(Icons.language, "Website", school['website'] ?? ''),
-                      ]),
-                      const SizedBox(height: 24),
+                      _infoRow("Phone", school['phone'] ?? '', Icons.phone_outlined),
+                      _infoRow("Alt. Phone", school['altPhone'] ?? '', Icons.phone_android_outlined),
+                      _infoRow("Email", school['email'] ?? '', Icons.email_outlined),
+                      _infoRow("Website", school['website'] ?? '', Icons.language_outlined),
 
                       _sectionTitle("Administrator"),
-                      const SizedBox(height: 12),
-                      _infoGrid([
-                        _SchoolInfoItem(Icons.badge, "Name", school['adminName'] ?? ''),
-                        _SchoolInfoItem(Icons.work, "Role", school['adminRole'] ?? ''),
-                        _SchoolInfoItem(Icons.contact_phone, "Phone", school['adminPhone'] ?? ''),
-                        _SchoolInfoItem(Icons.contact_mail, "Email", school['adminEmail'] ?? ''),
-                      ]),
+                      _infoRow("Name", school['adminName'] ?? '', Icons.badge_outlined),
+                      _infoRow("Role", school['adminRole'] ?? '', Icons.work_outline),
+                      _infoRow("Phone", school['adminPhone'] ?? '', Icons.contact_phone_outlined),
+                      _infoRow("Email", school['adminEmail'] ?? '', Icons.contact_mail_outlined),
 
                       if ((school['notes'] ?? '').isNotEmpty) ...[
                         const SizedBox(height: 24),
@@ -586,14 +564,6 @@ class _SchoolProfileDialogState extends State<SchoolProfileDialog> {
       ),
     );
   }
-}
-
-class _SchoolInfoItem {
-  final IconData icon;
-  final String label;
-  final String value;
-
-  _SchoolInfoItem(this.icon, this.label, this.value);
 }
 
 
