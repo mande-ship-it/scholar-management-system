@@ -122,69 +122,52 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(
-        horizontal: isSmallScreen ? 16 : 32, 
+        horizontal: isSmallScreen ? 12 : 32, 
         vertical: isSmallScreen ? 12 : 20
       ),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("PROGRAM ANALYTICS", 
-                  style: TextStyle(fontSize: isSmallScreen ? 8 : 10, fontWeight: FontWeight.w900, color: Color(0xFF9AB334), letterSpacing: 1.5)),
-                const SizedBox(height: 2),
-                Text("$_selectedLevel Intelligence", 
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: isSmallScreen ? 16 : 22,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF4C3C32),
-                    letterSpacing: -0.5
-                  )),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("PROGRAM ANALYTICS", 
+                      style: TextStyle(fontSize: isSmallScreen ? 8 : 10, fontWeight: FontWeight.w900, color: const Color(0xFF9AB334), letterSpacing: 1.5)),
+                    const SizedBox(height: 2),
+                    Text(isSmallScreen ? _selectedLevel : "$_selectedLevel Intelligence Dashboard", 
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: isSmallScreen ? 18 : 22,
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFF4C3C32),
+                        letterSpacing: -0.5
+                      )),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
               if (!isSmallScreen) _buildLevelToggle(false),
-              const SizedBox(width: 12),
-              _buildAIQuickAccess(),
               const SizedBox(width: 12),
               _buildStatusApprovalIndicator(),
             ],
           ),
+          if (isSmallScreen) const SizedBox(height: 12),
+          if (isSmallScreen) _buildLevelToggle(true),
         ],
       ),
     );
   }
 
-  Widget _buildAIQuickAccess() {
-    return GestureDetector(
-      onTap: () => widget.onNavigate?.call("AI Assistant"),
-      child: Tooltip(
-        message: "Launch AI Strategy Assistant",
-        child: Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: Color(0xFF9AB334).withOpacity(0.1),
-            shape: BoxShape.circle,
-            border: Border.all(color: Color(0xFF9AB334).withOpacity(0.2), width: 2),
-          ),
-          child: const Icon(Icons.auto_awesome_rounded, color: Color(0xFF9AB334), size: 20),
-        ),
-      ),
-    );
-  }
 
-  Widget _buildLevelToggle(bool isMobile) {
+  Widget _buildLevelToggle(bool isSmall) {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -195,14 +178,14 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _toggleBtn("University", isMobile),
-          _toggleBtn("Secondary", isMobile),
+          _toggleBtn("University", isSmall),
+          _toggleBtn("Secondary", isSmall),
         ],
       ),
     );
   }
 
-  Widget _toggleBtn(String level, bool isMobile) {
+  Widget _toggleBtn(String level, bool isSmall) {
     final bool isSelected = _selectedLevel == level;
     return GestureDetector(
       onTap: () {
@@ -211,15 +194,18 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: EdgeInsets.symmetric(
+          horizontal: isSmall ? 8 : 16, 
+          vertical: isSmall ? 6 : 8
+        ),
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFF4C3C32) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
-          level.toUpperCase(),
+          isSmall ? level.substring(0, 3).toUpperCase() : level.toUpperCase(),
           style: TextStyle(
-            fontSize: 10,
+            fontSize: isSmall ? 8 : 10,
             fontWeight: FontWeight.w900,
             color: isSelected ? Colors.white : Colors.grey,
             letterSpacing: 0.5,
@@ -350,16 +336,16 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
                   ),
                   const SizedBox(height: 12),
                   Flexible(
-                    child: Text(
-                      label.toUpperCase(),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF4C3C32),
-                        letterSpacing: -0.2,
-                        height: 1.1,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        label.toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF4C3C32),
+                          letterSpacing: -0.2,
+                        ),
                       ),
                     ),
                   ),

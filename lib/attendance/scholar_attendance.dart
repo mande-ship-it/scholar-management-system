@@ -600,8 +600,8 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
 
   Widget _buildMobileAttendanceCard(AttendanceEntry entry) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -613,36 +613,40 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
           Row(
             children: [
               CircleAvatar(
-                radius: 20,
-                backgroundColor: Color(0xFF9AB334).withOpacity(0.1),
-                child: Text(getInitials(entry.scholar.name), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF9AB334))),
+                radius: 18,
+                backgroundColor: const Color(0xFFFAF2DB),
+                child: Text(getInitials(entry.scholar.name), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF4C3C32))),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(entry.scholar.name.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF4C3C32))),
-                    Text(entry.scholar.scholarId, style: TextStyle(fontSize: 11, color: Colors.grey.shade400, fontWeight: FontWeight.bold)),
+                    Text(entry.scholar.name.toUpperCase(), 
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFF4C3C32))),
+                    Text(entry.scholar.scholarId, style: TextStyle(fontSize: 10, color: Colors.grey.shade400, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          _buildStatusPicker(entry, isMobile: true),
           const SizedBox(height: 16),
+          _buildStatusPicker(entry, isMobile: true),
+          const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
               color: const Color(0xFFF8F9FA),
               borderRadius: BorderRadius.circular(8),
             ),
             child: TextField(
               onChanged: (v) => entry.note = v,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
               decoration: const InputDecoration(
                 hintText: "Specific session notes...",
+                hintStyle: TextStyle(fontSize: 11),
                 border: InputBorder.none,
                 isDense: true,
               ),
