@@ -350,12 +350,12 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildProfessionalHeader(totalInSelection),
+          _buildProfessionalHeader(totalInSelection, isMobile),
           _buildIntegratedToolbar(availableSchools, availableClasses, isMobile),
           Expanded(
             child: Column(
                     children: [
-                      _buildTabNavigation(),
+                      _buildTabNavigation(isMobile),
                       Expanded(
                         child: TabBarView(
                           controller: _tabController,
@@ -373,10 +373,11 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
     );
   }
 
-  Widget _buildProfessionalHeader(int scholarCount) {
+  Widget _buildProfessionalHeader(int scholarCount, bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
@@ -390,12 +391,12 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
               children: [
                 Text(
                   widget.forcedSchoolType != null 
-                    ? "${widget.forcedSchoolType} Enrolment Overview"
-                    : "Central Program Register",
-                  style: const TextStyle(
-                    fontSize: 16,
+                    ? "${widget.forcedSchoolType} Registry"
+                    : "Scholar Registry",
+                  style: TextStyle(
+                    fontSize: isVerySmall ? 13 : 15,
                     fontWeight: FontWeight.w900,
-                    color: Color(0xFF4C3C32),
+                    color: const Color(0xFF4C3C32),
                     letterSpacing: -0.2,
                   ),
                 ),
@@ -403,19 +404,29 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
             ),
           ),
           Wrap(
-            spacing: 8,
+            spacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              _exportButton(Icons.description_outlined, "PDF", _exportToPDF),
-              _exportButton(Icons.table_view_outlined, "EXCEL", _exportToExcel),
+              _exportButton(icon: Icons.description_outlined, label: "PDF", onTap: _exportToPDF, isVerySmall: isVerySmall),
+              _exportButton(icon: Icons.table_view_outlined, label: "EXCEL", onTap: _exportToExcel, isVerySmall: isVerySmall),
               if (['Administrator', 'Data Officer', 'Program Coordinator'].contains(_userRole))
-                ElevatedButton.icon(
+                ElevatedButton(
                   onPressed: widget.onRegisterScholar ?? () => Navigator.pushNamed(context, '/registerScholar').then((_) => _fetchScholars()),
-                  icon: const Icon(Icons.person_add_rounded, size: 14),
-                  label: const Text("NEW", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4C3C32),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 8 : 12, vertical: isVerySmall ? 8 : 12),
+                    minimumSize: Size.zero,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.person_add_rounded, size: 14, color: Colors.white),
+                      if (!isVerySmall) ...[
+                        const SizedBox(width: 6),
+                        const Text("NEW", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white)),
+                      ],
+                    ],
                   ),
                 ),
             ],
@@ -426,43 +437,31 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
   }
 
   Widget _buildIntegratedToolbar(List<String> schools, List<String> classes, bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 32, vertical: 16),
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 12),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFF3F4F6))),
       ),
-      child: isMobile
-          ? Column(
+      child: Column(
+        children: [
+          _compactSearchField(true),
+          const SizedBox(height: 12),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
               children: [
-                _compactSearchField(true),
-                const SizedBox(height: 12),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _compactFilterDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() => _selectedDistrict = v ?? 'All')),
-                      const SizedBox(width: 8),
-                      _compactFilterDropdown("Level", _selectedClass, classes, (v) => setState(() => _selectedClass = v ?? 'All')),
-                    ],
-                  ),
-                ),
-              ],
-            )
-          : Row(
-              children: [
-                _compactSearchField(false),
-                const SizedBox(width: 16),
                 _compactFilterDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() => _selectedDistrict = v ?? 'All')),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 _compactFilterDropdown("Institution", _selectedSchoolName, schools, (v) => setState(() => _selectedSchoolName = v ?? 'All')),
-                const SizedBox(width: 12),
+                const SizedBox(width: 8),
                 _compactFilterDropdown("Level", _selectedClass, classes, (v) => setState(() => _selectedClass = v ?? 'All')),
-                const Spacer(),
-                Text("${_getFilteredScholars().length} Active Entries", 
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
               ],
             ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -608,9 +607,9 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
                   ),
                 ),
                 const SizedBox(width: 24),
-                _exportButton(Icons.description_outlined, "PDF", _exportToPDF),
+                _exportButton(icon: Icons.description_outlined, label: "PDF", onTap: _exportToPDF, isVerySmall: false),
                 const SizedBox(width: 8),
-                _exportButton(Icons.table_view_outlined, "EXCEL", _exportToExcel),
+                _exportButton(icon: Icons.table_view_outlined, label: "EXCEL", onTap: _exportToExcel, isVerySmall: false),
               ],
             ),
           ],
@@ -665,30 +664,34 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
     );
   }
 
-  Widget _exportButton(IconData icon, String label, VoidCallback onTap) {
+  Widget _exportButton({required IconData icon, required String label, required VoidCallback onTap, bool isVerySmall = false}) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 10 : 16, vertical: 10),
         decoration: BoxDecoration(
           color: const Color(0xFFF0F2F5),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 16, color: kBrandBrown),
-            const SizedBox(width: 8),
-            Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kBrandBrown)),
+            if (!isVerySmall) ...[
+              const SizedBox(width: 8),
+              Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kBrandBrown)),
+            ],
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTabNavigation() {
+  Widget _buildTabNavigation(bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFF3F4F6))),
@@ -700,11 +703,11 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
         unselectedLabelColor: Colors.grey,
         indicatorColor: kBrandOlive,
         indicatorWeight: 3,
-        labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
+        labelStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: isVerySmall ? 11 : 13, letterSpacing: 0.5),
         padding: EdgeInsets.zero,
-        tabs: const [
-          Tab(text: "ACTIVE REGISTRY", height: 48),
-          Tab(text: "PENDING APPROVAL", height: 48),
+        tabs: [
+          Tab(text: "ACTIVE REGISTRY", height: isVerySmall ? 40 : 48),
+          Tab(text: "PENDING APPROVAL", height: isVerySmall ? 40 : 48),
         ],
       ),
     );
@@ -733,6 +736,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
   }
 
   Widget _buildScholarCard(Map<String, String> s, bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
     final isActive = s['status'] == 'Active';
     final remaining = int.tryParse(s['yearsRemaining'] ?? '0') ?? 0;
 
@@ -755,101 +759,159 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
           borderRadius: BorderRadius.circular(16),
           onTap: () => _showScholarProfileDialog(context, s),
           child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: Color(0xFF9AB334).withOpacity(0.1),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Color(0xFF9AB334).withOpacity(0.2), width: 2),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    _initialsOf(s['name']!),
-                    style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), fontSize: 16),
-                  ),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  flex: 4,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        s['name']!.toUpperCase(),
-                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF4C3C32), letterSpacing: -0.2),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(Icons.badge_outlined, size: 12, color: Colors.grey.shade400),
-                          const SizedBox(width: 6),
-                          Text(s['scholarId']!, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey.shade500)),
-                          const SizedBox(width: 12),
-                          Icon(Icons.location_on_outlined, size: 12, color: Colors.grey.shade400),
-                          const SizedBox(width: 6),
-                          Text(s['district']!, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey.shade500)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                if (!isMobile)
-                  Expanded(
-                    flex: 3,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            padding: EdgeInsets.all(isVerySmall ? 12 : 20),
+            child: isVerySmall 
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.school_outlined, size: 14, color: Color(0xFF9AB334)),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(s['school']!, 
-                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF4C3C32)),
-                                overflow: TextOverflow.ellipsis),
-                            ),
-                          ],
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF9AB334).withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            _initialsOf(s['name']!),
+                            style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), fontSize: 12),
+                          ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(s['class']!, style: TextStyle(fontSize: 11, color: Colors.grey.shade400, fontWeight: FontWeight.bold)),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                s['name']!.toUpperCase(),
+                                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFF4C3C32)),
+                              ),
+                              Text(s['scholarId']!, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey.shade500)),
+                            ],
+                          ),
+                        ),
+                        _statusBadge(isActive, s['status']!, true),
                       ],
                     ),
-                  ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: isActive ? Color(0xFF9AB334).withOpacity(0.1) : Color(0xFFE05B1C).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        s['status']!.toUpperCase(),
-                        style: TextStyle(
-                          color: isActive ? const Color(0xFF9AB334) : const Color(0xFFE05B1C), 
-                          fontWeight: FontWeight.w900, 
-                          fontSize: 9,
-                          letterSpacing: 0.5
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        const Icon(Icons.school_outlined, size: 12, color: Color(0xFF9AB334)),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text("${s['school']} • ${s['class']}", 
+                            style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w600),
+                            overflow: TextOverflow.ellipsis),
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      "$remaining YRS REMAINING",
-                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey.shade300),
+                        const SizedBox(width: 8),
+                        Text(
+                          "$remaining YRS",
+                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey.shade400),
+                        ),
+                      ],
                     ),
                   ],
+                )
+              : Row(
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: Color(0xFF9AB334).withOpacity(0.1),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Color(0xFF9AB334).withOpacity(0.2), width: 2),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        _initialsOf(s['name']!),
+                        style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), fontSize: 16),
+                      ),
+                    ),
+                    const SizedBox(width: 20),
+                    Expanded(
+                      flex: 4,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            s['name']!.toUpperCase(),
+                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF4C3C32), letterSpacing: -0.2),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(Icons.badge_outlined, size: 12, color: Colors.grey.shade400),
+                              const SizedBox(width: 6),
+                              Text(s['scholarId']!, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey.shade500)),
+                              const SizedBox(width: 12),
+                              Icon(Icons.location_on_outlined, size: 12, color: Colors.grey.shade400),
+                              const SizedBox(width: 6),
+                              Text(s['district']!, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey.shade500)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (!isMobile)
+                      Expanded(
+                        flex: 3,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.school_outlined, size: 14, color: Color(0xFF9AB334)),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(s['school']!, 
+                                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF4C3C32)),
+                                    overflow: TextOverflow.ellipsis),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(s['class']!, style: TextStyle(fontSize: 11, color: Colors.grey.shade400, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        _statusBadge(isActive, s['status']!, false),
+                        const SizedBox(height: 8),
+                        Text(
+                          "$remaining YRS REMAINING",
+                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey.shade300),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 16),
+                    Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey.shade300),
+                  ],
                 ),
-                const SizedBox(width: 16),
-                Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey.shade300),
-              ],
-            ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _statusBadge(bool isActive, String status, bool isSmall) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: isSmall ? 8 : 12, vertical: isSmall ? 4 : 6),
+      decoration: BoxDecoration(
+        color: isActive ? const Color(0xFF9AB334).withOpacity(0.1) : const Color(0xFFE05B1C).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        status.toUpperCase(),
+        style: TextStyle(
+          color: isActive ? const Color(0xFF9AB334) : const Color(0xFFE05B1C), 
+          fontWeight: FontWeight.w900, 
+          fontSize: isSmall ? 9 : 10,
+          letterSpacing: 0.5
         ),
       ),
     );

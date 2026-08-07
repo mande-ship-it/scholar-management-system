@@ -84,8 +84,17 @@ class _AIAssistantPageState extends State<AIAssistantPage> {
       color: const Color(0xFFF4F7F5),
       child: Column(
         children: [
-          _buildAIHeader(),
-          _buildContextBanner(),
+          if (widget.isDrawer)
+            Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close, color: kBrandBrown),
+                ),
+              ),
+            ),
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
@@ -202,9 +211,9 @@ class _AIAssistantPageState extends State<AIAssistantPage> {
         padding: const EdgeInsets.all(16),
         constraints: BoxConstraints(maxWidth: widget.isDrawer ? 340 : 600),
         decoration: BoxDecoration(
-          color: isUser ? kBrandBrown : Colors.white,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: isUser ? null : Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: isUser ? kBrandOlive.withOpacity(0.3) : Colors.grey.shade200),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 8, offset: const Offset(0, 4))],
         ),
         child: Column(
@@ -213,13 +222,13 @@ class _AIAssistantPageState extends State<AIAssistantPage> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(isUser ? Icons.person : Icons.auto_awesome, color: isUser ? Colors.white54 : kBrandOlive, size: 14),
+                Icon(isUser ? Icons.person : Icons.auto_awesome, color: isUser ? kBrandBrown.withOpacity(0.5) : kBrandOlive, size: 14),
                 const SizedBox(width: 8),
-                Text(isUser ? "OPERATOR" : "AI ENGINE", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: isUser ? Colors.white38 : kBrandOlive, letterSpacing: 1.5)),
+                Text(isUser ? "OPERATOR" : "AI ENGINE", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: isUser ? kBrandBrown.withOpacity(0.4) : kBrandOlive, letterSpacing: 1.5)),
               ],
             ),
             const SizedBox(height: 8),
-            Text(text, style: TextStyle(color: isUser ? Colors.white : kBrandBrown, fontSize: 13.5, height: 1.5)),
+            Text(text, style: const TextStyle(color: kBrandBrown, fontSize: 13.5, height: 1.5)),
           ],
         ),
       ),

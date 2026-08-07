@@ -110,7 +110,7 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (!isMobile) _buildProfessionalHeader(isMobile),
+          _buildProfessionalHeader(isMobile),
           _buildControlPanel(isMobile),
           Expanded(
             child: _isLoading
@@ -123,8 +123,9 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
   }
 
   Widget _buildProfessionalHeader(bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
     return Container(
-      padding: EdgeInsets.fromLTRB(isMobile ? 16 : 24, 12, isMobile ? 16 : 24, 0),
+      padding: EdgeInsets.fromLTRB(isVerySmall ? 12 : 24, 8, isVerySmall ? 12 : 24, 0),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
@@ -133,7 +134,7 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
         children: [
           Row(
             children: [
-              if (!isMobile) ...[
+              if (!isVerySmall) ...[
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
@@ -148,20 +149,23 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Alumni & Graduates Registry",
-                      style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                    Text("Centralized database of alumni.",
-                      style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                    Text("Alumni Registry",
+                      style: TextStyle(fontSize: isVerySmall ? 14 : 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                    if (!isVerySmall)
+                      const Text("Centralized database of alumni.",
+                        style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
                   ],
                 ),
               ),
               IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
                 onPressed: _fetchData,
-                icon: const Icon(Icons.sync_rounded, color: kBrandBrown),
+                icon: const Icon(Icons.sync_rounded, color: kBrandBrown, size: 20),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerLeft,
             child: TabBar(
@@ -171,11 +175,11 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
               unselectedLabelColor: Colors.grey,
               indicatorColor: kBrandOlive,
               indicatorWeight: 2,
-              labelPadding: const EdgeInsets.symmetric(horizontal: 16),
-              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-              tabs: const [
-                Tab(text: "GRADUATES", height: 36),
-                Tab(text: "ALUMNI", height: 36),
+              labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+              labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: isVerySmall ? 11 : 12),
+              tabs: [
+                Tab(text: "GRADUATES", height: isVerySmall ? 32 : 36),
+                Tab(text: "ALUMNI", height: isVerySmall ? 32 : 36),
               ],
             ),
           ),
