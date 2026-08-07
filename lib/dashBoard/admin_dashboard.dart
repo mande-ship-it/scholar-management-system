@@ -28,6 +28,7 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
 
   List<Map<String, dynamic>> _schoolsRiskData = [];
   List<dynamic> _activeUsers = [];
+  List<dynamic> _approvals = [];
 
   static const List<Color> chartColors = [
     Color(0xFF9AB334), Color(0xFFE05B1C), Color(0xFF4C3C32), Color(0xFF1976D2), Color(0xFF8E24AA),
@@ -67,6 +68,7 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
         final pendingRes = await ApiService.getPendingActivities();
         if (pendingRes.statusCode == 200) {
           final pData = pendingRes.data['data'] ?? {};
+          _approvals = pData['scholars'] ?? [];
           _pendingEvents = (pData['events'] ?? []).length;
           _pendingPayments = (pData['payments'] ?? []).length;
         }
@@ -316,29 +318,39 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
     return _DashboardCard(
       isMobile: isMobile,
       title: "Queue Workloads",
-      child: SizedBox(
-        height: 120,
-        child: BarChart(
-          BarChartData(
-            alignment: BarChartAlignment.spaceAround,
-            titlesData: FlTitlesData(
-              show: true,
-              bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, m) {
-                const style = TextStyle(fontSize: 9, fontWeight: FontWeight.bold);
-                return v.toInt() == 0 ? const Text("Events", style: style) : (v.toInt() == 1 ? const Text("Payments", style: style) : const Text(""));
-              })),
-              leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+      child: Column(
+        children: [
+          SizedBox(
+            height: 140,
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                titlesData: FlTitlesData(
+                  show: true,
+                  bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, m) {
+                    const style = TextStyle(fontSize: 9, fontWeight: FontWeight.bold);
+                    if (v.toInt() == 0) return const Text("Scholars", style: style);
+                    if (v.toInt() == 1) return const Text("Events", style: style);
+                    if (v.toInt() == 2) return const Text("Payments", style: style);
+                    return const Text("");
+                  })),
+                  leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                ),
+                gridData: const FlGridData(show: false),
+                borderData: FlBorderData(show: false),
+                barGroups: [
+                  BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: (_approvals.where((a) => a['type'] == 'scholar').length).toDouble(), color: kBrandOlive, width: 24)]),
+                  BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: _pendingEvents.toDouble(), color: kBrandOrange, width: 24)]),
+                  BarChartGroupData(x: 2, barRods: [BarChartRodData(toY: _pendingPayments.toDouble(), color: kBrandBrown, width: 24)]),
+                ],
+              ),
             ),
-            gridData: const FlGridData(show: false),
-            borderData: FlBorderData(show: false),
-            barGroups: [
-              BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: _pendingEvents.toDouble(), color: kBrandOrange, width: 24)]),
-              BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: _pendingPayments.toDouble(), color: kBrandBrown, width: 24)]),
-            ],
           ),
-        ),
+          const SizedBox(height: 16),
+          _opButton("View Full Queue", Icons.checklist_rtl_rounded, kBrandBrown, isMobile, onPressed: () => widget.onNavigate?.call("Pending Approvals")),
+        ],
       ),
     );
   }
@@ -377,18 +389,35 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
       title: "System Integrity",
       child: Column(
         children: [
-          _opButton("Run Cloud Backup", Icons.backup_rounded, kBrandOlive, isMobile),
+          _opButton("Run Cloud Backup", Icons.backup_rounded, kBrandOlive, isMobile, 
+            onPressed: _isBackingUp ? null : () async {
+              setState(() => _isBackingUp = true);
+              try {
+                final res = await ApiService.runBackup("Dashboard Manual Sync");
+                if (res.statusCode == 201 && mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Cloud backup initialized successfully."), backgroundColor: kBrandOlive));
+                  _loadDashboardData();
+                }
+              } catch (e) {
+                debugPrint('Backup error: $e');
+              } finally {
+                if (mounted) setState(() => _isBackingUp = false);
+              }
+            }
+          ),
           const SizedBox(height: 12),
-          _opButton("Security Audit", Icons.security_rounded, kBrandBrown, isMobile),
+          _opButton("Security Audit", Icons.security_rounded, kBrandBrown, isMobile, onPressed: () {}),
         ],
       ),
     );
   }
 
-  Widget _opButton(String label, IconData icon, Color color, bool isMobile) {
+  Widget _opButton(String label, IconData icon, Color color, bool isMobile, {VoidCallback? onPressed}) {
     return ElevatedButton.icon(
-      onPressed: () {},
-      icon: Icon(icon, size: 16),
+      onPressed: onPressed,
+      icon: _isBackingUp && label.contains("Backup") 
+        ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+        : Icon(icon, size: 16),
       label: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
       style: ElevatedButton.styleFrom(
         backgroundColor: color,

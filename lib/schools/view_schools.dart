@@ -179,7 +179,7 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
       context: context,
       barrierDismissible: true,
       barrierLabel: "Profile",
-      barrierColor: Colors.black.withValues(alpha: 0.5),
+      barrierColor: Colors.black.withOpacity(0.5),
       transitionDuration: const Duration(milliseconds: 220),
       pageBuilder: (ctx, anim1, anim2) => const SizedBox.shrink(),
       transitionBuilder: (ctx, anim, secondaryAnim, child) {
@@ -220,13 +220,7 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
 
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: isMobile ? BorderRadius.zero : BorderRadius.circular(16),
-        border: isMobile ? null : Border.all(color: Colors.grey.shade200),
-        boxShadow: isMobile ? null : [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
-      ),
-      clipBehavior: Clip.antiAlias,
+      color: const Color(0xFFF0F2F5), // Facebook-style light grey background
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -297,52 +291,55 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
   }
 
   Widget _buildToolbar(bool isMobile) {
-    return Column(
-      children: [
-        const Divider(indent: 24, endIndent: 24),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: isMobile 
-            ? Column(
-                children: [
-                  _searchField(),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      if (widget.forcedLevel == null)
-                        Expanded(child: _filterDropdown("Level", _selectedLevel, _schoolLevels, (v) => setState(() => _selectedLevel = v!), isMobile)),
-                      if (widget.forcedLevel == null) const SizedBox(width: 8),
-                      Expanded(child: _filterDropdown("Region", _selectedRegion, _regions, (v) => setState(() => _selectedRegion = v!), isMobile)),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        icon: const Icon(Icons.sync_rounded, color: kBrandBrown),
-                        onPressed: _isLoading ? null : _fetchSchools,
-                        tooltip: 'Refresh Registry',
-                      ),
-                    ],
-                  ),
-                ],
-              )
-            : Row(
-                children: [
-                  Expanded(
-                    child: _searchField(),
-                  ),
-                  const SizedBox(width: 16),
-                  if (widget.forcedLevel == null)
-                    _filterDropdown("Level", _selectedLevel, _schoolLevels, (v) => setState(() => _selectedLevel = v!), isMobile),
-                  const SizedBox(width: 12),
-                  _filterDropdown("Region", _selectedRegion, _regions, (v) => setState(() => _selectedRegion = v!), isMobile),
-                  const SizedBox(width: 12),
-                  IconButton(
-                    icon: const Icon(Icons.sync_rounded, color: kBrandBrown),
-                    onPressed: _isLoading ? null : _fetchSchools,
-                    tooltip: 'Refresh Registry',
-                  ),
-                ],
-              ),
-        ),
-      ],
+    return Container(
+      color: Colors.white, // Toolbar stays white
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: isMobile
+              ? Column(
+                  children: [
+                    _searchField(),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        if (widget.forcedLevel == null)
+                          Expanded(child: _filterDropdown("Level", _selectedLevel, _schoolLevels, (v) => setState(() => _selectedLevel = v!), isMobile)),
+                        if (widget.forcedLevel == null) const SizedBox(width: 8),
+                        Expanded(child: _filterDropdown("Region", _selectedRegion, _regions, (v) => setState(() => _selectedRegion = v!), isMobile)),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: const Icon(Icons.sync_rounded, color: kBrandBrown),
+                          onPressed: _isLoading ? null : _fetchSchools,
+                          tooltip: 'Refresh Registry',
+                        ),
+                      ],
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    Expanded(
+                      child: _searchField(),
+                    ),
+                    const SizedBox(width: 16),
+                    if (widget.forcedLevel == null)
+                      _filterDropdown("Level", _selectedLevel, _schoolLevels, (v) => setState(() => _selectedLevel = v!), isMobile),
+                    const SizedBox(width: 12),
+                    _filterDropdown("Region", _selectedRegion, _regions, (v) => setState(() => _selectedRegion = v!), isMobile),
+                    const SizedBox(width: 12),
+                    IconButton(
+                      icon: const Icon(Icons.sync_rounded, color: kBrandBrown),
+                      onPressed: _isLoading ? null : _fetchSchools,
+                      tooltip: 'Refresh Registry',
+                    ),
+                  ],
+                ),
+          ),
+          const Divider(height: 1),
+        ],
+      ),
     );
   }
 
@@ -353,9 +350,9 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
         prefixIcon: const Icon(Icons.search_rounded, size: 20),
         isDense: true,
         filled: true,
-        fillColor: Colors.grey.shade50,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
+        fillColor: const Color(0xFFF0F2F5),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
       ),
       onChanged: (val) => setState(() => _searchQuery = val),
     );
@@ -365,7 +362,7 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
     return Container(
       width: isMobile ? null : 180,
       padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(color: Colors.grey.shade50, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.grey.shade200)),
+      decoration: BoxDecoration(color: const Color(0xFFF0F2F5), borderRadius: BorderRadius.circular(20)),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
@@ -383,9 +380,9 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
     if (schools.isEmpty) return _buildEmptyState();
 
     return ListView.separated(
-      padding: EdgeInsets.symmetric(horizontal: isMobile ? 0 : 24, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 24, vertical: 20),
       itemCount: schools.length,
-      separatorBuilder: (_, __) => isMobile ? const Divider(height: 1, thickness: 1) : const SizedBox(height: 12),
+      separatorBuilder: (_, __) => const SizedBox(height: 16),
       itemBuilder: (context, index) {
         final s = schools[index];
         final bool isUni = s['level']!.toLowerCase().contains('university') || s['level']!.toLowerCase().contains('tertiary');
@@ -393,48 +390,59 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
         return Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: isMobile ? BorderRadius.zero : BorderRadius.circular(12),
-            border: isMobile ? null : Border.all(color: Colors.grey.shade100),
-            boxShadow: isMobile ? null : [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2))],
-          ),
-          child: ListTile(
-            contentPadding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 16, vertical: isMobile ? 8 : 16),
-            leading: CircleAvatar(
-              radius: isMobile ? 20 : 24,
-              backgroundColor: (isUni ? kBrandBrown : kBrandOlive).withValues(alpha: 0.1),
-              child: Icon(isUni ? Icons.account_balance_rounded : Icons.school_rounded, color: isUni ? kBrandBrown : kBrandOlive, size: isMobile ? 20 : 24),
-            ),
-            title: Text(s['name']!, style: TextStyle(fontWeight: FontWeight.bold, fontSize: isMobile ? 14 : 15, color: kBrandBrown)),
-            subtitle: Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  _miniBadge(s['code']!, Colors.grey.shade100, Colors.grey.shade700),
-                  _miniBadge(s['district']!.toUpperCase(), kBrandOlive.withValues(alpha: 0.1), kBrandOlive),
-                  Text(s['status']!, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: s['status'] == 'Active' ? Colors.green : Colors.red)),
-                ],
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 1,
+                offset: const Offset(0, 1),
               ),
-            ),
-            trailing: isMobile
-              ? const Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 20)
-              : Row(
-                  mainAxisSize: MainAxisSize.min,
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => _openSchoolProfile(s),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
                   children: [
-                    if (PermissionService.hasPermission('schools.edit'))
-                      IconButton(
-                        icon: const Icon(Icons.edit_outlined, size: 20),
-                        onPressed: () async {
-                          final result = await showDialog<Map<String, dynamic>>(context: context, builder: (c) => EditSchoolDialog(school: s));
-                          if (result != null) _fetchSchools();
-                        },
+                    CircleAvatar(
+                      radius: 28,
+                      backgroundColor: (isUni ? kBrandBrown : kBrandOlive).withOpacity(0.1),
+                      child: Icon(isUni ? Icons.account_balance_rounded : Icons.school_rounded, color: isUni ? kBrandBrown : kBrandOlive, size: 28),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(s['name']!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: kBrandBrown)),
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 4,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              _miniBadge(s['code']!, Colors.grey.shade100, Colors.grey.shade700),
+                              _miniBadge(s['district']!.toUpperCase(), kBrandOlive.withOpacity(0.1), kBrandOlive),
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: BoxDecoration(shape: BoxShape.circle, color: s['status'] == 'Active' ? Colors.green : Colors.red),
+                              ),
+                              Text(s['status']!, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: s['status'] == 'Active' ? Colors.green : Colors.red)),
+                            ],
+                          ),
+                        ],
                       ),
+                    ),
                     const Icon(Icons.chevron_right_rounded, color: Colors.grey),
                   ],
                 ),
-            onTap: () => _openSchoolProfile(s),
+              ),
+            ),
           ),
         );
       },

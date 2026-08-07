@@ -106,10 +106,13 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
             final List? data = activitiesRes.data['data'];
             if (data != null) {
               setState(() {
-                _recentActivity = data.map((a) => {
-                  'title': a['type']?.toString().toUpperCase() ?? 'ACTION',
-                  'desc': a['message'] ?? '',
-                  'time': _formatTime(a['createdAt'] ?? a['created_at']),
+                _recentActivity = data.map((a) {
+                  final String actor = a['actorName'] ?? 'SYSTEM';
+                  return {
+                    'title': actor.toUpperCase(),
+                    'desc': a['message'] ?? '',
+                    'time': _formatTime(a['createdAt'] ?? a['created_at']),
+                  };
                 }).toList();
               });
               debugPrint("DASHBOARD: Activities processed.");

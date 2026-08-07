@@ -347,7 +347,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: const Color(0xFFF9FAFB),
+      color: const Color(0xFFF0F2F5), // Facebook-style background
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -356,33 +356,25 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
           Expanded(
             child: Padding(
               padding: EdgeInsets.fromLTRB(isMobile ? 0 : 32, 0, isMobile ? 0 : 32, isMobile ? 0 : 32),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: isMobile ? BorderRadius.zero : BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 20, offset: const Offset(0, 10)),
-                  ],
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: _isLoading 
-                    ? const BeautifulLoader(isOverlay: false, message: "Synchronizing Data...")
-                    : Column(
-                        children: [
-                          _buildTabNavigation(),
-                          Expanded(
-                            child: TabBarView(
-                              controller: _tabController,
-                              children: [
-                                _buildRegistrySurface(filteredScholars, isMobile),
-                                _buildRegistrySurface(filteredScholars, isMobile),
-                              ],
-                            ),
+              child: _isLoading
+                  ? const BeautifulLoader(isOverlay: false, message: "Synchronizing Data...")
+                  : Column(
+                      children: [
+                        Container(
+                          color: Colors.white,
+                          child: _buildTabNavigation(),
+                        ),
+                        Expanded(
+                          child: TabBarView(
+                            controller: _tabController,
+                            children: [
+                              _buildRegistrySurface(filteredScholars, isMobile),
+                              _buildRegistrySurface(filteredScholars, isMobile),
+                            ],
                           ),
-                        ],
-                      ),
-              ),
+                        ),
+                      ],
+                    ),
             ),
           ),
         ],
@@ -566,12 +558,12 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
   }
 
   Widget _buildFilterArchitecture(List<String> availableSchools, List<String> availableClasses, bool isMobile) {
-    if (isMobile) {
-      return Container(
-        padding: const EdgeInsets.all(16),
-        color: const Color(0xFFF9FAFB),
-        child: Column(
-          children: [
+    return Container(
+      color: Colors.white,
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 32, vertical: 16),
+      child: Column(
+        children: [
+          if (isMobile) ...[
             Row(
               children: [
                 Expanded(child: _compactSearchField(isMobile)),
@@ -579,7 +571,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
                 IconButton(
                   onPressed: widget.onRegisterScholar,
                   icon: const Icon(Icons.add_circle_outline_rounded, color: kBrandOlive),
-                  style: IconButton.styleFrom(backgroundColor: Colors.white, padding: const EdgeInsets.all(8)),
+                  style: IconButton.styleFrom(backgroundColor: const Color(0xFFF0F2F5), padding: const EdgeInsets.all(8)),
                 ),
               ],
             ),
@@ -596,36 +588,31 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
                 ],
               ),
             ),
-          ],
-        ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-      decoration: const BoxDecoration(
-        color: Color(0xFFF9FAFB),
-        border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Row(
+          ] else ...[
+            Row(
               children: [
-                _compactSearchField(false),
-                const SizedBox(width: 16),
-                _compactFilterDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() => _selectedDistrict = v ?? 'All')),
-                const SizedBox(width: 12),
-                _compactFilterDropdown("Institution", _selectedSchoolName, availableSchools, (v) => setState(() => _selectedSchoolName = v ?? 'All')),
-                const SizedBox(width: 12),
-                _compactFilterDropdown("Level", _selectedClass, availableClasses, (v) => setState(() => _selectedClass = v ?? 'All')),
+                Expanded(
+                  child: Row(
+                    children: [
+                      _compactSearchField(false),
+                      const SizedBox(width: 16),
+                      _compactFilterDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() => _selectedDistrict = v ?? 'All')),
+                      const SizedBox(width: 12),
+                      _compactFilterDropdown("Institution", _selectedSchoolName, availableSchools, (v) => setState(() => _selectedSchoolName = v ?? 'All')),
+                      const SizedBox(width: 12),
+                      _compactFilterDropdown("Level", _selectedClass, availableClasses, (v) => setState(() => _selectedClass = v ?? 'All')),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 24),
+                _exportButton(Icons.description_outlined, "PDF", _exportToPDF),
+                const SizedBox(width: 8),
+                _exportButton(Icons.table_view_outlined, "EXCEL", _exportToExcel),
               ],
             ),
-          ),
-          const SizedBox(width: 24),
-          _exportButton(Icons.description_outlined, "PDF", _exportToPDF),
-          const SizedBox(width: 8),
-          _exportButton(Icons.table_view_outlined, "EXCEL", _exportToExcel),
+          ],
+          const SizedBox(height: 12),
+          const Divider(height: 1),
         ],
       ),
     );
@@ -636,9 +623,8 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
       width: isMobile ? double.infinity : 280,
       height: 40,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        color: const Color(0xFFF0F2F5),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: TextField(
         onChanged: (v) => setState(() => _searchQuery = v),
@@ -659,9 +645,8 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
       height: 40,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        color: const Color(0xFFF0F2F5),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: DropdownButton<String>(
         value: value == 'All' ? null : value,
@@ -684,9 +669,8 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFFF0F2F5),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
         ),
         child: Row(
           children: [
@@ -737,97 +721,94 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
       );
     }
 
-    if (isMobile) {
-      return ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-        itemCount: filteredScholars.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (context, index) => _buildMobileScholarCard(filteredScholars[index]),
-      );
-    }
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.vertical,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minWidth: MediaQuery.of(context).size.width - 64),
-          child: DataTable(
-            headingRowColor: WidgetStateProperty.all(const Color(0xFFF9FAFB)),
-            headingRowHeight: 52,
-            dataRowMaxHeight: 64,
-            columnSpacing: 24,
-            horizontalMargin: 24,
-            showCheckboxColumn: false,
-            columns: [
-              _headerCell("ID"),
-              _headerCell("FULL NAME"),
-              _headerCell("INSTITUTION"),
-              _headerCell("ACADEMIC YEAR"),
-              _headerCell("REMAINING"),
-              _headerCell("PROGRESSION"),
-              _headerCell("STATUS"),
-              _headerCell("ACTIONS"),
-            ],
-            rows: filteredScholars.map((s) => _buildDataRow(s)).toList(),
-          ),
-        ),
-      ),
+    return ListView.separated(
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 24, vertical: 20),
+      itemCount: filteredScholars.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 16),
+      itemBuilder: (context, index) => _buildScholarCard(filteredScholars[index], isMobile),
     );
   }
 
-  Widget _buildMobileScholarCard(Map<String, String> s) {
+  Widget _buildScholarCard(Map<String, String> s, bool isMobile) {
     final isActive = s['status'] == 'Active';
-    final moving = s['progressionStatus'] == 'Moved';
-    final failed = s['progressionStatus'] == 'Failed';
+    final remaining = int.tryParse(s['yearsRemaining'] ?? '0') ?? 0;
 
-    return InkWell(
-      onTap: () => _showScholarProfileDialog(context, s),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: kBrandOlive.withOpacity(0.1),
-              child: Text(_initialsOf(s['name']!), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kBrandBrown))
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(s['name']!, style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: 14)),
-                  const SizedBox(height: 2),
-                  Text("${s['scholarId']} • ${s['school']}",
-                    maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 1,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _showScholarProfileDialog(context, s),
+          child: Padding(
+            padding: EdgeInsets.all(isMobile ? 12 : 16),
+            child: Row(
               children: [
-                _badge(s['status']!, isActive ? kBrandOlive : Colors.red),
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
+                CircleAvatar(
+                  radius: isMobile ? 24 : 32,
+                  backgroundColor: kBrandOlive.withOpacity(0.1),
+                  child: Text(_initialsOf(s['name']!),
+                    style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: isMobile ? 14 : 18)),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  flex: 3,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(s['name']!,
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: isMobile ? 15 : 17, color: kBrandBrown)),
+                      const SizedBox(height: 4),
+                      Text("${s['scholarId']} • ${s['school']}",
+                        style: TextStyle(fontSize: isMobile ? 11 : 13, color: Colors.grey.shade600)),
+                    ],
+                  ),
+                ),
+                if (!isMobile)
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(s['class']!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kBrandBrown)),
+                        const SizedBox(height: 4),
+                        Text("$remaining Yrs Left", style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                      ],
+                    ),
+                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Icon(moving ? Icons.trending_up : (failed ? Icons.warning_amber_rounded : Icons.remove), size: 10, color: moving ? kBrandOlive : (failed ? Colors.red : Colors.grey)),
-                    const SizedBox(width: 4),
-                    Text(s['class']!, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: isActive ? kBrandOlive.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(s['status']!.toUpperCase(),
+                        style: TextStyle(color: isActive ? kBrandOlive : Colors.red, fontWeight: FontWeight.w900, fontSize: 9)),
+                    ),
+                    if (isMobile) ...[
+                      const SizedBox(height: 8),
+                      Text(s['class']!, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
+                    ],
                   ],
                 ),
+                const SizedBox(width: 12),
+                const Icon(Icons.chevron_right_rounded, color: Colors.grey),
               ],
             ),
-            const SizedBox(width: 4),
-            const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
-          ],
+          ),
         ),
       ),
     );
@@ -1345,6 +1326,7 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
         'sex': _selectedSex,
         'dob': _dobController.text.trim(),
         'currentClass': _yearController.text.trim(),
+        'programDurationYears': _selectedDuration ?? 4,
         'district': _selectedDistrict,
         'village': _homeVillageController.text.trim(),
         'donor': _selectedDonor,
@@ -1369,6 +1351,7 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
               sex: _selectedSex ?? 'Female',
               dob: _dobController.text.trim(),
               currentClass: _yearController.text.trim(),
+              programDurationYears: _selectedDuration ?? 4,
               district: _selectedDistrict ?? 'Lilongwe',
               village: _homeVillageController.text.trim(),
               donor: _selectedDonor ?? 'General Fund',

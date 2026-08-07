@@ -73,38 +73,38 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
     final bool isMobile = MediaQuery.of(context).size.width < 900;
 
     return Container(
-      color: Colors.white,
+      color: Colors.transparent, // Background handled by parent
       child: Column(
         children: [
           _buildStatsGrid(isMobile),
-        const SizedBox(height: 24),
-        if (isMobile)
-          Column(
-            children: [
-              _buildCohortCard(isMobile),
-              const SizedBox(height: 24),
-              _buildRegionCard(isMobile),
-            ],
-          )
-        else
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(flex: 3, child: _buildCohortCard(isMobile)),
-              const SizedBox(width: 24),
-              Expanded(flex: 2, child: _buildRegionCard(isMobile)),
-            ],
-          ),
-        const SizedBox(height: 24),
-        _buildPerformanceTrendCard(isMobile),
-        const SizedBox(height: 24),
-        _buildRiskIndicatorCard(isMobile),
-        const SizedBox(height: 24),
-        _buildEngagementImpactCard(isMobile),
-      ],
-    ),
-  );
-}
+          const SizedBox(height: 20),
+          if (isMobile)
+            Column(
+              children: [
+                _buildCohortCard(isMobile),
+                const SizedBox(height: 20),
+                _buildRegionCard(isMobile),
+              ],
+            )
+          else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(flex: 3, child: _buildCohortCard(isMobile)),
+                const SizedBox(width: 20),
+                Expanded(flex: 2, child: _buildRegionCard(isMobile)),
+              ],
+            ),
+          const SizedBox(height: 20),
+          _buildPerformanceTrendCard(isMobile),
+          const SizedBox(height: 20),
+          _buildRiskIndicatorCard(isMobile),
+          const SizedBox(height: 20),
+          _buildEngagementImpactCard(isMobile),
+        ],
+      ),
+    );
+  }
 
   Widget _buildRegionCard(bool isMobile) {
     final List regions = _data!['regions'] ?? [];
@@ -135,7 +135,7 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(r['region'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textPrimary)),
-                        Text("Active Partnerships", style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
+                        Text("Active Partnerships", style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w600)),
                       ],
                     ),
                   ),
@@ -152,7 +152,7 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
               label: const Text("VIEW INTERACTIVE MAP", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.8)),
               style: OutlinedButton.styleFrom(
                 foregroundColor: kBrandBrown,
-                side: BorderSide(color: dividerColor, width: 1.5),
+                side: const BorderSide(color: dividerColor, width: 1.5),
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
@@ -202,15 +202,8 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: dividerColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 1)],
       ),
       child: Column(
         children: [
@@ -226,12 +219,12 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Text("${item['value']}", 
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: textPrimary, letterSpacing: -0.5)),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: textPrimary, letterSpacing: -0.5)),
           ),
           const SizedBox(height: 4),
           Text(item['label'].toString().toUpperCase(), 
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: textSecondary, letterSpacing: 0.5)),
+            style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w800, color: textSecondary, letterSpacing: 0.5)),
         ],
       ),
     );
@@ -358,7 +351,7 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("$rLabel", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: rColor, letterSpacing: 0.5)),
+                          Text(rLabel, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: rColor, letterSpacing: 0.5)),
                           Text("${school['atrisk']} scholars at risk", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: rColor)),
                         ],
                       ),
@@ -409,7 +402,7 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text("$rLabel", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: rColor, letterSpacing: 0.5)),
+                            Text(rLabel, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: rColor, letterSpacing: 0.5)),
                             Text("${school['atrisk']} scholars at risk", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: rColor)),
                           ],
                         ),
@@ -438,7 +431,7 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Text("Institutional Average: ", style: TextStyle(fontSize: 12, color: textSecondary, fontWeight: FontWeight.w500)),
+                    const Text("Institutional Average: ", style: TextStyle(fontSize: 12, color: textSecondary, fontWeight: FontWeight.w500)),
                     Text("${school['avg']}%", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: rColor)),
                   ],
                 ),
@@ -466,7 +459,7 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
             height: isMobile ? 200 : 280,
             child: LineChart(LineChartData(
               lineTouchData: const LineTouchData(enabled: true),
-              gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (_) => const FlLine(color: dividerColor, strokeWidth: 1)),
+              gridData: const FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: _getDrawingHorizontalLine),
               titlesData: FlTitlesData(
                 leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40, getTitlesWidget: (v, _) => Text("${v.toInt()}%", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: textSecondary)))),
                 bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, _) => Padding(padding: const EdgeInsets.only(top: 8), child: Text(v.toInt().toString(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: textSecondary))))),
@@ -489,6 +482,8 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
     );
   }
 
+  static FlLine _getDrawingHorizontalLine(double value) => const FlLine(color: dividerColor, strokeWidth: 1);
+
   Widget _buildEngagementImpactCard(bool isMobile) {
     final engData = _data!['engagementSeries'] as Map? ?? {};
     final levels = ["Frequent", "Moderate", "Rare"];
@@ -505,7 +500,7 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
           SizedBox(
             height: isMobile ? 200 : 280,
             child: LineChart(LineChartData(
-              gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (_) => const FlLine(color: dividerColor, strokeWidth: 1)),
+              gridData: const FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: _getDrawingHorizontalLine),
               titlesData: FlTitlesData(
                 leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40, getTitlesWidget: (v, _) => Text("${v.toInt()}%", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: textSecondary)))),
                 bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, _) => Padding(padding: const EdgeInsets.only(top: 8), child: Text(v.toInt().toString(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: textSecondary))))),
@@ -527,7 +522,6 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
       ),
     );
   }
-
 
   Widget _buildChartLegend(List<({String label, Color color})> items) {
     return Wrap(
@@ -556,7 +550,7 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
     }
   }
 
-  Color _getRiskColor(String level) {
+  Color _getRiskColor(String? level) {
     if (level == 'low') return const Color(0xFF2E7D32);
     if (level == 'medium') return const Color(0xFFF9A825);
     return const Color(0xFFD32F2F);
@@ -569,35 +563,12 @@ class _DashboardCard extends StatelessWidget {
   const _DashboardCard({required this.title, required this.subtitle, required this.child});
   @override
   Widget build(BuildContext context) {
-    final bool isSmallScreen = MediaQuery.of(context).size.width < 600;
-
-    if (isSmallScreen) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Color(0xFF1C2B20), letterSpacing: -0.2)),
-            Text(subtitle, style: const TextStyle(fontSize: 11, color: Color(0xFF6B7A6E), fontWeight: FontWeight.w500)),
-            const SizedBox(height: 16),
-            child,
-          ],
-        ),
-      );
-    }
-
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white, 
-        borderRadius: BorderRadius.circular(28), 
-        border: Border.all(color: const Color(0xFFE1E8E3)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 15, offset: const Offset(0, 4))]
+        borderRadius: BorderRadius.circular(12), 
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 1)]
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

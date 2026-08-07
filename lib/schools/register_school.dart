@@ -203,7 +203,7 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
             children: [
               Container(
                 padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: kBrandOlive.withValues(alpha: 0.1), shape: BoxShape.circle),
+                decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), shape: BoxShape.circle),
                 child: const Icon(Icons.domain_verification_rounded, color: kBrandOlive, size: 40),
               ),
               const SizedBox(height: 24),
@@ -330,7 +330,7 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: kBrandBrown.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(color: kBrandBrown.withOpacity(0.05), borderRadius: BorderRadius.circular(8)),
             child: const Icon(Icons.domain_add_rounded, color: kBrandBrown, size: 20),
           ),
           const SizedBox(width: 16),
@@ -351,7 +351,7 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
   }
 
   Widget _buildSectionLabel(String label) {
-    return Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBrandOlive.withValues(alpha: 0.8), letterSpacing: 1.5));
+    return Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBrandOlive.withOpacity(0.8), letterSpacing: 1.5));
   }
 
   Widget _buildIdentitySection(bool isMobile) {
@@ -582,7 +582,7 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
     return InputDecoration(
       labelText: label,
       labelStyle: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w500, fontSize: 14),
-      prefixIcon: Icon(icon, size: 20, color: kBrandBrown.withValues(alpha: 0.4)),
+      prefixIcon: Icon(icon, size: 20, color: kBrandBrown.withOpacity(0.4)),
       isDense: true,
       filled: true,
       fillColor: Colors.white,

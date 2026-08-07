@@ -321,7 +321,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
             children: [
               Container(
                 padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: kBrandOlive.withValues(alpha: 0.1), shape: BoxShape.circle),
+                decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), shape: BoxShape.circle),
                 child: const Icon(Icons.school_rounded, color: kBrandOlive, size: 40),
               ),
               const SizedBox(height: 24),
@@ -493,7 +493,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: kBrandBrown.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(color: kBrandBrown.withOpacity(0.05), borderRadius: BorderRadius.circular(8)),
             child: const Icon(Icons.person_add_alt_1_rounded, color: kBrandBrown, size: 20),
           ),
           const SizedBox(width: 16),
@@ -514,7 +514,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
   }
 
   Widget _buildSectionLabel(String label) {
-    return Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBrandOlive.withValues(alpha: 0.8), letterSpacing: 1.5));
+    return Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBrandOlive.withOpacity(0.8), letterSpacing: 1.5));
   }
 
   Widget _buildPersonalSection(bool isMobile) {
@@ -966,7 +966,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
     return InputDecoration(
       labelText: label,
       labelStyle: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w500, fontSize: 14),
-      prefixIcon: Icon(icon, size: 20, color: kBrandBrown.withValues(alpha: 0.4)),
+      prefixIcon: Icon(icon, size: 20, color: kBrandBrown.withOpacity(0.4)),
       isDense: true,
       filled: true,
       fillColor: Colors.white,

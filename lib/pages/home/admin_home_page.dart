@@ -7,6 +7,9 @@ import '../../academics/academics_utils.dart';
 // Admin Dashboard Component
 import '../../dashBoard/admin_dashboard.dart';
 
+// Activity Components
+import '../eventPages/events.dart';
+
 // School Components
 import '../schoolPages/register_school.dart';
 import '../schoolPages/view_schools.dart';
@@ -515,6 +518,17 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
             icon: Icons.person_add_alt_1_rounded,
             isVisible: false,
             builder: (onBack, onPush) => RegisterSponsorPage(onSuccess: () => onPush("Sponsors Directory")),
+          ),
+        ],
+      ),
+      AdminSidebarCategory(
+        title: "Activities",
+        icon: Icons.event_available_rounded,
+        subItems: [
+          const AdminSidebarSubItem(
+            title: "Events & Programs",
+            page: EventsPage(),
+            icon: Icons.calendar_month_rounded,
           ),
         ],
       ),

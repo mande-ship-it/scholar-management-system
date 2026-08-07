@@ -730,9 +730,9 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: avgColor.withValues(alpha: 0.1),
+                  color: avgColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: avgColor.withValues(alpha: 0.3)),
+                  border: Border.all(color: avgColor.withOpacity(0.3)),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -758,9 +758,9 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: avgColor.withValues(alpha: 0.1),
+                  color: avgColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: avgColor.withValues(alpha: 0.3)),
+                  border: Border.all(color: avgColor.withOpacity(0.3)),
                 ),
                 child: Row(
                   children: [
@@ -888,7 +888,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                 if (hasScore)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                    decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
                     child: Text(label.toUpperCase(), style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 9)),
                   ),
               ],
@@ -928,7 +928,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                   hintText: "0",
                   hintStyle: const TextStyle(fontSize: 13),
                   filled: true,
-                  fillColor: hasScore ? color.withValues(alpha: 0.05) : Colors.transparent,
+                  fillColor: hasScore ? color.withOpacity(0.05) : Colors.transparent,
                   isDense: true,
                   contentPadding: const EdgeInsets.symmetric(vertical: 8),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: Colors.grey.shade200)),
@@ -945,7 +945,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
             child: hasScore 
                 ? Container(
                     padding: const EdgeInsets.symmetric(vertical: 6),
-                    decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                    decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
                     alignment: Alignment.center,
                     child: Text(label.toUpperCase(), style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 9, letterSpacing: 0.5)),
                   )
@@ -970,7 +970,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
         children: [
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: kBrandBrown.withValues(alpha: 0.03), borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(color: kBrandBrown.withOpacity(0.03), borderRadius: BorderRadius.circular(12)),
             child: const Row(
               children: [
                 Icon(Icons.info_outline_rounded, color: kBrandBrown, size: 16),
@@ -1003,7 +1003,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       decoration: BoxDecoration(
-        color: kBrandBrown.withValues(alpha: 0.03),
+        color: kBrandBrown.withOpacity(0.03),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(

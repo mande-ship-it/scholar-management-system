@@ -82,81 +82,83 @@ class _SchoolProfileComponentState extends State<SchoolProfileComponent> {
     final double schoolAvg = double.tryParse(stats['averageMarks']?.toString() ?? '0.0') ?? 0.0;
     final band = performanceBand(schoolAvg);
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // 1. Profile Summary
-          _buildSectionContainer(
-            isMobile: isMobile,
-            child: isMobile 
-              ? Column(
-                  children: [
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: Colors.green.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.green.withValues(alpha: 0.2), width: 2),
+    return Container(
+      color: const Color(0xFFF0F2F5), // Facebook-style background
+      child: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 24, vertical: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 1. Profile Summary
+            _buildSectionContainer(
+              isMobile: isMobile,
+              child: isMobile 
+                ? Column(
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.green.withOpacity(0.2), width: 2),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join(''),
+                          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.green),
+                        ),
                       ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join(''),
-                        style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.green),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(name, textAlign: TextAlign.center, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      alignment: WrapAlignment.center,
-                      children: [
-                        _badge("CODE: $code", Colors.grey.shade100, Colors.grey.shade700),
-                        _badge(status, isActive ? Colors.green.shade50 : Colors.red.shade50, isActive ? Colors.green.shade700 : Colors.red.shade700),
-                      ],
-                    ),
-                  ],
-                )
-              : Row(
-                  children: [
-                    Container(
-                      width: 90,
-                      height: 90,
-                      decoration: BoxDecoration(
-                        color: Colors.green.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.green.withValues(alpha: 0.2), width: 2),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join(''),
-                        style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.green),
-                      ),
-                    ),
-                    const SizedBox(width: 24),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      const SizedBox(height: 16),
+                      Text(name, textAlign: TextAlign.center, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        alignment: WrapAlignment.center,
                         children: [
-                          Text(name, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              _badge("CODE: $code", Colors.grey.shade100, Colors.grey.shade700),
-                              const SizedBox(width: 8),
-                              _badge(status, isActive ? Colors.green.shade50 : Colors.red.shade50, isActive ? Colors.green.shade700 : Colors.red.shade700),
-                            ],
-                          ),
+                          _badge("CODE: $code", Colors.grey.shade100, Colors.grey.shade700),
+                          _badge(status, isActive ? Colors.green.shade50 : Colors.red.shade50, isActive ? Colors.green.shade700 : Colors.red.shade700),
                         ],
                       ),
-                    ),
-                  ],
-                ),
-          ),
+                    ],
+                  )
+                : Row(
+                    children: [
+                      Container(
+                        width: 90,
+                        height: 90,
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.green.withValues(alpha: 0.2), width: 2),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join(''),
+                          style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.green),
+                        ),
+                      ),
+                      const SizedBox(width: 24),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(name, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                _badge("CODE: $code", Colors.grey.shade100, Colors.grey.shade700),
+                                const SizedBox(width: 8),
+                                _badge(status, isActive ? Colors.green.shade50 : Colors.red.shade50, isActive ? Colors.green.shade700 : Colors.red.shade700),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+            ),
           const SizedBox(height: 20),
 
           // 2. Statistics Row
@@ -385,6 +387,7 @@ class _SchoolProfileComponentState extends State<SchoolProfileComponent> {
           const SizedBox(height: 40),
         ],
       ),
+    ),
     );
   }
 

@@ -76,7 +76,7 @@ class _SchoolProfileDialogState extends State<SchoolProfileDialog> {
                     Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: kBrandOrange.withValues(alpha: 0.12),
+                        color: kBrandOrange.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(item.icon, size: 16, color: kBrandOrange),
@@ -114,7 +114,7 @@ class _SchoolProfileDialogState extends State<SchoolProfileDialog> {
       decoration: BoxDecoration(
         color: kBrandCream,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: kBrandOlive.withValues(alpha: 0.4)),
+        border: Border.all(color: kBrandOlive.withOpacity(0.4)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -340,9 +340,9 @@ class _SchoolProfileDialogState extends State<SchoolProfileDialog> {
                       width: 80,
                       height: 80,
                       decoration: BoxDecoration(
-                        color: kBrandOlive.withValues(alpha: 0.1),
+                        color: kBrandOlive.withOpacity(0.1),
                         shape: BoxShape.circle,
-                        border: Border.all(color: kBrandOlive.withValues(alpha: 0.2), width: 1.5),
+                        border: Border.all(color: kBrandOlive.withOpacity(0.2), width: 1.5),
                       ),
                       alignment: Alignment.center,
                       child: initials.isNotEmpty
@@ -378,9 +378,9 @@ class _SchoolProfileDialogState extends State<SchoolProfileDialog> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: isActive ? kBrandOlive.withValues(alpha: 0.1) : Colors.red.shade50,
+                                  color: isActive ? kBrandOlive.withOpacity(0.1) : Colors.red.shade50,
                                   borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: isActive ? kBrandOlive.withValues(alpha: 0.2) : Colors.red.shade100),
+                                  border: Border.all(color: isActive ? kBrandOlive.withOpacity(0.2) : Colors.red.shade100),
                                 ),
                                 child: Text(
                                   school['status']?.toUpperCase() ?? '',
@@ -538,7 +538,7 @@ class _SchoolProfileDialogState extends State<SchoolProfileDialog> {
                             style: OutlinedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              side: BorderSide(color: (isActive ? kBrandOrange : kBrandOlive).withValues(alpha: 0.5)),
+                              side: BorderSide(color: (isActive ? kBrandOrange : kBrandOlive).withOpacity(0.5)),
                             ),
                           ),
                         ),
@@ -940,7 +940,7 @@ class _EditSchoolDialogState extends State<EditSchoolDialog> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: kBrandOlive.withValues(alpha: 0.1),
+                      color: kBrandOlive.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.edit_note_rounded, color: kBrandBrown, size: 28),

@@ -131,7 +131,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                       borderRadius: BorderRadius.circular(40),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.4),
+                          color: Colors.black.withOpacity(0.4),
                           blurRadius: 50,
                           offset: const Offset(0, 25),
                         ),
@@ -230,7 +230,7 @@ class _RadialPainter extends CustomPainter {
     final paint = Paint()
       ..shader = RadialGradient(
         colors: [
-          kBrandOlive.withValues(alpha: 0.1),
+          kBrandOlive.withOpacity(0.1),
           Colors.transparent,
         ],
       ).createShader(Rect.fromLTWH(

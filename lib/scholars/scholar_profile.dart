@@ -209,19 +209,26 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
     final bool isMobile = MediaQuery.of(context).size.width < 900;
 
     return Container(
-      color: Colors.white,
+      color: const Color(0xFFF0F2F5), // Facebook-style background
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (!isMobile) ...[
-            _buildHeader(_student!, _extraData, isMobile),
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: _buildHeader(_student!, _extraData, isMobile),
+            ),
             const SizedBox(height: 24),
           ],
-          _buildTabBar(isMobile),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 32),
+            child: _buildTabBar(isMobile),
+          ),
           const SizedBox(height: 16),
           Expanded(
             child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 0),
+              padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 32),
               child: _buildTabContent(_student!, _extraData, isMobile),
             ),
           ),

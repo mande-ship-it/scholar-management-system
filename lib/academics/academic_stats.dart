@@ -44,35 +44,53 @@ class _AcademicStatsComponentState extends State<AcademicStatsComponent> {
 
     final bool isMobile = MediaQuery.of(context).size.width < 900;
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(isMobile ? 16 : 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Academic Performance Analytics",
-            style: TextStyle(fontSize: isMobile ? 20 : 24, fontWeight: FontWeight.bold, color: kBrandBrown),
-          ),
-          const SizedBox(height: 8),
-          const Text("Detailed breakdown of scholarly achievements.", style: TextStyle(color: Colors.grey)),
-          const SizedBox(height: 32),
-          if (isMobile)
-            Column(
-              children: [
-                _statTile("General Average", "${_stats['avgScore'] ?? 0}%", Icons.analytics_rounded, kBrandOlive, true),
-                const SizedBox(height: 16),
-                _statTile("Passing Scholars", "${_stats['onTrack'] ?? 0}", Icons.verified_user_rounded, kBrandOrange, true),
-              ],
-            )
-          else
-            Row(
-              children: [
-                Expanded(child: _statTile("General Average", "${_stats['avgScore'] ?? 0}%", Icons.analytics_rounded, kBrandOlive, false)),
-                const SizedBox(width: 24),
-                Expanded(child: _statTile("Passing Scholars", "${_stats['onTrack'] ?? 0}", Icons.verified_user_rounded, kBrandOrange, false)),
-              ],
+    return Container(
+      width: double.infinity,
+      color: const Color(0xFFF0F2F5), // Facebook-style background
+      child: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 24, vertical: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 1)],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Academic Performance Analytics",
+                    style: TextStyle(fontSize: isMobile ? 18 : 22, fontWeight: FontWeight.bold, color: kBrandBrown),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text("Detailed breakdown of scholarly achievements and trends.", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                ],
+              ),
             ),
-        ],
+            const SizedBox(height: 20),
+            if (isMobile)
+              Column(
+                children: [
+                  _statTile("General Average", "${_stats['avgScore'] ?? 0}%", Icons.analytics_rounded, kBrandOlive, true),
+                  const SizedBox(height: 12),
+                  _statTile("Passing Scholars", "${_stats['onTrack'] ?? 0}", Icons.verified_user_rounded, kBrandOrange, true),
+                ],
+              )
+            else
+              Row(
+                children: [
+                  Expanded(child: _statTile("General Average", "${_stats['avgScore'] ?? 0}%", Icons.analytics_rounded, kBrandOlive, false)),
+                  const SizedBox(width: 20),
+                  Expanded(child: _statTile("Passing Scholars", "${_stats['onTrack'] ?? 0}", Icons.verified_user_rounded, kBrandOrange, false)),
+                ],
+              ),
+          ],
+        ),
       ),
     );
   }

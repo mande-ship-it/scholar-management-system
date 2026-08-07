@@ -244,7 +244,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> with TickerProv
             Positioned(
               top: -size.height * 0.1,
               left: -size.width * 0.1,
-              child: Container(width: size.width * 0.7, height: size.width * 0.7, decoration: BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [kBrandOlive.withValues(alpha: 0.3), Colors.transparent]))),
+              child: Container(width: size.width * 0.7, height: size.width * 0.7, decoration: BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [kBrandOlive.withOpacity(0.3), Colors.transparent]))),
             ),
           ],
         ),

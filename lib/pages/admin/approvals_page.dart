@@ -36,7 +36,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _canApproveScholars ? 2 : 1, vsync: this);
+    _tabController = TabController(length: _canApproveScholars ? 3 : 2, vsync: this);
     _fetchPending();
   }
 
@@ -126,6 +126,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
                       children: [
                         if (_canApproveScholars) _buildScholarsList(isMobile),
                         _buildEventsList(isMobile),
+                        _buildPaymentsList(isMobile),
                       ],
                     ),
               ),
@@ -193,6 +194,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
       ),
       child: TabBar(
         controller: _tabController,
+        isScrollable: true,
         indicator: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           color: Colors.white,
@@ -212,6 +214,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
         tabs: [
           if (_canApproveScholars) Tab(text: "Scholars (${_pendingScholars.length})"),
           Tab(text: "Events (${_pendingEvents.length})"),
+          Tab(text: "Payments (${_pendingPayments.length})"),
         ],
       ),
     );
@@ -277,6 +280,40 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
           onApprove: () => _processApproval('event', id, true),
           onReject: () => _processApproval('event', id, false),
           icon: Icons.event_available_rounded,
+        );
+      },
+    );
+  }
+
+  Widget _buildPaymentsList(bool isMobile) {
+    if (_pendingPayments.isEmpty) return _buildEmptyState("No payments awaiting approval.");
+
+    final currencyFormat = NumberFormat.currency(symbol: 'MWK ', decimalDigits: 0);
+
+    return ListView.builder(
+      padding: const EdgeInsets.only(top: 8),
+      itemCount: _pendingPayments.length,
+      itemBuilder: (context, index) {
+        final payment = _pendingPayments[index];
+        final id = (payment['id'] ?? payment['_id'] ?? '').toString();
+        final amount = double.tryParse(payment['amount']?.toString() ?? '0') ?? 0;
+        final purpose = payment['purpose'] ?? 'General Disbursement';
+        final scholar = payment['scholarId'] != null ? (payment['scholarId']['fullName'] ?? 'Scholar') : 'Unassigned';
+
+        String dateStr = 'N/A';
+        try {
+          final date = payment['paymentDate'] ?? payment['date'] ?? payment['created_at'];
+          if (date != null) dateStr = DateFormat('dd MMM yyyy').format(DateTime.parse(date));
+        } catch (_) {}
+
+        return _buildApprovalCard(
+          isMobile: isMobile,
+          title: scholar,
+          subtitle: "${currencyFormat.format(amount)} • $purpose",
+          details: "Requested on: $dateStr",
+          onApprove: () => _processApproval('payment', id, true),
+          onReject: () => _processApproval('payment', id, false),
+          icon: Icons.payments_rounded,
         );
       },
     );

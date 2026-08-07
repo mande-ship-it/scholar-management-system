@@ -60,10 +60,22 @@ class _RecentActivitiesComponentState extends State<RecentActivitiesComponent> {
           separatorBuilder: (context, index) => const Divider(),
           itemBuilder: (context, index) {
             final activity = _activities[index];
+            final String actor = activity['actorName'] ?? 'System';
+            final String message = activity['message'] ?? 'No description';
+            
             return ListTile(
-              leading: const CircleAvatar(child: Icon(Icons.history)),
-              title: Text(activity['description'] ?? 'No description'),
-              subtitle: Text(activity['created_at'] ?? ''),
+              leading: CircleAvatar(
+                backgroundColor: kBrandOlive.withOpacity(0.1),
+                child: Icon(Icons.flash_on_rounded, color: kBrandOlive, size: 18),
+              ),
+              title: Text(
+                message, 
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)
+              ),
+              subtitle: Text(
+                "By $actor • ${activity['created_at'] ?? ''}",
+                style: const TextStyle(fontSize: 11)
+              ),
             );
           },
         ),

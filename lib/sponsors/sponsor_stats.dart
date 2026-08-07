@@ -56,153 +56,142 @@ class _SponsorStatsComponentState extends State<SponsorStatsComponent> {
     final averageSponsorship = _totalSponsors > 0 ? _totalFunding / _totalSponsors : 0.0;
 
     return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
-      ),
-      clipBehavior: Clip.antiAlias,
+      color: const Color(0xFFF0F2F5), // Facebook-style background
       child: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 24, vertical: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // ---------------- Header ----------------
-            Padding(
-              padding: EdgeInsets.fromLTRB(24, 24, 24, isMobile ? 12 : 8),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 1)],
+              ),
               child: Row(
                 children: [
-                  if (!isMobile) ...[
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(color: kBrandOlive.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-                      child: const Icon(Icons.volunteer_activism_rounded, color: kBrandOlive, size: 24),
-                    ),
-                    const SizedBox(width: 14),
-                  ],
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: kBrandOlive.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                    child: const Icon(Icons.volunteer_activism_rounded, color: kBrandOlive, size: 24),
+                  ),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Sponsor Analysis', style: TextStyle(fontSize: isMobile ? 18 : 20, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                        const Text('Donor contributions and impact.', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                        Text('Sponsor Analysis', style: TextStyle(fontSize: isMobile ? 18 : 22, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                        const Text('Donor contributions and impact metrics.', style: TextStyle(fontSize: 12, color: Colors.grey)),
                       ],
                     ),
                   ),
-                  IconButton(icon: const Icon(Icons.refresh, size: 20), onPressed: _fetchStats),
+                  IconButton(
+                    icon: const Icon(Icons.refresh_rounded),
+                    onPressed: _fetchStats,
+                    style: IconButton.styleFrom(backgroundColor: const Color(0xFFF0F2F5)),
+                  ),
                 ],
               ),
             ),
-            const Divider(indent: 24, endIndent: 24),
+            const SizedBox(height: 20),
 
-            Padding(
-              padding: EdgeInsets.all(isMobile ? 16.0 : 24.0),
-              child: Column(
+            // --- Key Metrics ---
+            if (isMobile)
+              Column(
+                children: [
+                  _StatMetric(label: "Total Sponsors", value: "$_totalSponsors", icon: Icons.handshake_rounded, color: kBrandBrown, isMobile: true),
+                  const SizedBox(height: 12),
+                  _StatMetric(label: "Total Funding", value: _formatAmount(_totalFunding), icon: Icons.payments_rounded, color: kBrandOlive, isMobile: true),
+                  const SizedBox(height: 12),
+                  _StatMetric(label: "Avg. per Donor", value: _formatAmount(averageSponsorship), icon: Icons.analytics_rounded, color: kBrandOrange, isMobile: true),
+                ],
+              )
+            else
+              Row(
+                children: [
+                  _StatMetric(label: "Total Sponsors", value: "$_totalSponsors", icon: Icons.handshake_rounded, color: kBrandBrown, isMobile: false),
+                  const SizedBox(width: 16),
+                  _StatMetric(label: "Total Funding", value: _formatAmount(_totalFunding), icon: Icons.payments_rounded, color: kBrandOlive, isMobile: false),
+                  const SizedBox(width: 16),
+                  _StatMetric(label: "Avg. per Donor", value: _formatAmount(averageSponsorship), icon: Icons.analytics_rounded, color: kBrandOrange, isMobile: false),
+                ],
+              ),
+
+            const SizedBox(height: 20),
+
+            if (isMobile)
+              Column(
+                children: [
+                  _StatCard(
+                    title: "Sponsorship Tiers",
+                    subtitle: "Partners by tier",
+                    child: Column(
+                      children: _tierDistribution.map((t) {
+                        final count = int.tryParse(t['count'].toString()) ?? 0;
+                        final percent = _totalSponsors > 0 ? count / _totalSponsors : 0.0;
+                        return _DonorProgress(
+                          label: t['sponsorship_type'] ?? 'Other',
+                          percent: percent,
+                          amount: "$count",
+                          color: kBrandOlive
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildHealthCard(),
+                ],
+              )
+            else
+              Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // --- Key Metrics ---
-                  if (isMobile)
-                    Column(
-                      children: [
-                        _StatMetric(label: "Total Sponsors", value: "$_totalSponsors", icon: Icons.handshake_rounded, color: kBrandBrown, isMobile: true),
-                        const SizedBox(height: 12),
-                        _StatMetric(label: "Total Funding", value: _formatAmount(_totalFunding), icon: Icons.payments_rounded, color: kBrandOlive, isMobile: true),
-                        const SizedBox(height: 12),
-                        _StatMetric(label: "Avg. per Donor", value: _formatAmount(averageSponsorship), icon: Icons.analytics_rounded, color: kBrandOrange, isMobile: true),
-                      ],
-                    )
-                  else
-                    Row(
-                      children: [
-                        _StatMetric(label: "Total Sponsors", value: "$_totalSponsors", icon: Icons.handshake_rounded, color: kBrandBrown, isMobile: false),
-                        const SizedBox(width: 16),
-                        _StatMetric(label: "Total Funding", value: _formatAmount(_totalFunding), icon: Icons.payments_rounded, color: kBrandOlive, isMobile: false),
-                        const SizedBox(width: 16),
-                        _StatMetric(label: "Avg. per Donor", value: _formatAmount(averageSponsorship), icon: Icons.analytics_rounded, color: kBrandOrange, isMobile: false),
-                      ],
-                    ),
-
-                  const SizedBox(height: 32),
-
-                  if (isMobile)
-                    Column(
-                      children: [
-                        _StatCard(
-                          title: "Sponsorship Tiers",
-                          subtitle: "Partners by tier",
-                          child: Column(
-                            children: _tierDistribution.map((t) {
-                              final count = int.tryParse(t['count'].toString()) ?? 0;
-                              final percent = _totalSponsors > 0 ? count / _totalSponsors : 0.0;
-                              return _DonorProgress(
-                                label: t['sponsorship_type'] ?? 'Other', 
-                                percent: percent, 
-                                amount: "$count", 
-                                color: kBrandOlive
-                              );
-                            }).toList(),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        _buildHealthCard(),
-                      ],
-                    )
-                  else
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: _StatCard(
-                            title: "Sponsorship Tiers",
-                            subtitle: "Distribution of partners by tier",
-                            child: Column(
-                              children: _tierDistribution.map((t) {
-                                final count = int.tryParse(t['count'].toString()) ?? 0;
-                                final percent = _totalSponsors > 0 ? count / _totalSponsors : 0.0;
-                                return _DonorProgress(
-                                  label: t['sponsorship_type'] ?? 'Other', 
-                                  percent: percent, 
-                                  amount: "$count", 
-                                  color: kBrandOlive
-                                );
-                              }).toList(),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 24),
-                        Expanded(child: _buildHealthCard()),
-                      ],
-                    ),
-
-                  const SizedBox(height: 32),
-                  const Text("Sponsorship Growth Trend", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                  const SizedBox(height: 16),
-                  
-                  // Simple Growth Chart
-                  Container(
-                    height: 200,
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: kBrandBrown.withValues(alpha: 0.02),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey.shade200),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        const _GrowthBar(label: "Q1", value: 0.5),
-                        const _GrowthBar(label: "Q2", value: 0.7),
-                        const _GrowthBar(label: "Q3", value: 0.45),
-                        _GrowthBar(label: "Q4", value: 0.82, isCurrent: true, isMobile: isMobile),
-                      ],
+                  Expanded(
+                    child: _StatCard(
+                      title: "Sponsorship Tiers",
+                      subtitle: "Distribution of partners by tier",
+                      child: Column(
+                        children: _tierDistribution.map((t) {
+                          final count = int.tryParse(t['count'].toString()) ?? 0;
+                          final percent = _totalSponsors > 0 ? count / _totalSponsors : 0.0;
+                          return _DonorProgress(
+                            label: t['sponsorship_type'] ?? 'Other',
+                            percent: percent,
+                            amount: "$count",
+                            color: kBrandOlive
+                          );
+                        }).toList(),
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 20),
+                  Expanded(child: _buildHealthCard()),
                 ],
               ),
+
+            const SizedBox(height: 20),
+            _StatCard(
+              title: "Sponsorship Growth Trend",
+              subtitle: "Quarterly contribution overview",
+              child: Container(
+                height: 200,
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    const _GrowthBar(label: "Q1", value: 0.5),
+                    const _GrowthBar(label: "Q2", value: 0.7),
+                    const _GrowthBar(label: "Q3", value: 0.45),
+                    _GrowthBar(label: "Q4", value: 0.82, isCurrent: true, isMobile: isMobile),
+                  ],
+                ),
+              ),
             ),
+            const SizedBox(height: 40),
           ],
         ),
       ),

@@ -79,7 +79,7 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
     final bool isMobile = MediaQuery.of(context).size.width < 900;
 
     return Scaffold(
-      backgroundColor: isSmallScreen ? Colors.white : const Color(0xFFF4F7F5),
+      backgroundColor: const Color(0xFFF0F2F5), // Facebook-style background
       body: Stack(
         children: [
           Column(
@@ -89,8 +89,8 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
                   padding: EdgeInsets.symmetric(
-                    horizontal: isSmallScreen ? 16 : 24,
-                    vertical: isSmallScreen ? 16 : 24
+                    horizontal: isSmallScreen ? 12 : 32,
+                    vertical: isSmallScreen ? 12 : 24
                   ),
                   child: Column(
                     children: [

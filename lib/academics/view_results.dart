@@ -300,22 +300,28 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: Colors.white,
+      color: const Color(0xFFF0F2F5), // Facebook-style background
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildTopHeader(),
+          Container(
+            color: Colors.white,
+            child: _buildTopHeader(),
+          ),
           const Divider(height: 1),
-          _buildFilterBar(),
+          Container(
+            color: Colors.white,
+            child: _buildFilterBar(),
+          ),
           const Divider(height: 1),
-          _buildTabsAndArchiveToggle(),
+          Container(
+            color: Colors.white,
+            child: _buildTabsAndArchiveToggle(),
+          ),
           Expanded(
-            child: Container(
-              color: Colors.grey.shade50,
-              child: students.isEmpty
-                  ? _buildNoResultsState()
-                  : _buildScholarGrid(students),
-            ),
+            child: students.isEmpty
+                ? _buildNoResultsState()
+                : _buildScholarGrid(students),
           ),
         ],
       ),

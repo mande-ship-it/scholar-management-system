@@ -208,7 +208,7 @@ class _PasswordResetPageState extends State<PasswordResetPage> with TickerProvid
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: kBrandBrown.withValues(alpha: 0.1),
+                        color: kBrandBrown.withOpacity(0.1),
                         blurRadius: 15,
                         spreadRadius: 2,
                       ),
@@ -280,7 +280,7 @@ class _PasswordResetPageState extends State<PasswordResetPage> with TickerProvid
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 elevation: 8,
-                shadowColor: kBrandBrown.withValues(alpha: 0.4),
+                shadowColor: kBrandBrown.withOpacity(0.4),
               ),
               child: _isLoading
                   ? const SizedBox(
@@ -324,7 +324,7 @@ class _PasswordResetPageState extends State<PasswordResetPage> with TickerProvid
       child: Text(
         text,
         style: TextStyle(
-          color: kBrandBrown.withValues(alpha: 0.5),
+          color: kBrandBrown.withOpacity(0.5),
           fontSize: 10,
           fontWeight: FontWeight.w900,
           letterSpacing: 1.2,

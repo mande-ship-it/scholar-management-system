@@ -48,35 +48,53 @@ class _SchoolStatsComponentState extends State<SchoolStatsComponent> {
 
     final bool isMobile = MediaQuery.of(context).size.width < 900;
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(isMobile ? 16 : 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            "Institutional Statistics",
-            style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.bold, color: kBrandBrown),
-          ),
-          const SizedBox(height: 8),
-          const Text("Analysis of partner schools and reach.", style: TextStyle(fontSize: 11, color: Colors.grey)),
-          const SizedBox(height: 24),
-          if (isMobile)
-            Column(
-              children: [
-                _statTile("Total Schools", _stats['total']?.toString() ?? '0', Icons.apartment_rounded, kBrandBrown, true),
-                const SizedBox(height: 12),
-                _statTile("Active Partnerships", _stats['active']?.toString() ?? '0', Icons.check_circle_outline_rounded, kBrandOlive, true),
-              ],
-            )
-          else
-            Row(
-              children: [
-                Expanded(child: _statTile("Total Schools", _stats['total']?.toString() ?? '0', Icons.apartment_rounded, kBrandBrown, false)),
-                const SizedBox(width: 16),
-                Expanded(child: _statTile("Active Partnerships", _stats['active']?.toString() ?? '0', Icons.check_circle_outline_rounded, kBrandOlive, false)),
-              ],
+    return Container(
+      width: double.infinity,
+      color: const Color(0xFFF0F2F5), // Facebook-style background
+      child: SingleChildScrollView(
+        padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 24, vertical: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 1)],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Institutional Statistics",
+                    style: TextStyle(fontSize: isMobile ? 18 : 22, fontWeight: FontWeight.bold, color: kBrandBrown),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text("Analysis of partner schools and reach metrics.", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                ],
+              ),
             ),
-        ],
+            const SizedBox(height: 20),
+            if (isMobile)
+              Column(
+                children: [
+                  _statTile("Total Schools", _stats['total']?.toString() ?? '0', Icons.apartment_rounded, kBrandBrown, true),
+                  const SizedBox(height: 12),
+                  _statTile("Active Partnerships", _stats['active']?.toString() ?? '0', Icons.check_circle_outline_rounded, kBrandOlive, true),
+                ],
+              )
+            else
+              Row(
+                children: [
+                  Expanded(child: _statTile("Total Schools", _stats['total']?.toString() ?? '0', Icons.apartment_rounded, kBrandBrown, false)),
+                  const SizedBox(width: 20),
+                  Expanded(child: _statTile("Active Partnerships", _stats['active']?.toString() ?? '0', Icons.check_circle_outline_rounded, kBrandOlive, false)),
+                ],
+              ),
+          ],
+        ),
       ),
     );
   }

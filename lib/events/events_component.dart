@@ -99,7 +99,7 @@ Future<pw.Document> buildEventReportPdf(OrganisationEvent event) async {
             pw.Container(
               padding: const pw.EdgeInsets.all(20),
               decoration: pw.BoxDecoration(
-                color: _pdf(kBrandCream.withValues(alpha: 0.3)),
+                color: _pdf(kBrandCream.withOpacity(0.3)),
                 borderRadius: pw.BorderRadius.circular(8),
                 border: pw.Border.all(color: cream),
               ),
@@ -288,13 +288,7 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
     final bool isMobile = MediaQuery.of(context).size.width < 900;
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: isMobile ? BorderRadius.zero : BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
-      ),
-      clipBehavior: Clip.antiAlias,
+      color: const Color(0xFFF0F2F5), // Facebook-style background
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -329,7 +323,7 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: kBrandBrown.withValues(alpha: 0.05),
+                color: kBrandBrown.withOpacity(0.05),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(Icons.event_available_rounded, color: kBrandBrown, size: 28),
@@ -366,8 +360,8 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
 
   Widget _buildToolbar(bool isMobile) {
     return Container(
+      color: Colors.white,
       padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 32, vertical: isMobile ? 12 : 20),
-      color: const Color(0xFFF9FAFB),
       child: isMobile 
         ? Column(
             children: [
@@ -393,10 +387,10 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
                   prefixIcon: Icon(Icons.search_rounded, size: 18, color: Colors.grey.shade400),
                   isDense: true,
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: const Color(0xFFF0F2F5),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
                 ),
               ),
             ],
@@ -429,10 +423,10 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
                     prefixIcon: Icon(Icons.search_rounded, size: 20, color: Colors.grey.shade400),
                     isDense: true,
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: const Color(0xFFF0F2F5),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
                   ),
                 ),
               ),
@@ -450,7 +444,7 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
             children: [
               Container(
                 padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(color: Colors.grey.shade50, shape: BoxShape.circle),
+                decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle),
                 child: Icon(Icons.event_note_rounded, size: 64, color: Colors.grey.shade200),
               ),
               const SizedBox(height: 24),
@@ -462,7 +456,7 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
       );
     }
     return ListView.separated(
-      padding: EdgeInsets.all(isMobile ? 12 : 32),
+      padding: EdgeInsets.all(isMobile ? 12 : 24),
       itemCount: events.length,
       separatorBuilder: (context, index) => const SizedBox(height: 16),
       itemBuilder: (context, index) => _buildEventCard(events[index], isMobile),
@@ -476,9 +470,14 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade100),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 1,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       clipBehavior: Clip.antiAlias,
       child: Material(
@@ -490,61 +489,51 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Container(
-                  width: isMobile ? 60 : 80,
+                  width: isMobile ? 70 : 100,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.05),
-                    border: Border(right: BorderSide(color: Colors.grey.shade100)),
+                    color: color.withOpacity(0.05),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(DateFormat('MMM').format(event.date).toUpperCase(),
-                        style: TextStyle(color: color, fontSize: isMobile ? 9 : 11, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                        style: TextStyle(color: color, fontSize: isMobile ? 10 : 12, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
                       const SizedBox(height: 4),
                       Text(DateFormat('dd').format(event.date),
-                        style: TextStyle(color: kBrandBrown, fontSize: isMobile ? 18 : 24, fontWeight: FontWeight.w900)),
+                        style: TextStyle(color: kBrandBrown, fontSize: isMobile ? 22 : 32, fontWeight: FontWeight.w900)),
                     ],
                   ),
                 ),
                 Expanded(
                   child: Padding(
-                    padding: EdgeInsets.all(isMobile ? 12 : 20),
+                    padding: EdgeInsets.all(isMobile ? 12 : 16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                                child: Row(
-                                  children: [
-                                    Icon(event.category.icon, size: 10, color: color),
-                                    const SizedBox(width: 4),
-                                    Text(event.category.label.toUpperCase(),
-                                      style: TextStyle(color: color, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Text(event.time.format(context),
-                                style: TextStyle(color: Colors.grey.shade500, fontSize: 10, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+                              child: Text(event.category.label.toUpperCase(),
+                                style: TextStyle(color: color, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(event.time.format(context),
+                              style: TextStyle(color: Colors.grey.shade500, fontSize: 11, fontWeight: FontWeight.bold)),
+                          ],
                         ),
                         const SizedBox(height: 8),
                         Text(event.title, maxLines: 2, overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: isMobile ? 14 : 17, fontWeight: FontWeight.w800, color: kBrandBrown)),
+                          style: TextStyle(fontSize: isMobile ? 15 : 18, fontWeight: FontWeight.bold, color: kBrandBrown)),
                         const SizedBox(height: 6),
                         Row(
                           children: [
-                            Icon(Icons.place_rounded, size: 12, color: Colors.grey.shade400),
+                            Icon(Icons.place_rounded, size: 14, color: Colors.grey.shade400),
                             const SizedBox(width: 4),
                             Expanded(child: Text(event.location,
-                              style: TextStyle(color: Colors.grey.shade600, fontSize: 11, fontWeight: FontWeight.w500),
+                              style: TextStyle(color: Colors.grey.shade600, fontSize: 12, fontWeight: FontWeight.w500),
                               overflow: TextOverflow.ellipsis)),
                           ],
                         ),
@@ -552,21 +541,10 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
                     ),
                   ),
                 ),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: isMobile ? 4 : 12),
+                const Padding(
+                  padding: EdgeInsets.only(right: 12),
                   child: Center(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (!isHistory && !isMobile) ...[
-                          _actionIcon(Icons.edit_note_rounded, kBrandOlive, () => _showEditEventDialog(event)),
-                          const SizedBox(width: 4),
-                        ],
-                        if (!isMobile) _actionIcon(Icons.delete_outline_rounded, Colors.redAccent, () => _deleteEvent(event)),
-                        const SizedBox(width: 4),
-                        Icon(Icons.chevron_right_rounded, color: Colors.grey, size: isMobile ? 18 : 24),
-                      ],
-                    ),
+                    child: Icon(Icons.chevron_right_rounded, color: Colors.grey),
                   ),
                 ),
               ],
@@ -846,8 +824,9 @@ class _EventFormDialogState extends State<EventFormDialog> {
         'category': _selectedCategory.name,
         'location': _locationController.text.trim(),
         'date': _selectedDate.toIso8601String(),
-        'time': '${_selectedTime.hour}:${_selectedTime.minute}',
+        'time': '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}',
         'organizer': _organizerController.text.trim(),
+        'status': widget.event?.status ?? 'Pending',
       };
       final res = widget.event != null ? await ApiService.updateEvent(widget.event!.id, data) : await ApiService.createEvent(data);
       if (res.statusCode == 200 || res.statusCode == 201) Navigator.of(context).pop(true);
@@ -876,7 +855,13 @@ class _EventFormDialogState extends State<EventFormDialog> {
                 const SizedBox(height: 24),
                 _buildField(_titleController, 'Title', Icons.title, true),
                 const SizedBox(height: 16),
+                _buildField(_descController, 'Description', Icons.description, false, maxLines: 3),
+                const SizedBox(height: 16),
+                _buildCategoryDropdown(),
+                const SizedBox(height: 16),
                 _buildField(_locationController, 'Venue', Icons.place, true),
+                const SizedBox(height: 16),
+                _buildField(_organizerController, 'Organizer', Icons.person, false),
                 const SizedBox(height: 16),
                 Row(
                   children: [
@@ -899,8 +884,35 @@ class _EventFormDialogState extends State<EventFormDialog> {
     );
   }
 
-  Widget _buildField(TextEditingController ctrl, String label, IconData icon, bool req) {
-    return TextFormField(controller: ctrl, decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon), border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))), validator: req ? (v) => v!.isEmpty ? 'Req' : null : null);
+  Widget _buildCategoryDropdown() {
+    return DropdownButtonFormField<EventCategory>(
+      value: _selectedCategory,
+      decoration: InputDecoration(
+        labelText: 'Category',
+        prefixIcon: Icon(_selectedCategory.icon),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      items: EventCategory.values.map((c) => DropdownMenuItem(
+        value: c,
+        child: Text(c.label),
+      )).toList(),
+      onChanged: (val) {
+        if (val != null) setState(() => _selectedCategory = val);
+      },
+    );
+  }
+
+  Widget _buildField(TextEditingController ctrl, String label, IconData icon, bool req, {int maxLines = 1}) {
+    return TextFormField(
+      controller: ctrl, 
+      maxLines: maxLines,
+      decoration: InputDecoration(
+        labelText: label, 
+        prefixIcon: Icon(icon), 
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))
+      ), 
+      validator: req ? (v) => v!.isEmpty ? 'Req' : null : null
+    );
   }
 
   Widget _pickerTile(IconData icon, String label, String value, VoidCallback onTap, bool isMobile) {

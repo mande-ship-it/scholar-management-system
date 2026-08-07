@@ -131,7 +131,7 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
       context: context,
       barrierDismissible: true,
       barrierLabel: "Details",
-      barrierColor: Colors.black.withValues(alpha: 0.5),
+      barrierColor: Colors.black.withOpacity(0.5),
       transitionDuration: const Duration(milliseconds: 220),
       pageBuilder: (ctx, anim1, anim2) => const SizedBox.shrink(),
       transitionBuilder: (ctx, anim, secondaryAnim, child) {
@@ -160,7 +160,7 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
                             children: [
                               CircleAvatar(
                                 radius: 30,
-                                backgroundColor: kBrandOlive.withValues(alpha: 0.1),
+                                backgroundColor: kBrandOlive.withOpacity(0.1),
                                 child: Text(sponsor.name[0].toUpperCase(), style: const TextStyle(color: kBrandBrown, fontSize: 24, fontWeight: FontWeight.bold)),
                               ),
                               const SizedBox(width: 16),
@@ -237,7 +237,7 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: kBrandOlive.withValues(alpha: 0.6)),
+          Icon(icon, size: 18, color: kBrandOlive.withOpacity(0.6)),
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -276,13 +276,7 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
     final bool isMobile = MediaQuery.of(context).size.width < 900;
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: isMobile ? BorderRadius.zero : BorderRadius.circular(16),
-        border: isMobile ? null : Border.all(color: Colors.grey.shade200),
-        boxShadow: isMobile ? null : [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
-      ),
-      clipBehavior: Clip.antiAlias,
+      color: const Color(0xFFF0F2F5), // Facebook-style background
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -306,7 +300,7 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
           if (!isMobile) ...[
             Container(
               padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: kBrandOlive.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+              decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
               child: const Icon(Icons.volunteer_activism_rounded, color: kBrandOlive, size: 20),
             ),
             const SizedBox(width: 16),
@@ -345,46 +339,49 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
   }
 
   Widget _buildToolbar(bool isMobile) {
-    return Column(
-      children: [
-        const Divider(indent: 24, endIndent: 24),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-          child: Row(
-            children: [
-              Expanded(
-                child: Container(
-                  height: 40,
-                  child: TextField(
-                    style: const TextStyle(fontSize: 13),
-                    decoration: InputDecoration(
-                      hintText: 'Search partners...',
-                      prefixIcon: const Icon(Icons.search_rounded, size: 18),
-                      isDense: true,
-                      filled: true,
-                      fillColor: Colors.grey.shade50,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.grey.shade200)),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: kBrandOlive, width: 1.5)),
+    return Container(
+      color: Colors.white,
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    height: 40,
+                    child: TextField(
+                      style: const TextStyle(fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Search partners...',
+                        prefixIcon: const Icon(Icons.search_rounded, size: 18),
+                        isDense: true,
+                        filled: true,
+                        fillColor: const Color(0xFFF0F2F5),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+                      ),
+                      onChanged: (val) {
+                        _searchQuery = val;
+                        _applyFilter();
+                      },
                     ),
-                    onChanged: (val) {
-                      _searchQuery = val;
-                      _applyFilter();
-                    },
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              IconButton(
-                icon: const Icon(Icons.sync_rounded, color: kBrandBrown, size: 18),
-                onPressed: _isLoading ? null : _loadSponsors,
-                constraints: const BoxConstraints(),
-                padding: EdgeInsets.zero,
-              ),
-            ],
+                const SizedBox(width: 12),
+                IconButton(
+                  icon: const Icon(Icons.sync_rounded, color: kBrandBrown, size: 18),
+                  onPressed: _isLoading ? null : _loadSponsors,
+                  constraints: const BoxConstraints(),
+                  padding: EdgeInsets.zero,
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+          const Divider(height: 1),
+        ],
+      ),
     );
   }
 
@@ -394,35 +391,83 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
     if (_filteredSponsors.isEmpty) return _buildEmptyState();
 
     return ListView.separated(
-      padding: EdgeInsets.symmetric(horizontal: isMobile ? 0 : 24, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 24, vertical: 20),
       itemCount: _filteredSponsors.length,
-      separatorBuilder: (_, __) => isMobile ? const Divider(height: 1, thickness: 1) : const SizedBox(height: 12),
+      separatorBuilder: (_, __) => const SizedBox(height: 16),
       itemBuilder: (context, index) {
         final s = _filteredSponsors[index];
         return Container(
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: isMobile ? BorderRadius.zero : BorderRadius.circular(12),
-            border: isMobile ? null : Border.all(color: Colors.grey.shade100),
-            boxShadow: isMobile ? null : [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 2))],
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 1,
+                offset: const Offset(0, 1),
+              ),
+            ],
           ),
-          child: ListTile(
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: isMobile ? 8 : 12),
-            leading: CircleAvatar(
-              backgroundColor: kBrandBrown.withValues(alpha: 0.1),
-              child: Text(s.name[0].toUpperCase(), style: const TextStyle(color: kBrandBrown, fontWeight: FontWeight.bold)),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => _showSponsorDetails(s),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 28,
+                      backgroundColor: kBrandBrown.withOpacity(0.1),
+                      child: Text(s.name[0].toUpperCase(), style: const TextStyle(color: kBrandBrown, fontSize: 24, fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(s.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: kBrandBrown)),
+                          const SizedBox(height: 4),
+                          Text(s.organization.isEmpty ? 'Individual Benefactor' : s.organization, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+                                child: Text(s.sponsorshipType.toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBrandOlive)),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                width: 4,
+                                height: 4,
+                                decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.grey.shade400),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(_formatAmount(s.amount), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.grey.shade700)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: s.status == 'Active' ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(s.status.toUpperCase(), style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: s.status == 'Active' ? Colors.green : Colors.grey)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
-            title: Text(s.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: isMobile ? 14 : 15, color: kBrandBrown)),
-            subtitle: Text(s.organization.isEmpty ? 'Individual Benefactor' : s.organization, style: TextStyle(fontSize: isMobile ? 11 : 12)),
-            trailing: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(_formatAmount(s.amount), style: TextStyle(fontWeight: FontWeight.bold, fontSize: isMobile ? 11 : 13, color: kBrandBrown)),
-                Text(s.status, style: TextStyle(fontSize: isMobile ? 9 : 10, fontWeight: FontWeight.bold, color: s.status == 'Active' ? Colors.green : Colors.grey)),
-              ],
-            ),
-            onTap: () => _showSponsorDetails(s),
           ),
         );
       },
