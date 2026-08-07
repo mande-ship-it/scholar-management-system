@@ -119,48 +119,64 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
   }
 
   Widget _buildPortalHeader(bool isSmallScreen) {
+    if (isSmallScreen) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("PROGRAM ANALYTICS", 
+                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF9AB334), letterSpacing: 1.2)),
+                _buildStatusApprovalIndicator(),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _buildLevelToggle(true),
+          ],
+        ),
+      );
+    }
+
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(
-        horizontal: isSmallScreen ? 12 : 32, 
-        vertical: isSmallScreen ? 12 : 20
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("PROGRAM ANALYTICS", 
-                      style: TextStyle(fontSize: isSmallScreen ? 8 : 10, fontWeight: FontWeight.w900, color: const Color(0xFF9AB334), letterSpacing: 1.5)),
-                    const SizedBox(height: 2),
-                    Text(isSmallScreen ? _selectedLevel : "$_selectedLevel Intelligence Dashboard", 
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: isSmallScreen ? 18 : 22,
-                        fontWeight: FontWeight.w900,
-                        color: const Color(0xFF4C3C32),
-                        letterSpacing: -0.5
-                      )),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              if (!isSmallScreen) _buildLevelToggle(false),
-              const SizedBox(width: 12),
-              _buildStatusApprovalIndicator(),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("PROGRAM ANALYTICS", 
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF9AB334), letterSpacing: 1.5)),
+                const SizedBox(height: 2),
+                Text("$_selectedLevel Intelligence Dashboard", 
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF4C3C32),
+                    letterSpacing: -0.5
+                  )),
+              ],
+            ),
           ),
-          if (isSmallScreen) const SizedBox(height: 12),
-          if (isSmallScreen) _buildLevelToggle(true),
+          const SizedBox(width: 8),
+          _buildLevelToggle(false),
+          const SizedBox(width: 12),
+          _buildStatusApprovalIndicator(),
         ],
       ),
     );
@@ -169,6 +185,7 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
 
   Widget _buildLevelToggle(bool isSmall) {
     return Container(
+      width: isSmall ? double.infinity : null,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: const Color(0xFFF8F9FA),
@@ -176,10 +193,12 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
         border: Border.all(color: const Color(0xFFEEEEEE)),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: isSmall ? MainAxisSize.max : MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _toggleBtn("University", isSmall),
-          _toggleBtn("Secondary", isSmall),
+          isSmall ? Expanded(child: _toggleBtn("University", isSmall)) : _toggleBtn("University", isSmall),
+          const SizedBox(width: 4),
+          isSmall ? Expanded(child: _toggleBtn("Secondary", isSmall)) : _toggleBtn("Secondary", isSmall),
         ],
       ),
     );
@@ -195,20 +214,23 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: EdgeInsets.symmetric(
-          horizontal: isSmall ? 8 : 16, 
-          vertical: isSmall ? 6 : 8
+          horizontal: isSmall ? 4 : 16, 
+          vertical: isSmall ? 10 : 8
         ),
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFF4C3C32) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Text(
-          isSmall ? level.substring(0, 3).toUpperCase() : level.toUpperCase(),
-          style: TextStyle(
-            fontSize: isSmall ? 8 : 10,
-            fontWeight: FontWeight.w900,
-            color: isSelected ? Colors.white : Colors.grey,
-            letterSpacing: 0.5,
+        child: Center(
+          child: Text(
+            isSmall ? "${level.toUpperCase()} DASHBOARD" : level.toUpperCase(),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: isSmall ? 10 : 10,
+              fontWeight: FontWeight.w900,
+              color: isSelected ? Colors.white : Colors.grey,
+              letterSpacing: isSmall ? 0.2 : 0.5,
+            ),
           ),
         ),
       ),

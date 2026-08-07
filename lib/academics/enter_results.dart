@@ -84,9 +84,9 @@ class _AcademicsManagementComponentState extends State<AcademicsManagementCompon
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: const Color(0xFFE05B1C).withOpacity(0.1), 
+                color: Color(0xFFE05B1C).withOpacity(0.1), 
                 borderRadius: BorderRadius.circular(6), 
-                border: Border.all(color: const Color(0xFFE05B1C).withOpacity(0.2))
+                border: Border.all(color: Color(0xFFE05B1C).withOpacity(0.2))
               ),
               child: const Row(
                 children: [

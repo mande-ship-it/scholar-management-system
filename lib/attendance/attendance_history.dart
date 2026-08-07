@@ -74,7 +74,7 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
                       ),
                       const SizedBox(height: 32),
                       if (_isLoading)
-                        const Center(child: Padding(padding: EdgeInsets.all(100), child: CircularProgressIndicator(color: kBrandOlive)))
+                        const SizedBox.shrink()
                       else if (_history.isEmpty)
                         _buildEmptyState(isMobile)
                       else

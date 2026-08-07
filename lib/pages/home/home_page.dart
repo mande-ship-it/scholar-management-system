@@ -403,7 +403,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                   leading: Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: Color(0xFF9AB334).withOpacity(0.1),
+                                      color: const Color(0x1A9AB334),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Icon(item.icon, color: const Color(0xFF4C3C32), size: 18),

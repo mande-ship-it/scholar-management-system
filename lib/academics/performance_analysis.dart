@@ -116,7 +116,7 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
           _buildMainTabBar(isMobile),
           Expanded(
             child: _isLoading 
-              ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
+              ? const SizedBox.shrink()
               : TabBarView(
                   controller: _tabController,
                   children: [
