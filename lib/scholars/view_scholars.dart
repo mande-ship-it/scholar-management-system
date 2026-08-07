@@ -741,8 +741,8 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
         labelStyle: TextStyle(fontWeight: FontWeight.w900, fontSize: isVerySmall ? 11 : 13, letterSpacing: 0.5),
         padding: EdgeInsets.zero,
         tabs: [
-          Tab(text: "ACTIVE REGISTRY", height: isVerySmall ? 40 : 48),
-          Tab(text: "PENDING APPROVAL", height: isVerySmall ? 40 : 48),
+          Tab(text: "Active Registry", height: isVerySmall ? 40 : 48),
+          Tab(text: "Pending Approval", height: isVerySmall ? 40 : 48),
         ],
       ),
     );
@@ -820,8 +820,8 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                s['name']!.toUpperCase(),
-                                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFF4C3C32)),
+                                s['name']!,
+                                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF4C3C32)),
                               ),
                               Text(s['scholarId']!, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey.shade500)),
                             ],
@@ -872,8 +872,8 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            s['name']!.toUpperCase(),
-                            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF4C3C32), letterSpacing: -0.2),
+                            s['name']!,
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF4C3C32), letterSpacing: -0.2),
                           ),
                           const SizedBox(height: 4),
                           Row(
@@ -941,12 +941,12 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
-        status.toUpperCase(),
+        status,
         style: TextStyle(
           color: isActive ? const Color(0xFF9AB334) : const Color(0xFFE05B1C), 
-          fontWeight: FontWeight.w900, 
+          fontWeight: FontWeight.w800, 
           fontSize: isSmall ? 9 : 10,
-          letterSpacing: 0.5
+          letterSpacing: 0.3
         ),
       ),
     );
@@ -1000,7 +1000,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
               color: isActive ? kBrandOlive.withOpacity(0.1) : Colors.red.shade50,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Text(s['status']!.toUpperCase(), style: TextStyle(color: isActive ? kBrandOlive : Colors.red.shade700, fontWeight: FontWeight.w900, fontSize: 9)),
+            child: Text(s['status']!, style: TextStyle(color: isActive ? kBrandOlive : Colors.red.shade700, fontWeight: FontWeight.w800, fontSize: 9)),
           ),
         ),
         DataCell(
@@ -1024,11 +1024,11 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
         border: Border.all(color: color.withOpacity(0.3)),
       ),
       child: Text(
-        label.toUpperCase(),
+        label,
         style: TextStyle(
           color: color,
           fontSize: 9,
-          fontWeight: FontWeight.w900,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );

@@ -170,7 +170,7 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(sponsor.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                                    Text(sponsor.organization.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 0.5)),
+                                    Text(sponsor.organization, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 0.5)),
                                   ],
                                 ),
                               ),
@@ -510,8 +510,8 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        s.name.toUpperCase(),
-                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF4C3C32), letterSpacing: -0.2),
+                        s.name,
+                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF4C3C32), letterSpacing: -0.2),
                       ),
                       const SizedBox(height: 4),
                       Row(
@@ -519,7 +519,7 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
                           Icon(Icons.corporate_fare_rounded, size: 12, color: Colors.grey.shade400),
                           const SizedBox(width: 6),
                           Expanded(
-                            child: Text(s.organization.isEmpty ? 'INDIVIDUAL BENEFACTOR' : s.organization.toUpperCase(), 
+                            child: Text(s.organization.isEmpty ? 'Individual Benefactor' : s.organization, 
                               style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey.shade500),
                               overflow: TextOverflow.ellipsis),
                           ),
@@ -534,7 +534,7 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(s.sponsorshipType.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF4C3C32))),
+                        Text(s.sponsorshipType, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF4C3C32))),
                         const SizedBox(height: 4),
                         Text(_formatAmount(s.amount), style: TextStyle(fontSize: 11, color: Colors.grey.shade400, fontWeight: FontWeight.bold)),
                       ],
@@ -550,12 +550,12 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        s.status.toUpperCase(),
+                        s.status,
                         style: TextStyle(
                           color: isActive ? const Color(0xFF9AB334) : const Color(0xFFE05B1C), 
-                          fontWeight: FontWeight.w900, 
+                          fontWeight: FontWeight.w800, 
                           fontSize: 9,
-                          letterSpacing: 0.5
+                          letterSpacing: 0.3
                         ),
                       ),
                     ),
@@ -719,7 +719,7 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                 decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
-                                child: Text(s.sponsorshipType.toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBrandOlive)),
+                                child: Text(s.sponsorshipType, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: kBrandOlive)),
                               ),
                               const SizedBox(width: 8),
                               Container(
@@ -743,7 +743,7 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
                             color: s.status == 'Active' ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: Text(s.status.toUpperCase(), style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: s.status == 'Active' ? Colors.green : Colors.grey)),
+                          child: Text(s.status, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: s.status == 'Active' ? Colors.green : Colors.grey)),
                         ),
                       ],
                     ),

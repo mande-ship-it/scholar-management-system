@@ -487,8 +487,8 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        s['name']!.toUpperCase(),
-                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF4C3C32), letterSpacing: -0.2),
+                        s['name']!,
+                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF4C3C32), letterSpacing: -0.2),
                       ),
                       const SizedBox(height: 4),
                       Row(
@@ -527,12 +527,12 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        s['status']!.toUpperCase(),
+                        s['status']!,
                         style: TextStyle(
                           color: isActive ? const Color(0xFF9AB334) : const Color(0xFFE05B1C), 
-                          fontWeight: FontWeight.w900, 
+                          fontWeight: FontWeight.w800, 
                           fontSize: 9,
-                          letterSpacing: 0.5
+                          letterSpacing: 0.3
                         ),
                       ),
                     ),
@@ -740,7 +740,7 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               _miniBadge(s['code']!, Colors.grey.shade100, Colors.grey.shade700),
-                              _miniBadge(s['district']!.toUpperCase(), kBrandOlive.withOpacity(0.1), kBrandOlive),
+                              _miniBadge(s['district']!, kBrandOlive.withOpacity(0.1), kBrandOlive),
                               Container(
                                 width: 6,
                                 height: 6,
