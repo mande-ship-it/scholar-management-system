@@ -287,51 +287,62 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
 
   Widget _buildExecutiveHeader(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: Row(
         children: [
-          if (!isMobile) ...[
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: kBrandBrown.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.dashboard_rounded, color: kBrandBrown, size: 20),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Color(0xFF4C3C32).withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
             ),
-            const SizedBox(width: 16),
-          ],
+            child: const Icon(Icons.dashboard_rounded, color: Color(0xFF4C3C32), size: 24),
+          ),
+          const SizedBox(width: 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Operational Command • $_assignedDistrict", 
-                  style: TextStyle(fontSize: isMobile ? 15 : 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5),
-                  overflow: TextOverflow.ellipsis),
-                const Text("Centralized field intelligence dashboard.", 
-                  style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                const Text(
+                  "OPERATIONAL COMMAND",
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF9AB334),
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "$_assignedDistrict Overview",
+                  style: const TextStyle(
+                    fontSize: 22, 
+                    fontWeight: FontWeight.w900, 
+                    color: Color(0xFF4C3C32), 
+                    letterSpacing: -0.5
+                  ),
+                ),
               ],
             ),
           ),
           if (!isMobile)
             ElevatedButton.icon(
               onPressed: _loadDashboardData,
-              icon: const Icon(Icons.refresh_rounded, size: 16),
-              label: const Text("SYNC", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
+              icon: const Icon(Icons.sync_rounded, size: 16),
+              label: const Text("SYNC DATA"),
               style: ElevatedButton.styleFrom(
-                backgroundColor: kBrandBrown,
+                backgroundColor: const Color(0xFF4C3C32),
                 foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-            )
-          else
-            IconButton(onPressed: _loadDashboardData, icon: const Icon(Icons.refresh_rounded, color: kBrandBrown)),
+            ),
         ],
       ),
     );
@@ -375,27 +386,60 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
   Widget _kpiCard(String label, String value, IconData icon, Color color, bool isMobile) {
     return Expanded(
       child: Container(
-        padding: EdgeInsets.all(isMobile ? 16 : 24),
+        padding: const EdgeInsets.all(28),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.shade200),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))],
+          border: Border.all(color: const Color(0xFFEEEEEE)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.02),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-              child: Icon(icon, color: color, size: isMobile ? 16 : 20),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: color, size: 24),
             ),
-            const SizedBox(height: 16),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(value, style: TextStyle(fontSize: isMobile ? 20 : 24, fontWeight: FontWeight.w900, color: kBrandBrown)),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      value, 
+                      style: const TextStyle(
+                        fontSize: 24, 
+                        fontWeight: FontWeight.w900, 
+                        color: Color(0xFF4C3C32), 
+                        letterSpacing: -1
+                      )
+                    ),
+                  ),
+                  Text(
+                    label.toUpperCase(), 
+                    style: TextStyle(
+                      fontSize: 9, 
+                      fontWeight: FontWeight.w900, 
+                      color: Colors.grey.shade400, 
+                      letterSpacing: 1.0
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
-            Text(label.toUpperCase(), style: TextStyle(fontSize: isMobile ? 8 : 10, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 0.5)),
           ],
         ),
       ),
@@ -531,20 +575,20 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
 
   Widget _actionButton(String label, IconData icon, VoidCallback onTap) {
     return Material(
-      color: Colors.white.withOpacity(0.1),
+      color: Colors.white.withOpacity(0.08),
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Row(
             children: [
               Icon(icon, color: Colors.white, size: 18),
               const SizedBox(width: 16),
-              Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+              Text(label.toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5)),
               const Spacer(),
-              const Icon(Icons.chevron_right_rounded, color: Colors.white54, size: 18),
+              const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 12),
             ],
           ),
         ),

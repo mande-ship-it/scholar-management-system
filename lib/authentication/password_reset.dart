@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../academics/academics_utils.dart';
 import 'package:scholar_management_system/services/api_service.dart';
@@ -18,7 +17,6 @@ class _PasswordResetPageState extends State<PasswordResetPage> with TickerProvid
   bool _isPasswordObscured = true;
 
   late AnimationController _fadeController;
-  late AnimationController _backgroundController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _slideAnimation;
 
@@ -29,10 +27,6 @@ class _PasswordResetPageState extends State<PasswordResetPage> with TickerProvid
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     );
-    _backgroundController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 20),
-    )..repeat();
 
     _fadeAnimation = CurvedAnimation(
       parent: _fadeController,
@@ -54,7 +48,6 @@ class _PasswordResetPageState extends State<PasswordResetPage> with TickerProvid
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _fadeController.dispose();
-    _backgroundController.dispose();
     super.dispose();
   }
 
@@ -68,7 +61,7 @@ class _PasswordResetPageState extends State<PasswordResetPage> with TickerProvid
             setState(() => _isLoading = false);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: const Text("Security update successful! Please sign in with your new password."),
+                content: const Text("Security update successful! Please sign in."),
                 backgroundColor: kBrandOlive,
                 behavior: SnackBarBehavior.floating,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -76,182 +69,91 @@ class _PasswordResetPageState extends State<PasswordResetPage> with TickerProvid
             );
             Navigator.pushReplacementNamed(context, '/login');
           }
+        } else {
+          _showError(response.data['message'] ?? "Password update failed.");
         }
       } catch (e) {
-        if (mounted) {
-          setState(() => _isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text("Failed to update password. Please try again or contact IT support."),
-              backgroundColor: Colors.redAccent,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-          );
-        }
+        _showError("Connection error. Please try again.");
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
       }
+    }
+  }
+
+  void _showError(String msg) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final bool isSmallScreen = size.width < 600;
 
     return Scaffold(
-      body: Stack(
-        children: [
-          _buildAnimatedBackground(size),
-          Positioned.fill(
-            child: IgnorePointer(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                child: Container(color: Colors.black.withOpacity(0.1)),
-              ),
-            ),
+      backgroundColor: const Color(0xFFF8F9FA),
+      body: Center(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.symmetric(
+            horizontal: isSmallScreen ? 16 : 24, 
+            vertical: 40,
           ),
-          SafeArea(
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.only(
-                  left: 24,
-                  right: 24,
-                  bottom: 40,
-                  top: size.height < 600 ? 20 : 60,
+          child: AnimatedBuilder(
+            animation: _fadeController,
+            builder: (context, child) {
+              return Opacity(
+                opacity: _fadeAnimation.value,
+                child: Transform.translate(
+                  offset: Offset(0, _slideAnimation.value),
+                  child: child,
                 ),
-                child: AnimatedBuilder(
-                  animation: _fadeController,
-                  builder: (context, child) {
-                    return Opacity(
-                      opacity: _fadeAnimation.value,
-                      child: Transform.translate(
-                        offset: Offset(0, _slideAnimation.value),
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: Center(
-                    child: Container(
-                      constraints: const BoxConstraints(maxWidth: 480),
-                      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.95),
-                        borderRadius: BorderRadius.circular(40),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.15),
-                            blurRadius: 40,
-                            offset: const Offset(0, 20),
-                          ),
-                        ],
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                      child: _buildResetForm(),
-                    ),
+              );
+            },
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 480),
+              padding: EdgeInsets.symmetric(
+                horizontal: isSmallScreen ? 20 : 40, 
+                vertical: isSmallScreen ? 28 : 40
+              ),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(isSmallScreen ? 24 : 32),
+                border: Border.all(color: const Color(0xFFEEEEEE)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
                   ),
-                ),
+                ],
               ),
+              child: _buildResetForm(isSmallScreen),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _buildAnimatedBackground(Size size) {
-    return AnimatedBuilder(
-      animation: _backgroundController,
-      builder: (context, child) {
-        return Stack(
-          children: [
-            Container(color: kBrandBrown),
-            Positioned(
-              top: -size.height * 0.2 + (20 * _backgroundController.value),
-              left: -size.width * 0.2 + (40 * _backgroundController.value),
-              child: Container(
-                width: size.width * 0.8,
-                height: size.width * 0.8,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      kBrandOlive.withOpacity(0.4),
-                      kBrandOlive.withOpacity(0),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildResetForm() {
+  Widget _buildResetForm(bool isSmallScreen) {
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Center(
-            child: Column(
-              children: [
-                Container(
-                  height: 80,
-                  width: 80,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: kBrandBrown.withOpacity(0.1),
-                        blurRadius: 15,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(Icons.shield_rounded, size: 40, color: kBrandOrange),
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  "SECURITY UPDATE",
-                  style: TextStyle(
-                    color: kBrandOlive,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 3,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  "Set Your Password",
-                  style: TextStyle(
-                    color: kBrandBrown,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  "For your security, please create a new permanent password for your account.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.grey.shade600,
-                    fontSize: 13,
-                    height: 1.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          _buildLogoHeader(isSmallScreen),
           const SizedBox(height: 32),
 
-          _buildInputLabel("NEW PASSWORD"),
+          _buildInputLabel("NEW SECURITY KEY"),
           TextFormField(
             controller: _passwordController,
             obscureText: _isPasswordObscured,
@@ -261,7 +163,7 @@ class _PasswordResetPageState extends State<PasswordResetPage> with TickerProvid
           ),
           const SizedBox(height: 20),
 
-          _buildInputLabel("CONFIRM PASSWORD"),
+          _buildInputLabel("CONFIRM SECURITY KEY"),
           TextFormField(
             controller: _confirmPasswordController,
             obscureText: _isPasswordObscured,
@@ -271,46 +173,73 @@ class _PasswordResetPageState extends State<PasswordResetPage> with TickerProvid
           ),
           const SizedBox(height: 32),
 
-          SizedBox(
-            height: 58,
-            child: ElevatedButton(
-              onPressed: _isLoading ? null : _handleReset,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: kBrandBrown,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                elevation: 8,
-                shadowColor: kBrandBrown.withOpacity(0.4),
-              ),
-              child: _isLoading
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white),
-                    )
-                  : const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "ACTIVATE ACCOUNT",
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 1.2,
-                            fontSize: 15,
-                          ),
-                        ),
-                        SizedBox(width: 12),
-                        Icon(Icons.check_circle_rounded, size: 20),
-                      ],
-                    ),
+          ElevatedButton(
+            onPressed: _isLoading ? null : _handleReset,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kBrandBrown,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
             ),
+            child: _isLoading
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 3, color: Colors.white),
+                  )
+                : const Text("ACTIVATE ACCOUNT", style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
           ),
           const SizedBox(height: 20),
           TextButton(
             onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
-            child: Text(
+            child: const Text(
               "Cancel & Return to Login",
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 13, fontWeight: FontWeight.w600),
+              style: TextStyle(color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLogoHeader(bool isSmallScreen) {
+    return Center(
+      child: Column(
+        children: [
+          Container(
+            height: isSmallScreen ? 64 : 80,
+            width: isSmallScreen ? 64 : 80,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+            ),
+            child: Image.asset(
+              'assets/images/age-logo.png',
+              fit: BoxFit.contain,
+              errorBuilder: (ctx, _, __) => const Icon(Icons.shield_rounded, size: 40, color: kBrandOlive),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            "SECURITY UPDATE",
+            style: TextStyle(
+              color: kBrandOlive,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 3,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            "Set Your Password",
+            style: TextStyle(
+              color: kBrandBrown,
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5,
             ),
           ),
         ],
@@ -323,8 +252,8 @@ class _PasswordResetPageState extends State<PasswordResetPage> with TickerProvid
       padding: const EdgeInsets.only(bottom: 10, left: 4),
       child: Text(
         text,
-        style: TextStyle(
-          color: kBrandBrown.withOpacity(0.5),
+        style: const TextStyle(
+          color: Colors.grey,
           fontSize: 10,
           fontWeight: FontWeight.w900,
           letterSpacing: 1.2,
@@ -336,26 +265,17 @@ class _PasswordResetPageState extends State<PasswordResetPage> with TickerProvid
   InputDecoration _fieldDecoration(IconData icon, {String? hint}) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
       prefixIcon: Icon(icon, color: kBrandOlive, size: 22),
       filled: true,
       fillColor: Colors.grey.shade50,
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(color: Colors.grey.shade200),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: kBrandOlive, width: 2),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(20),
-        borderSide: BorderSide(color: Colors.red.shade200),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(20),
-        borderSide: const BorderSide(color: Colors.red, width: 2),
       ),
     );
   }

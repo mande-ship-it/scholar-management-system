@@ -75,7 +75,7 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
                       ),
                       const SizedBox(height: 32),
                       if (_isLoading)
-                        const Center(child: Padding(padding: EdgeInsets.all(100), child: BeautifulLoader(isOverlay: false, message: "Retrieving Archive Data")))
+                        Center(child: Padding(padding: const EdgeInsets.all(100), child: BeautifulLoader(isOverlay: false, message: "Retrieving Archive Data")))
                       else if (_history.isEmpty)
                         _buildEmptyState(isMobile)
                       else

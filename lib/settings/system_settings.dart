@@ -81,7 +81,7 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
       ),
       clipBehavior: Clip.antiAlias,
       child: _isLoading 
-        ? const Center(child: BeautifulLoader(isOverlay: false, message: "Syncing Environment"))
+        ? Center(child: BeautifulLoader(isOverlay: false, message: "Syncing Environment"))
         : Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

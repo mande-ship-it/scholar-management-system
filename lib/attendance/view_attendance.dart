@@ -153,7 +153,7 @@ class _ViewAttendanceComponentState extends State<ViewAttendanceComponent> {
                       _buildSelectionPanel(isMobile),
                       const SizedBox(height: 24),
                       if (_isGeneratingReport)
-                        const Center(child: Padding(padding: EdgeInsets.all(100), child: BeautifulLoader(isOverlay: false, message: "Synthesizing Attendance Analytics")))
+                        Center(child: Padding(padding: const EdgeInsets.all(100), child: BeautifulLoader(isOverlay: false, message: "Synthesizing Attendance Analytics")))
                       else if (_attendanceReport.isEmpty)
                         _buildInitialState(isMobile)
                       else

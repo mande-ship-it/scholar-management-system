@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:intl/intl.dart';
 
 import 'academics_utils.dart';
 import 'package:scholar_management_system/services/api_service.dart';
@@ -271,15 +272,15 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: kBrandBrown.withOpacity(0.08),
+        color: Color(0xFF4C3C32).withOpacity(0.08),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: kBrandBrown),
+          Icon(icon, size: 13, color: const Color(0xFF4C3C32)),
           const SizedBox(width: 5),
-          Text(label, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: kBrandBrown)),
+          Text(label, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: Color(0xFF4C3C32))),
         ],
       ),
     );
@@ -288,7 +289,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: kBrandOlive));
+      return const Center(child: CircularProgressIndicator(color: Color(0xFF9AB334)));
     }
 
     if (_mode == ViewResultsMode.selection) {
@@ -300,30 +301,222 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: const Color(0xFFF0F2F5), // Facebook-style background
+      color: const Color(0xFFF8F9FA),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            color: Colors.white,
-            child: _buildTopHeader(),
-          ),
-          const Divider(height: 1),
-          Container(
-            color: Colors.white,
-            child: _buildFilterBar(),
-          ),
-          const Divider(height: 1),
-          Container(
-            color: Colors.white,
-            child: _buildTabsAndArchiveToggle(),
-          ),
+          _buildPortalHeader(),
+          _buildIntegratedToolbar(),
           Expanded(
-            child: students.isEmpty
-                ? _buildNoResultsState()
-                : _buildScholarGrid(students),
+            child: Column(
+              children: [
+                _buildTabsAndArchiveToggle(),
+                Expanded(
+                  child: students.isEmpty
+                      ? _buildNoResultsState()
+                      : _buildScholarGrid(students),
+                ),
+              ],
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPortalHeader() {
+    final bool isSecondary = _mode == ViewResultsMode.secondary;
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
+    
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(32, 32, 32, 24),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Row(
+        children: [
+          IconButton.filledTonal(
+            onPressed: () => setState(() {
+              _mode = ViewResultsMode.selection;
+              _selectedDistrict = null;
+              _selectedSchool = null;
+              _selectedScholarId = null;
+              _selectedYear = null;
+              _selectedTerm = null;
+              _selectedSemester = null;
+            }),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16),
+            style: IconButton.styleFrom(
+              backgroundColor: Color(0xFF4C3C32).withOpacity(0.05),
+              foregroundColor: const Color(0xFF4C3C32),
+            ),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isSecondary ? "SECONDARY ACADEMIC AUDIT" : "TERTIARY ACADEMIC AUDIT",
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF9AB334),
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Examination Performance Ledger",
+                  style: TextStyle(
+                    fontSize: isMobile ? 18 : 22, 
+                    fontWeight: FontWeight.w900, 
+                    color: const Color(0xFF4C3C32), 
+                    letterSpacing: -0.5
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (!isMobile) ...[
+            if (_selectedSchool != null || (isSecondary && _selectedDistrict != null))
+              _portalHeaderActionBtn(
+                onTap: _openConsolidatedRoster,
+                icon: Icons.grid_view_rounded,
+                label: "GENERATE ROSTER",
+                color: const Color(0xFF4C3C32),
+              ),
+            const SizedBox(width: 12),
+            _portalHeaderActionBtn(
+              onTap: widget.onEnterResults ?? () => Navigator.pushNamed(context, '/academics/enterResults'),
+              icon: Icons.add_rounded,
+              label: "RECORD RESULTS",
+              color: const Color(0xFF9AB334),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _portalHeaderActionBtn({required VoidCallback onTap, required IconData icon, required String label, required Color color}) {
+    return ElevatedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 16),
+      label: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        elevation: 0,
+      ),
+    );
+  }
+
+  Widget _buildIntegratedToolbar() {
+    final bool isSecondary = _mode == ViewResultsMode.secondary;
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 32, vertical: 16),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFF3F4F6))),
+      ),
+      child: isMobile
+        ? Column(
+            children: [
+              _portalCompactSearchField(true),
+              const SizedBox(height: 12),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    if (isSecondary) ...[
+                      _portalCompactDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() { _selectedDistrict = v; _selectedSchool = null; _selectedScholarId = null; })),
+                      const SizedBox(width: 8),
+                    ],
+                    _portalCompactDropdown(isSecondary ? "School" : "University", _selectedSchool, _availableSchools, (v) => setState(() { _selectedSchool = v; _selectedScholarId = null; })),
+                  ],
+                ),
+              ),
+            ],
+          )
+        : Row(
+            children: [
+              _portalCompactSearchField(false),
+              const SizedBox(width: 16),
+              if (isSecondary) ...[
+                SizedBox(
+                  width: 180,
+                  child: _portalCompactDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() { _selectedDistrict = v; _selectedSchool = null; _selectedScholarId = null; })),
+                ),
+                const SizedBox(width: 12),
+              ],
+              SizedBox(
+                width: 240,
+                child: _portalCompactDropdown(isSecondary ? "Institution" : "University", _selectedSchool, _availableSchools, (v) => setState(() { _selectedSchool = v; _selectedScholarId = null; })),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 140,
+                child: _portalCompactDropdown("Year", _selectedYear, _academicYears, (v) => setState(() => _selectedYear = v)),
+              ),
+              const Spacer(),
+              _miniStat(Icons.groups_rounded, "${_filteredStudents.length} Scholars found"),
+            ],
+          ),
+    );
+  }
+
+  Widget _portalCompactSearchField(bool isMobile) {
+    return Container(
+      width: isMobile ? double.infinity : 280,
+      height: 44,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+      ),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (v) => setState(() {}),
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        decoration: const InputDecoration(
+          hintText: "Search scholar...",
+          prefixIcon: Icon(Icons.search, size: 18, color: Colors.grey),
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(vertical: 11),
+        ),
+      ),
+    );
+  }
+
+  Widget _portalCompactDropdown(String label, String? value, List<String> items, ValueChanged<String?> onChanged) {
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          hint: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+          underline: const SizedBox(),
+          isExpanded: true,
+          icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Colors.grey),
+          items: [
+            DropdownMenuItem(value: null, child: Text("All $label", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
+            ...items.map((i) => DropdownMenuItem(value: i, child: Text(i, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)))),
+          ],
+          onChanged: onChanged,
+        ),
       ),
     );
   }
@@ -336,11 +529,11 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.school_rounded, size: isMobile ? 48 : 64, color: kBrandBrown),
+            Icon(Icons.school_rounded, size: isMobile ? 48 : 64, color: const Color(0xFF4C3C32)),
             const SizedBox(height: 24),
             Text(
               "Academic Results Audit",
-              style: TextStyle(fontSize: isMobile ? 22 : 28, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5),
+              style: TextStyle(fontSize: isMobile ? 22 : 28, fontWeight: FontWeight.w900, color: const Color(0xFF4C3C32), letterSpacing: -0.5),
             ),
             const SizedBox(height: 8),
             Text(
@@ -355,7 +548,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
                     title: "Secondary Schools",
                     subtitle: "View results by District, School or Scholar.",
                     icon: Icons.account_balance_rounded,
-                    color: kBrandOrange,
+                    color: const Color(0xFFE05B1C),
                     onTap: () => setState(() => _mode = ViewResultsMode.secondary),
                     isMobile: true,
                   ),
@@ -378,7 +571,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
                     title: "Secondary Schools",
                     subtitle: "View results by District, School or Individual Scholar across all forms and terms.",
                     icon: Icons.account_balance_rounded,
-                    color: kBrandOrange,
+                    color: const Color(0xFFE05B1C),
                     onTap: () => setState(() => _mode = ViewResultsMode.secondary),
                   ),
                   const SizedBox(width: 32),
@@ -425,7 +618,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
               child: Icon(icon, size: isMobile ? 32 : 40, color: color),
             ),
             const SizedBox(height: 24),
-            Text(title, style: TextStyle(fontSize: isMobile ? 18 : 20, fontWeight: FontWeight.w900, color: kBrandBrown)),
+            Text(title, style: TextStyle(fontSize: isMobile ? 18 : 20, fontWeight: FontWeight.w900, color: const Color(0xFF4C3C32))),
             const SizedBox(height: 12),
             Text(subtitle, textAlign: TextAlign.center, style: TextStyle(fontSize: 13, color: Colors.grey.shade600, height: 1.5)),
             const SizedBox(height: 32),
@@ -443,256 +636,6 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
     );
   }
 
-  Widget _buildTopHeader() {
-    final bool isSecondary = _mode == ViewResultsMode.secondary;
-    final bool isMobile = MediaQuery.of(context).size.width < 900;
-    
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(isMobile ? 16 : 32, 32, isMobile ? 16 : 32, 24),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
-      ),
-      child: Row(
-        children: [
-          IconButton.filledTonal(
-            onPressed: () => setState(() {
-              _mode = ViewResultsMode.selection;
-              _selectedDistrict = null;
-              _selectedSchool = null;
-              _selectedScholarId = null;
-              _selectedYear = null;
-              _selectedTerm = null;
-              _selectedSemester = null;
-            }),
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16),
-            style: IconButton.styleFrom(
-              backgroundColor: kBrandBrown.withOpacity(0.05),
-              foregroundColor: kBrandBrown,
-            ),
-          ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isSecondary ? "SECONDARY ACADEMIC AUDIT" : "TERTIARY ACADEMIC AUDIT",
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF9AB334),
-                    letterSpacing: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  "Examination Performance Ledger",
-                  style: TextStyle(
-                    fontSize: isMobile ? 18 : 22, 
-                    fontWeight: FontWeight.w900, 
-                    color: kBrandBrown, 
-                    letterSpacing: -0.5
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Wrap(
-            spacing: 12,
-            children: [
-              if (_selectedSchool != null || (isSecondary && _selectedDistrict != null))
-                OutlinedButton.icon(
-                  onPressed: _openConsolidatedRoster,
-                  icon: const Icon(Icons.grid_view_rounded, size: 16),
-                  label: const Text("GENERATE ROSTER"),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: kBrandBrown,
-                    side: const BorderSide(color: Color(0xFFEEEEEE)),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ElevatedButton.icon(
-                onPressed: widget.onEnterResults ?? () => Navigator.pushNamed(context, '/academics/enterResults'),
-                icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text("RECORD RESULTS"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: kBrandOlive,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _headerActionBtn({required VoidCallback onTap, required IconData icon, required String label, required Color color}) {
-    return ElevatedButton.icon(
-      onPressed: onTap,
-      icon: Icon(icon, size: 16),
-      label: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-    );
-  }
-
-  Widget _buildFilterBar() {
-    final bool isSecondary = _mode == ViewResultsMode.secondary;
-    final bool isMobile = MediaQuery.of(context).size.width < 900;
-
-    return Container(
-      padding: EdgeInsets.all(isMobile ? 16 : 24),
-      color: Colors.grey.shade50,
-      child: isMobile 
-        ? Column(
-            children: [
-              if (isSecondary) ...[
-                _filterDropdown(label: "District", hint: "All Districts", value: _selectedDistrict, items: kMalawiDistricts,
-                  onChanged: (v) => setState(() { _selectedDistrict = v; _selectedSchool = null; _selectedScholarId = null; })),
-                const SizedBox(height: 12),
-              ],
-              _filterDropdown(label: isSecondary ? "School" : "University", hint: isSecondary ? "All Schools" : "All Universities", value: _selectedSchool, items: _availableSchools,
-                onChanged: (v) => setState(() { _selectedSchool = v; _selectedScholarId = null; })),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String?>(
-                value: _selectedScholarId,
-                isExpanded: true,
-                decoration: _filterDecoration("Scholar", "All Scholars"),
-                items: [
-                  const DropdownMenuItem(value: null, child: Text("All Scholars")),
-                  ..._availableScholars.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name, overflow: TextOverflow.ellipsis))),
-                ],
-                onChanged: (v) => setState(() => _selectedScholarId = v),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _filterDropdown(label: "Year", hint: "All", value: _selectedYear, items: _academicYears,
-                      onChanged: (v) => setState(() => _selectedYear = v)),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _filterDropdown(label: isSecondary ? "Term" : "Semester", hint: "All", value: isSecondary ? _selectedTerm : _selectedSemester, items: isSecondary ? kTerms : kSemesters,
-                      onChanged: (v) => setState(() { if (isSecondary) _selectedTerm = v; else _selectedSemester = v; })),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                value: _statusFilter,
-                decoration: _filterDecoration("Status", "All Statuses"),
-                items: const [
-                  DropdownMenuItem(value: "All", child: Text("All Statuses")),
-                  DropdownMenuItem(value: "Complete", child: Text("Complete")),
-                  DropdownMenuItem(value: "Incomplete", child: Text("Missing Data")),
-                  DropdownMenuItem(value: "Passed", child: Text("Passing")),
-                  DropdownMenuItem(value: "Failing", child: Text("Failing")),
-                ],
-                onChanged: (v) => setState(() => _statusFilter = v ?? 'All'),
-              ),
-            ],
-          )
-        : Wrap(
-            spacing: 16,
-            runSpacing: 16,
-            children: [
-              if (isSecondary)
-                SizedBox(
-                  width: 180,
-                  child: _filterDropdown(label: "District", hint: "All Districts", value: _selectedDistrict, items: kMalawiDistricts,
-                    onChanged: (v) => setState(() { _selectedDistrict = v; _selectedSchool = null; _selectedScholarId = null; })),
-                ),
-              SizedBox(
-                width: 280,
-                child: _filterDropdown(label: isSecondary ? "School" : "University", hint: isSecondary ? "All Schools" : "All Universities", value: _selectedSchool, items: _availableSchools,
-                  onChanged: (v) => setState(() { _selectedSchool = v; _selectedScholarId = null; })),
-              ),
-              SizedBox(
-                width: 280,
-                child: DropdownButtonFormField<String?>(
-                  value: _selectedScholarId,
-                  isExpanded: true,
-                  decoration: _filterDecoration("Scholar", "All Scholars"),
-                  items: [
-                    const DropdownMenuItem(value: null, child: Text("All Scholars")),
-                    ..._availableScholars.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name, overflow: TextOverflow.ellipsis))),
-                  ],
-                  onChanged: (v) => setState(() => _selectedScholarId = v),
-                ),
-              ),
-              SizedBox(
-                width: 140,
-                child: _filterDropdown(label: "Year", hint: "All Years", value: _selectedYear, items: _academicYears,
-                  onChanged: (v) => setState(() => _selectedYear = v)),
-              ),
-              SizedBox(
-                width: 180,
-                child: DropdownButtonFormField<String>(
-                  value: _statusFilter,
-                  decoration: _filterDecoration("Academic Status", "All Statuses"),
-                  items: const [
-                    DropdownMenuItem(value: "All", child: Text("All Statuses")),
-                    DropdownMenuItem(value: "Complete", child: Text("Fully Recorded")),
-                    DropdownMenuItem(value: "Incomplete", child: Text("Missing Data")),
-                    DropdownMenuItem(value: "Passed", child: Text("Passing Annual")),
-                    DropdownMenuItem(value: "Failing", child: Text("Failing Annual")),
-                  ],
-                  onChanged: (v) => setState(() => _statusFilter = v ?? 'All'),
-                ),
-              ),
-              if (isSecondary)
-                SizedBox(
-                  width: 140,
-                  child: _filterDropdown(label: "Term", hint: "All Terms", value: _selectedTerm, items: kTerms,
-                    onChanged: (v) => setState(() => _selectedTerm = v)),
-                )
-              else
-                SizedBox(
-                  width: 160,
-                  child: _filterDropdown(label: "Semester", hint: "All Semesters", value: _selectedSemester, items: kSemesters,
-                    onChanged: (v) => setState(() => _selectedSemester = v)),
-                ),
-            ],
-          ),
-    );
-  }
-
-  Widget _filterDropdown({required String label, required String hint, required String? value, required List<String> items, required ValueChanged<String?> onChanged}) {
-    return DropdownButtonFormField<String?>(
-      value: value,
-      isExpanded: true,
-      decoration: _filterDecoration(label, hint),
-      items: [
-        DropdownMenuItem(value: null, child: Text(hint)),
-        ...items.map((i) => DropdownMenuItem(value: i, child: Text(i, overflow: TextOverflow.ellipsis))),
-      ],
-      onChanged: onChanged,
-    );
-  }
-
-  InputDecoration _filterDecoration(String label, String hint) {
-    return InputDecoration(
-      labelText: label,
-      hintText: hint,
-      isDense: true,
-      filled: true,
-      fillColor: Colors.white,
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kBrandOlive, width: 2)),
-    );
-  }
-
   Widget _buildTabsAndArchiveToggle() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -701,9 +644,9 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
           TabBar(
             controller: _tabController,
             isScrollable: true,
-            labelColor: kBrandOlive,
+            labelColor: const Color(0xFF9AB334),
             unselectedLabelColor: Colors.grey,
-            indicatorColor: kBrandOlive,
+            indicatorColor: const Color(0xFF9AB334),
             indicatorWeight: 3,
             labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
             tabs: const [Tab(text: "ACTIVE SCHOLARS"), Tab(text: "ALUMNI / GRADUATES")],
@@ -712,7 +655,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
           _miniStat(Icons.groups_rounded, "${_filteredStudents.length} scholars found"),
           const SizedBox(width: 12),
           IconButton(
-            icon: const Icon(Icons.refresh_rounded, size: 20, color: kBrandBrown),
+            icon: const Icon(Icons.refresh_rounded, size: 20, color: Color(0xFF4C3C32)),
             onPressed: () => setState(() {
               _selectedDistrict = null; _selectedSchool = null; _selectedScholarId = null;
               _selectedYear = null; _selectedTerm = null; _selectedSemester = null; _searchController.clear();
@@ -738,228 +681,179 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
   }
 
   Widget _buildScholarGrid(List<Student> students) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        int crossAxisCount = constraints.maxWidth > 1200 ? 3 : (constraints.maxWidth > 800 ? 2 : 1);
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
+    return ListView.separated(
+      padding: EdgeInsets.all(isMobile ? 12 : 32),
+      itemCount: students.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 16),
+      itemBuilder: (context, index) {
+        final student = students[index];
+        final relevantResults = kResults.where((r) {
+          final matchesId = r.studentId == student.id;
+          final matchesYear = _selectedYear == null || r.year == _selectedYear;
+          final matchesTerm = _selectedTerm == null || r.term == _selectedTerm;
+          final matchesSemester = _selectedSemester == null || r.semester == _selectedSemester;
+          return matchesId && matchesYear && matchesTerm && matchesSemester;
+        }).toList();
 
-        return GridView.builder(
-          padding: const EdgeInsets.all(24),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            crossAxisSpacing: 24,
-            mainAxisSpacing: 24,
-            mainAxisExtent: 220,
-          ),
-          itemCount: students.length,
-          itemBuilder: (context, index) {
-            final student = students[index];
-            final relevantResults = kResults.where((r) {
-              final matchesId = r.studentId == student.id;
-              final matchesYear = _selectedYear == null || r.year == _selectedYear;
-              final matchesTerm = _selectedTerm == null || r.term == _selectedTerm;
-              final matchesSemester = _selectedSemester == null || r.semester == _selectedSemester;
-              return matchesId && matchesYear && matchesTerm && matchesSemester;
-            }).toList();
+        final Set<String> uniquePeriods = {};
+        final yearForCheck = _selectedYear ?? DateTime.now().year.toString();
+        
+        final yearResults = kResults.where((r) => r.studentId == student.id && r.year == yearForCheck).toList();
+        
+        for (var r in relevantResults) {
+          final period = student.schoolType == SchoolType.university ? (r.semester ?? 'N/A') : (r.term ?? 'N/A');
+          uniquePeriods.add("${r.year}_$period");
+        }
 
-            final Set<String> uniquePeriods = {};
-            final yearForCheck = _selectedYear ?? DateTime.now().year.toString();
-            
-            final yearResults = kResults.where((r) => r.studentId == student.id && r.year == yearForCheck).toList();
-            
-            for (var r in relevantResults) {
-              final period = student.schoolType == SchoolType.university ? (r.semester ?? 'N/A') : (r.term ?? 'N/A');
-              uniquePeriods.add("${r.year}_$period");
-            }
-            
-            return _ScholarAcademicCard(
-              student: student,
-              periodCount: uniquePeriods.length,
-              selectedYear: yearForCheck,
-              yearResults: yearResults,
-              onTap: () => _openStudentResults(student),
-            );
-          },
-        );
+        final int expectedPeriods = student.schoolType == SchoolType.university ? 2 : 3;
+        bool hasPassed = false;
+        if (student.schoolType == SchoolType.university) {
+          final outcome = calculateUniversityOutcome(yearResults);
+          hasPassed = outcome.status != 'Fail' && outcome.status != 'N/A';
+        } else {
+          final outcome = calculateSecondaryOutcome(yearResults);
+          hasPassed = outcome.passed;
+        }
+        
+        return _buildScholarCard(student, isMobile, uniquePeriods.length, expectedPeriods, hasPassed, yearForCheck);
       },
     );
   }
-}
 
-class _ScholarAcademicCard extends StatelessWidget {
-  const _ScholarAcademicCard({
-    required this.student, 
-    required this.periodCount, 
-    required this.onTap, 
-    required this.selectedYear,
-    required this.yearResults,
-  });
-  final Student student;
-  final int periodCount;
-  final VoidCallback onTap;
-  final String selectedYear;
-  final List<ResultRecord> yearResults;
-
-  @override
-  Widget build(BuildContext context) {
-    final bool isUniversity = student.schoolType == SchoolType.university;
-    final Color accentColor = isUniversity ? Colors.blue.shade700 : kBrandOrange;
-
-    // --- Intelligence Logic ---
-    final int expectedPeriods = isUniversity ? 2 : 3;
+  Widget _buildScholarCard(Student s, bool isMobile, int periodCount, int expectedPeriods, bool hasPassed, String selectedYear) {
+    final bool isUniversity = s.schoolType == SchoolType.university;
+    final Color accentColor = isUniversity ? Colors.blue.shade700 : const Color(0xFFE05B1C);
     final bool isComplete = periodCount >= expectedPeriods;
     final bool isPartial = periodCount > 0 && periodCount < expectedPeriods;
-    
-    bool hasPassed = false;
-    if (isUniversity) {
-      final outcome = calculateUniversityOutcome(yearResults);
-      hasPassed = outcome.status != 'Fail' && outcome.status != 'N/A';
-    } else {
-      final outcome = calculateSecondaryOutcome(yearResults);
-      hasPassed = outcome.passed;
-    }
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: isComplete ? kBrandOlive.withOpacity(0.3) : Colors.grey.shade200, 
-              width: isComplete ? 2 : 1
-            ),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
-            ],
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          child: Column(
-            children: [
-              // Card Header: Profile Info
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 54, height: 54,
-                      decoration: BoxDecoration(
-                        color: accentColor.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: accentColor.withOpacity(0.2), width: 2),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => _openStudentResults(s),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: accentColor.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: accentColor.withOpacity(0.2), width: 2),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    _initialsOf(s.name),
+                    style: TextStyle(fontWeight: FontWeight.w900, color: const Color(0xFF4C3C32), fontSize: 16),
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  flex: 4,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        s.name.toUpperCase(),
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF4C3C32), letterSpacing: -0.2),
                       ),
-                      alignment: Alignment.center,
-                      child: Text(_initialsOf(student.name), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: accentColor)),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      const SizedBox(height: 4),
+                      Row(
                         children: [
-                          Text(student.name.toUpperCase(), 
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.2), 
-                            maxLines: 1, overflow: TextOverflow.ellipsis),
-                          const SizedBox(height: 2),
-                          Text(student.scholarId, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey.shade400)),
+                          Icon(Icons.badge_outlined, size: 12, color: Colors.grey.shade400),
+                          const SizedBox(width: 6),
+                          Text(s.scholarId, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey.shade500)),
+                          const SizedBox(width: 12),
+                          Icon(Icons.location_on_outlined, size: 12, color: Colors.grey.shade400),
+                          const SizedBox(width: 6),
+                          Text(s.district, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey.shade500)),
                         ],
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              
-              // Card Content: Status Badges
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.apartment_rounded, size: 14, color: Colors.grey.shade400),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(student.schoolName, 
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey.shade700), 
-                          maxLines: 1, overflow: TextOverflow.ellipsis)),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        if (periodCount > 0) ...[
-                          _statusBadge(
-                            hasPassed ? "PASSED" : "FAILING", 
-                            hasPassed ? kBrandOlive : Colors.red,
-                            Icons.verified_rounded
-                          ),
-                          const SizedBox(width: 8),
-                        ],
-                        _statusBadge(
-                          isComplete ? "COMPLETE" : (isPartial ? "PARTIAL" : "NO DATA"), 
-                          isComplete ? Colors.blue.shade700 : (isPartial ? Colors.orange : Colors.grey),
-                          isComplete ? Icons.check_circle_rounded : Icons.pending_actions_rounded
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              const Spacer(),
-              
-              // Card Footer: Stats & Call to Action
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                decoration: BoxDecoration(
-                  color: isComplete ? kBrandOlive.withOpacity(0.05) : kSurfaceMuted,
-                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(18)),
-                  border: Border(top: BorderSide(color: Colors.grey.shade100)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
+                if (!isMobile)
+                  Expanded(
+                    flex: 3,
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(selectedYear, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1)),
-                        const SizedBox(height: 2),
-                        Text('$periodCount / $expectedPeriods RECORDED', 
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isComplete ? kBrandOlive : kBrandBrown)),
+                        Row(
+                          children: [
+                            const Icon(Icons.school_outlined, size: 14, color: Color(0xFF9AB334)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(s.schoolName, 
+                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF4C3C32)),
+                                overflow: TextOverflow.ellipsis),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(s.calculatedAcademicYear, style: TextStyle(fontSize: 11, color: Colors.grey.shade400, fontWeight: FontWeight.bold)),
                       ],
                     ),
+                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(color: accentColor, borderRadius: BorderRadius.circular(6)),
-                      child: const Icon(Icons.arrow_forward_ios_rounded, size: 10, color: Colors.white),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: hasPassed ? Color(0xFF9AB334).withOpacity(0.1) : Color(0xFFE05B1C).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        hasPassed ? "PASSING" : "FAILING",
+                        style: TextStyle(
+                          color: hasPassed ? const Color(0xFF9AB334) : const Color(0xFFE05B1C), 
+                          fontWeight: FontWeight.w900, 
+                          fontSize: 9,
+                          letterSpacing: 0.5
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _portalBadge(
+                      isComplete ? "COMPLETE" : (isPartial ? "PARTIAL" : "NO DATA"), 
+                      isComplete ? Colors.blue.shade700 : (isPartial ? Colors.orange : Colors.grey)
                     ),
                   ],
                 ),
-              ),
-            ],
+                const SizedBox(width: 16),
+                Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey.shade300),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _statusBadge(String label, Color color, IconData icon) {
+  Widget _portalBadge(String label, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withOpacity(0.2)),
+        borderRadius: BorderRadius.circular(4),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 10, color: color),
-          const SizedBox(width: 4),
-          Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: color, letterSpacing: 0.5)),
-        ],
-      ),
+      child: Text(label, style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: color, letterSpacing: 0.5)),
     );
   }
 }
@@ -1014,7 +908,7 @@ class _StudentExamResultsSheetState extends State<_StudentExamResultsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) return Container(height: 400, alignment: Alignment.center, child: const CircularProgressIndicator(color: kBrandOlive));
+    if (_isLoading) return Container(height: 400, alignment: Alignment.center, child: const CircularProgressIndicator(color: Color(0xFF9AB334)));
     
     final allResults = _studentResults.where((r) => r.year == _selectedYear).toList();
     double avgMarks = allResults.isEmpty ? 0 : allResults.fold(0.0, (sum, r) => sum + r.marks) / allResults.length;
@@ -1043,16 +937,16 @@ class _StudentExamResultsSheetState extends State<_StudentExamResultsSheet> {
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.all(40),
-      color: kBrandBrown.withOpacity(0.03),
+      color: Color(0xFF4C3C32).withOpacity(0.03),
       child: Row(
         children: [
-          CircleAvatar(radius: 36, backgroundColor: kBrandOlive.withOpacity(0.1), child: Text(_initialsOf(widget.student.name), style: const TextStyle(fontWeight: FontWeight.w900, color: kBrandBrown, fontSize: 24))),
+          CircleAvatar(radius: 36, backgroundColor: Color(0xFF9AB334).withOpacity(0.1), child: Text(_initialsOf(widget.student.name), style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), fontSize: 24))),
           const SizedBox(width: 32),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(widget.student.name.toUpperCase(), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
+                Text(widget.student.name.toUpperCase(), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), letterSpacing: -0.5)),
                 Text(widget.student.schoolName, style: TextStyle(fontSize: 14, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
               ],
             ),
@@ -1087,8 +981,8 @@ class _StudentExamResultsSheetState extends State<_StudentExamResultsSheet> {
         onTap: () => setState(() => _activePeriod = label),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          decoration: BoxDecoration(color: isSelected ? kBrandOlive.withOpacity(0.1) : Colors.transparent, borderRadius: BorderRadius.circular(4), border: Border.all(color: isSelected ? kBrandOlive : Colors.grey.shade200)),
-          child: Text(label.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isSelected ? kBrandOlive : Colors.grey.shade600)),
+          decoration: BoxDecoration(color: isSelected ? Color(0xFF9AB334).withOpacity(0.1) : Colors.transparent, borderRadius: BorderRadius.circular(4), border: Border.all(color: isSelected ? const Color(0xFF9AB334) : Colors.grey.shade200)),
+          child: Text(label.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isSelected ? const Color(0xFF9AB334) : Colors.grey.shade600)),
         ),
       ),
     );
@@ -1129,7 +1023,7 @@ class _StudentExamResultsSheetState extends State<_StudentExamResultsSheet> {
           width: double.infinity, padding: const EdgeInsets.all(48),
           decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.grey.shade200), borderRadius: BorderRadius.circular(4)),
           child: Column(children: [
-            Text("${avg.toStringAsFixed(1)}%", style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w900, color: kBrandOlive)),
+            Text("${avg.toStringAsFixed(1)}%", style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w900, color: Color(0xFF9AB334))),
             const Text("ACADEMIC YEAR AVERAGE", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
           ]),
         ),
@@ -1150,7 +1044,7 @@ class _StudentExamResultsSheetState extends State<_StudentExamResultsSheet> {
             onPressed: _isExporting ? null : () {},
             icon: const Icon(Icons.picture_as_pdf_rounded),
             label: const Text("DOWNLOAD PDF"),
-            style: ElevatedButton.styleFrom(backgroundColor: kBrandBrown, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4C3C32), foregroundColor: Colors.white),
           ),
         ],
       ),
@@ -1170,7 +1064,7 @@ class _PeriodResultsTable extends StatelessWidget {
       children: [
         Container(
           width: double.infinity, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          decoration: const BoxDecoration(color: kBrandBrown, borderRadius: BorderRadius.vertical(top: Radius.circular(8))),
+          decoration: const BoxDecoration(color: Color(0xFF4C3C32), borderRadius: BorderRadius.vertical(top: Radius.circular(8))),
           child: Text(periodLabel, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.white)),
         ),
         DataTable(
@@ -1237,7 +1131,7 @@ class _ConsolidatedRosterSheet extends StatelessWidget {
           // Header
           Container(
             padding: const EdgeInsets.all(32),
-            color: kBrandBrown,
+            color: const Color(0xFF4C3C32),
             child: Row(
               children: [
                 Expanded(
@@ -1296,13 +1190,13 @@ class _ConsolidatedRosterSheet extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text("${students.length} SCHOLARS AUDITED", 
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: 0.5)),
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), letterSpacing: 0.5)),
                 ElevatedButton.icon(
                   onPressed: () {}, // Future PDF export
                   icon: const Icon(Icons.download_rounded),
                   label: const Text("EXPORT ROSTER PDF"),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: kBrandOlive,
+                    backgroundColor: const Color(0xFF9AB334),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -1380,22 +1274,22 @@ class _ConsolidatedRosterSheet extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: isComplete ? kBrandOlive.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                    color: isComplete ? Color(0xFF9AB334).withOpacity(0.1) : Colors.orange.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(isComplete ? "COMPLETE" : "$uniqueYearPeriods/$expected", 
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isComplete ? kBrandOlive : Colors.orange)),
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isComplete ? const Color(0xFF9AB334) : Colors.orange)),
                 ),
               ),
               DataCell(
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: hasPassed ? kBrandOlive.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                    color: hasPassed ? Color(0xFF9AB334).withOpacity(0.1) : Colors.red.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(hasPassed ? "PASSED" : "FAILED", 
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: hasPassed ? kBrandOlive : Colors.red)),
+                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: hasPassed ? const Color(0xFF9AB334) : Colors.red)),
                 ),
               ),
             ],

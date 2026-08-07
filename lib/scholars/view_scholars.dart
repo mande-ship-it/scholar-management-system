@@ -347,119 +347,133 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: const Color(0xFFF0F2F5), // Facebook-style background
+      color: const Color(0xFFF8F9FA),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (!isMobile) _buildExecutiveHeader(totalInSelection, activeInSelection, movingWell, atRisk, isMobile),
-          _buildFilterArchitecture(availableSchools, availableClasses, isMobile),
+          _buildProfessionalHeader(totalInSelection),
+          _buildIntegratedToolbar(availableSchools, availableClasses, isMobile),
           Expanded(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(isMobile ? 0 : 32, 0, isMobile ? 0 : 32, isMobile ? 0 : 32),
-              child: _isLoading
-                  ? const BeautifulLoader(isOverlay: false, message: "Synchronizing Data...")
-                  : Column(
-                      children: [
-                        Container(
-                          color: Colors.white,
-                          child: _buildTabNavigation(),
+            child: _isLoading
+                ? BeautifulLoader(isOverlay: false, message: "Synchronizing Registry...")
+                : Column(
+                    children: [
+                      _buildTabNavigation(),
+                      Expanded(
+                        child: TabBarView(
+                          controller: _tabController,
+                          children: [
+                            _buildRegistrySurface(filteredScholars, isMobile),
+                            _buildRegistrySurface(filteredScholars, isMobile),
+                          ],
                         ),
-                        Expanded(
-                          child: TabBarView(
-                            controller: _tabController,
-                            children: [
-                              _buildRegistrySurface(filteredScholars, isMobile),
-                              _buildRegistrySurface(filteredScholars, isMobile),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-            ),
+                      ),
+                    ],
+                  ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildExecutiveHeader(int total, int active, int moving, int risk, bool isMobile) {
+  Widget _buildProfessionalHeader(int scholarCount) {
     return Container(
-      padding: EdgeInsets.all(isMobile ? 16 : 32),
-      color: Colors.white,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(32, 32, 32, 24),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (!isMobile) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: kBrandBrown.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    _selectedSchoolType == 'University' ? Icons.account_balance_rounded : Icons.school_rounded,
-                    color: kBrandBrown, size: 28
-                  ),
-                ),
-                const SizedBox(width: 24),
-              ],
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _selectedSchoolType == 'University' ? "University Registry" : "Secondary Registry",
-                      style: TextStyle(fontSize: isMobile ? 18 : 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -1),
-                    ),
-                    Text(
-                      _isFieldOfficer && _assignedDistrict != null ? "Monitoring Region: $_assignedDistrict" : "Program-wide longitudinal tracking and oversight.",
-                      style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
-                    ),
-                  ],
+              const Text(
+                "SCHOLARS REGISTRY",
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF9AB334),
+                  letterSpacing: 1.5,
                 ),
               ),
-              if (!isMobile) _buildGlobalActions(false),
+              const SizedBox(height: 4),
+              Text(
+                widget.forcedSchoolType != null 
+                  ? "${widget.forcedSchoolType} Enrolment Overview"
+                  : "Central Program Register",
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF4C3C32),
+                  letterSpacing: -0.5,
+                ),
+              ),
             ],
           ),
-          if (isMobile) ...[
-            const SizedBox(height: 16),
-            _buildGlobalActions(true),
-          ],
-          const SizedBox(height: 24),
-          if (isMobile)
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _compactMetric("TOTAL", total.toString(), kBrandBrown),
-                  _compactMetric("ACTIVE", active.toString(), kBrandOlive),
-                  _compactMetric("MOVING", moving.toString(), Colors.blue),
-                  _compactMetric("RISK", risk.toString(), kBrandOrange),
-                ],
-              ),
-            )
-          else
-            Row(
-              children: [
-                _metricCard("TOTAL ENROLLMENT", total.toString(), Icons.groups_outlined, kBrandBrown, false),
-                const SizedBox(width: 20),
-                _metricCard("ACTIVE STATUS", active.toString(), Icons.check_circle_outline, kBrandOlive, false),
-                const SizedBox(width: 20),
-                _metricCard("PROGRESSED", moving.toString(), Icons.trending_up_rounded, Colors.blue, false),
-                const SizedBox(width: 20),
-                _metricCard("AT RISK", risk.toString(), Icons.warning_amber_rounded, kBrandOrange, false),
-              ],
-            ),
+          Wrap(
+            spacing: 12,
+            children: [
+              _exportButton(Icons.description_outlined, "PDF REPORT", _exportToPDF),
+              _exportButton(Icons.table_view_outlined, "EXCEL EXPORT", _exportToExcel),
+              if (['Administrator', 'Data Officer', 'Program Coordinator'].contains(_userRole))
+                ElevatedButton.icon(
+                  onPressed: widget.onRegisterScholar ?? () => Navigator.pushNamed(context, '/registerScholar').then((_) => _fetchScholars()),
+                  icon: const Icon(Icons.person_add_rounded, size: 16),
+                  label: const Text("REGISTER NEW"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4C3C32),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+            ],
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildIntegratedToolbar(List<String> schools, List<String> classes, bool isMobile) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 32, vertical: 16),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFF3F4F6))),
+      ),
+      child: isMobile
+          ? Column(
+              children: [
+                _compactSearchField(true),
+                const SizedBox(height: 12),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _compactFilterDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() => _selectedDistrict = v ?? 'All')),
+                      const SizedBox(width: 8),
+                      _compactFilterDropdown("Level", _selectedClass, classes, (v) => setState(() => _selectedClass = v ?? 'All')),
+                    ],
+                  ),
+                ),
+              ],
+            )
+          : Row(
+              children: [
+                _compactSearchField(false),
+                const SizedBox(width: 16),
+                _compactFilterDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() => _selectedDistrict = v ?? 'All')),
+                const SizedBox(width: 12),
+                _compactFilterDropdown("Institution", _selectedSchoolName, schools, (v) => setState(() => _selectedSchoolName = v ?? 'All')),
+                const SizedBox(width: 12),
+                _compactFilterDropdown("Level", _selectedClass, classes, (v) => setState(() => _selectedClass = v ?? 'All')),
+                const Spacer(),
+                Text("${_getFilteredScholars().length} Active Entries", 
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+              ],
+            ),
     );
   }
 
@@ -736,53 +750,83 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 1,
-            offset: const Offset(0, 1),
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           onTap: () => _showScholarProfileDialog(context, s),
           child: Padding(
-            padding: EdgeInsets.all(isMobile ? 12 : 16),
+            padding: const EdgeInsets.all(20),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: isMobile ? 24 : 32,
-                  backgroundColor: kBrandOlive.withOpacity(0.1),
-                  child: Text(_initialsOf(s['name']!),
-                    style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: isMobile ? 14 : 18)),
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: Color(0xFF9AB334).withOpacity(0.1),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Color(0xFF9AB334).withOpacity(0.2), width: 2),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    _initialsOf(s['name']!),
+                    style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), fontSize: 16),
+                  ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 20),
                 Expanded(
-                  flex: 3,
+                  flex: 4,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(s['name']!,
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: isMobile ? 15 : 17, color: kBrandBrown)),
+                      Text(
+                        s['name']!.toUpperCase(),
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF4C3C32), letterSpacing: -0.2),
+                      ),
                       const SizedBox(height: 4),
-                      Text("${s['scholarId']} • ${s['school']}",
-                        style: TextStyle(fontSize: isMobile ? 11 : 13, color: Colors.grey.shade600)),
+                      Row(
+                        children: [
+                          Icon(Icons.badge_outlined, size: 12, color: Colors.grey.shade400),
+                          const SizedBox(width: 6),
+                          Text(s['scholarId']!, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey.shade500)),
+                          const SizedBox(width: 12),
+                          Icon(Icons.location_on_outlined, size: 12, color: Colors.grey.shade400),
+                          const SizedBox(width: 6),
+                          Text(s['district']!, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey.shade500)),
+                        ],
+                      ),
                     ],
                   ),
                 ),
                 if (!isMobile)
                   Expanded(
-                    flex: 2,
+                    flex: 3,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(s['class']!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kBrandBrown)),
+                        Row(
+                          children: [
+                            const Icon(Icons.school_outlined, size: 14, color: Color(0xFF9AB334)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(s['school']!, 
+                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF4C3C32)),
+                                overflow: TextOverflow.ellipsis),
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 4),
-                        Text("$remaining Yrs Left", style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                        Text(s['class']!, style: TextStyle(fontSize: 11, color: Colors.grey.shade400, fontWeight: FontWeight.bold)),
                       ],
                     ),
                   ),
@@ -790,22 +834,30 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: isActive ? kBrandOlive.withOpacity(0.1) : Colors.red.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
+                        color: isActive ? Color(0xFF9AB334).withOpacity(0.1) : Color(0xFFE05B1C).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(s['status']!.toUpperCase(),
-                        style: TextStyle(color: isActive ? kBrandOlive : Colors.red, fontWeight: FontWeight.w900, fontSize: 9)),
+                      child: Text(
+                        s['status']!.toUpperCase(),
+                        style: TextStyle(
+                          color: isActive ? const Color(0xFF9AB334) : const Color(0xFFE05B1C), 
+                          fontWeight: FontWeight.w900, 
+                          fontSize: 9,
+                          letterSpacing: 0.5
+                        ),
+                      ),
                     ),
-                    if (isMobile) ...[
-                      const SizedBox(height: 8),
-                      Text(s['class']!, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
-                    ],
+                    const SizedBox(height: 8),
+                    Text(
+                      "$remaining YRS REMAINING",
+                      style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey.shade300),
+                    ),
                   ],
                 ),
-                const SizedBox(width: 12),
-                const Icon(Icons.chevron_right_rounded, color: Colors.grey),
+                const SizedBox(width: 16),
+                Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey.shade300),
               ],
             ),
           ),

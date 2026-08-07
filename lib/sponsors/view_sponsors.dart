@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../academics/academics_utils.dart';
 import 'package:scholar_management_system/services/api_service.dart';
 import 'package:scholar_management_system/services/permission_service.dart';
+import '../widgets/custom_loaders.dart';
 import 'sponsors_utils.dart';
 import 'register_sponsor.dart';
 
@@ -274,16 +275,270 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
   @override
   Widget build(BuildContext context) {
     final bool isMobile = MediaQuery.of(context).size.width < 900;
+    final filtered = _filteredSponsors;
+
     return Container(
       width: double.infinity,
-      color: const Color(0xFFF0F2F5), // Facebook-style background
+      height: double.infinity,
+      color: Color(0xFFF8F9FA),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (!isMobile) _buildExecutiveHeader(isMobile),
-          _buildToolbar(isMobile),
-          Expanded(child: _buildBody(isMobile)),
+          _buildPortalHeader(isMobile),
+          _buildPortalToolbar(isMobile),
+          Expanded(
+            child: _isLoading 
+                ? BeautifulLoader(isOverlay: false, message: "Synchronizing Registry...")
+                : _buildPortalRegistryList(filtered, isMobile),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPortalHeader(bool isMobile) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(32, 32, 32, 24),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "SPONSORSHIP DIRECTORY",
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF9AB334),
+                    letterSpacing: 2.0,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  "Strategic Partner Registry",
+                  style: TextStyle(
+                    fontSize: 24, 
+                    fontWeight: FontWeight.w900, 
+                    color: Color(0xFF4C3C32), 
+                    letterSpacing: -0.5
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (_userRole == 'Administrator' || PermissionService.hasPermission('sponsors.create'))
+            ElevatedButton.icon(
+              onPressed: () {
+                if (widget.onRegisterSponsor != null) {
+                  widget.onRegisterSponsor!();
+                } else {
+                  Navigator.pushNamed(context, '/sponsors/register').then((_) => _loadSponsors());
+                }
+              },
+              icon: const Icon(Icons.volunteer_activism_rounded, size: 18),
+              label: const Text("REGISTER PARTNER"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4C3C32),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                elevation: 0,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPortalToolbar(bool isMobile) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 32, vertical: 16),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFF3F4F6))),
+      ),
+      child: Row(
+        children: [
+          _portalCompactSearchField(isMobile),
+          const Spacer(),
+          if (!isMobile) ...[
+            _miniStat(Icons.handshake_rounded, "${_filteredSponsors.length} Strategic Partners"),
+            const SizedBox(width: 12),
+          ],
+          IconButton(
+            icon: const Icon(Icons.sync_rounded, color: Color(0xFF4C3C32), size: 20),
+            onPressed: _isLoading ? null : _loadSponsors,
+            tooltip: 'Refresh Directory',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _portalCompactSearchField(bool isMobile) {
+    return Container(
+      width: isMobile ? 220 : 320,
+      height: 44,
+      decoration: BoxDecoration(
+        color: Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+      ),
+      child: TextField(
+        onChanged: (val) {
+          _searchQuery = val;
+          _applyFilter();
+        },
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        decoration: const InputDecoration(
+          hintText: "Search name, organization...",
+          prefixIcon: Icon(Icons.search_rounded, size: 18, color: Colors.grey),
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(vertical: 11),
+        ),
+      ),
+    );
+  }
+
+  Widget _miniStat(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Color(0xFF4C3C32).withOpacity(0.05),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: const Color(0xFF4C3C32)),
+          const SizedBox(width: 8),
+          Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF4C3C32))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPortalRegistryList(List<Sponsor> sponsors, bool isMobile) {
+    if (sponsors.isEmpty) return _buildEmptyState();
+
+    return ListView.separated(
+      padding: EdgeInsets.all(isMobile ? 12 : 32),
+      itemCount: sponsors.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 16),
+      itemBuilder: (context, index) => _buildPortalActionRow(sponsors[index], isMobile),
+    );
+  }
+
+  Widget _buildPortalActionRow(Sponsor s, bool isMobile) {
+    final bool isActive = s.status == 'Active';
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => _showSponsorDetails(s),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: Color(0xFF9AB334).withOpacity(0.1),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Color(0xFF9AB334).withOpacity(0.2), width: 2),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    s.name[0].toUpperCase(),
+                    style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), fontSize: 16),
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  flex: 4,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        s.name.toUpperCase(),
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF4C3C32), letterSpacing: -0.2),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(Icons.corporate_fare_rounded, size: 12, color: Colors.grey.shade400),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(s.organization.isEmpty ? 'INDIVIDUAL BENEFACTOR' : s.organization.toUpperCase(), 
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey.shade500),
+                              overflow: TextOverflow.ellipsis),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                if (!isMobile)
+                  Expanded(
+                    flex: 3,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(s.sponsorshipType.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: Color(0xFF4C3C32))),
+                        const SizedBox(height: 4),
+                        Text(_formatAmount(s.amount), style: TextStyle(fontSize: 11, color: Colors.grey.shade400, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isActive ? Color(0xFF9AB334).withOpacity(0.1) : Color(0xFFE05B1C).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        s.status.toUpperCase(),
+                        style: TextStyle(
+                          color: isActive ? const Color(0xFF9AB334) : const Color(0xFFE05B1C), 
+                          fontWeight: FontWeight.w900, 
+                          fontSize: 9,
+                          letterSpacing: 0.5
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(width: 16),
+                Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey.shade300),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

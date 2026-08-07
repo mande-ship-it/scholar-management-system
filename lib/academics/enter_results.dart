@@ -56,48 +56,62 @@ class _AcademicsManagementComponentState extends State<AcademicsManagementCompon
 
   Widget _buildHeader(bool isMobile) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 16),
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(32, 32, 32, 24),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: Row(
         children: [
-          if (!isMobile) ...[
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: kBrandBrown.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(_isFieldOfficer ? Icons.edit_note_rounded : Icons.visibility_rounded, color: kBrandBrown, size: 20),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Color(0xFF9AB334).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
             ),
-            const SizedBox(width: 16),
-          ],
+            child: Icon(_isFieldOfficer ? Icons.edit_note_rounded : Icons.visibility_rounded, color: const Color(0xFF9AB334), size: 24),
+          ),
+          const SizedBox(width: 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(_isFieldOfficer ? "Results Entry" : "Academic Records", 
-                  style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                Text(_isFieldOfficer 
-                    ? "Digitize scholar scores."
-                    : "Review performance records.", 
-                  style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
+                const Text(
+                  "ACADEMIC PORTAL",
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF9AB334),
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _isFieldOfficer ? "Examination Results Entry" : "Performance Records Audit",
+                  style: TextStyle(
+                    fontSize: isMobile ? 18 : 22, 
+                    fontWeight: FontWeight.w900, 
+                    color: const Color(0xFF4C3C32), 
+                    letterSpacing: -0.5
+                  ),
+                ),
               ],
             ),
           ),
           if (!_isFieldOfficer)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(color: Colors.amber.withOpacity(0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.amber.shade300)),
-              child: Row(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Color(0xFFE05B1C).withOpacity(0.1), 
+                borderRadius: BorderRadius.circular(8), 
+                border: Border.all(color: Color(0xFFE05B1C).withOpacity(0.2))
+              ),
+              child: const Row(
                 children: [
-                  const Icon(Icons.lock_outline_rounded, size: 14, color: Colors.orange),
-                  if (!isMobile) ...[
-                    const SizedBox(width: 8),
-                    const Text("READ-ONLY", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange)),
-                  ],
+                  Icon(Icons.lock_outline_rounded, size: 14, color: Color(0xFFE05B1C)),
+                  SizedBox(width: 8),
+                  Text("AUDIT MODE (READ-ONLY)", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFFE05B1C), letterSpacing: 0.5)),
                 ],
               ),
             ),
@@ -444,97 +458,78 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: kBrandOlive));
+      return const Center(child: CircularProgressIndicator(color: Color(0xFF9AB334)));
     }
 
     final bool isMobile = MediaQuery.of(context).size.width < 900;
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(isMobile ? 16 : 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildSelectionPanel(isMobile),
-          const SizedBox(height: 32),
-          if (_selectedStudent != null && _selectedPeriod != null) ...[
-            _buildResultsTable(isMobile),
-            const SizedBox(height: 48),
-            _buildActionFooter(isMobile),
-          ] else
-            _buildMissingSelectionHint(),
-        ],
+    return Container(
+      color: const Color(0xFFF8F9FA),
+      child: SingleChildScrollView(
+        padding: EdgeInsets.all(isMobile ? 16 : 40),
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 1100),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _sectionLabel("SESSION CONFIGURATION", Icons.settings_input_component_rounded),
+                const SizedBox(height: 20),
+                _buildSelectionPanel(isMobile),
+                const SizedBox(height: 48),
+                if (_selectedStudent != null && _selectedPeriod != null) ...[
+                  _sectionLabel("EXAMINATION SCORECARD", Icons.fact_check_rounded),
+                  const SizedBox(height: 20),
+                  _buildResultsTable(isMobile),
+                  const SizedBox(height: 60),
+                  _buildActionFooter(isMobile),
+                ] else
+                  _buildMissingSelectionHint(),
+              ],
+            ),
+          ),
+        ),
       ),
+    );
+  }
+
+  Widget _sectionLabel(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Colors.grey.shade400),
+        const SizedBox(width: 12),
+        Text(
+          title, 
+          style: TextStyle(
+            fontSize: 11, 
+            fontWeight: FontWeight.w900, 
+            color: Colors.grey.shade500, 
+            letterSpacing: 1.2
+          )
+        ),
+      ],
     );
   }
 
   Widget _buildSelectionPanel(bool isMobile) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: EdgeInsets.all(isMobile ? 20 : 32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 15, offset: const Offset(0, 5))],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text("SESSION CONFIGURATION", 
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.2)),
-              if (_isFieldOfficer)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.security_rounded, size: 12, color: kBrandOlive),
-                      SizedBox(width: 6),
-                      Text("VERIFIED", style: TextStyle(color: kBrandOlive, fontSize: 9, fontWeight: FontWeight.w900)),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 24),
           if (isMobile) ...[
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("Institution Level", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                const SizedBox(height: 8),
-                if (_isFieldOfficer)
-                  Container(
-                    height: 40,
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: kBrandBrown.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: kBrandBrown.withOpacity(0.1)),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(Icons.school_rounded, size: 16, color: kBrandBrown),
-                        SizedBox(width: 10),
-                        Text("Secondary School", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: 13)),
-                      ],
-                    ),
-                  )
-                else
-                  IgnorePointer(
-                    ignoring: widget.forcedSchoolType != null,
-                    child: Opacity(
-                      opacity: widget.forcedSchoolType != null ? 0.6 : 1.0,
-                      child: SegmentedButton<SchoolType>(
-                        segments: const [
-                          ButtonSegment(value: SchoolType.secondary, label: Text("Sec.", style: TextStyle(fontSize: 11)), icon: Icon(Icons.school_outlined, size: 14)),
-                          ButtonSegment(value: SchoolType.university, label: Text("Uni.", style: TextStyle(fontSize: 11)), icon: Icon(Icons.account_balance_outlined, size: 14)),
-                        ],
-                        selected: {_schoolType},
-                        onSelectionChanged: (s) => _onTypeChanged(s.first),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 16),
+            _portalSelectionLabel("Institution Level"),
+            if (_isFieldOfficer)
+              _compactStaticField("Secondary School", Icons.school_rounded)
+            else
+              _buildTypeSelector(),
+            const SizedBox(height: 24),
             _dropdownField<String>(
               label: "Academic Year", 
               value: _selectedYear, 
@@ -542,7 +537,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
               icon: Icons.calendar_today_rounded, 
               onChanged: (v) => setState(() => _selectedYear = v)
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             _dropdownField<String>(
               label: "Partner Institution", 
               value: _selectedSchool?['name'], 
@@ -555,7 +550,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                 });
               }
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             _dropdownField<String>(
               label: "Selected Scholar", 
               value: _selectedStudent?.id, 
@@ -564,7 +559,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
               onChanged: _onScholarChanged,
               itemLabel: (id) => _scholarOptions.firstWhere((s) => s.id == id).name,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             _dropdownField<String>(
               label: _schoolType == SchoolType.secondary ? "Academic Term" : "Academic Semester",
               value: _selectedPeriod,
@@ -572,7 +567,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
               icon: Icons.event_note_rounded,
               onChanged: (v) => setState(() => _selectedPeriod = v),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             if (_schoolType == SchoolType.secondary)
               _dropdownField<String>(
                 label: "Current Class", 
@@ -590,50 +585,15 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("Institution Level", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                      const SizedBox(height: 8),
+                      _portalSelectionLabel("Institution Level"),
                       if (_isFieldOfficer)
-                        Container(
-                          height: 40,
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          decoration: BoxDecoration(
-                            color: kBrandBrown.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: kBrandBrown.withOpacity(0.1)),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(Icons.school_rounded, size: 16, color: kBrandBrown),
-                              SizedBox(width: 10),
-                              Text("Secondary School", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: 13)),
-                            ],
-                          ),
-                        )
+                        _compactStaticField("Secondary School", Icons.school_rounded)
                       else
-                        IgnorePointer(
-                          ignoring: widget.forcedSchoolType != null,
-                          child: Opacity(
-                            opacity: widget.forcedSchoolType != null ? 0.6 : 1.0,
-                            child: SegmentedButton<SchoolType>(
-                              segments: const [
-                                ButtonSegment(value: SchoolType.secondary, label: Text("Secondary", style: TextStyle(fontSize: 12)), icon: Icon(Icons.school_outlined, size: 16)),
-                                ButtonSegment(value: SchoolType.university, label: Text("University", style: TextStyle(fontSize: 12)), icon: Icon(Icons.account_balance_outlined, size: 16)),
-                              ],
-                              selected: {_schoolType},
-                              onSelectionChanged: (s) => _onTypeChanged(s.first),
-                              style: SegmentedButton.styleFrom(
-                                selectedBackgroundColor: kBrandOlive,
-                                selectedForegroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                              ),
-                            ),
-                          ),
-                        ),
+                        _buildTypeSelector(),
                     ],
                   ),
                 ),
-                const SizedBox(width: 24),
+                const SizedBox(width: 32),
                 Expanded(
                   child: _dropdownField<String>(
                     label: "Academic Year", 
@@ -645,11 +605,10 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             Row(
               children: [
                 Expanded(
-                  flex: 2,
                   child: _dropdownField<String>(
                     label: "Partner Institution", 
                     value: _selectedSchool?['name'], 
@@ -663,9 +622,8 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                     }
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 24),
                 Expanded(
-                  flex: 2,
                   child: _dropdownField<String>(
                     label: "Selected Scholar", 
                     value: _selectedStudent?.id, 
@@ -677,7 +635,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             Row(
               children: [
                 Expanded(
@@ -689,7 +647,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                     onChanged: (v) => setState(() => _selectedPeriod = v),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 24),
                 if (_schoolType == SchoolType.secondary)
                   Expanded(
                     child: _dropdownField<String>(
@@ -712,117 +670,152 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
     );
   }
 
+  Widget _portalSelectionLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(text.toUpperCase(), 
+        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1.0)),
+    );
+  }
+
+  Widget _buildTypeSelector() {
+    return IgnorePointer(
+      ignoring: widget.forcedSchoolType != null,
+      child: Opacity(
+        opacity: widget.forcedSchoolType != null ? 0.6 : 1.0,
+        child: SegmentedButton<SchoolType>(
+          segments: const [
+            ButtonSegment(value: SchoolType.secondary, label: Text("Secondary"), icon: Icon(Icons.school_outlined, size: 16)),
+            ButtonSegment(value: SchoolType.university, label: Text("University"), icon: Icon(Icons.account_balance_outlined, size: 16)),
+          ],
+          selected: {_schoolType},
+          onSelectionChanged: (s) => _onTypeChanged(s.first),
+          style: SegmentedButton.styleFrom(
+            selectedBackgroundColor: const Color(0xFF9AB334),
+            selectedForegroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _compactStaticField(String text, IconData icon) {
+    return Container(
+      height: 44,
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Color(0xFF4C3C32).withOpacity(0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Color(0xFF4C3C32).withOpacity(0.1)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: const Color(0xFF4C3C32)),
+          const SizedBox(width: 12),
+          Text(text, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), fontSize: 13, letterSpacing: -0.2)),
+        ],
+      ),
+    );
+  }
+
   Widget _buildResultsTable(bool isMobile) {
     final avg = _currentAverage;
     final avgColor = _getScoreColor(avg);
     final avgLabel = _getScoreLabel(avg);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (isMobile)
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text("SCORECARD", 
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: avgColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: avgColor.withOpacity(0.3)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 15, offset: const Offset(0, 5))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: avgColor.withOpacity(0.05),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("AVG: ${avg.toStringAsFixed(1)}%",
-                      style: TextStyle(fontWeight: FontWeight.w900, color: avgColor, fontSize: 13)),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(color: avgColor, borderRadius: BorderRadius.circular(6)),
-                      child: Text(avgLabel.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
-                    ),
+                    Text("PERFORMANCE SUMMARY", 
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: avgColor, letterSpacing: 1.2)),
+                    const SizedBox(height: 4),
+                    Text("${avg.toStringAsFixed(1)}% OVERALL AVERAGE", 
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: const Color(0xFF4C3C32), letterSpacing: -0.5)),
                   ],
                 ),
-              ),
-            ],
-          )
-        else
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text("EXAMINATION SCORECARD", 
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: avgColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: avgColor.withOpacity(0.3)),
-                ),
-                child: Row(
-                  children: [
-                    Text(isUniversity ? "SEMESTER AVERAGE: ${avg.toStringAsFixed(1)}%" : "TERM AVERAGE: ${avg.toStringAsFixed(1)}%",
-                      style: TextStyle(fontWeight: FontWeight.w900, color: avgColor, fontSize: 14)),
-                    const SizedBox(width: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(color: avgColor, borderRadius: BorderRadius.circular(6)),
-                      child: Text(avgLabel.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        const SizedBox(height: 20),
-        Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: [
-              if (!isMobile)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  color: Colors.grey.shade50,
-                  child: Row(
-                    children: [
-                      Expanded(flex: 3, child: _tableHeader("SUBJECT / COURSE")),
-                      const SizedBox(width: 16),
-                      Expanded(flex: 1, child: _tableHeader("SCORE (0-100)")),
-                      const SizedBox(width: 16),
-                      Expanded(flex: 1, child: _tableHeader("STANDING")),
-                      const SizedBox(width: 40),
-                    ],
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(color: avgColor, borderRadius: BorderRadius.circular(10)),
+                  child: Text(avgLabel.toUpperCase(), 
+                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                 ),
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: _rows.length,
-                separatorBuilder: (context, index) => isMobile ? const SizedBox(height: 12) : const Divider(height: 1),
-                itemBuilder: (context, index) => _buildRow(_rows[index], index, isMobile),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(12),
-                child: _isFieldOfficer ? OutlinedButton.icon(
-                  onPressed: _addRow,
-                  icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text("Add Subject Row", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                ) : const SizedBox(),
-              ),
-            ],
+              ],
+            ),
           ),
+          const Divider(height: 1),
+          if (!isMobile)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+              color: const Color(0xFFF9FAFB),
+              child: Row(
+                children: [
+                  Expanded(flex: 3, child: _tableHeader("SUBJECT / COURSE")),
+                  const SizedBox(width: 24),
+                  Expanded(flex: 1, child: _tableHeader("SCORE (0-100)")),
+                  const SizedBox(width: 24),
+                  Expanded(flex: 1, child: _tableHeader("GRADE STANDING")),
+                  const SizedBox(width: 40),
+                ],
+              ),
+            ),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _rows.length,
+            separatorBuilder: (context, index) => const Divider(height: 1),
+            itemBuilder: (context, index) => _buildRow(_rows[index], index, isMobile),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: _isFieldOfficer ? _portalAddRowBtn() : const SizedBox(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _portalAddRowBtn() {
+    return InkWell(
+      onTap: _addRow,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8F9FA),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFEEEEEE), style: BorderStyle.solid),
         ),
-      ],
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add_circle_outline_rounded, size: 20, color: Color(0xFF9AB334)),
+            SizedBox(width: 12),
+            Text("APPEND NEW SUBJECT RECORD", 
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF9AB334), letterSpacing: 0.5)),
+          ],
+        ),
+      ),
     );
   }
 
@@ -965,65 +958,44 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
   }
 
   Widget _buildActionFooter(bool isMobile) {
-    if (isMobile) {
-      return Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: kBrandBrown.withOpacity(0.03), borderRadius: BorderRadius.circular(12)),
-            child: const Row(
-              children: [
-                Icon(Icons.info_outline_rounded, color: kBrandBrown, size: 16),
-                SizedBox(width: 12),
-                Expanded(child: Text("Verify data against marksheets.", style: TextStyle(fontSize: 11, color: kBrandBrown))),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _isSaving ? null : _save,
-              icon: _isSaving 
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) 
-                  : const Icon(Icons.verified_user_rounded, size: 18),
-              label: Text(_isSaving ? "SYNCING..." : "AUTHORIZE & SAVE", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 18),
-                backgroundColor: kBrandOlive,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
       decoration: BoxDecoration(
-        color: kBrandBrown.withOpacity(0.03),
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.info_outline_rounded, color: kBrandBrown, size: 18),
-          const SizedBox(width: 12),
-          const Expanded(child: Text("Ensure all examination data is verified against physical marksheets.", 
-            style: TextStyle(fontSize: 12, color: kBrandBrown, fontWeight: FontWeight.w500))),
-          const SizedBox(width: 24),
+          const Icon(Icons.info_outline_rounded, color: Color(0xFF4C3C32), size: 24),
+          const SizedBox(width: 20),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text("DATA INTEGRITY VERIFICATION", 
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), letterSpacing: 1.0)),
+                SizedBox(height: 4),
+                Text("Ensure all examination data is verified against physical marksheets before submission.", 
+                  style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 32),
           SizedBox(
-            width: 220,
+            width: 240,
             child: ElevatedButton.icon(
               onPressed: _isSaving ? null : _save,
               icon: _isSaving 
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) 
+                  ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) 
                   : const Icon(Icons.verified_user_rounded, size: 18),
-              label: Text(_isSaving ? "SYNCING..." : "AUTHORIZE & SAVE", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 0.5)),
+              label: Text(_isSaving ? "AUDITING..." : "AUTHORIZE & SYNC", 
+                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 18),
-                backgroundColor: kBrandOlive,
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                backgroundColor: const Color(0xFF4C3C32),
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

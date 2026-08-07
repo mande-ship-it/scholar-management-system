@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/api_service.dart';
+import 'package:scholar_management_system/services/api_service.dart';
 import '../academics/academics_utils.dart';
 
 class SponsorStatsComponent extends StatefulWidget {
@@ -49,132 +49,82 @@ class _SponsorStatsComponentState extends State<SponsorStatsComponent> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) return const Center(child: Padding(padding: EdgeInsets.all(50), child: CircularProgressIndicator(color: kBrandOlive)));
+    if (_isLoading) return const Center(child: Padding(padding: EdgeInsets.all(50), child: CircularProgressIndicator(color: Color(0xFF9AB334))));
 
     final double screenWidth = MediaQuery.of(context).size.width;
     final bool isMobile = screenWidth < 900;
     final averageSponsorship = _totalSponsors > 0 ? _totalFunding / _totalSponsors : 0.0;
 
     return Container(
-      color: const Color(0xFFF0F2F5), // Facebook-style background
+      width: double.infinity,
+      color: const Color(0xFFF8F9FA),
       child: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 24, vertical: 20),
+        padding: EdgeInsets.all(isMobile ? 12 : 32),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ---------------- Header ----------------
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 1)],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(color: kBrandOlive.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-                    child: const Icon(Icons.volunteer_activism_rounded, color: kBrandOlive, size: 24),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Sponsor Analysis', style: TextStyle(fontSize: isMobile ? 18 : 22, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                        const Text('Donor contributions and impact metrics.', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.refresh_rounded),
-                    onPressed: _fetchStats,
-                    style: IconButton.styleFrom(backgroundColor: const Color(0xFFF0F2F5)),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // --- Key Metrics ---
+            _buildPortalHeader(isMobile),
+            const SizedBox(height: 32),
             if (isMobile)
               Column(
                 children: [
-                  _StatMetric(label: "Total Sponsors", value: "$_totalSponsors", icon: Icons.handshake_rounded, color: kBrandBrown, isMobile: true),
-                  const SizedBox(height: 12),
-                  _StatMetric(label: "Total Funding", value: _formatAmount(_totalFunding), icon: Icons.payments_rounded, color: kBrandOlive, isMobile: true),
-                  const SizedBox(height: 12),
-                  _StatMetric(label: "Avg. per Donor", value: _formatAmount(averageSponsorship), icon: Icons.analytics_rounded, color: kBrandOrange, isMobile: true),
+                  _statTile("STRATEGIC PARTNERS", "$_totalSponsors", Icons.handshake_rounded, const Color(0xFF4C3C32), true),
+                  const SizedBox(height: 16),
+                  _statTile("TOTAL FUNDING", _formatAmount(_totalFunding), Icons.payments_rounded, const Color(0xFF9AB334), true),
+                  const SizedBox(height: 16),
+                  _statTile("AVG. COMMITMENT", _formatAmount(averageSponsorship), Icons.analytics_rounded, const Color(0xFFE05B1C), true),
                 ],
               )
             else
               Row(
                 children: [
-                  _StatMetric(label: "Total Sponsors", value: "$_totalSponsors", icon: Icons.handshake_rounded, color: kBrandBrown, isMobile: false),
-                  const SizedBox(width: 16),
-                  _StatMetric(label: "Total Funding", value: _formatAmount(_totalFunding), icon: Icons.payments_rounded, color: kBrandOlive, isMobile: false),
-                  const SizedBox(width: 16),
-                  _StatMetric(label: "Avg. per Donor", value: _formatAmount(averageSponsorship), icon: Icons.analytics_rounded, color: kBrandOrange, isMobile: false),
+                  Expanded(child: _statTile("STRATEGIC PARTNERS", "$_totalSponsors", Icons.handshake_rounded, const Color(0xFF4C3C32), false)),
+                  const SizedBox(width: 24),
+                  Expanded(child: _statTile("TOTAL FUNDING", _formatAmount(_totalFunding), Icons.payments_rounded, const Color(0xFF9AB334), false)),
+                  const SizedBox(width: 24),
+                  Expanded(child: _statTile("AVG. COMMITMENT", _formatAmount(averageSponsorship), Icons.analytics_rounded, const Color(0xFFE05B1C), false)),
                 ],
               ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 32),
 
-            if (isMobile)
-              Column(
-                children: [
-                  _StatCard(
-                    title: "Sponsorship Tiers",
-                    subtitle: "Partners by tier",
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: _AnalysisCard(
+                    title: "Sponsorship Distribution",
+                    subtitle: "Analysis by partnership tier",
                     child: Column(
                       children: _tierDistribution.map((t) {
                         final count = int.tryParse(t['count'].toString()) ?? 0;
                         final percent = _totalSponsors > 0 ? count / _totalSponsors : 0.0;
                         return _DonorProgress(
-                          label: t['sponsorship_type'] ?? 'Other',
+                          label: t['sponsorship_type']?.toString().toUpperCase() ?? 'OTHER',
                           percent: percent,
-                          amount: "$count",
-                          color: kBrandOlive
+                          amount: "$count PARTNERS",
+                          color: const Color(0xFF9AB334)
                         );
                       }).toList(),
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  _buildHealthCard(),
+                ),
+                if (!isMobile) ...[
+                  const SizedBox(width: 32),
+                  Expanded(flex: 2, child: _buildHealthCard()),
                 ],
-              )
-            else
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _StatCard(
-                      title: "Sponsorship Tiers",
-                      subtitle: "Distribution of partners by tier",
-                      child: Column(
-                        children: _tierDistribution.map((t) {
-                          final count = int.tryParse(t['count'].toString()) ?? 0;
-                          final percent = _totalSponsors > 0 ? count / _totalSponsors : 0.0;
-                          return _DonorProgress(
-                            label: t['sponsorship_type'] ?? 'Other',
-                            percent: percent,
-                            amount: "$count",
-                            color: kBrandOlive
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 20),
-                  Expanded(child: _buildHealthCard()),
-                ],
-              ),
+              ],
+            ),
+            if (isMobile) ...[
+              const SizedBox(height: 32),
+              _buildHealthCard(),
+            ],
 
-            const SizedBox(height: 20),
-            _StatCard(
-              title: "Sponsorship Growth Trend",
-              subtitle: "Quarterly contribution overview",
+            const SizedBox(height: 32),
+            _AnalysisCard(
+              title: "Growth Projections",
+              subtitle: "Quarterly strategic contribution trend",
               child: Container(
                 height: 200,
                 width: double.infinity,
@@ -191,102 +141,161 @@ class _SponsorStatsComponentState extends State<SponsorStatsComponent> {
                 ),
               ),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 60),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildHealthCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text("Sponsorship Health", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown)),
-          SizedBox(height: 20),
-          _HealthGauge(label: "Donor Retention", value: 0.92, color: kBrandOlive),
-          SizedBox(height: 16),
-          _HealthGauge(label: "Target Achievement", value: 0.78, color: kBrandOrange),
-          SizedBox(height: 16),
-          _HealthGauge(label: "Multi-year Pledges", value: 0.65, color: kBrandBrown),
-        ],
-      ),
+  Widget _buildPortalHeader(bool isMobile) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "PARTNERSHIP ANALYTICS",
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF9AB334),
+            letterSpacing: 2.0,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          "Philanthropic Performance",
+          style: TextStyle(
+            fontSize: isMobile ? 22 : 28, 
+            fontWeight: FontWeight.w900, 
+            color: const Color(0xFF4C3C32), 
+            letterSpacing: -0.5
+          ),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          "Data-driven overview of strategic donor relationships and funding health metrics.",
+          style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
+        ),
+      ],
     );
   }
-}
 
-class _StatMetric extends StatelessWidget {
-  const _StatMetric({required this.label, required this.value, required this.icon, required this.color, this.isMobile = false});
-  final String label, value;
-  final IconData icon;
-  final Color color;
-  final bool isMobile;
-
-  @override
-  Widget build(BuildContext context) {
-    Widget card = Container(
-      padding: const EdgeInsets.all(20),
+  Widget _statTile(String label, String value, IconData icon, Color color, bool isFullWidth) {
+    return Container(
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          if (isMobile) ...[
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-              child: Icon(icon, color: color, size: 20),
-            ),
-            const SizedBox(width: 16),
-          ],
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
+            child: Icon(icon, color: color, size: 28),
+          ),
+          const SizedBox(width: 24),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (!isMobile) Icon(icon, color: color, size: 24),
-                if (!isMobile) const SizedBox(height: 12),
-                Text(value, style: TextStyle(fontSize: isMobile ? 18 : 20, fontWeight: FontWeight.bold, color: color)),
-                Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey)),
+                Text(
+                  value, 
+                  style: const TextStyle(
+                    fontSize: 26, 
+                    fontWeight: FontWeight.w900, 
+                    color: Color(0xFF4C3C32), 
+                    letterSpacing: -1
+                  )
+                ),
+                Text(
+                  label, 
+                  style: TextStyle(
+                    fontSize: 9, 
+                    color: Colors.grey.shade400, 
+                    fontWeight: FontWeight.w900, 
+                    letterSpacing: 1.2
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
         ],
       ),
     );
+  }
 
-    return isMobile ? SizedBox(width: double.infinity, child: card) : Expanded(child: card);
+  Widget _buildHealthCard() {
+    return _AnalysisCard(
+      title: "Network Health",
+      subtitle: "Retention & commitment indicators",
+      child: const Column(
+        children: [
+          _HealthGauge(label: "Donor Retention", value: 0.92, color: Color(0xFF9AB334)),
+          SizedBox(height: 24),
+          _HealthGauge(label: "Target Achievement", value: 0.78, color: Color(0xFFE05B1C)),
+          SizedBox(height: 24),
+          _HealthGauge(label: "Multi-year Pledges", value: 0.65, color: Color(0xFF4C3C32)),
+        ],
+      ),
+    );
   }
 }
 
-class _StatCard extends StatelessWidget {
-  const _StatCard({required this.title, required this.subtitle, required this.child});
+class _AnalysisCard extends StatelessWidget {
+  const _AnalysisCard({required this.title, required this.subtitle, required this.child});
   final String title, subtitle;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: kBrandBrown)),
-          Text(subtitle, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-          const SizedBox(height: 24),
+          Text(
+            title.toUpperCase(), 
+            style: const TextStyle(
+              fontSize: 11, 
+              fontWeight: FontWeight.w900, 
+              color: Color(0xFF9AB334), 
+              letterSpacing: 1.5
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle, 
+            style: const TextStyle(
+              fontSize: 15, 
+              fontWeight: FontWeight.w900, 
+              color: Color(0xFF4C3C32), 
+              letterSpacing: -0.5
+            ),
+          ),
+          const SizedBox(height: 32),
           child,
         ],
       ),
@@ -303,20 +312,25 @@ class _DonorProgress extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 24),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
-              Text(amount, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), letterSpacing: 0.5)),
+              Text(amount, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF9AB334))),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(value: percent, minHeight: 8, color: color, backgroundColor: Colors.grey.shade100),
+            child: LinearProgressIndicator(
+              value: percent, 
+              minHeight: 10, 
+              color: color, 
+              backgroundColor: const Color(0xFFF8F9FA)
+            ),
           ),
         ],
       ),
@@ -335,17 +349,23 @@ class _HealthGauge extends StatelessWidget {
     return Row(
       children: [
         SizedBox(
-          width: 32,
-          height: 32,
-          child: CircularProgressIndicator(value: value, strokeWidth: 4, color: color, backgroundColor: Colors.grey.shade100),
+          width: 44,
+          height: 44,
+          child: CircularProgressIndicator(
+            value: value, 
+            strokeWidth: 6, 
+            color: color, 
+            backgroundColor: const Color(0xFFF8F9FA),
+            strokeCap: StrokeCap.round,
+          ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 20),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-              Text("${(value * 100).toInt()}%", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color)),
+              Text(label.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 0.5)),
+              Text("${(value * 100).toInt()}% SCORE", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: color)),
             ],
           ),
         ),
@@ -367,19 +387,15 @@ class _GrowthBar extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         Container(
-          width: isMobile ? 24 : 36,
+          width: isMobile ? 32 : 44,
           height: 140 * value,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: isCurrent ? [kBrandOrange, kBrandOrange.withValues(alpha: 0.6)] : [kBrandOlive, kBrandOlive.withValues(alpha: 0.6)],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-            ),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+            color: isCurrent ? const Color(0xFFE05B1C) : const Color(0xFF9AB334),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
           ),
         ),
-        const SizedBox(height: 8),
-        Text(label, style: TextStyle(fontSize: 9, fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal, color: kBrandBrown)),
+        const SizedBox(height: 12),
+        Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: isCurrent ? const Color(0xFF4C3C32) : Colors.grey)),
       ],
     );
   }

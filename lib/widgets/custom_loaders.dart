@@ -8,7 +8,7 @@ class BeautifulLoader extends StatelessWidget {
   final String? message;
   final bool isOverlay;
 
-  const BeautifulLoader({
+  BeautifulLoader({
     super.key,
     this.message,
     this.isOverlay = true,
@@ -53,8 +53,8 @@ class BeautifulLoader extends StatelessWidget {
                   center: Alignment.center,
                   radius: 1.2,
                   colors: [
-                    kBrandBrown.withValues(alpha: 0.8),
-                    kBrandBrown.withValues(alpha: 0.95),
+                    kBrandBrown.withOpacity(0.8),
+                    kBrandBrown.withOpacity(0.95),
                   ],
                 ),
               ),
@@ -113,7 +113,7 @@ class _AnimatedBrandLoaderState extends State<_AnimatedBrandLoader>
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: kBrandOlive.withValues(alpha: 0.2),
+                    color: kBrandOlive.withOpacity(0.2),
                     width: 4,
                   ),
                 ),
@@ -135,7 +135,7 @@ class _AnimatedBrandLoaderState extends State<_AnimatedBrandLoader>
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: kBrandOrange.withValues(alpha: 0.1),
+                    color: kBrandOrange.withOpacity(0.1),
                     width: 3,
                   ),
                 ),
@@ -158,7 +158,7 @@ class _AnimatedBrandLoaderState extends State<_AnimatedBrandLoader>
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.white.withValues(alpha: 0.5),
+                    color: Colors.white.withOpacity(0.5),
                     blurRadius: 10 * _controller.value,
                     spreadRadius: 2 * _controller.value,
                   ),
@@ -191,7 +191,7 @@ class _GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.03)
+      ..color = Colors.white.withOpacity(0.03)
       ..strokeWidth = 1.0;
 
     const spacing = 40.0;

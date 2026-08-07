@@ -106,7 +106,7 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
                       const SizedBox(height: 32),
 
                       if (_isLoading)
-                        const Center(child: Padding(padding: EdgeInsets.all(100), child: BeautifulLoader(isOverlay: false, message: "Aggregating Report Data")))
+                        Center(child: Padding(padding: const EdgeInsets.all(100), child: BeautifulLoader(isOverlay: false, message: "Aggregating Report Data")))
                       else if (_selectedSchool == null)
                         _buildSelectionPlaceholder(isMobile)
                       else ...[

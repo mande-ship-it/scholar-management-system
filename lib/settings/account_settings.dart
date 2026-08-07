@@ -140,7 +140,7 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
       ),
       clipBehavior: Clip.antiAlias,
       child: _isLoading 
-        ? const Center(child: BeautifulLoader(isOverlay: false, message: "Syncing Profile"))
+        ? Center(child: BeautifulLoader(isOverlay: false, message: "Syncing Profile"))
         : Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

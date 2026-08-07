@@ -23,7 +23,6 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
   bool _isLoading = false;
 
   late AnimationController _fadeController;
-  late AnimationController _backgroundController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _slideAnimation;
 
@@ -34,10 +33,6 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     );
-    _backgroundController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 15),
-    )..repeat();
 
     _fadeAnimation = CurvedAnimation(
       parent: _fadeController,
@@ -52,6 +47,48 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
     );
 
     _fadeController.forward();
+
+    _checkAutoLogin();
+  }
+
+  void _checkAutoLogin() async {
+    if (ApiService.isAuthenticated) {
+      try {
+        final response = await ApiService.getAccountProfile();
+        if (response.statusCode == 200 && mounted) {
+          final userData = response.data['data'];
+          PermissionService.init(userData);
+
+          final String role = userData['role_name'] ?? userData['role'] ?? 'User';
+          final String normalizedRole = role.trim().toLowerCase();
+
+          String targetRoute = '/home';
+          if (normalizedRole == 'administrator') {
+            targetRoute = '/admin/home';
+          } else if ([
+            'field officer',
+            'field coordinator',
+            'field operations',
+            'operational officer'
+          ].contains(normalizedRole)) {
+            targetRoute = '/field-operations/home';
+          }
+
+          Navigator.pushReplacementNamed(
+            context,
+            targetRoute,
+            arguments: {
+              'username': userData['full_name'] ?? userData['fullName'] ?? 'User',
+              'role': role,
+              'profilePicture': userData['profile_picture'] ?? userData['profilePicture'],
+            },
+          );
+        }
+      } catch (e) {
+        // Token expired
+        ApiService.logout();
+      }
+    }
   }
 
   @override
@@ -59,7 +96,6 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
     _usernameController.dispose();
     _passwordController.dispose();
     _fadeController.dispose();
-    _backgroundController.dispose();
     super.dispose();
   }
 
@@ -93,13 +129,15 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
               return;
             }
 
-            final bool isStrictAdmin = normalizedRole == 'administrator';
+            final bool hasAdminAccess = [
+              'administrator', 'program manager', 'program coordinator', 'country director'
+            ].contains(normalizedRole);
 
             final bool isFieldOfficer = [
               'field officer', 'field coordinator', 'field operations'
             ].contains(normalizedRole);
 
-            if (isStrictAdmin) {
+            if (hasAdminAccess) {
               Navigator.pushReplacementNamed(context, '/admin/home', arguments: {
                 'username': userData['fullName'] ?? _usernameController.text.trim(),
                 'role': role,
@@ -152,88 +190,47 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
     final bool isSmallScreen = size.width < 600;
 
     return Scaffold(
-      backgroundColor: kBrandBrown,
-      body: Stack(
-        children: [
-          // 1. Big Moving Lines Motion Background
-          Positioned.fill(
-            child: AnimatedBuilder(
-              animation: _backgroundController,
-              builder: (context, child) {
-                return CustomPaint(
-                  painter: MovingLinesPainter(_backgroundController.value),
-                );
-              },
-            ),
+      backgroundColor: const Color(0xFFF8F9FA),
+      body: Center(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.symmetric(
+            horizontal: isSmallScreen ? 16 : 24, 
+            vertical: 40,
           ),
-
-          Positioned.fill(
-            child: Container(color: Colors.black.withOpacity(0.1)),
-          ),
-
-          // 2. Login Content - Starts from top on small screens
-          SafeArea(
+          child: AnimatedBuilder(
+            animation: _fadeController,
+            builder: (context, child) {
+              return Opacity(
+                opacity: _fadeAnimation.value,
+                child: Transform.translate(
+                  offset: Offset(0, _slideAnimation.value),
+                  child: child,
+                ),
+              );
+            },
             child: Container(
-              alignment: Alignment.topCenter,
-              child: SingleChildScrollView(
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.only(
-                  left: isSmallScreen ? 16 : 24, 
-                  right: isSmallScreen ? 16 : 24, 
-                  bottom: isSmallScreen ? 32 : 40,
-                  top: isSmallScreen ? 32 : 80,
-                ),
-                child: AnimatedBuilder(
-                  animation: _fadeController,
-                  builder: (context, child) {
-                    return Opacity(
-                      opacity: _fadeAnimation.value,
-                      child: Transform.translate(
-                        offset: Offset(0, _slideAnimation.value),
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: Container(
-                    constraints: const BoxConstraints(maxWidth: 440),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: isSmallScreen ? 20 : 40, 
-                      vertical: isSmallScreen ? 28 : 40
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(isSmallScreen ? 24 : 32),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 30,
-                          offset: const Offset(0, 15),
-                        ),
-                      ],
-                    ),
-                    child: _buildLoginForm(isSmallScreen),
-                  ),
-                ),
+              constraints: const BoxConstraints(maxWidth: 440),
+              padding: EdgeInsets.symmetric(
+                horizontal: isSmallScreen ? 20 : 40, 
+                vertical: isSmallScreen ? 28 : 40
               ),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(isSmallScreen ? 24 : 32),
+                border: Border.all(color: const Color(0xFFEEEEEE)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: _buildLoginForm(isSmallScreen),
             ),
           ),
-
-          // 3. Footer
-          if (!isSmallScreen)
-            Positioned(
-              bottom: 24,
-              left: 0,
-              right: 0,
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: const Text(
-                  "© 2026 AGE Africa Education Scholarship Program",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white60, fontSize: 11, letterSpacing: 0.5),
-                ),
-              ),
-            ),
-        ],
+        ),
       ),
     );
   }
@@ -385,46 +382,3 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
   }
 }
 
-class MovingLinesPainter extends CustomPainter {
-  final double progress;
-  MovingLinesPainter(this.progress);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withOpacity(0.05)
-      ..strokeWidth = 1.0
-      ..style = PaintingStyle.stroke;
-
-    final lineCount = 10;
-    final spacing = size.height / lineCount;
-
-    for (int i = 0; i < lineCount; i++) {
-      final path = Path();
-      final y = i * spacing;
-      
-      path.moveTo(0, y);
-      for (double x = 0; x <= size.width; x += 20) {
-        final dy = math.sin((x / size.width * 2 * math.pi) + (progress * 2 * math.pi)) * 50;
-        path.lineTo(x, y + dy);
-      }
-      
-      paint.strokeWidth = 0.5 + (i % 3);
-      paint.color = kBrandOlive.withOpacity(0.03 + (i * 0.01));
-      canvas.drawPath(path, paint);
-    }
-    
-    // Diagonal broad sweeping lines
-    final broadPaint = Paint()
-      ..color = Colors.white.withOpacity(0.02)
-      ..strokeWidth = 120
-      ..style = PaintingStyle.stroke;
-
-    final offset = progress * size.width * 2.5;
-    canvas.drawLine(Offset(-size.width + offset, 0), Offset(offset, size.height), broadPaint);
-    canvas.drawLine(Offset(-size.width * 0.4 + offset, 0), Offset(offset + size.width * 0.6, size.height), broadPaint);
-  }
-
-  @override
-  bool shouldRepaint(MovingLinesPainter old) => old.progress != progress;
-}

@@ -134,41 +134,50 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
 
   Widget _buildExecutiveHeader(bool isMobile) {
     return Container(
-      padding: EdgeInsets.all(isMobile ? 16 : 32),
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(32, 32, 32, 24),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            children: [
-              if (!isMobile) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
-                  child: const Icon(Icons.analytics_rounded, color: kBrandOlive, size: 28),
-                ),
-                const SizedBox(width: 20),
-              ],
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Performance Hub", 
-                      style: TextStyle(fontSize: isMobile ? 20 : 24, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.8)),
-                    const Text("Trends and support mapping.", 
-                      style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
-                  ],
-                ),
-              ),
-              if (!isMobile) _buildTypeToggle(false),
-            ],
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Color(0xFF9AB334).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.analytics_rounded, color: Color(0xFF9AB334), size: 24),
           ),
-          if (isMobile) ...[
-            const SizedBox(height: 16),
-            _buildTypeToggle(true),
-          ],
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "INTELLIGENCE HUB",
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF9AB334),
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Performance Analysis Portal",
+                  style: TextStyle(
+                    fontSize: isMobile ? 18 : 22, 
+                    fontWeight: FontWeight.w900, 
+                    color: const Color(0xFF4C3C32), 
+                    letterSpacing: -0.5
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (!isMobile) _buildTypeToggle(false),
         ],
       ),
     );
@@ -197,23 +206,25 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
 
   Widget _buildMainTabBar(bool isMobile) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 32),
-      decoration: const BoxDecoration(color: Colors.white, border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 32),
+      decoration: const BoxDecoration(
+        color: Colors.white, 
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: TabBar(
         controller: _tabController,
         isScrollable: true,
-        labelColor: kBrandOlive,
+        labelColor: const Color(0xFF9AB334),
         unselectedLabelColor: Colors.grey,
-        indicatorColor: kBrandOlive,
+        indicatorColor: const Color(0xFF9AB334),
         indicatorWeight: 3,
-        labelPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-        labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5),
+        labelPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+        labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5),
         tabs: const [
-          Tab(text: "TREND"),
-          Tab(text: "COHORT"),
-          Tab(text: "SUBJECT"),
-          Tab(text: "RISK"),
+          Tab(text: "INDIVIDUAL TREND"),
+          Tab(text: "COHORT ANALYTICS"),
+          Tab(text: "SUBJECT INTELLIGENCE"),
+          Tab(text: "RISK INDICATORS"),
         ],
       ),
     );
@@ -759,30 +770,37 @@ class _MetricIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveColor = color ?? const Color(0xFF4C3C32);
     return Expanded(
       child: Container(
         padding: EdgeInsets.all(isMobile ? 16 : 24),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade100),
+          border: Border.all(color: const Color(0xFFEEEEEE)),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
         ),
         child: Row(
           children: [
             Container(
-              padding: EdgeInsets.all(isMobile ? 8 : 10),
-              decoration: BoxDecoration(color: (color ?? kBrandBrown).withOpacity(0.1), shape: BoxShape.circle),
-              child: Icon(icon, color: color ?? kBrandBrown, size: isMobile ? 18 : 20),
+              padding: EdgeInsets.all(isMobile ? 10 : 12),
+              decoration: BoxDecoration(color: effectiveColor.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+              child: Icon(icon, color: effectiveColor, size: isMobile ? 20 : 24),
             ),
-            SizedBox(width: isMobile ? 12 : 16),
+            SizedBox(width: isMobile ? 12 : 20),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: TextStyle(fontSize: isMobile ? 8 : 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1), overflow: TextOverflow.ellipsis),
+                  Text(label.toUpperCase(), 
+                    style: TextStyle(fontSize: isMobile ? 8 : 9, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1.0), 
+                    overflow: TextOverflow.ellipsis
+                  ),
                   const SizedBox(height: 4),
-                  Text(value, style: TextStyle(fontSize: isMobile ? 13 : 16, fontWeight: FontWeight.w900, color: color ?? kBrandBrown), overflow: TextOverflow.ellipsis),
+                  Text(value, 
+                    style: TextStyle(fontSize: isMobile ? 14 : 18, fontWeight: FontWeight.w900, color: const Color(0xFF4C3C32), letterSpacing: -0.5), 
+                    overflow: TextOverflow.ellipsis
+                  ),
                 ],
               ),
             ),
@@ -806,15 +824,39 @@ class _AnalysisCard extends StatelessWidget {
       padding: EdgeInsets.all(isMobile ? 20 : 32),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.grey.shade100),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.bold, color: kBrandBrown)),
-          Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
-          SizedBox(height: isMobile ? 24 : 32),
+          Text(
+            title.toUpperCase(), 
+            style: const TextStyle(
+              fontSize: 11, 
+              fontWeight: FontWeight.w900, 
+              color: Color(0xFF9AB334), 
+              letterSpacing: 1.5
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle, 
+            style: const TextStyle(
+              fontSize: 15, 
+              fontWeight: FontWeight.w900, 
+              color: Color(0xFF4C3C32), 
+              letterSpacing: -0.5
+            ),
+          ),
+          const SizedBox(height: 32),
           child,
         ],
       ),

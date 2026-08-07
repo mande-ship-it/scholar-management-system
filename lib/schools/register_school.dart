@@ -270,48 +270,157 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
   Widget build(BuildContext context) {
     final bool isMobile = MediaQuery.of(context).size.width < 900;
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: isMobile ? BorderRadius.zero : BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
+      width: double.infinity,
+      height: double.infinity,
+      color: const Color(0xFFF8F9FA),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (!isMobile) _buildExecutiveHeader(isMobile),
+          _buildPortalHeader(isMobile),
           Expanded(
             child: SingleChildScrollView(
-              padding: EdgeInsets.all(isMobile ? 20 : 40),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionLabel("ACADEMIC IDENTITY"),
-                    const SizedBox(height: 24),
-                    _buildIdentitySection(isMobile),
+              padding: EdgeInsets.all(isMobile ? 16 : 40),
+              child: Center(
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 1000),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _sectionPortalHeader("ACADEMIC IDENTITY", Icons.domain_rounded),
+                        const SizedBox(height: 24),
+                        _buildIdentitySection(isMobile),
 
-                    const SizedBox(height: 32),
-                    _buildSectionLabel("GEOGRAPHIC PLACEMENT"),
-                    const SizedBox(height: 24),
-                    _buildLocationSection(isMobile),
+                        const SizedBox(height: 48),
+                        _sectionPortalHeader("GEOGRAPHIC PLACEMENT", Icons.map_rounded),
+                        const SizedBox(height: 24),
+                        _buildLocationSection(isMobile),
 
-                    const SizedBox(height: 32),
-                    _buildSectionLabel("COMMUNICATION & CHANNELS"),
-                    const SizedBox(height: 24),
-                    _buildContactSection(isMobile),
+                        const SizedBox(height: 48),
+                        _sectionPortalHeader("COMMUNICATION CHANNELS", Icons.contact_mail_rounded),
+                        const SizedBox(height: 24),
+                        _buildContactSection(isMobile),
 
-                    const SizedBox(height: 32),
-                    _buildSectionLabel("ADMINISTRATION & LEADERSHIP"),
-                    const SizedBox(height: 24),
-                    _buildAdminSection(isMobile),
+                        const SizedBox(height: 48),
+                        _sectionPortalHeader("ADMINISTRATION & LEADERSHIP", Icons.supervisor_account_rounded),
+                        const SizedBox(height: 24),
+                        _buildAdminSection(isMobile),
 
-                    const SizedBox(height: 48),
-                    _buildSubmitAction(isMobile),
-                    const SizedBox(height: 20),
-                  ],
+                        const SizedBox(height: 60),
+                      ],
+                    ),
+                  ),
                 ),
               ),
+            ),
+          ),
+          _buildPortalFixedFooter(isMobile),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPortalHeader(bool isMobile) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(32, 32, 32, 24),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Color(0xFF9AB334).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.add_business_rounded, color: Color(0xFF9AB334), size: 24),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "INSTITUTIONAL ONBOARDING",
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF9AB334),
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Partner Institution Registration",
+                  style: TextStyle(
+                    fontSize: isMobile ? 18 : 22, 
+                    fontWeight: FontWeight.w900, 
+                    color: const Color(0xFF4C3C32), 
+                    letterSpacing: -0.5
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sectionPortalHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Colors.grey.shade400),
+        const SizedBox(width: 12),
+        Text(
+          title, 
+          style: TextStyle(
+            fontSize: 11, 
+            fontWeight: FontWeight.w900, 
+            color: Colors.grey.shade500, 
+            letterSpacing: 1.2
+          )
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPortalFixedFooter(bool isMobile) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: const Border(top: BorderSide(color: Color(0xFFEEEEEE))),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, -5))],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          if (!isMobile) ...[
+            TextButton(
+              onPressed: () => _resetForm(),
+              child: const Text("CLEAR ALL FIELDS", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 0.5)),
+            ),
+            const SizedBox(width: 24),
+          ],
+          ElevatedButton.icon(
+            onPressed: _isSaving ? null : _submitForm,
+            icon: _isSaving
+                ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Icon(Icons.domain_verification_rounded, size: 18),
+            label: Text(_isSaving ? "SYNCING..." : "FINALIZE INSTITUTION REGISTRATION",
+              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF4C3C32),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              elevation: 0,
             ),
           ),
         ],
@@ -554,11 +663,18 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
 
   Widget _executiveCard({required List<Widget> children, bool isMobile = false}) {
     return Container(
-      padding: EdgeInsets.all(isMobile ? 16 : 32),
+      padding: EdgeInsets.all(isMobile ? 20 : 32),
       decoration: BoxDecoration(
-        color: const Color(0xFFF9FAFB),
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFFEEEEEE)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

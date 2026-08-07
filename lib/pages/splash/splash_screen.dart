@@ -172,7 +172,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   const SizedBox(height: 80),
                   
                   // Professional Loader
-                  const BeautifulLoader(isOverlay: false, message: "Initializing Secure Portal"),
+                  BeautifulLoader(isOverlay: false, message: "Initializing Secure Portal"),
                 ],
               ),
             ),

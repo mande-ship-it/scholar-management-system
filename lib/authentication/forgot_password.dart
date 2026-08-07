@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../academics/academics_utils.dart';
 import 'package:scholar_management_system/services/api_service.dart';
@@ -21,17 +20,29 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> with TickerProv
   bool _isObscured = true;
 
   late AnimationController _fadeController;
-  late AnimationController _backgroundController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _slideAnimation;
 
   @override
   void initState() {
     super.initState();
-    _fadeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000));
-    _backgroundController = AnimationController(vsync: this, duration: const Duration(seconds: 20))..repeat();
-    _fadeAnimation = CurvedAnimation(parent: _fadeController, curve: Curves.easeIn);
-    _slideAnimation = Tween<double>(begin: 20, end: 0).animate(_fadeController);
+    _fadeController = AnimationController(
+      vsync: this, 
+      duration: const Duration(milliseconds: 1500)
+    );
+    
+    _fadeAnimation = CurvedAnimation(
+      parent: _fadeController, 
+      curve: const Interval(0.0, 0.65, curve: Curves.easeOut)
+    );
+    
+    _slideAnimation = Tween<double>(begin: 30, end: 0).animate(
+      CurvedAnimation(
+        parent: _fadeController,
+        curve: const Interval(0.0, 0.65, curve: Curves.easeOut),
+      ),
+    );
+    
     _fadeController.forward();
   }
 
@@ -41,26 +52,38 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> with TickerProv
     _otpController.dispose();
     _passwordController.dispose();
     _fadeController.dispose();
-    _backgroundController.dispose();
     super.dispose();
   }
 
   void _handleRequestCode() async {
-    if (_emailController.text.isEmpty || !_emailController.text.contains('@')) return;
+    if (_emailController.text.isEmpty || !_emailController.text.contains('@')) {
+      _showError("Please enter a valid email address.");
+      return;
+    }
     setState(() => _isLoading = true);
     try {
-      await ApiService.forgotPassword(_emailController.text.trim());
-      setState(() {
-        _codeSent = true;
-        _isLoading = false;
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Reset code sent to your email"), backgroundColor: kBrandOlive),
-        );
+      final response = await ApiService.forgotPassword(_emailController.text.trim());
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        setState(() {
+          _codeSent = true;
+          _isLoading = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Reset code sent to your email"), 
+              backgroundColor: kBrandOlive,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } else {
+        _showError(response.data['message'] ?? "Failed to send reset code.");
       }
     } catch (e) {
-      setState(() => _isLoading = false);
+      _showError("Connection error. Please try again.");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -68,107 +91,195 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> with TickerProv
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
       try {
-        await ApiService.resetPassword(
+        final response = await ApiService.resetPassword(
           _emailController.text.trim(),
           _otpController.text.trim(),
           _passwordController.text,
         );
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Password reset successful! Please log in."), backgroundColor: kBrandOlive),
-          );
-          Navigator.pushReplacementNamed(context, '/login');
+        if (response.statusCode == 200) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("Password reset successful! Please log in."), 
+                backgroundColor: kBrandOlive,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+            Navigator.pushReplacementNamed(context, '/login');
+          }
+        } else {
+          _showError(response.data['message'] ?? "Invalid reset code or request.");
         }
       } catch (e) {
-        setState(() => _isLoading = false);
+        _showError("Unable to complete request.");
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
       }
+    }
+  }
+
+  void _showError(String msg) {
+    if (mounted) {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(msg),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final bool isSmallScreen = size.width < 600;
 
     return Scaffold(
-      body: Stack(
-        children: [
-          _buildBackground(size),
-          Positioned.fill(child: IgnorePointer(child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5), child: Container(color: Colors.black.withOpacity(0.1))))),
-          SafeArea(
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: SingleChildScrollView(
-                padding: EdgeInsets.only(
-                  left: 24,
-                  right: 24,
-                  bottom: 40,
-                  top: size.height < 600 ? 20 : 60,
+      backgroundColor: const Color(0xFFF8F9FA),
+      body: Center(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.symmetric(
+            horizontal: isSmallScreen ? 16 : 24, 
+            vertical: 40,
+          ),
+          child: AnimatedBuilder(
+            animation: _fadeController,
+            builder: (context, child) {
+              return Opacity(
+                opacity: _fadeAnimation.value,
+                child: Transform.translate(
+                  offset: Offset(0, _slideAnimation.value),
+                  child: child,
                 ),
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: Transform.translate(
-                    offset: Offset(0, _slideAnimation.value),
-                    child: Container(
-                      constraints: const BoxConstraints(maxWidth: 450),
-                      padding: const EdgeInsets.all(32),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.95),
-                        borderRadius: BorderRadius.circular(30),
-                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 30, offset: const Offset(0, 15))],
-                      ),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _buildHeader(),
-                            const SizedBox(height: 32),
-                            if (!_codeSent) ...[
-                              _buildTextField(
-                                controller: _emailController,
-                                label: "EMAIL ADDRESS",
-                                icon: Icons.email_outlined,
-                                hint: "Enter your registered email",
-                              ),
-                              const SizedBox(height: 24),
-                              _buildButton("SEND RESET CODE", _handleRequestCode),
-                            ] else ...[
-                              _buildTextField(
-                                controller: _otpController,
-                                label: "RESET CODE",
-                                icon: Icons.lock_clock_outlined,
-                                hint: "6-digit code from email",
-                                maxLength: 6,
-                              ),
-                              const SizedBox(height: 16),
-                              _buildTextField(
-                                controller: _passwordController,
-                                label: "NEW PASSWORD",
-                                icon: Icons.lock_outline,
-                                hint: "Create a strong password",
-                                obscureText: _isObscured,
-                                suffix: IconButton(
-                                  icon: Icon(_isObscured ? Icons.visibility_off : Icons.visibility, size: 18),
-                                  onPressed: () => setState(() => _isObscured = !_isObscured),
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-                              _buildButton("UPDATE PASSWORD", _handleReset),
-                              TextButton(onPressed: () => setState(() => _codeSent = false), child: const Text("Resend code?")),
-                            ],
-                            const SizedBox(height: 16),
-                            TextButton(
-                              onPressed: () => Navigator.pop(context),
-                              child: const Text("Back to Sign In", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+              );
+            },
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 440),
+              padding: EdgeInsets.symmetric(
+                horizontal: isSmallScreen ? 20 : 40, 
+                vertical: isSmallScreen ? 28 : 40
+              ),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(isSmallScreen ? 24 : 32),
+                border: Border.all(color: const Color(0xFFEEEEEE)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
                   ),
+                ],
+              ),
+              child: _buildRecoveryForm(isSmallScreen),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecoveryForm(bool isSmallScreen) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildLogoHeader(isSmallScreen),
+          const SizedBox(height: 32),
+          
+          if (!_codeSent) ...[
+            _buildLabel("EMAIL ADDRESS"),
+            TextFormField(
+              controller: _emailController,
+              decoration: _inputDeco(Icons.email_outlined, "Enter your registered email"),
+              validator: (v) => (v == null || !v.contains('@')) ? "Valid email required" : null,
+            ),
+            const SizedBox(height: 24),
+            _buildMainButton("SEND RESET CODE", _handleRequestCode),
+          ] else ...[
+            _buildLabel("RESET CODE"),
+            TextFormField(
+              controller: _otpController,
+              maxLength: 6,
+              style: const TextStyle(letterSpacing: 8, fontWeight: FontWeight.bold, fontSize: 18),
+              textAlign: TextAlign.center,
+              decoration: _inputDeco(Icons.lock_clock_outlined, "••••••").copyWith(counterText: ""),
+              validator: (v) => (v == null || v.length < 4) ? "Code required" : null,
+            ),
+            const SizedBox(height: 20),
+            _buildLabel("NEW SECURITY KEY"),
+            TextFormField(
+              controller: _passwordController,
+              obscureText: _isObscured,
+              decoration: _inputDeco(
+                Icons.lock_outline_rounded, 
+                "New Password",
+                suffix: IconButton(
+                  icon: Icon(_isObscured ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 18),
+                  onPressed: () => setState(() => _isObscured = !_isObscured),
                 ),
               ),
+              validator: (v) => (v == null || v.length < 6) ? "Too short" : null,
+            ),
+            const SizedBox(height: 24),
+            _buildMainButton("UPDATE PASSWORD", _handleReset),
+            TextButton(
+              onPressed: () => setState(() => _codeSent = false), 
+              child: const Text("Resend code?", style: TextStyle(color: kBrandOlive, fontWeight: FontWeight.bold))
+            ),
+          ],
+          
+          const SizedBox(height: 16),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Back to Sign In", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLogoHeader(bool isSmallScreen) {
+    return Center(
+      child: Column(
+        children: [
+          Container(
+            height: isSmallScreen ? 64 : 80,
+            width: isSmallScreen ? 64 : 80,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+            ),
+            child: Image.asset(
+              'assets/images/age-logo.png',
+              fit: BoxFit.contain,
+              errorBuilder: (ctx, _, __) => const Icon(Icons.school_rounded, size: 40, color: kBrandOlive),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            "PASSWORD RECOVERY",
+            style: TextStyle(
+              color: kBrandOlive,
+              fontSize: isSmallScreen ? 10 : 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 3,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _codeSent ? "Verify Access" : "Account Access",
+            style: TextStyle(
+              color: kBrandBrown,
+              fontSize: isSmallScreen ? 22 : 26,
+              fontWeight: FontWeight.w900,
             ),
           ),
         ],
@@ -176,79 +287,39 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> with TickerProv
     );
   }
 
-  Widget _buildHeader() {
-    return Column(
-      children: [
-        const Icon(Icons.lock_reset_rounded, size: 60, color: kBrandOrange),
-        const SizedBox(height: 16),
-        const Text("Password Recovery", textAlign: TextAlign.center, style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown)),
-        const SizedBox(height: 8),
-        Text(
-          _codeSent ? "Verify the code sent to your email and set a new password." : "Enter your email to receive instructions on resetting your password.",
-          textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 13, height: 1.5),
-        ),
-      ],
+  Widget _buildLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8, left: 4),
+      child: Text(text, style: const TextStyle(color: Colors.grey, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
     );
   }
 
-  Widget _buildTextField({required TextEditingController controller, required String label, required IconData icon, String? hint, bool obscureText = false, Widget? suffix, int? maxLength}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: 1.2)),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          obscureText: obscureText,
-          maxLength: maxLength,
-          style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown),
-          decoration: InputDecoration(
-            hintText: hint,
-            prefixIcon: Icon(icon, color: kBrandOlive, size: 20),
-            suffixIcon: suffix,
-            filled: true,
-            fillColor: Colors.grey.shade50,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.grey.shade200)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide(color: Colors.grey.shade200)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: kBrandOlive, width: 2)),
-          ),
-        ),
-      ],
+  InputDecoration _inputDeco(IconData icon, String hint, {Widget? suffix}) {
+    return InputDecoration(
+      hintText: hint,
+      prefixIcon: Icon(icon, color: kBrandOlive, size: 20),
+      suffixIcon: suffix,
+      filled: true,
+      fillColor: Colors.grey.shade50,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kBrandOlive, width: 2)),
     );
   }
 
-  Widget _buildButton(String text, VoidCallback onPressed) {
-    return SizedBox(
-      height: 55,
-      child: ElevatedButton(
-        onPressed: _isLoading ? null : onPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: kBrandBrown,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          elevation: 5,
-        ),
-        child: _isLoading ? const CircularProgressIndicator(color: Colors.white) : Text(text, style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+  Widget _buildMainButton(String text, VoidCallback onPressed) {
+    return ElevatedButton(
+      onPressed: _isLoading ? null : onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: kBrandBrown,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 0,
       ),
-    );
-  }
-
-  Widget _buildBackground(Size size) {
-    return AnimatedBuilder(
-      animation: _backgroundController,
-      builder: (context, child) => Container(
-        color: kBrandBrown,
-        child: Stack(
-          children: [
-            Positioned(
-              top: -size.height * 0.1,
-              left: -size.width * 0.1,
-              child: Container(width: size.width * 0.7, height: size.width * 0.7, decoration: BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [kBrandOlive.withOpacity(0.3), Colors.transparent]))),
-            ),
-          ],
-        ),
-      ),
+      child: _isLoading
+          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+          : Text(text, style: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
     );
   }
 }

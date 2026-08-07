@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../academics/academics_utils.dart';
 import '../services/api_service.dart';
+import '../widgets/custom_loaders.dart';
 
 class PromoteScholarsComponent extends StatefulWidget {
   const PromoteScholarsComponent({super.key});
@@ -86,7 +87,6 @@ class _PromoteScholarsComponentState extends State<PromoteScholarsComponent> {
     try {
       final response = await ApiService.promoteScholar(student.id, nextClass);
       if (response.statusCode == 200) {
-        // Optimization: Update local state instead of full refetch
         setState(() {
           final index = kStudents.indexWhere((s) => s.id == student.id);
           if (index != -1) {
@@ -98,7 +98,7 @@ class _PromoteScholarsComponentState extends State<PromoteScholarsComponent> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("Promoted ${student.name} from $current to $nextClass."),
-            backgroundColor: kBrandOlive,
+            backgroundColor: const Color(0xFF9AB334),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
@@ -123,7 +123,7 @@ class _PromoteScholarsComponentState extends State<PromoteScholarsComponent> {
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: kBrandOlive, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF9AB334), foregroundColor: Colors.white),
             child: const Text("Promote All"),
           ),
         ],
@@ -134,10 +134,6 @@ class _PromoteScholarsComponentState extends State<PromoteScholarsComponent> {
 
     setState(() => _isLoading = true);
     int successCount = 0;
-
-    // In a real high-volume system, we would use a single bulk API endpoint.
-    // Since the backend doesn't have one yet, we'll iterate with a small delay or in parallel.
-    // For now, we'll do it sequentially but update UI at the end.
 
     for (final student in filtered) {
       final current = student.currentClass;
@@ -176,7 +172,7 @@ class _PromoteScholarsComponentState extends State<PromoteScholarsComponent> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Successfully promoted $successCount scholars."),
-          backgroundColor: kBrandOlive,
+          backgroundColor: const Color(0xFF9AB334),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -185,7 +181,6 @@ class _PromoteScholarsComponentState extends State<PromoteScholarsComponent> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isSmallScreen = MediaQuery.of(context).size.width < 600;
     final bool isMobile = MediaQuery.of(context).size.width < 900;
     final filteredStudents = kStudents.where((s) {
       final matchesSchool = _selectedSchool == 'All Schools' || s.schoolName == _selectedSchool;
@@ -194,274 +189,241 @@ class _PromoteScholarsComponentState extends State<PromoteScholarsComponent> {
 
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: isSmallScreen ? BorderRadius.zero : BorderRadius.circular(16),
-        border: isSmallScreen ? null : Border.all(color: Colors.grey.shade200),
-        boxShadow: isSmallScreen ? null : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 3))],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ---------------- Header ----------------
-            Padding(
-              padding: EdgeInsets.fromLTRB(24, isSmallScreen ? 16 : 12, 24, 8),
-              child: isMobile 
-                ? Column(
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                            child: const Icon(Icons.auto_graph_rounded, color: kBrandOlive, size: 20),
-                          ),
-                          const SizedBox(width: 14),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Progression', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                                Text('Promote scholars.', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      if (filteredStudents.isNotEmpty)
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: _isLoading ? null : () => _promoteAllFiltered(filteredStudents),
-                            icon: const Icon(Icons.done_all_rounded, size: 16),
-                            label: const Text("PROMOTE ALL", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: kBrandOrange,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                          ),
-                        ),
-                    ],
-                  )
-                : Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                        child: const Icon(Icons.auto_graph_rounded, color: kBrandOlive, size: 20),
-                      ),
-                      const SizedBox(width: 14),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Scholar Progression', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                            SizedBox(height: 1),
-                            Text('Update and promote scholars to the next form or academic year.',
-                                style: TextStyle(fontSize: 11, color: Colors.grey)),
-                          ],
-                        ),
-                      ),
-                      if (filteredStudents.isNotEmpty)
-                        ElevatedButton.icon(
-                          onPressed: _isLoading ? null : () => _promoteAllFiltered(filteredStudents),
-                          icon: const Icon(Icons.done_all_rounded, size: 16),
-                          label: const Text("PROMOTE ALL", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: kBrandOrange,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                        ),
-                    ],
-                  ),
-            ),
-            const Divider(indent: 24, endIndent: 24),
-
-            Padding(
-              padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
-              child: _isLoading 
-                ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
-                : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // --- Filter Bar ---
-                  if (isMobile)
-                    Column(
-                      children: [
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedSchool,
-                          decoration: _inputDeco("Filter by School", Icons.school_outlined),
-                          items: _schoolOptions.map((s) => DropdownMenuItem(value: s, child: Text(s, overflow: TextOverflow.ellipsis))).toList(),
-                          onChanged: (v) => setState(() => _selectedSchool = v!),
-                        ),
-                        const SizedBox(height: 12),
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedYear,
-                          decoration: _inputDeco("Result Year", Icons.calendar_month),
-                          items: _yearOptions.isEmpty 
-                            ? [const DropdownMenuItem(value: '2026', child: Text('2026'))]
-                            : _yearOptions.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
-                          onChanged: (v) => setState(() => _selectedYear = v!),
-                        ),
-                      ],
-                    )
-                  else
-                    Row(
-                      children: [
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            initialValue: _selectedSchool,
-                            decoration: _inputDeco("Filter by School", Icons.school_outlined),
-                            items: _schoolOptions.map((s) => DropdownMenuItem(value: s, child: Text(s, overflow: TextOverflow.ellipsis))).toList(),
-                            onChanged: (v) => setState(() => _selectedSchool = v!),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        SizedBox(
-                          width: 150,
-                          child: DropdownButtonFormField<String>(
-                            initialValue: _selectedYear,
-                            decoration: _inputDeco("Result Year", Icons.calendar_month),
-                            items: _yearOptions.isEmpty 
-                              ? [const DropdownMenuItem(value: '2026', child: Text('2026'))]
-                              : _yearOptions.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
-                            onChanged: (v) => setState(() => _selectedYear = v!),
-                          ),
-                        ),
-                      ],
-                    ),
-                  const SizedBox(height: 24),
-
-                  const Text("Review & Promote Scholars", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                  const SizedBox(height: 16),
-
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
+      height: double.infinity,
+      color: const Color(0xFFF8F9FA),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildPortalHeader(isMobile, filteredStudents),
+          _buildPortalFilterToolbar(isMobile),
+          Expanded(
+            child: _isLoading 
+                ? BeautifulLoader(isOverlay: false, message: "Auditing Promotion Eligibility...")
+                : ListView.separated(
+                    padding: EdgeInsets.all(isMobile ? 12 : 32),
                     itemCount: filteredStudents.length,
-                    separatorBuilder: (_, __) => isSmallScreen ? const SizedBox.shrink() : const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final s = filteredStudents[index];
-                      const passed = true;
-
-                      if (isSmallScreen) {
-                        return Container(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: const BoxDecoration(
-                            border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
-                          ),
-                          child: Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 18,
-                                backgroundColor: kBrandCream,
-                                child: Text(s.name[0], style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: 12)),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(s.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kBrandBrown)),
-                                    Text("${s.schoolName} (${s.currentClass})", style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                                  ],
-                                ),
-                              ),
-                              IconButton(
-                                onPressed: passed ? () => _promoteStudent(s) : null,
-                                icon: Icon(Icons.upgrade_rounded, color: passed ? kBrandOlive : Colors.grey),
-                                tooltip: "Promote Scholar",
-                              ),
-                            ],
-                          ),
-                        );
-                      }
-
-                      return Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade200),
-                        ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              backgroundColor: kBrandCream,
-                              child: Text(s.name[0], style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown)),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(s.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kBrandBrown)),
-                                  Text("${s.schoolName} (${s.currentClass})", style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                                ],
-                              ),
-                            ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: passed ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    passed ? "PASSED" : "PENDING/FAIL",
-                                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: passed ? Colors.green : Colors.orange),
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(s.schoolType == SchoolType.university ? "Ready for Year Upgrade" : "Ready for Form Upgrade", style: const TextStyle(fontSize: 11, color: Colors.grey)),
-                              ],
-                            ),
-                            const SizedBox(width: 16),
-                            ElevatedButton(
-                              onPressed: passed ? () => _promoteStudent(s) : null,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: kBrandOlive,
-                                foregroundColor: Colors.white,
-                                disabledBackgroundColor: Colors.grey.shade200,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              ),
-                              child: const Text("Promote"),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                    separatorBuilder: (_, __) => const SizedBox(height: 16),
+                    itemBuilder: (context, index) => _buildPromotionCard(filteredStudents[index], isMobile),
                   ),
-                ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPortalHeader(bool isMobile, List<Student> filtered) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(32, 32, 32, 24),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "ACADEMIC PROMOTION",
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF9AB334),
+                    letterSpacing: 2.0,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Progression Audit Portal",
+                  style: TextStyle(
+                    fontSize: isMobile ? 20 : 26, 
+                    fontWeight: FontWeight.w900, 
+                    color: const Color(0xFF4C3C32), 
+                    letterSpacing: -0.5
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Authorized personnel only: Upgrade scholar cohorts for the new academic cycle.",
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade400, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          ),
+          if (!isMobile && filtered.isNotEmpty)
+            ElevatedButton.icon(
+              onPressed: _isLoading ? null : () => _promoteAllFiltered(filtered),
+              icon: const Icon(Icons.verified_user_rounded, size: 18),
+              label: const Text("PROMOTIONAL UPGRADE (BULK)"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFE05B1C),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
             ),
-          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPortalFilterToolbar(bool isMobile) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 32, vertical: 16),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFF3F4F6))),
+      ),
+      child: isMobile
+        ? Column(
+            children: [
+              _compactDropdown("Target Institution", _selectedSchool, _schoolOptions, (v) => setState(() => _selectedSchool = v!)),
+              const SizedBox(height: 12),
+              _compactDropdown("Cycle Year", _selectedYear, _yearOptions.isEmpty ? ['2026'] : _yearOptions, (v) => setState(() => _selectedYear = v!)),
+            ],
+          )
+        : Row(
+            children: [
+              SizedBox(
+                width: 320,
+                child: _compactDropdown("Target Institution", _selectedSchool, _schoolOptions, (v) => setState(() => _selectedSchool = v!)),
+              ),
+              const SizedBox(width: 16),
+              SizedBox(
+                width: 180,
+                child: _compactDropdown("Cycle Year", _selectedYear, _yearOptions.isEmpty ? ['2026'] : _yearOptions, (v) => setState(() => _selectedYear = v!)),
+              ),
+              const Spacer(),
+              _miniStat(Icons.info_outline_rounded, "Manual upgrade required per individual."),
+            ],
+          ),
+    );
+  }
+
+  Widget _miniStat(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Color(0xFF4C3C32).withOpacity(0.05),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: const Color(0xFF4C3C32)),
+          const SizedBox(width: 8),
+          Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF4C3C32))),
+        ],
+      ),
+    );
+  }
+
+  Widget _compactDropdown(String label, String value, List<String> items, ValueChanged<String?> onChanged) {
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          isExpanded: true,
+          icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Colors.grey),
+          items: items.map((i) => DropdownMenuItem(value: i, child: Text(i, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)))).toList(),
+          onChanged: onChanged,
         ),
       ),
     );
   }
 
-
-  InputDecoration _inputDeco(String label, IconData icon) {
-    return InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(icon, size: 20, color: kBrandBrown),
-      isDense: true,
-      filled: true,
-      fillColor: Colors.grey.shade50,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey.shade200)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: kBrandOlive, width: 2)),
+  Widget _buildPromotionCard(Student s, bool isMobile) {
+    const passed = true; // Business logic for promotion eligibility
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFAF2DB),
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                getInitials(s.name),
+                style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), fontSize: 14),
+              ),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              flex: 4,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    s.name.toUpperCase(),
+                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF4C3C32), letterSpacing: -0.2),
+                  ),
+                  const SizedBox(height: 4),
+                  Text("${s.schoolName} • CURRENT: ${s.currentClass}", 
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey.shade400)),
+                ],
+              ),
+            ),
+            if (!isMobile) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Color(0xFF9AB334).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.check_circle_rounded, size: 14, color: Color(0xFF9AB334)),
+                    SizedBox(width: 8),
+                    Text("ELIGIBLE FOR UPGRADE", 
+                      style: TextStyle(color: Color(0xFF9AB334), fontWeight: FontWeight.w900, fontSize: 9, letterSpacing: 0.5)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 24),
+            ],
+            ElevatedButton.icon(
+              onPressed: passed ? () => _promoteStudent(s) : null,
+              icon: const Icon(Icons.upgrade_rounded, size: 16),
+              label: const Text("PROMOTIONAL ACTION"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4C3C32),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                elevation: 0,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

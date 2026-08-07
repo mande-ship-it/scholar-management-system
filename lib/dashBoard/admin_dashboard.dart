@@ -110,110 +110,134 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
     final bool isMobile = MediaQuery.of(context).size.width < 950;
 
     return Container(
-      color: const Color(0xFFF4F6F5),
+      color: const Color(0xFFF8F9FA),
       width: double.infinity,
       height: double.infinity,
       child: SingleChildScrollView(
-        padding: EdgeInsets.all(isMobile ? 12 : 24),
+        padding: EdgeInsets.all(isMobile ? 12 : 32),
         physics: const BouncingScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (!isMobile) ...[
-              _buildAdminHeroHeader(isMobile),
-              const SizedBox(height: 24),
-            ],
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 1400),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (!isMobile) ...[
+                  _buildAdminPortalHeader(isMobile),
+                  const SizedBox(height: 32),
+                ],
 
-            // KPI Cards - Small and responsive
-            _buildKPISection(isMobile),
+                // KPI Cards - Small and responsive
+                _buildKPISection(isMobile),
 
-            const SizedBox(height: 24),
+                const SizedBox(height: 32),
 
-            // Multi-column row or vertical stack
-            LayoutBuilder(
-              builder: (context, constraints) {
-                if (isMobile) {
-                  return Column(
-                    children: [
-                      _buildUserDistributionCard(isMobile),
-                      const SizedBox(height: 16),
-                      _buildApprovalsDensityCard(isMobile),
-                      const SizedBox(height: 16),
-                      _buildActivityLogCard(isMobile),
-                      const SizedBox(height: 16),
-                      _buildDatabaseControlsCard(isMobile),
-                    ],
-                  );
-                }
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 4,
-                      child: Column(
+                // Multi-column row or vertical stack
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    if (isMobile) {
+                      return Column(
                         children: [
                           _buildUserDistributionCard(isMobile),
-                          const SizedBox(height: 24),
-                          _buildActivityLogCard(isMobile),
-                        ],
-                      )
-                    ),
-                    const SizedBox(width: 24),
-                    Expanded(
-                      flex: 3,
-                      child: Column(
-                        children: [
+                          const SizedBox(height: 16),
                           _buildApprovalsDensityCard(isMobile),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 16),
+                          _buildActivityLogCard(isMobile),
+                          const SizedBox(height: 16),
                           _buildDatabaseControlsCard(isMobile),
                         ],
-                      )
-                    ),
-                  ],
-                );
-              }
+                      );
+                    }
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 4,
+                          child: Column(
+                            children: [
+                              _buildUserDistributionCard(isMobile),
+                              const SizedBox(height: 32),
+                              _buildActivityLogCard(isMobile),
+                            ],
+                          )
+                        ),
+                        const SizedBox(width: 32),
+                        Expanded(
+                          flex: 3,
+                          child: Column(
+                            children: [
+                              _buildApprovalsDensityCard(isMobile),
+                              const SizedBox(height: 32),
+                              _buildDatabaseControlsCard(isMobile),
+                            ],
+                          )
+                        ),
+                      ],
+                    );
+                  }
+                ),
+                const SizedBox(height: 60),
+              ],
             ),
-            const SizedBox(height: 40),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildAdminHeroHeader(bool isMobile) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "ADMINISTRATIVE CONTROL",
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w900,
-                color: kBrandOlive,
-                letterSpacing: 2.0,
-              ),
+  Widget _buildAdminPortalHeader(bool isMobile) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "ADMINISTRATIVE GOVERNANCE",
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF9AB334),
+                    letterSpacing: 2.0,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  "System Intelligence Hub",
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF4C3C32),
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Real-time monitoring and administrative control panel for scholarly operations.",
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade400, fontWeight: FontWeight.w500),
+                ),
+              ],
             ),
-            const SizedBox(height: 4),
-            Text(
-              "System Intelligence",
-              style: TextStyle(
-                fontSize: isMobile ? 20 : 26,
-                fontWeight: FontWeight.w900,
-                color: kBrandBrown,
-                letterSpacing: -0.5,
-              ),
+          ),
+          IconButton.filledTonal(
+            onPressed: _loadDashboardData,
+            icon: const Icon(Icons.refresh_rounded, size: 20),
+            style: IconButton.styleFrom(
+              backgroundColor: Color(0xFF4C3C32).withOpacity(0.05),
+              foregroundColor: const Color(0xFF4C3C32)
             ),
-          ],
-        ),
-        IconButton.filled(
-          onPressed: _loadDashboardData,
-          icon: const Icon(Icons.refresh_rounded, size: 20),
-          style: IconButton.styleFrom(backgroundColor: kBrandBrown, foregroundColor: Colors.white),
-        )
-      ],
+          )
+        ],
+      ),
     );
   }
 
@@ -248,20 +272,20 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
   Widget _buildPortalCard(String label, String value, IconData icon, Color color, VoidCallback onTap) {
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(20),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         child: Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.shade200),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFEEEEEE)),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.02),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+                blurRadius: 15,
+                offset: const Offset(0, 5),
               ),
             ],
           ),
@@ -271,11 +295,11 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(icon, color: color, size: 28),
               ),
-              const SizedBox(width: 20),
+              const SizedBox(width: 24),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -286,7 +310,7 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
                       style: const TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.w900,
-                        color: kBrandBrown,
+                        color: Color(0xFF4C3C32),
                         letterSpacing: -1,
                       ),
                     ),
@@ -453,12 +477,12 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
       icon: _isBackingUp && label.contains("Backup") 
         ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
         : Icon(icon, size: 16),
-      label: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+      label: Text(label.toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
         foregroundColor: Colors.white,
-        minimumSize: const Size(double.infinity, 48),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        minimumSize: const Size(double.infinity, 56),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         elevation: 0,
       ),
     );

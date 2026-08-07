@@ -401,7 +401,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                   leading: Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF9AB334).withOpacity(0.1),
+                                      color: Color(0xFF9AB334).withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Icon(item.icon, color: const Color(0xFF4C3C32), size: 18),
@@ -972,7 +972,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF9AB334).withOpacity(0.08),
+                              color: Color(0xFF9AB334).withOpacity(0.08),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Row(

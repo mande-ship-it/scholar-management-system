@@ -199,7 +199,7 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: Padding(padding: EdgeInsets.all(50), child: CircularProgressIndicator(color: kBrandOlive)));
+      return const Center(child: Padding(padding: EdgeInsets.all(50), child: CircularProgressIndicator(color: Color(0xFF9AB334))));
     }
     
     if (_student == null) {
@@ -209,23 +209,15 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
     final bool isMobile = MediaQuery.of(context).size.width < 900;
 
     return Container(
-      color: const Color(0xFFF0F2F5), // Facebook-style background
+      color: const Color(0xFFF8F9FA),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (!isMobile) ...[
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: _buildHeader(_student!, _extraData, isMobile),
-            ),
-            const SizedBox(height: 24),
-          ],
+          _buildPortalHero(_student!, _extraData, isMobile),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 32),
-            child: _buildTabBar(isMobile),
+            padding: EdgeInsets.fromLTRB(isMobile ? 12 : 32, 24, isMobile ? 12 : 32, 16),
+            child: _buildPortalTabBar(isMobile),
           ),
-          const SizedBox(height: 16),
           Expanded(
             child: SingleChildScrollView(
               padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 32),
@@ -237,157 +229,163 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
     );
   }
 
-  Widget _buildHeader(Student student, Map<String, dynamic>? args, bool isMobile) {
+  Widget _buildPortalHero(Student student, Map<String, dynamic>? args, bool isMobile) {
     final String status = args?['status'] ?? 'Active';
     final bool isActive = status == 'Active';
 
-    if (isMobile) {
-      return Column(
-        children: [
-          Row(
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isMobile ? 24 : 40),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: isMobile
+        ? Column(
             children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: kBrandOlive.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  student.name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join(''),
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kBrandOlive),
-                ),
+              _heroAvatar(student, 70),
+              const SizedBox(height: 20),
+              Text(student.name.toUpperCase(), 
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), letterSpacing: -0.5)),
+              const SizedBox(height: 8),
+              _heroBadges(student, status, isActive),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _portalActionBtn(Icons.auto_awesome, "ASK AI", const Color(0xFF9AB334), () => Scaffold.of(context).openEndDrawer()),
+                  const SizedBox(width: 12),
+                  _portalActionBtn(Icons.edit_outlined, "EDIT", const Color(0xFF4C3C32), () {
+                    final scholarMap = _getScholarMap(student);
+                    showEditScholarDialog(context, scholarMap).then((_) => _fetchScholarData(student.id, null));
+                  }),
+                ],
               ),
-              const SizedBox(width: 16),
+            ],
+          )
+        : Row(
+            children: [
+              _heroAvatar(student, 90),
+              const SizedBox(width: 32),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(student.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                    const SizedBox(height: 4),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _badge("ID: ${student.scholarId}", Colors.grey.shade100, Colors.grey.shade600),
-                        _badge(status, isActive ? Colors.green.shade50 : Colors.red.shade50, isActive ? Colors.green.shade700 : Colors.red.shade700),
-                        if (student.flag != null)
-                          _badge(student.flag!, Colors.orange.shade50, Colors.orange.shade900),
-                      ],
-                    ),
+                    Text(student.name.toUpperCase(), 
+                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), letterSpacing: -1)),
+                    const SizedBox(height: 8),
+                    _heroBadges(student, status, isActive),
                   ],
                 ),
               ),
+              const SizedBox(width: 40),
+              _portalActionBtn(Icons.auto_awesome, "AI ASSISTANT", const Color(0xFF9AB334), () => Scaffold.of(context).openEndDrawer()),
+              const SizedBox(width: 16),
+              if (['Administrator', 'Program Coordinator', 'Country Director'].contains(_userRole)) ...[
+                _portalActionBtn(Icons.edit_outlined, "MODIFY PROFILE", const Color(0xFF4C3C32), () {
+                  final scholarMap = _getScholarMap(student);
+                  showEditScholarDialog(context, scholarMap).then((_) => _fetchScholarData(student.id, null));
+                }),
+                const SizedBox(width: 16),
+                _portalActionBtn(Icons.delete_outline_rounded, "ARCHIVE", const Color(0xFFE05B1C), _deleteScholar, isOutlined: true),
+              ],
             ],
           ),
-          const SizedBox(height: 20),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _headerActionBtn(Icons.auto_awesome_rounded, "Ask AI", kBrandOlive, () => Scaffold.of(context).openEndDrawer()),
-                if (['Administrator', 'Program Coordinator', 'Country Director'].contains(_userRole)) ...[
-                  const SizedBox(width: 8),
-                  _headerActionBtn(Icons.edit_outlined, "Edit", kBrandBrown, () {
-                    final scholarMap = _getScholarMap(student);
-                    showEditScholarDialog(context, scholarMap).then((_) => _fetchScholarData(student.id, null));
-                  }),
-                  const SizedBox(width: 8),
-                  _headerActionBtn(Icons.delete_outline_rounded, "Delete", Colors.red, _deleteScholar, isOutlined: true),
-                ],
-              ],
-            ),
-          ),
-        ],
+    );
+  }
+
+  Widget _heroAvatar(Student student, double size) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAF2DB),
+        shape: BoxShape.circle,
+        border: Border.all(color: Color(0xFF9AB334).withOpacity(0.3), width: 4),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        getInitials(student.name),
+        style: TextStyle(fontSize: size * 0.35, fontWeight: FontWeight.w900, color: const Color(0xFF4C3C32)),
+      ),
+    );
+  }
+
+  Widget _heroBadges(Student student, String status, bool isActive) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _badge("SCHOLAR ID: ${student.scholarId}", Colors.grey.shade100, Colors.grey.shade600),
+        _badge(status, isActive ? Color(0xFF9AB334).withOpacity(0.1) : Color(0xFFE05B1C).withOpacity(0.1), 
+               isActive ? const Color(0xFF9AB334) : const Color(0xFFE05B1C)),
+        if (student.flag != null)
+          _badge(student.flag!.toUpperCase(), Color(0xFFE05B1C).withOpacity(0.1), Color(0xFFE05B1C)),
+      ],
+    );
+  }
+
+  Widget _portalActionBtn(IconData icon, String label, Color color, VoidCallback onTap, {bool isOutlined = false}) {
+    if (isOutlined) {
+      return OutlinedButton.icon(
+        onPressed: onTap,
+        icon: Icon(icon, size: 16),
+        label: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: color,
+          side: BorderSide(color: color, width: 1.5),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
       );
     }
+    return ElevatedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 16),
+      label: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
 
+  Widget _buildPortalTabBar(bool isMobile) {
+    final items = ["OVERVIEW", "ACADEMIC TRANSCRIPT", "PROGRESSION LEDGER"];
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
       child: Row(
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: kBrandOlive.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              student.name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join(''),
-              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: kBrandOlive),
-            ),
-          ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(student.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    _badge("Scholar ID: ${student.scholarId}", Colors.grey.shade100, Colors.grey.shade600),
-                    const SizedBox(width: 8),
-                    _badge(status, isActive ? Colors.green.shade50 : Colors.red.shade50, isActive ? Colors.green.shade700 : Colors.red.shade700),
-                    if (student.flag != null) ...[
-                      const SizedBox(width: 8),
-                      _badge(student.flag!, Colors.orange.shade50, Colors.orange.shade900),
-                    ],
-                  ],
+        children: List.generate(items.length, (index) {
+          final isSelected = _selectedTab == index;
+          return Padding(
+            padding: const EdgeInsets.only(right: 32),
+            child: InkWell(
+              onTap: () => setState(() => _selectedTab = index),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                decoration: BoxDecoration(
+                  border: isSelected ? const Border(bottom: BorderSide(color: Color(0xFF9AB334), width: 3)) : null,
                 ),
-              ],
-            ),
-          ),
-          OutlinedButton.icon(
-            onPressed: () {
-              Scaffold.of(context).openEndDrawer();
-            },
-            icon: const Icon(Icons.auto_awesome_rounded, size: 18),
-            label: const Text("Ask AI"),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: kBrandOlive,
-              side: const BorderSide(color: kBrandOlive),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            ),
-          ),
-          const SizedBox(width: 12),
-          if (['Administrator', 'Program Coordinator', 'Country Director'].contains(_userRole))
-            OutlinedButton.icon(
-              onPressed: _deleteScholar,
-              icon: const Icon(Icons.delete_outline_rounded, size: 18),
-              label: const Text("Delete"),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.red,
-                side: const BorderSide(color: Colors.red),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Text(
+                  items[index],
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+                    color: isSelected ? const Color(0xFF4C3C32) : Colors.grey,
+                    letterSpacing: 1,
+                  ),
+                ),
               ),
             ),
-          if (['Administrator', 'Program Coordinator', 'Country Director'].contains(_userRole))
-            const SizedBox(width: 12),
-          if (['Administrator', 'Program Coordinator', 'Country Director'].contains(_userRole))
-            ElevatedButton.icon(
-              onPressed: () {
-              final scholarMap = _getScholarMap(student);
-              showEditScholarDialog(context, scholarMap).then((_) {
-                _fetchScholarData(student.id, null);
-              });
-            },
-            icon: const Icon(Icons.edit_outlined, size: 18),
-            label: const Text("Edit"),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kBrandBrown,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            ),
-          ),
-        ],
+          );
+        }),
       ),
     );
   }
@@ -906,23 +904,45 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
   Widget _infoSection({required String title, required IconData icon, required Widget child, bool isMobile = false}) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(isMobile ? 16 : 24),
+      padding: EdgeInsets.all(isMobile ? 20 : 32),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: isMobile ? 18 : 20, color: kBrandOlive),
-              const SizedBox(width: 12),
-              Text(title, style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.bold, color: kBrandBrown)),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Color(0xFF9AB334).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, size: 20, color: const Color(0xFF9AB334)),
+              ),
+              const SizedBox(width: 16),
+              Text(
+                title.toUpperCase(), 
+                style: const TextStyle(
+                  fontSize: 12, 
+                  fontWeight: FontWeight.w900, 
+                  color: Color(0xFF4C3C32), 
+                  letterSpacing: 1.0
+                )
+              ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
           child,
         ],
       ),
@@ -933,26 +953,44 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(color: Colors.grey.shade500, fontSize: 11, fontWeight: FontWeight.w500)),
-        const SizedBox(height: 4),
-        Text(value, style: TextStyle(fontSize: isBold ? 16 : 14, fontWeight: isBold ? FontWeight.bold : FontWeight.w600, color: kBrandBrown)),
+        Text(
+          label.toUpperCase(), 
+          style: TextStyle(color: Colors.grey.shade400, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.0)
+        ),
+        const SizedBox(height: 6),
+        Text(
+          value, 
+          style: TextStyle(
+            fontSize: isBold ? 16 : 14, 
+            fontWeight: isBold ? FontWeight.w900 : FontWeight.w700, 
+            color: const Color(0xFF4C3C32),
+            letterSpacing: -0.2
+          )
+        ),
       ],
     );
   }
 
   Widget _infoRow(IconData icon, String label, String value) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
+      padding: const EdgeInsets.only(bottom: 24.0),
       child: Row(
         children: [
-          Icon(icon, size: 16, color: Colors.grey.shade400),
-          const SizedBox(width: 12),
+          Icon(icon, size: 18, color: Colors.grey.shade300),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: TextStyle(color: Colors.grey.shade500, fontSize: 10, fontWeight: FontWeight.bold)),
-                Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kBrandBrown)),
+                Text(
+                  label.toUpperCase(), 
+                  style: TextStyle(color: Colors.grey.shade400, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1.0)
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value, 
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF4C3C32))
+                ),
               ],
             ),
           ),

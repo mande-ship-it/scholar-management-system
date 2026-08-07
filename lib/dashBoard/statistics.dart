@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:scholar_management_system/services/api_service.dart';
-import '../academics/academics_utils.dart';
-import 'districts_map.dart';
 
 class StatisticsComponent extends StatefulWidget {
   final String level; // 'University' or 'Secondary'
@@ -17,11 +15,7 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
   Map<String, dynamic>? _data;
   String? _selectedRiskSchool;
 
-  // Colors from Professional Prototype
-  static const Color primaryDark = Color(0xFF1B5E20);
   static const Color primary = Color(0xFF2E7D32);
-  static const Color primaryLight = Color(0xFF66BB6A);
-  static const Color primaryPale = Color(0xFFE8F5E9);
   static const Color textPrimary = Color(0xFF1C2B20);
   static const Color textSecondary = Color(0xFF6B7A6E);
   static const Color dividerColor = Color(0xFFE1E8E3);
@@ -55,7 +49,9 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
       if (response.statusCode == 200 && mounted) {
         setState(() {
           _data = response.data['data'];
-          _selectedRiskSchool = (_data!['schools'] as List).isNotEmpty ? _data!['schools'][0]['name'] : null;
+          if (_data != null && (_data!['schools'] as List).isNotEmpty) {
+            _selectedRiskSchool = _data!['schools'][0]['name'];
+          }
           _isLoading = false;
         });
       }
@@ -73,16 +69,16 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
     final bool isMobile = MediaQuery.of(context).size.width < 900;
 
     return Container(
-      color: Colors.transparent, // Background handled by parent
+      color: Colors.transparent, 
       child: Column(
         children: [
-          _buildStatsGrid(isMobile),
-          const SizedBox(height: 20),
+          _buildPortalSummaryGrid(isMobile),
+          const SizedBox(height: 32),
           if (isMobile)
             Column(
               children: [
                 _buildCohortCard(isMobile),
-                const SizedBox(height: 20),
+                const SizedBox(height: 32),
                 _buildRegionCard(isMobile),
               ],
             )
@@ -91,16 +87,101 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Expanded(flex: 3, child: _buildCohortCard(isMobile)),
-                const SizedBox(width: 20),
+                const SizedBox(width: 32),
                 Expanded(flex: 2, child: _buildRegionCard(isMobile)),
               ],
             ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 32),
           _buildPerformanceTrendCard(isMobile),
-          const SizedBox(height: 20),
+          const SizedBox(height: 32),
           _buildRiskIndicatorCard(isMobile),
-          const SizedBox(height: 20),
+          const SizedBox(height: 32),
           _buildEngagementImpactCard(isMobile),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPortalSummaryGrid(bool isMobile) {
+    final summary = _data!['summary'] as List;
+    if (isMobile) {
+      return Column(
+        children: [
+          _portalSummaryCard(summary[0], chartColors[0]),
+          const SizedBox(height: 16),
+          _portalSummaryCard(summary[1], chartColors[1]),
+          const SizedBox(height: 16),
+          _portalSummaryCard(summary[2], chartColors[2]),
+          const SizedBox(height: 16),
+          _portalSummaryCard(summary[3], chartColors[3]),
+        ],
+      );
+    }
+
+    return Row(
+      children: summary.map((item) {
+        final int index = summary.indexOf(item);
+        final Color color = chartColors[index % chartColors.length];
+        return Expanded(child: Padding(
+          padding: EdgeInsets.only(right: index == summary.length - 1 ? 0 : 24),
+          child: _portalSummaryCard(item, color),
+        ));
+      }).toList(),
+    );
+  }
+
+  Widget _portalSummaryCard(dynamic item, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(_getIcon(item['icon']), color: color, size: 28),
+          ),
+          const SizedBox(width: 24),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "${item['value']}", 
+                  style: const TextStyle(
+                    fontSize: 26, 
+                    fontWeight: FontWeight.w900, 
+                    color: Color(0xFF4C3C32), 
+                    letterSpacing: -1
+                  ),
+                ),
+                Text(
+                  item['label'].toString().toUpperCase(), 
+                  style: TextStyle(
+                    fontSize: 10, 
+                    fontWeight: FontWeight.w900, 
+                    color: Colors.grey.shade400, 
+                    letterSpacing: 1.0
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -126,8 +207,8 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                    child: const Icon(Icons.location_city_rounded, size: 16, color: kBrandOlive),
+                    decoration: BoxDecoration(color: Color(0xFF9AB334).withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                    child: const Icon(Icons.location_city_rounded, size: 16, color: Color(0xFF9AB334)),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -135,11 +216,11 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(r['region'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textPrimary)),
-                        Text("Active Partnerships", style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w600)),
+                        const Text("Active Partnerships", style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w600)),
                       ],
                     ),
                   ),
-                  Text("${r['count']}", style: const TextStyle(fontWeight: FontWeight.w900, color: kBrandBrown, fontSize: 18)),
+                  Text("${r['count']}", style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), fontSize: 18)),
                 ],
               ),
             )).toList(),
@@ -151,7 +232,7 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
               icon: const Icon(Icons.map_outlined, size: 16),
               label: const Text("VIEW INTERACTIVE MAP", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.8)),
               style: OutlinedButton.styleFrom(
-                foregroundColor: kBrandBrown,
+                foregroundColor: const Color(0xFF4C3C32),
                 side: const BorderSide(color: dividerColor, width: 1.5),
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -161,100 +242,6 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
         ],
       ),
     );
-  }
-
-  Widget _buildStatsGrid(bool isMobile) {
-    final summary = _data!['summary'] as List;
-    if (isMobile) {
-      return Column(
-        children: [
-          Row(
-            children: [
-              _summaryCard(summary[0], chartColors[0], true),
-              const SizedBox(width: 12),
-              _summaryCard(summary[1], chartColors[1], true),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _summaryCard(summary[2], chartColors[2], true),
-              const SizedBox(width: 12),
-              _summaryCard(summary[3], chartColors[3], true),
-            ],
-          ),
-        ],
-      );
-    }
-
-    return Row(
-      children: summary.map((item) {
-        final int index = summary.indexOf(item);
-        final Color color = chartColors[index % chartColors.length];
-        return _summaryCard(item, color, true);
-      }).toList(),
-    );
-  }
-
-  Widget _summaryCard(dynamic item, Color color, bool isExpanded) {
-    Widget content = Container(
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(_getIcon(item['icon']), color: color, size: 28),
-          ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  "${item['value']}", 
-                  style: const TextStyle(
-                    fontSize: 26, 
-                    fontWeight: FontWeight.w900, 
-                    color: Color(0xFF4C3C32), 
-                    letterSpacing: -1
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  item['label'].toString().toUpperCase(), 
-                  style: TextStyle(
-                    fontSize: 10, 
-                    fontWeight: FontWeight.w900, 
-                    color: Colors.grey.shade400, 
-                    letterSpacing: 1.0
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-
-    return isExpanded ? Expanded(child: content) : content;
   }
 
   Widget _buildCohortCard(bool isMobile) {
@@ -332,7 +319,7 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
     final school = schools.firstWhere((s) => s['name'] == _selectedRiskSchool, orElse: () => schools[0]);
 
     final Color rColor = _getRiskColor(school['level']);
-    final String rLabel = school['level'].toString().toUpperCase() + " PRIORITY";
+    final String rLabel = "${school['level'].toString().toUpperCase()} PRIORITY";
 
     return _DashboardCard(
       title: "Institutional Oversight",
@@ -548,7 +535,7 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
     );
   }
 
-  Widget _buildChartLegend(List<({String label, Color color})> items) {
+  Widget _buildChartLegend(List<dynamic> items) {
     return Wrap(
       spacing: 20, runSpacing: 10,
       children: items.map((i) => Row(

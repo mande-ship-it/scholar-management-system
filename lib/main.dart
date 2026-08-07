@@ -167,7 +167,7 @@ class MyApp extends StatelessWidget {
               brightness: Brightness.dark,
             ),
           ),
-          initialRoute: '/splash',
+          initialRoute: '/login',
           routes: {
             '/': (context) => const SplashScreen(),
             '/splash': (context) => const SplashScreen(),
