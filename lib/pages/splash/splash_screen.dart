@@ -51,13 +51,16 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             // Initialize Permissions
             PermissionService.init(userData);
 
-            final String role = userData['role_name'] ?? 'Staff';
+            final String role = userData['role_name'] ?? userData['role'] ?? 'Staff';
             final String normalizedRole = role.trim().toLowerCase();
 
             String targetRoute = '/home';
+            // 1. Strict Administrator -> Admin Portal
             if (normalizedRole == 'administrator') {
               targetRoute = '/admin/home';
-            } else if ([
+            }
+            // 2. Field Operations Group -> Field Operations Portal
+            else if ([
               'field officer',
               'field coordinator',
               'field operations',
@@ -65,6 +68,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             ].contains(normalizedRole)) {
               targetRoute = '/field-operations/home';
             }
+            // 3. All other roles (Country Director, Program Coordinator, etc.) -> General Dashboard (/home)
 
             Navigator.pushReplacementNamed(
               context,

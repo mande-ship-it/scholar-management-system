@@ -121,6 +121,7 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
           if (mounted) {
             setState(() => _isLoading = false);
             
+            // Role-based Navigation Logic
             final String role = userData['role'] ?? userData['role_name'] ?? 'User';
             final String normalizedRole = role.trim().toLowerCase();
 
@@ -129,31 +130,35 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
               return;
             }
 
-            final bool hasAdminAccess = [
-              'administrator', 'program manager', 'program coordinator', 'country director'
-            ].contains(normalizedRole);
+            // 1. Strict Administrator -> Admin Portal
+            final bool isStrictAdmin = normalizedRole == 'administrator';
 
+            // 2. Field Operations Group -> Field Operations Portal
             final bool isFieldOfficer = [
-              'field officer', 'field coordinator', 'field operations'
+              'field officer', 'field coordinator', 'field operations', 'operational officer'
             ].contains(normalizedRole);
 
-            if (hasAdminAccess) {
+            if (isStrictAdmin) {
+              debugPrint('LOGIN: Routing to Admin Portal...');
               Navigator.pushReplacementNamed(context, '/admin/home', arguments: {
-                'username': userData['fullName'] ?? _usernameController.text.trim(),
+                'username': userData['fullName'] ?? userData['full_name'] ?? _usernameController.text.trim(),
                 'role': role,
-                'profilePicture': userData['profilePicture'],
+                'profilePicture': userData['profilePicture'] ?? userData['profile_picture'],
               });
             } else if (isFieldOfficer) {
+              debugPrint('LOGIN: Routing to Field Operations Portal...');
               Navigator.pushReplacementNamed(context, '/field-operations/home', arguments: {
-                'username': userData['fullName'] ?? _usernameController.text.trim(),
+                'username': userData['fullName'] ?? userData['full_name'] ?? _usernameController.text.trim(),
                 'role': role,
-                'profilePicture': userData['profilePicture'],
+                'profilePicture': userData['profilePicture'] ?? userData['profile_picture'],
               });
             } else {
+              // Country Director, Program Coordinator, and others -> General Dashboard
+              debugPrint('LOGIN: Routing to General Dashboard...');
               Navigator.pushReplacementNamed(context, '/home', arguments: {
-                'username': userData['fullName'] ?? _usernameController.text.trim(),
+                'username': userData['fullName'] ?? userData['full_name'] ?? _usernameController.text.trim(),
                 'role': role,
-                'profilePicture': userData['profilePicture'],
+                'profilePicture': userData['profilePicture'] ?? userData['profile_picture'],
               });
             }
           }
