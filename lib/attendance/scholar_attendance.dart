@@ -328,7 +328,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _isFieldOfficer ? "Session Telemetry Management" : "Historical Attendance Audit",
+                  _isFieldOfficer ? "Session Telemetry" : "Attendance Audit",
                   style: TextStyle(
                     fontSize: isMobile ? 14 : 16, 
                     fontWeight: FontWeight.w900, 
@@ -339,22 +339,30 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
               ],
             ),
           ),
-          if (_entries.isNotEmpty && _isFieldOfficer && !isMobile)
-            ElevatedButton.icon(
-              onPressed: () {
-                setState(() {
-                  for (var e in _entries) e.status = AttendanceStatus.present;
-                });
-              },
-              icon: const Icon(Icons.done_all_rounded, size: 16),
-              label: const Text("MARK ALL PRESENT"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF9AB334),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-            ),
+          if (_entries.isNotEmpty && _isFieldOfficer)
+            isMobile 
+              ? IconButton(
+                  onPressed: () => setState(() {
+                    for (var e in _entries) e.status = AttendanceStatus.present;
+                  }),
+                  icon: const Icon(Icons.done_all_rounded, color: Color(0xFF9AB334)),
+                  tooltip: "Mark All Present",
+                )
+              : ElevatedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      for (var e in _entries) e.status = AttendanceStatus.present;
+                    });
+                  },
+                  icon: const Icon(Icons.done_all_rounded, size: 16),
+                  label: const Text("MARK ALL PRESENT"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF9AB334),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
         ],
       ),
     );
@@ -712,44 +720,78 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   Widget _buildPortalFixedFooter(bool isMobile) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 16 : 40, 
+        vertical: isMobile ? 12 : 20
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         border: const Border(top: BorderSide(color: Color(0xFFEEEEEE))),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, -5))],
       ),
-      child: Row(
-        children: [
-          const Icon(Icons.info_outline_rounded, color: Color(0xFF4C3C32), size: 24),
-          const SizedBox(width: 20),
-          const Expanded(
-            child: Text(
-              "AUDIT DECLARATION: By authorizing, you certify that the session telemetry recorded is accurate and reflects actual engagement.",
-              style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600, height: 1.5),
-            ),
-          ),
-          const SizedBox(width: 32),
-          if (_isFieldOfficer)
-            SizedBox(
-              width: 280,
-              child: ElevatedButton.icon(
-                onPressed: _isSaving ? null : _saveRegister,
-                icon: _isSaving 
-                    ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) 
-                    : const Icon(Icons.cloud_upload_rounded, size: 18),
-                label: Text(_isSaving ? "SYNCHRONIZING..." : "FINALIZE & SYNC REGISTER", 
-                  style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  backgroundColor: const Color(0xFF4C3C32),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: isMobile 
+        ? Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "AUDIT DECLARATION: Securely synchronize recorded telemetry.",
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 12),
+              if (_isFieldOfficer)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _isSaving ? null : _saveRegister,
+                    icon: _isSaving 
+                        ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) 
+                        : const Icon(Icons.cloud_upload_rounded, size: 18),
+                    label: Text(_isSaving ? "SYNCING..." : "FINALIZE & SYNC", 
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: const Color(0xFF4C3C32),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ),
+            ],
+          )
+        : Row(
+            children: [
+              const Icon(Icons.info_outline_rounded, color: Color(0xFF4C3C32), size: 24),
+              const SizedBox(width: 20),
+              const Expanded(
+                child: Text(
+                  "AUDIT DECLARATION: By authorizing, you certify that the session telemetry recorded is accurate and reflects actual engagement.",
+                  style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600, height: 1.5),
                 ),
               ),
-            ),
-        ],
-      ),
+              const SizedBox(width: 32),
+              if (_isFieldOfficer)
+                SizedBox(
+                  width: 280,
+                  child: ElevatedButton.icon(
+                    onPressed: _isSaving ? null : _saveRegister,
+                    icon: _isSaving 
+                        ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) 
+                        : const Icon(Icons.cloud_upload_rounded, size: 18),
+                    label: Text(_isSaving ? "SYNCHRONIZING..." : "FINALIZE & SYNC REGISTER", 
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      backgroundColor: const Color(0xFF4C3C32),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ),
+            ],
+          ),
     );
   }
 

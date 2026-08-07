@@ -121,7 +121,10 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
   Widget _buildPortalHeader(bool isSmallScreen) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(32, 20, 32, 20),
+      padding: EdgeInsets.symmetric(
+        horizontal: isSmallScreen ? 16 : 32, 
+        vertical: isSmallScreen ? 12 : 20
+      ),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
@@ -133,12 +136,13 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("PROGRAM ANALYTICS", 
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF9AB334), letterSpacing: 1.5)),
-                const SizedBox(height: 4),
-                Text("$_selectedLevel Intelligence Dashboard", 
-                  style: const TextStyle(
-                    fontSize: 22,
+                Text("PROGRAM ANALYTICS", 
+                  style: TextStyle(fontSize: isSmallScreen ? 8 : 10, fontWeight: FontWeight.w900, color: Color(0xFF9AB334), letterSpacing: 1.5)),
+                const SizedBox(height: 2),
+                Text("$_selectedLevel Intelligence", 
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: isSmallScreen ? 16 : 22,
                     fontWeight: FontWeight.w900,
                     color: Color(0xFF4C3C32),
                     letterSpacing: -0.5
@@ -146,12 +150,13 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
               ],
             ),
           ),
+          const SizedBox(width: 8),
           Row(
             children: [
               if (!isSmallScreen) _buildLevelToggle(false),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               _buildAIQuickAccess(),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               _buildStatusApprovalIndicator(),
             ],
           ),
@@ -288,7 +293,7 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
         crossAxisCount: isSmallScreen ? 2 : 4,
         crossAxisSpacing: isSmallScreen ? 12 : 20,
         mainAxisSpacing: isSmallScreen ? 12 : 20,
-        childAspectRatio: isSmallScreen ? 1.3 : 1.6,
+        childAspectRatio: isSmallScreen ? 1.1 : 1.6,
       ),
       itemCount: actions.length,
       itemBuilder: (context, i) => _buildPortalActionCard(
@@ -304,7 +309,7 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
   Widget _buildPortalActionCard(String label, IconData icon, Color color, String target, bool isSmallScreen) {
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(16),
       child: InkWell(
         onTap: () {
           if (target == "Scholar Attendance") {
@@ -316,11 +321,11 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
             widget.onNavigate?.call(target);
           }
         },
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(isSmallScreen ? 16 : 24),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: const Color(0xFFEEEEEE)),
             boxShadow: [
               BoxShadow(
@@ -330,30 +335,60 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
               ),
             ],
           ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: color, size: 24),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Text(
-                  label.toUpperCase(),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF4C3C32),
-                    letterSpacing: -0.2,
+          child: isSmallScreen 
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(icon, color: color, size: 20),
                   ),
-                ),
+                  const SizedBox(height: 12),
+                  Flexible(
+                    child: Text(
+                      label.toUpperCase(),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF4C3C32),
+                        letterSpacing: -0.2,
+                        height: 1.1,
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(icon, color: color, size: 24),
+                  ),
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: Text(
+                      label.toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF4C3C32),
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
         ),
       ),
     );
@@ -361,7 +396,7 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
 
   Widget _buildAdminExecutivePanel(bool isSmallScreen) {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(isSmallScreen ? 20 : 32),
       decoration: BoxDecoration(
         color: const Color(0xFF4C3C32),
         borderRadius: BorderRadius.circular(24),
@@ -370,80 +405,130 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("SYSTEM CONTROL CENTER",
-                      style: TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2.0)),
-                    SizedBox(height: 6),
-                    Text("Executive Operations Overview",
-                      style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
-                  ],
-                ),
+          isSmallScreen 
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("SYSTEM CONTROL CENTER",
+                    style: TextStyle(color: Colors.white60, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 2.0)),
+                  const SizedBox(height: 6),
+                  const Text("Executive Operations",
+                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => widget.onNavigate?.call("Pending Approvals"),
+                      icon: const Icon(Icons.rule_folder_rounded, size: 14),
+                      label: const Text("ACCESS REGISTRY", style: TextStyle(fontSize: 12)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF9AB334),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("SYSTEM CONTROL CENTER",
+                          style: TextStyle(color: Colors.white60, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2.0)),
+                        SizedBox(height: 6),
+                        Text("Executive Operations Overview",
+                          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                      ],
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () => widget.onNavigate?.call("Pending Approvals"),
+                    icon: const Icon(Icons.rule_folder_rounded, size: 16),
+                    label: const Text("ACCESS REGISTRY"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF9AB334),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                    ),
+                  ),
+                ],
               ),
-              ElevatedButton.icon(
-                onPressed: () => widget.onNavigate?.call("Pending Approvals"),
-                icon: const Icon(Icons.rule_folder_rounded, size: 16),
-                label: const Text("ACCESS REGISTRY"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF9AB334),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  elevation: 0,
-                ),
+          SizedBox(height: isSmallScreen ? 24 : 40),
+          isSmallScreen 
+            ? GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 2.2,
+                children: [
+                  _adminExecutiveStat("Pending", _pendingCount.toString(), Icons.pending_actions_rounded, true),
+                  _adminExecutiveStat("Security", "Secured", Icons.verified_user_rounded, true),
+                  _adminExecutiveStat("Continuity", "Healthy", Icons.cloud_done_rounded, true),
+                  _adminExecutiveStat("Confidence", "98%", Icons.psychology_rounded, true),
+                ],
+              )
+            : Row(
+                children: [
+                  _adminExecutiveStat("Pending", _pendingCount.toString(), Icons.pending_actions_rounded, false),
+                  const SizedBox(width: 24),
+                  _adminExecutiveStat("Security", "Secured", Icons.verified_user_rounded, false),
+                  const SizedBox(width: 24),
+                  _adminExecutiveStat("Continuity", "Healthy", Icons.cloud_done_rounded, false),
+                  const SizedBox(width: 24),
+                  _adminExecutiveStat("Confidence", "98%", Icons.psychology_rounded, false),
+                ],
               ),
-            ],
-          ),
-          const SizedBox(height: 40),
-          Row(
-            children: [
-              _adminExecutiveStat("Pending", _pendingCount.toString(), Icons.pending_actions_rounded),
-              const SizedBox(width: 24),
-              _adminExecutiveStat("Security", "Secured", Icons.verified_user_rounded),
-              const SizedBox(width: 24),
-              _adminExecutiveStat("Continuity", "Healthy", Icons.cloud_done_rounded),
-              const SizedBox(width: 24),
-              _adminExecutiveStat("Confidence", "98%", Icons.psychology_rounded),
-            ],
-          ),
         ],
       ),
     );
   }
 
-  Widget _adminExecutiveStat(String label, String value, IconData icon) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.08)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-              child: Icon(icon, color: Colors.white, size: 18),
+  Widget _adminExecutiveStat(String label, String value, IconData icon, bool isSmall) {
+    final content = _buildStatContainer(label, value, icon, isSmall);
+    return isSmall ? content : Expanded(child: content);
+  }
+
+  Widget _buildStatContainer(String label, String value, IconData icon, bool isSmall) {
+    return Container(
+      padding: EdgeInsets.all(isSmall ? 12 : 20),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+            child: Icon(icon, color: Colors.white, size: isSmall ? 14 : 18),
+          ),
+          SizedBox(width: isSmall ? 8 : 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(value, 
+                  style: TextStyle(color: Colors.white, fontSize: isSmall ? 14 : 18, fontWeight: FontWeight.w900, letterSpacing: -0.5), 
+                  overflow: TextOverflow.ellipsis),
+                Text(label.toUpperCase(), 
+                  style: TextStyle(color: Colors.white38, fontSize: isSmall ? 7 : 9, fontWeight: FontWeight.w900, letterSpacing: 1.0), 
+                  overflow: TextOverflow.ellipsis),
+              ],
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(value, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -0.5), overflow: TextOverflow.ellipsis),
-                  Text(label.toUpperCase(), style: const TextStyle(color: Colors.white38, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1.0), overflow: TextOverflow.ellipsis),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

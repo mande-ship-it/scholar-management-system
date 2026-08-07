@@ -305,6 +305,22 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
     ];
   }
 
+  void _navigateToSubItem(String title) {
+    for (int i = 0; i < _categories.length; i++) {
+      for (int j = 0; j < _categories[i].subItems.length; j++) {
+        if (_categories[i].subItems[j].title == title) {
+          setState(() {
+            _navigationHistory.clear();
+            _currentDetailScholarId = null;
+            activeCategoryIndex = i;
+            activeSubIndex = j;
+          });
+          return;
+        }
+      }
+    }
+  }
+
   void _pushSubItem(String title) {
     for (int i = 0; i < _categories.length; i++) {
       for (int j = 0; j < _categories[i].subItems.length; j++) {
@@ -416,20 +432,58 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
             }
           }),
           if (!isMobile) const SizedBox(width: 20),
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: kBrandCream,
-            child: ClipOval(
-              child: _profileImageUrl != null
-                  ? Image.network(
-                      ApiService.getFullUrl(_profileImageUrl),
-                      fit: BoxFit.cover,
-                      width: 36,
-                      height: 36,
-                      errorBuilder: (context, error, stackTrace) =>
-                          const Icon(Icons.person, color: kBrandBrown, size: 20),
-                    )
-                  : const Icon(Icons.person, color: kBrandBrown, size: 20),
+          Padding(
+            padding: const EdgeInsets.only(right: 20),
+            child: PopupMenuButton<String>(
+              offset: const Offset(0, 48),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              onSelected: (value) {
+                if (value == 'profile') {
+                  _navigateToSubItem("User Profile");
+                } else if (value == 'logout') {
+                  ApiService.logout();
+                  Navigator.pushReplacementNamed(context, '/login');
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'profile',
+                  child: Row(
+                    children: [
+                      Icon(Icons.person_outline, size: 20, color: kBrandBrown),
+                      SizedBox(width: 12),
+                      Text("View Profile", style: TextStyle(fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+                const PopupMenuDivider(),
+                const PopupMenuItem(
+                  value: 'logout',
+                  child: Row(
+                    children: [
+                      Icon(Icons.logout_rounded, size: 20, color: Colors.redAccent),
+                      SizedBox(width: 12),
+                      Text("Logout", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ],
+              child: CircleAvatar(
+                radius: 18,
+                backgroundColor: kBrandCream,
+                child: ClipOval(
+                  child: _profileImageUrl != null
+                      ? Image.network(
+                          ApiService.getFullUrl(_profileImageUrl),
+                          fit: BoxFit.cover,
+                          width: 36,
+                          height: 36,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(Icons.person, color: kBrandBrown, size: 20),
+                        )
+                      : const Icon(Icons.person, color: kBrandBrown, size: 20),
+                ),
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -512,20 +566,16 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
   }
 
   Widget _buildSidebar({bool isDrawer = false}) {
-    const Color brandBrown = Color(0xFF4C3C32);
-    const Color brandCream = Color(0xFFFAF2DB);
-    const Color brandCreamDark = Color(0xFFF3E7C4);
-    const Color brandOlive = Color(0xFF9AB334);
 
     return Container(
       width: 280,
-      decoration: const BoxDecoration(
-        color: brandCream,
+      decoration: BoxDecoration(
+        color: kBrandCream,
         border: Border(right: BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: Column(
         children: [
-          _buildUserHeader(brandBrown, brandCreamDark, brandOlive),
+          _buildUserHeader(),
           const Divider(height: 1),
           
           Padding(
@@ -535,7 +585,7 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
               child: Text(
                 "FIELD OPERATIONS",
                 style: TextStyle(
-                  color: brandBrown.withOpacity(0.4),
+                  color: kBrandBrown.withOpacity(0.4),
                   fontSize: 10,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1.5,
@@ -555,21 +605,21 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
                 return Theme(
                   data: Theme.of(context).copyWith(
                     dividerColor: Colors.transparent,
-                    hoverColor: brandCreamDark.withOpacity(0.3),
+                    hoverColor: kBrandCreamDark.withOpacity(0.3),
                   ),
                   child: ExpansionTile(
                     initiallyExpanded: isSelected,
-                    collapsedIconColor: brandBrown.withOpacity(0.5),
-                    iconColor: brandOlive,
-                    collapsedTextColor: brandBrown,
-                    textColor: brandBrown,
+                    collapsedIconColor: kBrandBrown.withOpacity(0.5),
+                    iconColor: kBrandOlive,
+                    collapsedTextColor: kBrandBrown,
+                    textColor: kBrandBrown,
                     tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                     leading: Icon(category.icon, size: 20),
                     title: Text(category.title, 
                       style: TextStyle(
                         fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600, 
                         fontSize: 13,
-                        color: isSelected ? brandBrown : brandBrown.withOpacity(0.7),
+                        color: isSelected ? kBrandBrown : kBrandBrown.withOpacity(0.7),
                       )),
                     children: category.subItems.where((s) => s.isVisible).map((subItem) {
                       final subIdx = category.subItems.indexOf(subItem);
@@ -578,16 +628,16 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
                       return Container(
                         margin: const EdgeInsets.only(left: 8, bottom: 2),
                         decoration: BoxDecoration(
-                          color: isSubSelected ? brandOlive.withOpacity(0.08) : Colors.transparent,
+                          color: isSubSelected ? kBrandOlive.withOpacity(0.08) : Colors.transparent,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: ListTile(
                           dense: true,
                           contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-                          leading: Icon(subItem.icon, size: 16, color: isSubSelected ? brandOlive : brandBrown.withOpacity(0.4)),
+                          leading: Icon(subItem.icon, size: 16, color: isSubSelected ? kBrandOlive : kBrandBrown.withOpacity(0.4)),
                           title: Text(subItem.title, 
                             style: TextStyle(
-                              color: isSubSelected ? brandBrown : brandBrown.withOpacity(0.6), 
+                              color: isSubSelected ? kBrandBrown : kBrandBrown.withOpacity(0.6),
                               fontWeight: isSubSelected ? FontWeight.w900 : FontWeight.w500, 
                               fontSize: 12.5)),
                           onTap: () {
@@ -610,7 +660,7 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
             padding: const EdgeInsets.all(16),
             child: ListTile(
               leading: const Icon(Icons.logout_rounded, color: Colors.redAccent, size: 20), 
-              title: const Text("End Session", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w900, fontSize: 13)), 
+              title: Text("End Session", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w900, fontSize: 13)), 
               onTap: () { 
                 ApiService.logout(); 
                 Navigator.pushReplacementNamed(context, '/login'); 
@@ -622,22 +672,22 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
     );
   }
 
-  Widget _buildUserHeader(Color brandBrown, Color brandCreamDark, Color brandOlive) {
+  Widget _buildUserHeader() {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
-      color: brandCreamDark,
+      color: kBrandCreamDark,
       child: Column(
         children: [
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: brandOlive.withOpacity(0.2), width: 2),
+              border: Border.all(color: kBrandOlive.withOpacity(0.2), width: 2),
             ),
             child: CircleAvatar(
               radius: 38,
-              backgroundColor: brandBrown,
+              backgroundColor: kBrandBrown,
               child: ClipOval(
                 child: _profileImageUrl != null
                     ? Image.network(
@@ -655,16 +705,16 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
           const SizedBox(height: 16),
           Text(_fullName, 
             textAlign: TextAlign.center,
-            style: const TextStyle(color: brandBrown, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+            style: const TextStyle(color: kBrandBrown, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
           const SizedBox(height: 4),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: brandOlive.withOpacity(0.1),
+              color: kBrandOlive.withOpacity(0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(_userRole.toUpperCase(), 
-              style: const TextStyle(color: brandOlive, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+              style: const TextStyle(color: kBrandOlive, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
           ),
         ],
       ),
@@ -674,7 +724,7 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
   Widget _buildLogoutButton() {
     return ListTile(
       leading: const Icon(Icons.logout_rounded, color: Colors.redAccent),
-      title: const Text("Logout Session", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+      title: Text("Logout Session", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
       onTap: () {
         ApiService.logout();
         Navigator.pushReplacementNamed(context, '/login');

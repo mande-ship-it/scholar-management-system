@@ -276,15 +276,7 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
                     letterSpacing: 3,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  "Portal Login",
-                  style: TextStyle(
-                    color: kBrandBrown,
-                    fontSize: isSmallScreen ? 22 : 26,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
+
               ],
             ),
           ),
@@ -350,7 +342,7 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
             ),
             child: _isLoading
                 ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Text("SIGN IN TO SYSTEM", style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+                : const Text("Sign In To Portal", style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
           ),
           
           const SizedBox(height: 24),

@@ -131,8 +131,9 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
   }
 
   Widget _portalSummaryCard(dynamic item, Color color) {
+    final bool isSmall = MediaQuery.of(context).size.width < 600;
     return Container(
-      padding: const EdgeInsets.all(28),
+      padding: EdgeInsets.all(isSmall ? 20 : 28),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -148,31 +149,31 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(isSmall ? 8 : 12),
             decoration: BoxDecoration(
               color: color.withOpacity(0.1),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(_getIcon(item['icon']), color: color, size: 28),
+            child: Icon(_getIcon(item['icon']), color: color, size: isSmall ? 20 : 28),
           ),
-          const SizedBox(width: 24),
+          SizedBox(width: isSmall ? 16 : 24),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   "${item['value']}", 
-                  style: const TextStyle(
-                    fontSize: 26, 
+                  style: TextStyle(
+                    fontSize: isSmall ? 20 : 26, 
                     fontWeight: FontWeight.w900, 
-                    color: Color(0xFF4C3C32), 
+                    color: const Color(0xFF4C3C32), 
                     letterSpacing: -1
                   ),
                 ),
                 Text(
                   item['label'].toString().toUpperCase(), 
                   style: TextStyle(
-                    fontSize: 10, 
+                    fontSize: isSmall ? 8 : 10, 
                     fontWeight: FontWeight.w900, 
                     color: Colors.grey.shade400, 
                     letterSpacing: 1.0
@@ -575,8 +576,9 @@ class _DashboardCard extends StatelessWidget {
   const _DashboardCard({required this.title, required this.subtitle, required this.child});
   @override
   Widget build(BuildContext context) {
+    final bool isSmall = MediaQuery.of(context).size.width < 600;
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(isSmall ? 20 : 32),
       decoration: BoxDecoration(
         color: Colors.white, 
         borderRadius: BorderRadius.circular(20),
@@ -604,14 +606,14 @@ class _DashboardCard extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             subtitle, 
-            style: const TextStyle(
-              fontSize: 15, 
+            style: TextStyle(
+              fontSize: isSmall ? 13 : 15, 
               fontWeight: FontWeight.w900, 
-              color: Color(0xFF4C3C32), 
+              color: const Color(0xFF4C3C32), 
               letterSpacing: -0.5
             ),
           ),
-          const SizedBox(height: 32),
+          SizedBox(height: isSmall ? 20 : 32),
           child,
         ],
       ),
