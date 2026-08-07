@@ -114,7 +114,7 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
           _buildControlPanel(isMobile),
           Expanded(
             child: _isLoading
-              ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
+              ? const SizedBox.shrink()
               : _buildMainContent(isMobile),
           ),
         ],

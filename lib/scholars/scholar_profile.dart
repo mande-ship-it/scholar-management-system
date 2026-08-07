@@ -198,9 +198,7 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Center(child: Padding(padding: EdgeInsets.all(50), child: CircularProgressIndicator(color: Color(0xFF9AB334))));
-    }
+    if (_isLoading) return const SizedBox.shrink();
     
     if (_student == null) {
       return const Center(child: Text("Scholar not found."));

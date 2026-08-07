@@ -39,7 +39,7 @@ class _AcademicStatsComponentState extends State<AcademicStatsComponent> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: Color(0xFF9AB334)));
+      return const SizedBox.shrink();
     }
 
     final bool isMobile = MediaQuery.of(context).size.width < 900;

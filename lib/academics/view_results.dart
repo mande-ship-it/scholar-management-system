@@ -288,9 +288,6 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: kBrandOlive));
-    }
 
     if (_mode == ViewResultsMode.selection) {
       return _buildSelectionScreen();

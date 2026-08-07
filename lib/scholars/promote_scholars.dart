@@ -197,7 +197,7 @@ class _PromoteScholarsComponentState extends State<PromoteScholarsComponent> {
           _buildPortalFilterToolbar(isMobile),
           Expanded(
             child: _isLoading 
-                ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
+                ? const SizedBox.shrink()
                 : ListView.separated(
                     padding: EdgeInsets.all(isMobile ? 12 : 32),
                     itemCount: filteredStudents.length,

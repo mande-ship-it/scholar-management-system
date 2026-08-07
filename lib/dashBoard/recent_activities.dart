@@ -37,9 +37,7 @@ class _RecentActivitiesComponentState extends State<RecentActivitiesComponent> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+    if (_isLoading) return const SizedBox.shrink();
 
     if (_activities.isEmpty) {
       return const Center(child: Text("No recent activities found."));

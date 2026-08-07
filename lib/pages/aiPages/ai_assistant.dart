@@ -103,7 +103,7 @@ class _AIAssistantPageState extends State<AIAssistantPage> {
               padding: const EdgeInsets.only(left: 24, bottom: 12),
               child: Row(
                 children: [
-                  const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, color: kBrandOlive)),
+                  const SizedBox(width: 12, height: 12),
                   const SizedBox(width: 12),
                   Text("AI ANALYZING DATABASE...", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey.shade500, letterSpacing: 1)),
                 ],

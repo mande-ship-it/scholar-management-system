@@ -502,7 +502,7 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
           ),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const SizedBox.shrink()
                 : filtered.isEmpty
                     ? const Center(child: Text("No roles found"))
                     : LayoutBuilder(

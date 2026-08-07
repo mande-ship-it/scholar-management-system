@@ -353,9 +353,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
           _buildProfessionalHeader(totalInSelection),
           _buildIntegratedToolbar(availableSchools, availableClasses, isMobile),
           Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
-                : Column(
+            child: Column(
                     children: [
                       _buildTabNavigation(),
                       Expanded(

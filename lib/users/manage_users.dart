@@ -522,7 +522,7 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
   }
 
   Widget _buildMobileUserList(List<AppUser> filtered) {
-    if (_isLoading) return const Center(child: Padding(padding: EdgeInsets.all(60), child: CircularProgressIndicator(color: kBrandOlive)));
+    if (_isLoading) return const SizedBox.shrink();
     if (filtered.isEmpty) {
       return Center(
         child: Column(
@@ -633,7 +633,7 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
   }
 
   Widget _buildProfessionalTable(List<AppUser> filtered) {
-    if (_isLoading) return const Center(child: Padding(padding: EdgeInsets.all(60), child: CircularProgressIndicator(color: kBrandOlive)));
+    if (_isLoading) return const SizedBox.shrink();
     if (filtered.isEmpty) {
       return Center(
         child: Column(

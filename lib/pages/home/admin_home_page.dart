@@ -581,12 +581,6 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: Colors.white,
-        body: Center(child: CircularProgressIndicator(color: kBrandOlive)),
-      );
-    }
 
     final double screenWidth = MediaQuery.of(context).size.width;
     final bool isMobile = screenWidth < 900;

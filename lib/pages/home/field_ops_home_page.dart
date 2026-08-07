@@ -59,6 +59,7 @@ class FieldOpsHomePage extends StatefulWidget {
 }
 
 class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProviderStateMixin {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int activeCategoryIndex = 0;
   int activeSubIndex = 0;
   final List<(int, int, String?)> _navigationHistory = [];
@@ -357,10 +358,6 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      debugPrint("FIELD OPS: Still loading access check...");
-      return const Scaffold(body: Center(child: CircularProgressIndicator(color: kBrandOlive)));
-    }
 
     final double screenWidth = MediaQuery.of(context).size.width;
     final bool isMobile = screenWidth < 900;
@@ -369,21 +366,20 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
     final activeSubItem = activeCategory.subItems[activeSubIndex];
     debugPrint("FIELD OPS BUILD: Rendering Category=$activeCategoryIndex, SubItem=$activeSubIndex (${activeSubItem.title})");
 
-    final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
-
     return Scaffold(
-      key: scaffoldKey,
+      key: _scaffoldKey,
       backgroundColor: const Color(0xFFF8F9FA),
       drawer: isMobile ? _buildDrawer(context) : null,
+      endDrawer: isMobile ? _buildEndDrawer(context) : null,
       appBar: AppBar(
         elevation: 2,
         backgroundColor: kBrandBrown,
         foregroundColor: Colors.white,
-        leadingWidth: isMobile ? null : 280,
+        leadingWidth: isMobile ? 56 : 280,
         leading: isMobile 
           ? IconButton(
-              icon: const Icon(Icons.menu, color: Colors.white),
-              onPressed: () => scaffoldKey.currentState?.openDrawer(),
+              icon: const Icon(Icons.menu, color: Colors.white, size: 24),
+              onPressed: () => _scaffoldKey.currentState?.openDrawer(),
             )
           : Row(
               children: [
@@ -391,18 +387,17 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
                   width: 200,
                   height: double.infinity,
                   color: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   child: Image.asset('assets/images/age-logo.png', fit: BoxFit.contain),
                 ),
                 const SizedBox(width: 8),
                 IconButton(
                   icon: const Icon(Icons.menu, color: Colors.white, size: 20), 
-                  onPressed: () => setState(() => _isSidebarVisible = !_isSidebarVisible),
-                ),
+                  onPressed: () => setState(() => _isSidebarVisible = !_isSidebarVisible)),
               ],
             ),
         title: Text(isMobile ? activeSubItem.title : "Field Operations Portal", 
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 17, letterSpacing: -0.5)),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: -0.5)),
         actions: [
           IconButton(icon: const Icon(Icons.notifications_none_rounded, color: Colors.white), onPressed: () {
             for (int i = 0; i < _categories.length; i++) {
@@ -438,57 +433,77 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
           const SizedBox(width: 12),
           Padding(
             padding: EdgeInsets.only(right: isMobile ? 12 : 20),
-            child: PopupMenuButton<String>(
-              offset: const Offset(0, 48),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              onSelected: (value) {
-                if (value == 'profile') {
-                  _navigateToSubItem("User Profile");
-                } else if (value == 'logout') {
-                  ApiService.logout();
-                  Navigator.pushReplacementNamed(context, '/login');
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'profile',
-                  child: Row(
-                    children: [
-                      Icon(Icons.person_outline, size: 20, color: kBrandBrown),
-                      SizedBox(width: 12),
-                      Text("View Profile", style: TextStyle(fontWeight: FontWeight.w600)),
-                    ],
+            child: isMobile 
+              ? GestureDetector(
+                  onTap: () => _scaffoldKey.currentState?.openEndDrawer(),
+                  child: CircleAvatar(
+                    radius: 18,
+                    backgroundColor: kBrandCream,
+                    child: ClipOval(
+                      child: _profileImageUrl != null
+                          ? Image.network(
+                              ApiService.getFullUrl(_profileImageUrl),
+                              fit: BoxFit.cover,
+                              width: 36,
+                              height: 36,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Icon(Icons.person, color: kBrandBrown, size: 20),
+                            )
+                          : const Icon(Icons.person, color: kBrandBrown, size: 20),
+                    ),
+                  ),
+                )
+              : PopupMenuButton<String>(
+                  offset: const Offset(0, 48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  onSelected: (value) {
+                    if (value == 'profile') {
+                      _navigateToSubItem("User Profile");
+                    } else if (value == 'logout') {
+                      ApiService.logout();
+                      Navigator.pushReplacementNamed(context, '/login');
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'profile',
+                      child: Row(
+                        children: [
+                          Icon(Icons.person_outline, size: 20, color: kBrandBrown),
+                          SizedBox(width: 12),
+                          Text("View Profile", style: TextStyle(fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuDivider(),
+                    const PopupMenuItem(
+                      value: 'logout',
+                      child: Row(
+                        children: [
+                          Icon(Icons.logout_rounded, size: 20, color: Colors.redAccent),
+                          SizedBox(width: 12),
+                          Text("Logout", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                  ],
+                  child: CircleAvatar(
+                    radius: 18,
+                    backgroundColor: kBrandCream,
+                    child: ClipOval(
+                      child: _profileImageUrl != null
+                          ? Image.network(
+                              ApiService.getFullUrl(_profileImageUrl),
+                              fit: BoxFit.cover,
+                              width: 36,
+                              height: 36,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Icon(Icons.person, color: kBrandBrown, size: 20),
+                            )
+                          : const Icon(Icons.person, color: kBrandBrown, size: 20),
+                    ),
                   ),
                 ),
-                const PopupMenuDivider(),
-                const PopupMenuItem(
-                  value: 'logout',
-                  child: Row(
-                    children: [
-                      Icon(Icons.logout_rounded, size: 20, color: Colors.redAccent),
-                      SizedBox(width: 12),
-                      Text("Logout", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ),
-              ],
-              child: CircleAvatar(
-                radius: 18,
-                backgroundColor: kBrandCream,
-                child: ClipOval(
-                  child: _profileImageUrl != null
-                      ? Image.network(
-                          ApiService.getFullUrl(_profileImageUrl),
-                          fit: BoxFit.cover,
-                          width: 36,
-                          height: 36,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const Icon(Icons.person, color: kBrandBrown, size: 20),
-                        )
-                      : const Icon(Icons.person, color: kBrandBrown, size: 20),
-                ),
-              ),
-            ),
           ),
         ],
       ),
@@ -565,6 +580,38 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
       width: 280,
       backgroundColor: kBrandCream,
       child: _buildSidebar(isDrawer: true),
+    );
+  }
+
+  Widget _buildEndDrawer(BuildContext context) {
+    return Drawer(
+      width: 280,
+      backgroundColor: kBrandCream,
+      child: Column(
+        children: [
+          _buildUserHeader(),
+          const Divider(height: 1),
+          const Spacer(),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.person_outline, color: kBrandBrown),
+            title: const Text("View Profile", style: TextStyle(fontWeight: FontWeight.bold)),
+            onTap: () {
+              Navigator.pop(context);
+              _navigateToSubItem("User Profile");
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.logout_rounded, color: Colors.redAccent),
+            title: const Text("Logout", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+            onTap: () {
+              ApiService.logout();
+              Navigator.pushReplacementNamed(context, '/login');
+            },
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
     );
   }
 

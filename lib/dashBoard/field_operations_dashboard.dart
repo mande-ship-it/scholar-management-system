@@ -147,9 +147,6 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
   @override
   Widget build(BuildContext context) {
     debugPrint("DASHBOARD BUILD: isLoading=$_isLoading");
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: kBrandOlive));
-    }
 
     final bool isMobile = MediaQuery.of(context).size.width < 900;
 

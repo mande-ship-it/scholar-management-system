@@ -120,7 +120,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
               const SizedBox(height: 20),
               Expanded(
                 child: _isLoading
-                  ? const Center(child: CircularProgressIndicator(color: brandOlive))
+                  ? const SizedBox.shrink()
                   : TabBarView(
                       controller: _tabController,
                       children: [

@@ -103,7 +103,7 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
           if (!isMobile) _buildSummaryBar(),
           Expanded(
             child: _isLoading 
-              ? const Center(child: CircularProgressIndicator(color: kBrandOlive, strokeWidth: 3))
+              ? const SizedBox.shrink()
               : _errorMessage != null
                 ? _buildErrorState()
                 : _buildNotificationContent(isMobile),

@@ -103,9 +103,6 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: kBrandOlive));
-    }
 
     final bool isMobile = MediaQuery.of(context).size.width < 950;
 

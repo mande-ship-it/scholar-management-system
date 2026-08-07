@@ -121,7 +121,7 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
           if (!isMobile) _buildHeader(isMobile),
           Expanded(
             child: _isLoading
-              ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
+              ? const SizedBox.shrink()
               : SingleChildScrollView(
                   padding: EdgeInsets.all(isMobile ? 12 : 32),
                   child: isMobile 

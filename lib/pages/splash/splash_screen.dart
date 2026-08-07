@@ -37,8 +37,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   Future<void> _initialize() async {
     await ApiService.init();
 
-    await Future.delayed(const Duration(milliseconds: 3500));
-
     if (mounted) {
       if (ApiService.isAuthenticated) {
         // Try to fetch profile to see if token is still valid
@@ -173,9 +171,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                   ),
                   
                   const SizedBox(height: 80),
-                  
-                  // Loader
-                  const CircularProgressIndicator(color: kBrandOlive),
                 ],
               ),
             ),

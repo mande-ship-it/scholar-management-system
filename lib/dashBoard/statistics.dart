@@ -62,8 +62,8 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading || _data == null) {
-      return const Center(child: Padding(padding: EdgeInsets.all(100), child: CircularProgressIndicator(color: primary)));
+    if (_data == null) {
+      return const SizedBox.shrink();
     }
 
     final bool isMobile = MediaQuery.of(context).size.width < 900;

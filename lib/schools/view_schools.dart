@@ -228,9 +228,7 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
           _buildPortalHeader(isMobile),
           _buildPortalToolbar(isMobile),
           Expanded(
-            child: _isLoading 
-                ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
-                : _buildPortalRegistryList(filtered, isMobile),
+            child: _buildPortalRegistryList(filtered, isMobile),
           ),
         ],
       ),
