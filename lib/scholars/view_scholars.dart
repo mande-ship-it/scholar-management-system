@@ -47,6 +47,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
   String _selectedSex = 'All';
   String _selectedClass = 'All';
   bool _isLoading = true;
+  bool _isSearchExpanded = false; // New state variable
   String _userRole = 'User';
   String? _assignedDistrict;
   late TabController _tabController;
@@ -375,6 +376,30 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
 
   Widget _buildProfessionalHeader(int scholarCount, bool isMobile) {
     final bool isVerySmall = MediaQuery.of(context).size.width < 500;
+
+    if (isMobile && _isSearchExpanded) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+        ),
+        child: Row(
+          children: [
+            Expanded(child: _compactSearchField(true)),
+            IconButton(
+              icon: const Icon(Icons.close_rounded, color: Colors.grey),
+              onPressed: () => setState(() {
+                _isSearchExpanded = false;
+                _searchQuery = '';
+              }),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
@@ -407,6 +432,12 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
             spacing: 6,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
+              if (isMobile)
+                IconButton(
+                  icon: const Icon(Icons.search_rounded, color: Color(0xFF4C3C32), size: 20),
+                  onPressed: () => setState(() => _isSearchExpanded = true),
+                  visualDensity: VisualDensity.compact,
+                ),
               _exportButton(icon: Icons.description_outlined, label: "PDF", onTap: _exportToPDF, isVerySmall: isVerySmall),
               _exportButton(icon: Icons.table_view_outlined, label: "EXCEL", onTap: _exportToExcel, isVerySmall: isVerySmall),
               if (['Administrator', 'Data Officer', 'Program Coordinator'].contains(_userRole))
@@ -446,8 +477,10 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
       ),
       child: Column(
         children: [
-          _compactSearchField(true),
-          const SizedBox(height: 12),
+          if (!isMobile) ...[
+            _compactSearchField(false),
+            const SizedBox(height: 12),
+          ],
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -625,17 +658,19 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
       width: isMobile ? double.infinity : 280,
       height: 40,
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F2F5),
+        color: const Color(0xFFF8F9FA),
         borderRadius: BorderRadius.circular(20),
+        border: isMobile ? Border.all(color: const Color(0xFFEEEEEE)) : null,
       ),
       child: TextField(
         onChanged: (v) => setState(() => _searchQuery = v),
-        style: const TextStyle(fontSize: 13),
-        decoration: const InputDecoration(
-          hintText: "Search by scholar name...",
-          prefixIcon: Icon(Icons.search, size: 18, color: Colors.grey),
+        autofocus: isMobile,
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        decoration: InputDecoration(
+          hintText: isMobile ? "Search scholars..." : "Search by name...",
+          prefixIcon: const Icon(Icons.search, size: 18, color: Colors.grey),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: 10),
+          contentPadding: const EdgeInsets.symmetric(vertical: 10),
         ),
       ),
     );
