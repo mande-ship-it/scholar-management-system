@@ -1,11 +1,11 @@
 {
-    "name": "scholar_management_system",
-    "short_name": "scholar_management_system",
+    "name": "AGE Africa System",
+    "short_name": "AGE System",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "scholar management system for age africa",
+    "background_color": "#FAF2DB",
+    "theme_color": "#4C3C32",
+    "description": "Scholar Management System for AGE Africa",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

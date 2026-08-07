@@ -401,28 +401,10 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
                 ),
               ],
             ),
-        title: Row(
-          children: [
-            if (isMobile && _navigationHistory.isNotEmpty && activeSubItem.title != "Pending Approvals") ...[
-              IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white, size: 20),
-                onPressed: _popSubItem,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-              const SizedBox(width: 12),
-            ],
-            Expanded(
-              child: Text(
-                isMobile ? activeSubItem.title : "Field Operations Portal",
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: isMobile ? 16 : 16),
-              ),
-            ),
-          ],
-        ),
+        title: Text(isMobile ? activeSubItem.title : "Field Operations Portal", 
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 17, letterSpacing: -0.5)),
         actions: [
-          IconButton(icon: const Icon(Icons.notifications, color: Colors.white), onPressed: () {
+          IconButton(icon: const Icon(Icons.notifications_none_rounded, color: Colors.white), onPressed: () {
             for (int i = 0; i < _categories.length; i++) {
               final idx = _categories[i].subItems.indexWhere((s) => s.title == "Notifications");
               if (idx != -1) {
@@ -431,9 +413,31 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
               }
             }
           }),
-          if (!isMobile) const SizedBox(width: 20),
+          if (!isMobile) ...[
+            const SizedBox(width: 8),
+            VerticalDivider(color: Colors.white.withOpacity(0.2), width: 1, indent: 16, endIndent: 16),
+            const SizedBox(width: 12),
+            GestureDetector(
+              onTap: () => _navigateToSubItem("User Profile"),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  SizedBox(
+                    width: 120,
+                    child: _MovingText(
+                      text: _fullName,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13),
+                    ),
+                  ),
+                  Text(_userRole.toUpperCase(), style: const TextStyle(color: kBrandOlive, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(width: 12),
           Padding(
-            padding: const EdgeInsets.only(right: 20),
+            padding: EdgeInsets.only(right: isMobile ? 12 : 20),
             child: PopupMenuButton<String>(
               offset: const Offset(0, 48),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -486,7 +490,6 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
               ),
             ),
           ),
-          const SizedBox(width: 12),
         ],
       ),
       body: Row(
@@ -729,6 +732,63 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
         ApiService.logout();
         Navigator.pushReplacementNamed(context, '/login');
       },
+    );
+  }
+}
+
+class _MovingText extends StatefulWidget {
+  final String text;
+  final TextStyle style;
+  const _MovingText({required this.text, required this.style});
+
+  @override
+  State<_MovingText> createState() => _MovingTextState();
+}
+
+class _MovingTextState extends State<_MovingText> with SingleTickerProviderStateMixin {
+  late ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startScrolling());
+  }
+
+  void _startScrolling() async {
+    if (!_scrollController.hasClients) return;
+
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    if (maxScroll <= 0) return;
+
+    while (mounted) {
+      await Future.delayed(const Duration(seconds: 1));
+      if (!mounted) break;
+      await _scrollController.animateTo(
+        maxScroll,
+        duration: Duration(milliseconds: (maxScroll * 40).toInt()),
+        curve: Curves.linear,
+      );
+      if (!mounted) break;
+      await Future.delayed(const Duration(seconds: 1));
+      if (!mounted) break;
+      _scrollController.jumpTo(0.0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      controller: _scrollController,
+      scrollDirection: Axis.horizontal,
+      physics: const NeverScrollableScrollPhysics(),
+      child: Text(widget.text, style: widget.style, maxLines: 1),
     );
   }
 }
