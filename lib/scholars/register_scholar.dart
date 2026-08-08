@@ -258,29 +258,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
         final response = await ApiService.createScholar(scholarData);
 
         if (response.statusCode == 201) {
-          final newScholar = response.data['data'];
-          final student = Student(
-            id: newScholar['_id']?.toString() ?? '',
-            scholarId: newScholar['scholarId']?.toString() ?? newScholar['scholar_id']?.toString() ?? 'N/A',
-            name: newScholar['fullName'] ?? newScholar['full_name'] ?? _fullNameController.text.trim(),
-            age: _selectedDateOfBirth != null ? DateTime.now().year - _selectedDateOfBirth!.year : 16,
-            schoolType: _selectedSchoolType == 'University' ? SchoolType.university : SchoolType.secondary,
-            schoolName: _selectedSchool ?? 'N/A',
-            currentClass: newScholar['currentClass'] ?? newScholar['academicYear'] ?? newScholar['academic_year'] ?? _yearController.text.trim(),
-            status: newScholar['status'] ?? 'Active',
-            district: newScholar['district'] ?? _selectedDistrict ?? 'Lilongwe',
-            village: newScholar['village'] ?? _homeVillageController.text.trim(),
-            donor: newScholar['donor'] ?? _selectedDonor ?? 'General Fund',
-            phone: newScholar['phone'] ?? _phoneController.text.trim(),
-            email: newScholar['email'] ?? _emailController.text.trim(),
-            sex: newScholar['sex'] ?? _selectedSex ?? 'Female',
-            dob: newScholar['dob'] ?? _dobController.text.trim(),
-            programType: newScholar['programType'] ?? newScholar['program_type'] ?? _selectedProgramType ?? '',
-            programName: newScholar['programName'] ?? newScholar['program_name'] ?? _programNameController.text.trim(),
-            previousSchool: newScholar['previousSchool'] ?? newScholar['previous_school'] ?? _previousSchoolController.text.trim(),
-            startYear: newScholar['startYear'] ?? newScholar['start_year'] ?? _selectedStartYear ?? '2026',
-            endYear: newScholar['endYear'] ?? newScholar['end_year'] ?? _selectedEndYear ?? '2030',
-          );
+          final student = Student.fromMap(response.data['data']);
 
           if (widget.onRegister != null) {
             await widget.onRegister!(student);

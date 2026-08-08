@@ -151,6 +151,71 @@ class Student {
     this.payments = const [],
   });
 
+  factory Student.fromMap(Map<String, dynamic> map) {
+    int parseAge(dynamic dobValue) {
+      if (dobValue == null || dobValue.toString().isEmpty) return 18;
+      try {
+        // Try standard ISO format first
+        return DateTime.now().year - DateTime.parse(dobValue.toString()).year;
+      } catch (_) {
+        try {
+          // Try to extract year from JS-style date string: "Wed Jan 20 1993 ..."
+          final parts = dobValue.toString().split(' ');
+          for (var part in parts) {
+            if (part.length == 4 && int.tryParse(part) != null) {
+              final year = int.parse(part);
+              if (year > 1900 && year <= DateTime.now().year) {
+                return DateTime.now().year - year;
+              }
+            }
+          }
+        } catch (_) {}
+      }
+      return 18;
+    }
+
+    return Student(
+      id: (map['id'] ?? map['_id'] ?? '').toString(),
+      scholarId: map['scholar_id']?.toString() ?? map['scholarId']?.toString() ?? 'N/A',
+      name: map['full_name'] ?? map['fullName'] ?? 'N/A',
+      age: parseAge(map['dob']),
+      schoolType: (map['school_type']?.toString().toLowerCase().contains('university') ?? false) ||
+                  (map['schoolType']?.toString().toLowerCase().contains('university') ?? false)
+          ? SchoolType.university
+          : SchoolType.secondary,
+      schoolName: map['display_school_name'] ?? map['schoolName'] ?? 'N/A',
+      currentClass: (map['academic_year'] ?? map['academicYear'] ?? map['current_class'] ?? map['currentClass'] ?? '').toString(),
+      status: map['status'] ?? 'Active',
+      district: map['district'] ?? 'N/A',
+      village: map['village'] ?? 'N/A',
+      donor: map['donor'] ?? 'N/A',
+      phone: map['phone'] ?? 'N/A',
+      email: map['email'] ?? 'N/A',
+      sex: map['sex'] ?? 'Female',
+      dob: map['dob']?.toString() ?? '',
+      programType: map['program_type'] ?? map['programType'] ?? '',
+      programName: map['program_name'] ?? map['programName'] ?? 'N/A',
+      previousSchool: map['previous_school'] ?? map['previousSchool'] ?? 'N/A',
+      startYear: map['start_year']?.toString() ?? map['startYear']?.toString() ?? '2026',
+      endYear: map['end_year']?.toString() ?? map['endYear']?.toString() ?? '2030',
+      guardianName: map['guardian_name'] ?? map['guardianName'],
+      guardianPhone: map['guardian_phone'] ?? map['guardianPhone'],
+      guardianEmail: map['guardian_email'] ?? map['guardianEmail'],
+      guardianRelation: map['guardian_relation'] ?? map['guardianRelation'],
+      guardianOccupation: map['guardian_occupation'] ?? map['guardianOccupation'],
+      progressionStatus: map['progression_status'] ?? map['progressionStatus'] ?? 'Pending',
+      progressionHistory: map['progression_history'] ?? map['progressionHistory'] ?? [],
+      yearsRemaining: int.tryParse(map['years_remaining']?.toString() ?? map['yearsRemaining']?.toString() ?? '0') ?? 0,
+      registeredClass: map['registered_class'] ?? map['registeredClass'],
+      programStartYearLabel: map['program_start_year_label'] ?? map['programStartYearLabel'],
+      programDurationYears: map['program_duration_years'] ?? map['programDurationYears'] ?? 4,
+      yearsCompleted: map['years_completed'] ?? map['yearsCompleted'] ?? 0,
+      flag: map['flag'],
+      documents: map['documents'] ?? [],
+      payments: map['payments'] ?? [],
+    );
+  }
+
   Student copyWith({
     String? id,
     String? scholarId,

@@ -115,17 +115,23 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
 
         if (mounted) {
           setState(() {
-            _users = data.map((u) => AppUser(
-              id: (u['id'] ?? u['_id'] ?? '').toString(),
-              fullName: u['fullName'] ?? u['full_name'] ?? '',
-              username: u['username'] ?? '',
-              email: u['email'] ?? '',
-              phone: u['phone'] ?? '',
-              role: u['role_name'] ?? 'Staff',
-              department: u['department_name'] ?? u['department'] ?? 'Unallocated',
-              isActive: u['isActive'] ?? u['is_active'] ?? true,
-              createdDate: DateTime.tryParse(u['createdAt'] ?? u['created_at'] ?? '') ?? DateTime.now(),
-            )).toList();
+            _users = data.map((u) {
+              final String name = u['fullName'] ?? u['full_name'] ?? u['name'] ?? 'Unnamed User';
+              final String role = u['role_name'] ?? u['roleName'] ?? (u['roleId'] is Map ? u['roleId']['name'] : 'Staff');
+              final String dept = u['department_name'] ?? u['departmentName'] ?? (u['departmentId'] is Map ? u['departmentId']['name'] : 'Unallocated');
+              
+              return AppUser(
+                id: (u['id'] ?? u['_id'] ?? '').toString(),
+                fullName: name,
+                username: u['username'] ?? '',
+                email: u['email'] ?? '',
+                phone: u['phone'] ?? '',
+                role: role,
+                department: dept,
+                isActive: u['isActive'] ?? u['is_active'] ?? true,
+                createdDate: DateTime.tryParse(u['createdAt'] ?? u['created_at'] ?? '') ?? DateTime.now(),
+              );
+            }).toList();
           });
         }
       }

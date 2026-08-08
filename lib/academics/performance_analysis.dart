@@ -35,7 +35,24 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) _fetchCurrentTabData();
     });
+    _fetchScholars();
     _fetchCurrentTabData();
+  }
+
+  Future<void> _fetchScholars() async {
+    if (kStudents.isNotEmpty) return;
+    try {
+      final res = await ApiService.getAllScholars();
+      if (res.statusCode == 200) {
+        final List<dynamic> data = res.data['data'] ?? [];
+        setState(() {
+          kStudents.clear();
+          for (var item in data) kStudents.add(Student.fromMap(item));
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching scholars for analysis: $e');
+    }
   }
 
   Future<void> _fetchCurrentTabData() async {

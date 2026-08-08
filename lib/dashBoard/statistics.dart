@@ -103,88 +103,118 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
   }
 
   Widget _buildPortalSummaryGrid(bool isMobile) {
+    if (_data == null || _data!['summary'] == null) return const SizedBox.shrink();
     final summary = _data!['summary'] as List;
-    if (isMobile) {
-      return Column(
-        children: [
-          _portalSummaryCard(summary[0], chartColors[0]),
-          const SizedBox(height: 16),
-          _portalSummaryCard(summary[1], chartColors[1]),
-          const SizedBox(height: 16),
-          _portalSummaryCard(summary[2], chartColors[2]),
-          const SizedBox(height: 16),
-          _portalSummaryCard(summary[3], chartColors[3]),
-        ],
-      );
-    }
-
-    return Row(
-      children: summary.map((item) {
-        final int index = summary.indexOf(item);
-        final Color color = chartColors[index % chartColors.length];
-        return Expanded(child: Padding(
-          padding: EdgeInsets.only(right: index == summary.length - 1 ? 0 : 24),
-          child: _portalSummaryCard(item, color),
-        ));
-      }).toList(),
+    
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 650) {
+          return Column(
+            children: summary.map((item) {
+              final int index = summary.indexOf(item);
+              final Color color = chartColors[index % chartColors.length];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: _portalSummaryCard(item, color),
+              );
+            }).toList(),
+          );
+        } else if (constraints.maxWidth < 1100) {
+          return GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 20,
+              mainAxisSpacing: 20,
+              childAspectRatio: 2.8,
+            ),
+            itemCount: summary.length,
+            itemBuilder: (context, index) {
+              final item = summary[index];
+              final Color color = chartColors[index % chartColors.length];
+              return _portalSummaryCard(item, color);
+            },
+          );
+        } else {
+          return Row(
+            children: summary.map((item) {
+              final int index = summary.indexOf(item);
+              final Color color = chartColors[index % chartColors.length];
+              return Expanded(child: Padding(
+                padding: EdgeInsets.only(right: index == summary.length - 1 ? 0 : 24),
+                child: _portalSummaryCard(item, color),
+              ));
+            }).toList(),
+          );
+        }
+      },
     );
   }
 
   Widget _portalSummaryCard(dynamic item, Color color) {
-    final bool isSmall = MediaQuery.of(context).size.width < 600;
-    return Container(
-      padding: EdgeInsets.all(isSmall ? 20 : 28),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isCompact = constraints.maxWidth < 220;
+        return Container(
+          padding: EdgeInsets.all(isCompact ? 16 : 24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFFEEEEEE)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 15,
+                offset: const Offset(0, 5),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(isSmall ? 8 : 12),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(_getIcon(item['icon']), color: color, size: isSmall ? 20 : 28),
-          ),
-          SizedBox(width: isSmall ? 16 : 24),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "${item['value']}", 
-                  style: TextStyle(
-                    fontSize: isSmall ? 20 : 26, 
-                    fontWeight: FontWeight.w900, 
-                    color: const Color(0xFF4C3C32), 
-                    letterSpacing: -1
-                  ),
+          child: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(isCompact ? 8 : 12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                Text(
-                  item['label'].toString().toUpperCase(), 
-                  style: TextStyle(
-                    fontSize: isSmall ? 8 : 10, 
-                    fontWeight: FontWeight.w900, 
-                    color: Colors.grey.shade400, 
-                    letterSpacing: 1.0
-                  ),
-                  overflow: TextOverflow.ellipsis,
+                child: Icon(_getIcon(item['icon']), color: color, size: isCompact ? 20 : 28),
+              ),
+              SizedBox(width: isCompact ? 12 : 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        "${item['value']}", 
+                        style: TextStyle(
+                          fontSize: isCompact ? 18 : 24, 
+                          fontWeight: FontWeight.w900, 
+                          color: const Color(0xFF4C3C32), 
+                          letterSpacing: -1,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      item['label'].toString().toUpperCase(), 
+                      style: TextStyle(
+                        fontSize: isCompact ? 8 : 10, 
+                        fontWeight: FontWeight.w900, 
+                        color: Colors.grey.shade400, 
+                        letterSpacing: 1.0,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 

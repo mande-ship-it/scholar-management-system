@@ -68,9 +68,17 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
         final pendingRes = await ApiService.getPendingActivities();
         if (pendingRes.statusCode == 200) {
           final pData = pendingRes.data['data'] ?? {};
-          _approvals = pData['scholars'] ?? [];
-          _pendingEvents = (pData['events'] ?? []).length;
-          _pendingPayments = (pData['payments'] ?? []).length;
+          final List scholars = pData['scholars'] ?? [];
+          final List events = pData['events'] ?? [];
+          final List payments = pData['payments'] ?? [];
+
+          _approvals = [];
+          for (var s in scholars) _approvals.add({...s, 'type': 'scholar'});
+          for (var e in events) _approvals.add({...e, 'type': 'event'});
+          for (var p in payments) _approvals.add({...p, 'type': 'payment'});
+
+          _pendingEvents = events.length;
+          _pendingPayments = payments.length;
         }
 
         final sponsorsRes = await ApiService.getAllSponsors();

@@ -8,13 +8,8 @@ import 'package:scholar_management_system/services/permission_service.dart';
 import '../services/file_download_service.dart';
 import 'school_dialogs.dart';
 
-// ============================================================
-// Shared Brand Color Palette
-// ============================================================
-const Color kBrandBrown = Color(0xFF4C3C32);
-const Color kBrandCream = Color(0xFFFAF2DB);
-const Color kBrandOlive = Color(0xFF9AB334);
-const Color kBrandOrange = Color(0xFFE05B1C);
+import 'package:scholar_management_system/academics/academics_utils.dart';
+import 'school_dialogs.dart';
 
 class ViewSchoolsComponent extends StatefulWidget {
   final VoidCallback? onRegisterSchool;
@@ -251,30 +246,6 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
   }
 
   Widget _buildPortalHeader(bool isMobile) {
-    if (isMobile && _isSearchExpanded) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
-        ),
-        child: Row(
-          children: [
-            Expanded(child: _portalCompactSearchField(true)),
-            IconButton(
-              icon: const Icon(Icons.close_rounded, color: Colors.grey),
-              onPressed: () => setState(() {
-                _isSearchExpanded = false;
-                _searchQuery = '';
-                _fetchSchools(); // or just reset filter
-              }),
-            ),
-          ],
-        ),
-      );
-    }
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -303,11 +274,21 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
               ],
             ),
           ),
-          if (isMobile)
-            IconButton(
-              icon: const Icon(Icons.search_rounded, color: Color(0xFF4C3C32), size: 22),
-              onPressed: () => setState(() => _isSearchExpanded = true),
-            ),
+          if (isMobile) ...[
+            if (!widget.hideRegistration && PermissionService.hasPermission('schools.create'))
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF9AB334), size: 22),
+                onPressed: () async {
+                  if (widget.onRegisterSchool != null) {
+                    widget.onRegisterSchool!();
+                  } else {
+                    final result = await Navigator.pushNamed(context, '/schools/register');
+                    if (result == true) _fetchSchools();
+                  }
+                },
+                tooltip: "Register School",
+              ),
+          ],
           const SizedBox(width: 8),
           if (!isMobile && !widget.hideRegistration && PermissionService.hasPermission('schools.create'))
             ElevatedButton(
@@ -331,7 +312,7 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
                 children: [
                   Icon(Icons.add_business_rounded, size: 18),
                   SizedBox(width: 8),
-                  Text("REGISTER", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                  Text("Register", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
@@ -347,55 +328,41 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFF3F4F6))),
       ),
-      child: isMobile
-          ? SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  if (widget.forcedLevel == null)
-                    _portalCompactDropdown("Type", _selectedLevel, _schoolLevels, (v) => setState(() => _selectedLevel = v!)),
-                  if (widget.forcedLevel == null) const SizedBox(width: 8),
-                  _portalCompactDropdown("Region", _selectedRegion, _regions, (v) => setState(() => _selectedRegion = v!)),
-                ],
-              ),
-            )
-          : Row(
-              children: [
-                _portalCompactSearchField(false),
-                const SizedBox(width: 16),
-                if (widget.forcedLevel == null) ...[
-                  SizedBox(
-                    width: 220,
-                    child: _portalCompactDropdown("Institution Level", _selectedLevel, _schoolLevels, (v) => setState(() => _selectedLevel = v!)),
-                  ),
-                  const SizedBox(width: 12),
-                ],
-                SizedBox(
-                  width: 180,
-                  child: _portalCompactDropdown("Location Region", _selectedRegion, _regions, (v) => setState(() => _selectedRegion = v!)),
-                ),
-                const Spacer(),
-                _miniStat(Icons.domain_rounded, "${_getFilteredSchools().length} Registered Institutions"),
-              ],
-            ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _portalCompactSearchField(isMobile),
+            const SizedBox(width: 12),
+            if (widget.forcedLevel == null) ...[
+              _portalCompactDropdown("Type", _selectedLevel, _schoolLevels, (v) => setState(() => _selectedLevel = v!), width: 180),
+              const SizedBox(width: 8),
+            ],
+            _portalCompactDropdown("Region", _selectedRegion, _regions, (v) => setState(() => _selectedRegion = v!), width: 160),
+            if (!isMobile) ...[
+              const SizedBox(width: 24),
+              _miniStat(Icons.domain_rounded, "${_getFilteredSchools().length} Registered Institutions"),
+            ],
+          ],
+        ),
+      ),
     );
   }
 
   Widget _portalCompactSearchField(bool isMobile) {
     return Container(
-      width: isMobile ? double.infinity : 280,
+      width: isMobile ? 200 : 280,
       height: 44,
       decoration: BoxDecoration(
         color: const Color(0xFFF8F9FA),
         borderRadius: BorderRadius.circular(20),
-        border: isMobile ? Border.all(color: const Color(0xFFEEEEEE)) : null,
+        border: Border.all(color: const Color(0xFFEEEEEE)),
       ),
       child: TextField(
         onChanged: (val) => setState(() => _searchQuery = val),
-        autofocus: isMobile,
         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
         decoration: InputDecoration(
-          hintText: isMobile ? "Search institutions..." : "Search name, code, district...",
+          hintText: "Search institutions...",
           prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Colors.grey),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 11),
@@ -404,12 +371,13 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
     );
   }
 
-  Widget _portalCompactDropdown(String label, String value, List<String> items, ValueChanged<String?> onChanged) {
+  Widget _portalCompactDropdown(String label, String value, List<String> items, ValueChanged<String?> onChanged, {double width = 140}) {
     return Container(
       height: 44,
+      width: width,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Color(0xFFF8F9FA),
+        color: const Color(0xFFF8F9FA),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: const Color(0xFFEEEEEE)),
       ),
@@ -418,7 +386,7 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
           value: value,
           isExpanded: true,
           icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Colors.grey),
-          items: items.map((i) => DropdownMenuItem(value: i, child: Text(i, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)))).toList(),
+          items: items.map((i) => DropdownMenuItem(value: i, child: Text(i, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)))).toList(),
           onChanged: onChanged,
         ),
       ),
@@ -583,7 +551,7 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Institutional Registry",
+                Text("Institutional registry",
                   style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
                 Text("Management of partner secondary schools and tertiary institutions.",
                   style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
@@ -601,7 +569,7 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
                 }
               },
               icon: const Icon(Icons.add_business_rounded, size: 16),
-              label: Text(isMobile ? "ADD" : "REGISTER", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
+              label: Text(isMobile ? "Add" : "Register", style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: kBrandOlive,
                 foregroundColor: Colors.white,

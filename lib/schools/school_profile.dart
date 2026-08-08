@@ -129,9 +129,9 @@ class _SchoolProfileComponentState extends State<SchoolProfileComponent> {
                         width: 90,
                         height: 90,
                         decoration: BoxDecoration(
-                          color: Colors.green.withValues(alpha: 0.1),
+                          color: Colors.green.withOpacity(0.1),
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.green.withValues(alpha: 0.2), width: 2),
+                          border: Border.all(color: Colors.green.withOpacity(0.2), width: 2),
                         ),
                         alignment: Alignment.center,
                         child: Text(
@@ -469,7 +469,7 @@ class _SchoolProfileComponentState extends State<SchoolProfileComponent> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade100),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

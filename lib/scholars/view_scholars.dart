@@ -129,49 +129,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
             kStudents.clear();
             for (var item in data) {
               try {
-                // Ensure we catch all variants of field names from the backend
-                final String rawClass = (item['academic_year'] ?? item['academicYear'] ?? item['current_class'] ?? item['currentClass'] ?? '').toString();
-
-                kStudents.add(Student(
-                  id: (item['id'] ?? item['_id']).toString(),
-                  scholarId: item['scholar_id']?.toString() ?? item['scholarId']?.toString() ?? 'N/A',
-                  name: item['full_name'] ?? item['fullName'] ?? 'N/A',
-                  age: item['dob'] != null && item['dob'].toString().isNotEmpty
-                      ? DateTime.now().year - DateTime.parse(item['dob'].toString()).year
-                      : 16,
-                  schoolType: (item['school_type']?.toString().toLowerCase().contains('university') ?? false) ||
-                              (item['schoolType']?.toString().toLowerCase().contains('university') ?? false)
-                      ? SchoolType.university
-                      : SchoolType.secondary,
-                  schoolName: item['display_school_name'] ?? item['schoolName'] ?? 'N/A',
-                  currentClass: rawClass.isEmpty ? 'N/A' : rawClass,
-                  status: item['status'] ?? 'Active',
-                  district: item['district'] ?? 'N/A',
-                  village: item['village'] ?? 'N/A',
-                  donor: item['donor'] ?? 'N/A',
-                  phone: item['phone'] ?? 'N/A',
-                  email: item['email'] ?? 'N/A',
-                  sex: item['sex'] ?? 'Female',
-                  dob: item['dob']?.toString() ?? '',
-                  programType: item['program_type'] ?? item['programType'] ?? '',
-                  programName: item['program_name'] ?? item['programName'] ?? 'N/A',
-                  previousSchool: item['previous_primary_school'] ?? item['previous_school'] ?? item['previousSchool'] ?? 'N/A',
-                  startYear: item['start_year']?.toString() ?? item['startYear']?.toString() ?? '2026',
-                  endYear: item['end_year']?.toString() ?? item['endYear']?.toString() ?? '2030',
-                  guardianName: item['guardian_name'] ?? item['guardianName'],
-                  guardianPhone: item['guardian_phone'] ?? item['guardianPhone'],
-                  guardianEmail: item['guardian_email'] ?? item['guardianEmail'],
-                  guardianRelation: item['guardian_relation'] ?? item['guardianRelation'],
-                  guardianOccupation: item['guardian_occupation'] ?? item['guardianOccupation'],
-                  progressionStatus: item['progression_status'] ?? item['progressionStatus'] ?? 'Pending',
-                  progressionHistory: item['progression_history'] ?? item['progressionHistory'] ?? [],
-                  yearsRemaining: int.tryParse(item['years_remaining']?.toString() ?? item['yearsRemaining']?.toString() ?? '0') ?? 0,
-                  registeredClass: item['registered_class'] ?? item['registeredClass'],
-                  programStartYearLabel: item['program_start_year_label'] ?? item['programStartYearLabel'],
-                  programDurationYears: item['program_duration_years'] ?? item['programDurationYears'] ?? 4,
-                  yearsCompleted: item['years_completed'] ?? item['yearsCompleted'] ?? 0,
-                  flag: item['flag'],
-                ));
+                kStudents.add(Student.fromMap(item));
               } catch (e) {
                 debugPrint('Failed to map scholar: $e');
               }
@@ -384,29 +342,6 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
   Widget _buildProfessionalHeader(int scholarCount, bool isMobile) {
     final bool isVerySmall = MediaQuery.of(context).size.width < 500;
 
-    if (isMobile && _isSearchExpanded) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
-        ),
-        child: Row(
-          children: [
-            Expanded(child: _compactSearchField(true)),
-            IconButton(
-              icon: const Icon(Icons.close_rounded, color: Colors.grey),
-              onPressed: () => setState(() {
-                _isSearchExpanded = false;
-                _searchQuery = '';
-              }),
-            ),
-          ],
-        ),
-      );
-    }
-
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
@@ -439,12 +374,15 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
             spacing: 6,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              if (isMobile)
-                IconButton(
-                  icon: const Icon(Icons.search_rounded, color: Color(0xFF4C3C32), size: 20),
-                  onPressed: () => setState(() => _isSearchExpanded = true),
-                  visualDensity: VisualDensity.compact,
-                ),
+              if (isMobile) ...[
+                if (['Administrator', 'Data Officer', 'Program Coordinator'].contains(_userRole))
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF9AB334), size: 22),
+                    onPressed: widget.onRegisterScholar ?? () => Navigator.pushNamed(context, '/registerScholar').then((_) => _fetchScholars()),
+                    tooltip: "Register Scholar",
+                    visualDensity: VisualDensity.compact,
+                  ),
+              ],
               _exportButton(icon: Icons.description_outlined, label: "PDF", onTap: _exportToPDF, isVerySmall: isVerySmall),
               _exportButton(icon: Icons.table_view_outlined, label: "EXCEL", onTap: _exportToExcel, isVerySmall: isVerySmall),
               if (!isMobile && ['Administrator', 'Data Officer', 'Program Coordinator'].contains(_userRole))
@@ -482,25 +420,19 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFF3F4F6))),
       ),
-      child: Column(
-        children: [
-          if (!isMobile) ...[
-            _compactSearchField(false),
-            const SizedBox(height: 12),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _compactSearchField(isMobile),
+            const SizedBox(width: 12),
+            _compactFilterDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() => _selectedDistrict = v ?? 'All')),
+            const SizedBox(width: 8),
+            _compactFilterDropdown("Institution", _selectedSchoolName, schools, (v) => setState(() => _selectedSchoolName = v ?? 'All')),
+            const SizedBox(width: 8),
+            _compactFilterDropdown("Level", _selectedClass, classes, (v) => setState(() => _selectedClass = v ?? 'All')),
           ],
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _compactFilterDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() => _selectedDistrict = v ?? 'All')),
-                const SizedBox(width: 8),
-                _compactFilterDropdown("Institution", _selectedSchoolName, schools, (v) => setState(() => _selectedSchoolName = v ?? 'All')),
-                const SizedBox(width: 8),
-                _compactFilterDropdown("Level", _selectedClass, classes, (v) => setState(() => _selectedClass = v ?? 'All')),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -662,19 +594,18 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
 
   Widget _compactSearchField(bool isMobile) {
     return Container(
-      width: isMobile ? double.infinity : 280,
+      width: isMobile ? 200 : 280,
       height: 40,
       decoration: BoxDecoration(
         color: const Color(0xFFF8F9FA),
         borderRadius: BorderRadius.circular(20),
-        border: isMobile ? Border.all(color: const Color(0xFFEEEEEE)) : null,
+        border: Border.all(color: const Color(0xFFEEEEEE)),
       ),
       child: TextField(
         onChanged: (v) => setState(() => _searchQuery = v),
-        autofocus: isMobile,
         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
         decoration: InputDecoration(
-          hintText: isMobile ? "Search scholars..." : "Search by name...",
+          hintText: "Search scholars...",
           prefixIcon: const Icon(Icons.search, size: 18, color: Colors.grey),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 10),
@@ -849,8 +780,8 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          "$remaining YRS",
-                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey.shade400),
+                          "$remaining yrs",
+                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: Colors.grey.shade400),
                         ),
                       ],
                     ),
@@ -925,8 +856,8 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
                         _statusBadge(isActive, s['status']!, false),
                         const SizedBox(height: 8),
                         Text(
-                          "$remaining YRS REMAINING",
-                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey.shade300),
+                          "$remaining yrs remaining",
+                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: Colors.grey.shade400),
                         ),
                       ],
                     ),

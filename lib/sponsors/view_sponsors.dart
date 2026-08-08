@@ -308,30 +308,6 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
   }
 
   Widget _buildPortalHeader(bool isMobile) {
-    if (isMobile && _isSearchExpanded) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
-        ),
-        child: Row(
-          children: [
-            Expanded(child: _portalCompactSearchField(true)),
-            IconButton(
-              icon: const Icon(Icons.close_rounded, color: Colors.grey),
-              onPressed: () => setState(() {
-                _isSearchExpanded = false;
-                _searchQuery = '';
-                _applyFilter();
-              }),
-            ),
-          ],
-        ),
-      );
-    }
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -358,11 +334,20 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
               ],
             ),
           ),
-          if (isMobile)
-            IconButton(
-              icon: const Icon(Icons.search_rounded, color: Color(0xFF4C3C32), size: 22),
-              onPressed: () => setState(() => _isSearchExpanded = true),
-            ),
+          if (isMobile) ...[
+            if (_userRole == 'Administrator' || PermissionService.hasPermission('sponsors.create'))
+              IconButton(
+                icon: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF9AB334), size: 22),
+                onPressed: () {
+                  if (widget.onRegisterSponsor != null) {
+                    widget.onRegisterSponsor!();
+                  } else {
+                    Navigator.pushNamed(context, '/sponsors/register').then((_) => _loadSponsors());
+                  }
+                },
+                tooltip: "Register Sponsor",
+              ),
+          ],
           const SizedBox(width: 8),
           if (!isMobile && (_userRole == 'Administrator' || PermissionService.hasPermission('sponsors.create')))
             ElevatedButton(
@@ -401,42 +386,44 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFF3F4F6))),
       ),
-      child: Row(
-        children: [
-          if (!isMobile) _portalCompactSearchField(false),
-          const Spacer(),
-          if (!isMobile) ...[
-            _miniStat(Icons.handshake_rounded, "${_filteredSponsors.length} Strategic Partners"),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _portalCompactSearchField(isMobile),
+            if (!isMobile) ...[
+              const SizedBox(width: 24),
+              _miniStat(Icons.handshake_rounded, "${_filteredSponsors.length} Strategic Partners"),
+            ],
             const SizedBox(width: 12),
+            IconButton(
+              icon: const Icon(Icons.sync_rounded, color: Color(0xFF4C3C32), size: 20),
+              onPressed: _isLoading ? null : _loadSponsors,
+              tooltip: 'Refresh Directory',
+            ),
           ],
-          IconButton(
-            icon: const Icon(Icons.sync_rounded, color: Color(0xFF4C3C32), size: 20),
-            onPressed: _isLoading ? null : _loadSponsors,
-            tooltip: 'Refresh Directory',
-          ),
-        ],
+        ),
       ),
     );
   }
 
   Widget _portalCompactSearchField(bool isMobile) {
     return Container(
-      width: isMobile ? double.infinity : 320,
+      width: isMobile ? 200 : 320,
       height: 44,
       decoration: BoxDecoration(
         color: const Color(0xFFF8F9FA),
         borderRadius: BorderRadius.circular(10),
-        border: isMobile ? Border.all(color: const Color(0xFFEEEEEE)) : null,
+        border: Border.all(color: const Color(0xFFEEEEEE)),
       ),
       child: TextField(
         onChanged: (val) {
           _searchQuery = val;
           _applyFilter();
         },
-        autofocus: isMobile,
         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
         decoration: InputDecoration(
-          hintText: isMobile ? "Search partners..." : "Search name, organization...",
+          hintText: "Search partners...",
           prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Colors.grey),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 11),

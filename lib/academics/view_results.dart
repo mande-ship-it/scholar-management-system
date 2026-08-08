@@ -101,27 +101,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
         final List<dynamic> data = scholarsRes.data['data'] ?? [];
         kStudents.clear();
         for (var item in data) {
-          kStudents.add(Student(
-            id: (item['id'] ?? item['_id'] ?? '').toString(),
-            scholarId: item['scholar_id'] ?? 'N/A',
-            name: item['full_name'] ?? 'N/A',
-            age: item['age'] != null ? int.tryParse(item['age'].toString()) ?? 18 : 18,
-            schoolType: item['school_type'].toString().toLowerCase() == 'university'
-                ? SchoolType.university
-                : SchoolType.secondary,
-            schoolName: item['display_school_name'] ?? 'N/A',
-            status: item['status'] ?? 'Active',
-            district: item['district'] ?? '',
-            village: item['village'] ?? '',
-            donor: item['donor'] ?? 'General Fund',
-            phone: item['phone'] ?? '',
-            email: item['email'] ?? '',
-            programType: item['program_type'] ?? '',
-            programName: item['program_name'] ?? '',
-            previousSchool: item['previous_school'] ?? '',
-            startYear: item['start_year']?.toString() ?? '2026',
-            endYear: item['end_year']?.toString() ?? '2030',
-          ));
+          kStudents.add(Student.fromMap(item));
         }
       }
     } catch (e) {
@@ -414,14 +394,14 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
               _portalHeaderActionBtn(
                 onTap: _openConsolidatedRoster,
                 icon: Icons.grid_view_rounded,
-                label: "ROSTER",
+                label: "Roster",
                 color: const Color(0xFF4C3C32),
               ),
             const SizedBox(width: 8),
             _portalHeaderActionBtn(
               onTap: widget.onEnterResults ?? () => Navigator.pushNamed(context, '/academics/enterResults'),
               icon: Icons.add_rounded,
-              label: "RECORD",
+              label: "Record",
               color: const Color(0xFF9AB334),
             ),
           ],
@@ -455,43 +435,43 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFF3F4F6))),
       ),
-      child: isMobile
-        ? SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                if (isSecondary) ...[
-                  _portalCompactDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() { _selectedDistrict = v; _selectedSchool = null; _selectedScholarId = null; })),
-                  const SizedBox(width: 8),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: isMobile
+            ? Row(
+                children: [
+                  if (isSecondary) ...[
+                    _portalCompactDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() { _selectedDistrict = v; _selectedSchool = null; _selectedScholarId = null; })),
+                    const SizedBox(width: 8),
+                  ],
+                  _portalCompactDropdown(isSecondary ? "School" : "University", _selectedSchool, _availableSchools, (v) => setState(() { _selectedSchool = v; _selectedScholarId = null; })),
                 ],
-                _portalCompactDropdown(isSecondary ? "School" : "University", _selectedSchool, _availableSchools, (v) => setState(() { _selectedSchool = v; _selectedScholarId = null; })),
-              ],
-            ),
-          )
-        : Row(
-            children: [
-              _portalCompactSearchField(false),
-              const SizedBox(width: 16),
-              if (isSecondary) ...[
-                SizedBox(
-                  width: 180,
-                  child: _portalCompactDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() { _selectedDistrict = v; _selectedSchool = null; _selectedScholarId = null; })),
-                ),
-                const SizedBox(width: 12),
-              ],
-              SizedBox(
-                width: 240,
-                child: _portalCompactDropdown(isSecondary ? "Institution" : "University", _selectedSchool, _availableSchools, (v) => setState(() { _selectedSchool = v; _selectedScholarId = null; })),
+              )
+            : Row(
+                children: [
+                  _portalCompactSearchField(false),
+                  const SizedBox(width: 16),
+                  if (isSecondary) ...[
+                    SizedBox(
+                      width: 180,
+                      child: _portalCompactDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() { _selectedDistrict = v; _selectedSchool = null; _selectedScholarId = null; })),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                  SizedBox(
+                    width: 240,
+                    child: _portalCompactDropdown(isSecondary ? "Institution" : "University", _selectedSchool, _availableSchools, (v) => setState(() { _selectedSchool = v; _selectedScholarId = null; })),
+                  ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 140,
+                    child: _portalCompactDropdown("Year", _selectedYear, _academicYears, (v) => setState(() => _selectedYear = v)),
+                  ),
+                  const SizedBox(width: 24),
+                  _miniStat(Icons.groups_rounded, "${_filteredStudents.length} Scholars found"),
+                ],
               ),
-              const SizedBox(width: 12),
-              SizedBox(
-                width: 140,
-                child: _portalCompactDropdown("Year", _selectedYear, _academicYears, (v) => setState(() => _selectedYear = v)),
-              ),
-              const Spacer(),
-              _miniStat(Icons.groups_rounded, "${_filteredStudents.length} Scholars found"),
-            ],
-          ),
+      ),
     );
   }
 
@@ -533,7 +513,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
           value: value,
           hint: Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
           underline: const SizedBox(),
-          isExpanded: true,
+          isExpanded: false, // Changed from true to false for better Row integration
           icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Colors.grey),
           items: [
             DropdownMenuItem(value: null, child: Text("All $label", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600))),
@@ -649,7 +629,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text("PROCEED", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: color, letterSpacing: 1)),
+                Text("Proceed", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: color, letterSpacing: 1)),
                 const SizedBox(width: 8),
                 Icon(Icons.arrow_forward_rounded, size: 16, color: color),
               ],
@@ -673,7 +653,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
             indicatorColor: const Color(0xFF9AB334),
             indicatorWeight: 3,
             labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-            tabs: const [Tab(text: "ACTIVE SCHOLARS"), Tab(text: "ALUMNI / GRADUATES")],
+            tabs: const [Tab(text: "Active scholars"), Tab(text: "Alumni / Graduates")],
           ),
           const Spacer(),
           _miniStat(Icons.groups_rounded, "${_filteredStudents.length} scholars found"),

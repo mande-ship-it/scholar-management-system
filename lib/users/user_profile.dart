@@ -68,7 +68,8 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
   final TextEditingController _confirmPasswordController =
       TextEditingController();
 
-  final List<_ActivityEntry> _activity = []; // Could be fetched from API
+  List<_ActivityEntry> _activity = [];
+  bool _isLoadingActivity = false;
 
   @override
   void initState() {
@@ -79,6 +80,55 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
     _locationController = TextEditingController();
     _bioController = TextEditingController();
     _fetchProfile();
+    _fetchActivity();
+  }
+
+  Future<void> _fetchActivity() async {
+    setState(() => _isLoadingActivity = true);
+    try {
+      final response = await ApiService.getRecentActivities();
+      if (response.statusCode == 200) {
+        final List<dynamic> data = response.data['data'] ?? [];
+        if (mounted) {
+          setState(() {
+            _activity = data.map((a) {
+              final type = a['type'] ?? 'info';
+              Color color = Colors.blue;
+              IconData icon = Icons.info_outline;
+
+              if (type == 'success') { color = kBrandOlive; icon = Icons.check_circle_outline; }
+              else if (type == 'warning') { color = kBrandOrange; icon = Icons.warning_amber_rounded; }
+              else if (type == 'error') { color = Colors.redAccent; icon = Icons.error_outline; }
+
+              return _ActivityEntry(
+                icon: icon,
+                color: color,
+                title: a['message'] ?? 'System Activity',
+                subtitle: "Performed by ${a['actor'] ?? 'System'}",
+                time: _timeAgo(a['created_at']),
+              );
+            }).toList();
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching activity: $e');
+    } finally {
+      if (mounted) setState(() => _isLoadingActivity = false);
+    }
+  }
+
+  String _timeAgo(String? dateStr) {
+    if (dateStr == null) return '';
+    try {
+      final date = DateTime.parse(dateStr);
+      final diff = DateTime.now().difference(date);
+      if (diff.inMinutes < 60) return "${diff.inMinutes}m ago";
+      if (diff.inHours < 24) return "${diff.inHours}h ago";
+      return DateFormat('dd MMM').format(date);
+    } catch (_) {
+      return '';
+    }
   }
 
   Future<void> _fetchProfile() async {
@@ -99,7 +149,7 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
             _lastLogin = DateTime.now();
 
             _originalValues = {
-              'name': u['full_name'] ?? '',
+              'name': u['fullName'] ?? u['full_name'] ?? '',
               'email': u['email'] ?? '',
               'phone': u['phone'] ?? '',
               'location': u['location'] ?? '',

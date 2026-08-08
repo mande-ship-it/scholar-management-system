@@ -1,5 +1,6 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'statistics.dart';
 import 'package:scholar_management_system/services/api_service.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
@@ -585,6 +586,7 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
                     separatorBuilder: (_, __) => const Divider(height: 1),
                     itemBuilder: (context, index) {
                       final a = _approvals[index];
+                      final timeStr = _formatTime(a['time']);
                       return Padding(
                         padding: const EdgeInsets.all(16),
                         child: Column(
@@ -594,7 +596,7 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
                             const SizedBox(height: 3),
                             Text(a['desc'] ?? '', style: const TextStyle(fontSize: 11.5, color: Colors.black54)),
                             const SizedBox(height: 3),
-                            Text(a['time'] ?? '', style: const TextStyle(fontSize: 10.5, color: Colors.grey)),
+                            Text(timeStr, style: const TextStyle(fontSize: 10.5, color: Colors.grey, fontWeight: FontWeight.bold)),
                           ],
                         ),
                       );
@@ -619,6 +621,20 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
         ),
       ),
     );
+  }
+
+  String _formatTime(String? dateStr) {
+    if (dateStr == null) return "Action Required";
+    try {
+      final date = DateTime.parse(dateStr).toLocal();
+      final diff = DateTime.now().difference(date);
+      if (diff.inMinutes < 1) return "Just now";
+      if (diff.inMinutes < 60) return "${diff.inMinutes}m ago";
+      if (diff.inHours < 24) return "${diff.inHours}h ago";
+      return DateFormat('dd MMM').format(date);
+    } catch (_) {
+      return "Action Required";
+    }
   }
 
 }

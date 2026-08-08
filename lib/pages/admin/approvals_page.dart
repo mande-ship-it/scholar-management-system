@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../services/api_service.dart';
+import 'package:scholar_management_system/services/api_service.dart';
+import 'package:scholar_management_system/academics/academics_utils.dart';
 import 'package:intl/intl.dart';
 
 class ApprovalsPage extends StatefulWidget {
@@ -17,12 +18,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
   List<dynamic> _pendingScholars = [];
   List<dynamic> _pendingEvents = [];
   List<dynamic> _pendingPayments = [];
-
-  // Brand Color Palette
-  static const Color brandBrown = Color(0xFF4C3C32);
-  static const Color brandCream = Color(0xFFFAF2DB);
-  static const Color brandOlive = Color(0xFF9AB334);
-  static const Color brandOrange = Color(0xFFE05B1C);
+  bool _isProcessing = false;
 
   bool get _canApproveScholars {
     final role = widget.userRole?.toLowerCase() ?? '';
@@ -61,6 +57,8 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
   }
 
   Future<void> _processApproval(String type, String id, bool approve) async {
+    if (_isProcessing) return;
+    setState(() => _isProcessing = true);
     try {
       final response = approve
         ? await ApiService.approveActivity(type, id)
@@ -68,12 +66,14 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
 
       if (response.statusCode == 200) {
         _showSuccess("${approve ? 'Approved' : 'Rejected'} successfully.");
-        _fetchPending();
+        await _fetchPending();
       } else {
         _showError(response.data['message'] ?? "Action failed.");
       }
     } catch (e) {
       _showError("An error occurred. Please try again.");
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
@@ -81,7 +81,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
-        backgroundColor: brandOlive,
+        backgroundColor: kBrandOlive,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
@@ -103,37 +103,48 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
   Widget build(BuildContext context) {
     final bool isMobile = MediaQuery.of(context).size.width < 900;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: isMobile ? 16 : 24,
-            vertical: isMobile ? 12 : 20,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              const SizedBox(height: 24),
-              _buildTabs(isMobile),
-              const SizedBox(height: 20),
-              Expanded(
-                child: _isLoading
-                  ? const SizedBox.shrink()
-                  : TabBarView(
-                      controller: _tabController,
-                      children: [
-                        if (_canApproveScholars) _buildScholarsList(isMobile),
-                        _buildEventsList(isMobile),
-                        _buildPaymentsList(isMobile),
-                      ],
-                    ),
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: const Color(0xFFF8F9FA),
+          body: SafeArea(
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 16 : 24,
+                vertical: isMobile ? 12 : 20,
               ),
-            ],
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(),
+                  const SizedBox(height: 24),
+                  _buildTabs(isMobile),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: _isLoading
+                      ? Center(child: CircularProgressIndicator(color: kBrandOlive))
+                      : TabBarView(
+                          controller: _tabController,
+                          children: [
+                            if (_canApproveScholars) _buildScholarsList(isMobile),
+                            _buildEventsList(isMobile),
+                            _buildPaymentsList(isMobile),
+                          ],
+                        ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
-      ),
+        if (_isProcessing)
+          Container(
+            color: Colors.black.withOpacity(0.3),
+            child: const Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            ),
+          ),
+      ],
     );
   }
 
@@ -149,7 +160,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: brandBrown,
+                  color: kBrandBrown,
                 ),
               ),
             ],
@@ -157,7 +168,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
         ),
         IconButton(
           onPressed: _fetchPending,
-          icon: const Icon(Icons.refresh_rounded, color: brandBrown, size: 20),
+          icon: const Icon(Icons.refresh_rounded, color: kBrandBrown, size: 20),
           tooltip: "Refresh",
         ),
       ],
@@ -185,7 +196,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
             ),
           ],
         ),
-        labelColor: brandBrown,
+        labelColor: kBrandBrown,
         unselectedLabelColor: Colors.grey.shade600,
         labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
         indicatorSize: TabBarIndicatorSize.tab,
@@ -330,8 +341,8 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
               children: [
                 CircleAvatar(
                   radius: 24,
-                  backgroundColor: brandOlive.withOpacity(0.1),
-                  child: Icon(icon, color: brandOlive, size: 24),
+                  backgroundColor: kBrandOlive.withOpacity(0.1),
+                  child: Icon(icon, color: kBrandOlive, size: 24),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -340,17 +351,17 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
-                          color: brandBrown,
+                          color: kBrandBrown,
                         ),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         subtitle,
-                        style: const TextStyle(
-                          color: brandBrown,
+                        style: TextStyle(
+                          color: kBrandBrown,
                           fontWeight: FontWeight.w600,
                           fontSize: 13,
                         ),
@@ -377,11 +388,11 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
               children: [
                 TextButton.icon(
                   onPressed: onReject,
-                  icon: const Icon(Icons.close_rounded, color: brandOrange, size: 18),
+                  icon: const Icon(Icons.close_rounded, color: kBrandOrange, size: 18),
                   label: const Text(
                     "REJECT",
                     style: TextStyle(
-                      color: brandOrange,
+                      color: kBrandOrange,
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
                     ),
@@ -396,7 +407,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: brandOlive,
+                    backgroundColor: kBrandOlive,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

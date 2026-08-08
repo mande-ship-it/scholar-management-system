@@ -32,26 +32,37 @@ class _PromoteScholarsComponentState extends State<PromoteScholarsComponent> {
         setState(() {
           kStudents.clear();
           for (var item in data) {
-            kStudents.add(Student(
-              id: item['id'].toString(),
-              scholarId: item['scholar_id']?.toString() ?? 'N/A',
-              name: item['full_name'] ?? 'N/A',
-              age: 16,
-              schoolType: item['school_type'] == 'University' ? SchoolType.university : SchoolType.secondary,
-              schoolName: item['display_school_name'] ?? 'N/A',
-              currentClass: item['academic_year'] ?? 'N/A',
-              status: item['status'] ?? 'Active',
-              district: item['district'] ?? 'N/A',
-              village: item['village'] ?? 'N/A',
-              donor: item['donor'] ?? 'N/A',
-              phone: item['phone'] ?? 'N/A',
-              email: item['email'] ?? 'N/A',
-              sex: item['sex'] ?? 'Female',
-              dob: item['dob'] ?? '',
-              programType: item['program_type'] ?? '',
-              startYear: item['start_year']?.toString() ?? '2026',
-              endYear: item['end_year']?.toString() ?? '2030',
-            ));
+            try {
+              kStudents.add(Student(
+                id: (item['id'] ?? item['_id']).toString(),
+                scholarId: item['scholar_id']?.toString() ?? item['scholarId']?.toString() ?? 'N/A',
+                name: item['full_name'] ?? item['fullName'] ?? 'N/A',
+                age: item['dob'] != null && item['dob'].toString().isNotEmpty
+                    ? DateTime.now().year - DateTime.parse(item['dob'].toString()).year
+                    : 16,
+                schoolType: (item['school_type']?.toString().toLowerCase().contains('university') ?? false) ||
+                            (item['schoolType']?.toString().toLowerCase().contains('university') ?? false)
+                    ? SchoolType.university
+                    : SchoolType.secondary,
+                schoolName: item['display_school_name'] ?? item['schoolName'] ?? 'N/A',
+                currentClass: (item['academic_year'] ?? item['academicYear'] ?? 'N/A').toString(),
+                status: item['status'] ?? 'Active',
+                district: item['district'] ?? 'N/A',
+                village: item['village'] ?? 'N/A',
+                donor: item['donor'] ?? 'N/A',
+                phone: item['phone'] ?? 'N/A',
+                email: item['email'] ?? 'N/A',
+                sex: item['sex'] ?? 'Female',
+                dob: item['dob']?.toString() ?? '',
+                programType: item['program_type'] ?? item['programType'] ?? '',
+                programName: item['program_name'] ?? item['programName'] ?? 'N/A',
+                previousSchool: item['previous_school'] ?? 'N/A',
+                startYear: item['start_year']?.toString() ?? '2026',
+                endYear: item['end_year']?.toString() ?? '2030',
+              ));
+            } catch (e) {
+              debugPrint('Error mapping student in promote: $e');
+            }
           }
         });
       }

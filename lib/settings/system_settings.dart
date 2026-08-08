@@ -141,6 +141,41 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
                         ),
 
                         const SizedBox(height: 48),
+                        _sectionLabel("SERVER ARCHITECTURE"),
+                        const SizedBox(height: 24),
+                        _buildPreferenceTile(
+                          title: "Backend Environment",
+                          subtitle: ApiService.isUsingLocal
+                            ? "Connected to Local Development Server"
+                            : "Connected to Production (Render Cloud)",
+                          icon: Icons.dns_rounded,
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(ApiService.isUsingLocal ? "LOCAL" : "REMOTE",
+                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBrandOrange)),
+                              const SizedBox(width: 8),
+                              Switch(
+                                value: ApiService.isUsingLocal,
+                                activeThumbColor: kBrandOrange,
+                                onChanged: (v) async {
+                                  await ApiService.toggleBackend(v);
+                                  setState(() {});
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text("Switched to ${v ? 'Local' : 'Remote'} backend. App may need to re-fetch data."),
+                                        backgroundColor: kBrandBrown,
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 48),
                         if (isMobile)
                           Column(
                             children: [
@@ -416,6 +451,6 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
   }
 
   Widget _sectionLabel(String text) {
-    return Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kBrandOlive.withValues(alpha: 0.8), letterSpacing: 1.5));
+    return Text(text, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kBrandOlive.withOpacity(0.8), letterSpacing: 1.5));
   }
 }

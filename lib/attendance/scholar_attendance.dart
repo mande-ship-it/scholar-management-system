@@ -279,7 +279,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _sectionPortalLabel("SESSION CONFIGURATION", Icons.settings_input_composite_rounded),
+                      _sectionPortalLabel("Session configuration", Icons.settings_input_composite_rounded),
                       const SizedBox(height: 24),
                       _buildPortalConfigPanel(isMobile),
                       const SizedBox(height: 48),
@@ -287,12 +287,12 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
                       if (_isLoadingScholars)
                         const Center(child: Padding(padding: EdgeInsets.all(100), child: CircularProgressIndicator(color: kBrandOlive)))
                       else if (_entries.isNotEmpty) ...[
-                        _sectionPortalLabel("SITTING LOGISTICS", Icons.local_shipping_rounded),
+                        _sectionPortalLabel("Sitting logistics", Icons.local_shipping_rounded),
                         const SizedBox(height: 24),
                         _buildPortalLogisticsPanel(isMobile),
                         const SizedBox(height: 48),
 
-                        _sectionPortalLabel("ATTENDANCE REGISTER", Icons.fact_check_rounded),
+                        _sectionPortalLabel("Attendance register", Icons.fact_check_rounded),
                         const SizedBox(height: 24),
                         if (isMobile) 
                           _buildMobileAttendanceList()
@@ -355,7 +355,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
                     });
                   },
                   icon: const Icon(Icons.done_all_rounded, size: 16),
-                  label: const Text("MARK ALL PRESENT"),
+                  label: const Text("Mark all present"),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF9AB334),
                     foregroundColor: Colors.white,
@@ -520,27 +520,30 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
             color: const Color(0xFFF9FAFB),
             child: Row(
               children: [
-                const Text("NOMINAL ROLL", 
+                const Text("Nominal roll", 
                   style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.grey, letterSpacing: 1.0)),
                 const Spacer(),
-                _countBadge("${_entries.where((e) => e.status == AttendanceStatus.present).length} PRESENT", Colors.green),
+                _countBadge("${_entries.where((e) => e.status == AttendanceStatus.present).length} present", Colors.green),
                 const SizedBox(width: 16),
-                _countBadge("${_entries.where((e) => e.status == AttendanceStatus.absent).length} ABSENT", Colors.red),
+                _countBadge("${_entries.where((e) => e.status == AttendanceStatus.absent).length} absent", Colors.red),
               ],
             ),
           ),
-          DataTable(
-            headingRowHeight: 60,
-            dataRowMaxHeight: 80,
-            horizontalMargin: 32,
-            columnSpacing: 24,
-            columns: [
-              const DataColumn(label: Text("IDENTIFIER", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.grey))),
-              const DataColumn(label: Text("SCHOLAR IDENTITY", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.grey))),
-              const DataColumn(label: Text("TELEMETRY STATUS", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.grey))),
-              const DataColumn(label: Text("FIELD NOTES", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.grey))),
-            ],
-            rows: _entries.map((entry) => _buildPortalDataRow(entry)).toList(),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              headingRowHeight: 60,
+              dataRowMaxHeight: 80,
+              horizontalMargin: 32,
+              columnSpacing: 24,
+              columns: [
+                const DataColumn(label: Text("IDENTIFIER", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.grey))),
+                const DataColumn(label: Text("SCHOLAR IDENTITY", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.grey))),
+                const DataColumn(label: Text("TELEMETRY STATUS", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.grey))),
+                const DataColumn(label: Text("FIELD NOTES", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.grey))),
+              ],
+              rows: _entries.map((entry) => _buildPortalDataRow(entry)).toList(),
+            ),
           ),
         ],
       ),
@@ -688,7 +691,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
                       if (isSelected) ...[
                         const SizedBox(width: 8),
                         Text(
-                          status.label.toUpperCase(),
+                          status.label,
                           style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                         ),
                       ],
@@ -738,7 +741,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                "AUDIT DECLARATION: Securely synchronize recorded telemetry.",
+                "Audit declaration: Securely synchronize recorded telemetry.",
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w600),
               ),
@@ -751,7 +754,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
                     icon: _isSaving 
                         ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) 
                         : const Icon(Icons.cloud_upload_rounded, size: 18),
-                    label: Text(_isSaving ? "SYNCING..." : "FINALIZE & SYNC", 
+                    label: Text(_isSaving ? "Syncing..." : "Finalize & sync", 
                       style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -770,7 +773,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
               const SizedBox(width: 20),
               const Expanded(
                 child: Text(
-                  "AUDIT DECLARATION: By authorizing, you certify that the session telemetry recorded is accurate and reflects actual engagement.",
+                  "Audit declaration: By authorizing, you certify that the session telemetry recorded is accurate and reflects actual engagement.",
                   style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w600, height: 1.5),
                 ),
               ),
@@ -783,7 +786,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
                     icon: _isSaving 
                         ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) 
                         : const Icon(Icons.cloud_upload_rounded, size: 18),
-                    label: Text(_isSaving ? "SYNCHRONIZING..." : "FINALIZE & SYNC REGISTER", 
+                    label: Text(_isSaving ? "Synchronizing..." : "Finalize & sync register",
                       style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 20),

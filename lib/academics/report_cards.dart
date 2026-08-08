@@ -45,17 +45,7 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
       final response = await ApiService.getAllScholars();
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data['data'] ?? [];
-        _allScholars = data.map((item) => Student(
-          id: (item['id'] ?? item['_id'] ?? '').toString(),
-          scholarId: item['scholarId'] ?? item['scholar_id'] ?? 'N/A',
-          name: item['fullName'] ?? item['full_name'] ?? 'N/A',
-          age: item['age'] ?? 16,
-          schoolType: item['schoolType'] == 'University' || item['school_type'] == 'University' ? SchoolType.university : SchoolType.secondary,
-          schoolName: item['schoolName'] ?? item['school_name'] ?? 'N/A',
-          status: item['status'] ?? 'Active',
-          donor: item['donor'] ?? 'N/A',
-          currentClass: item['academicYear'] ?? item['academic_year'] ?? '',
-        )).toList();
+        _allScholars = data.map((item) => Student.fromMap(item)).toList();
         _filteredScholars = _allScholars.where((s) => s.status == 'Active').toList();
       }
     } catch (e) {

@@ -2,53 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
-import '../../services/api_service.dart';
-import '../../academics/academics_utils.dart';
-
-// Admin Dashboard Component
-import '../../dashBoard/admin_dashboard.dart';
-
-// Activity Components
-import '../eventPages/events.dart';
-
-// School Components
-import '../schoolPages/register_school.dart';
-import '../schoolPages/view_schools.dart';
-
-// Scholar Components
-import '../scholarPages/view_scholars.dart';
-import '../scholarPages/register_scholar.dart';
-import '../scholarPages/graduates_page.dart';
-
-// Sponsor Components
-import '../sponsorPages/register_sponsor.dart';
-import '../sponsorPages/view_sponsors.dart';
-
-// Academic Components
-import '../academicPages/view_results.dart';
-import '../academicPages/enter_results.dart';
-import '../academicPages/report_cards.dart';
-import '../academicPages/performance_analysis.dart';
-import '../academicPages/academic_stats.dart';
-
-// User Components
-import '../userPages/create_user.dart';
-import '../userPages/manage_users.dart';
-import '../userPages/user_roles.dart';
-import '../userPages/permissions.dart';
-import '../userPages/user_profile.dart';
-import '../userPages/manage_departments.dart';
-
-// Admin Approvals
-import '../admin/approvals_page.dart';
-
-// Settings Components
-import '../settingsPages/organisation_profile.dart';
-import '../settingsPages/backup_restore.dart';
-import '../settingsPages/system_settings.dart';
-import '../settingsPages/account_settings.dart';
-
-import '../dashboardPages/notifications.dart';
+import 'package:scholar_management_system/services/api_service.dart';
+import 'package:scholar_management_system/academics/academics_utils.dart';
+import 'package:scholar_management_system/dashBoard/admin_dashboard.dart';
+import 'package:scholar_management_system/pages/eventPages/events.dart';
+import 'package:scholar_management_system/pages/schoolPages/register_school.dart';
+import 'package:scholar_management_system/pages/schoolPages/view_schools.dart';
+import 'package:scholar_management_system/pages/sponsorPages/register_sponsor.dart';
+import 'package:scholar_management_system/pages/sponsorPages/view_sponsors.dart';
+import 'package:scholar_management_system/pages/userPages/create_user.dart';
+import 'package:scholar_management_system/pages/userPages/manage_users.dart';
+import 'package:scholar_management_system/pages/userPages/user_roles.dart';
+import 'package:scholar_management_system/pages/userPages/permissions.dart';
+import 'package:scholar_management_system/pages/userPages/user_profile.dart';
+import 'package:scholar_management_system/pages/userPages/manage_departments.dart';
+import 'package:scholar_management_system/pages/admin/approvals_page.dart';
+import 'package:scholar_management_system/pages/settingsPages/organisation_profile.dart';
+import 'package:scholar_management_system/pages/settingsPages/backup_restore.dart';
+import 'package:scholar_management_system/pages/settingsPages/system_settings.dart';
+import 'package:scholar_management_system/pages/settingsPages/account_settings.dart';
+import 'package:scholar_management_system/pages/dashboardPages/notifications.dart';
 
 class AdminSidebarCategory {
   final String title;
@@ -275,6 +248,9 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
   void _showSearchOverlay() {
     _removeSearchOverlay();
     
+    final screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 900;
+    
     _searchOverlayEntry = OverlayEntry(
       builder: (context) => Stack(
         children: [
@@ -284,12 +260,13 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
             child: Container(color: Colors.transparent, width: double.infinity, height: double.infinity),
           ),
           Positioned(
-            width: 450,
+            width: isMobile ? screenWidth * 0.9 : 450,
+            left: isMobile ? screenWidth * 0.05 : null,
             child: CompositedTransformFollower(
               link: _searchLayerLink,
               showWhenUnlinked: false,
-              targetAnchor: Alignment.bottomLeft,
-              followerAnchor: Alignment.topLeft,
+              targetAnchor: isMobile ? Alignment.bottomCenter : Alignment.bottomLeft,
+              followerAnchor: isMobile ? Alignment.topCenter : Alignment.topLeft,
               offset: const Offset(0, 8),
               child: Material(
                 elevation: 12,
@@ -806,7 +783,7 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
                     children: [
                       if (_navigationHistory.isNotEmpty && activeSubItem.title != "Pending Approvals") ...[
                         IconButton(
-                          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kBrandBrown, size: 12), 
+                          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kBrandBrown, size: 14), 
                           onPressed: _popSubItem,
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -826,25 +803,26 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
                       Expanded(
                         child: Text(activeSubItem.title, 
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: kBrandBrown)),
+                          style: TextStyle(fontSize: isMobile ? 14 : 12, fontWeight: FontWeight.w900, color: kBrandBrown)),
                       ),
-                      const SizedBox(width: 20),
-                      if (!isMobile)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: kBrandOlive.withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(6),
+                      if (!isMobile) ...[
+                        const SizedBox(width: 20),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: kBrandOlive.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.calendar_today_rounded, size: 10, color: kBrandOlive),
+                              const SizedBox(width: 6),
+                              Text(DateFormat('d MMM yyyy').format(DateTime.now()), 
+                                style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBrandOlive)),
+                            ],
+                          ),
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.calendar_today_rounded, size: 10, color: kBrandOlive),
-                            const SizedBox(width: 6),
-                            Text(DateFormat('d MMM yyyy').format(DateTime.now()), 
-                              style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBrandOlive)),
-                          ],
-                        ),
-                      ),
+                      ],
                     ],
                   ),
                 ),

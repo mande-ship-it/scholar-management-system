@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:scholar_management_system/services/api_service.dart';
 import '../academics/academics_utils.dart';
 
@@ -60,24 +61,40 @@ class _RecentActivitiesComponentState extends State<RecentActivitiesComponent> {
             final activity = _activities[index];
             final String actor = activity['actorName'] ?? 'System';
             final String message = activity['message'] ?? 'No description';
+            final String timeStr = _formatTime(activity['created_at'] ?? activity['createdAt']);
             
             return ListTile(
-              leading: CircleAvatar(
-                backgroundColor: kBrandOlive.withOpacity(0.1),
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), shape: BoxShape.circle),
                 child: Icon(Icons.flash_on_rounded, color: kBrandOlive, size: 18),
               ),
               title: Text(
                 message, 
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: kBrandBrown)
               ),
               subtitle: Text(
-                "By $actor • ${activity['created_at'] ?? ''}",
-                style: const TextStyle(fontSize: 11)
+                "By $actor • $timeStr",
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade600)
               ),
             );
           },
         ),
       ],
     );
+  }
+
+  String _formatTime(String? dateStr) {
+    if (dateStr == null) return "Recently";
+    try {
+      final date = DateTime.parse(dateStr).toLocal();
+      final diff = DateTime.now().difference(date);
+      if (diff.inMinutes < 1) return "Just now";
+      if (diff.inMinutes < 60) return "${diff.inMinutes}m ago";
+      if (diff.inHours < 24) return "${diff.inHours}h ago";
+      return DateFormat('dd MMM, HH:mm').format(date);
+    } catch (_) {
+      return "Recently";
+    }
   }
 }

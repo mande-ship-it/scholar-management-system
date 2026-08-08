@@ -6,48 +6,54 @@ import 'package:flutter/foundation.dart';
 class ApiService {
   static String? _token;
   static const String _tokenKey = 'auth_token';
+  static const String _useLocalKey = 'use_local_backend';
+  static bool _useLocalOverride = false;
 
-  static String get baseUrl {
-    if (kReleaseMode) {
-      return 'https://age-systems-backend.onrender.com'; // YOUR RENDER URL
-    }
-    
-    if (kIsWeb) {
-      return 'https://age-systems-backend.onrender.com'; // Use Render for Web Dev as well if desired
-    }
-    
-    // For mobile/desktop
+  static const String remoteUrl = 'https://age-systems-backend.onrender.com';
+
+  static String get localUrl {
+    if (kIsWeb) return 'http://localhost:5000';
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
-        // return 'http://192.168.100.170:5000'; // Physical Device
         return 'http://10.0.2.2:5000'; // Emulator
-      case TargetPlatform.windows:
-      case TargetPlatform.linux:
-      case TargetPlatform.macOS:
-        return 'http://localhost:5000'; // Desktop (Localhost/0.0.0.0)
       default:
         return 'http://localhost:5000';
     }
   }
 
-  static String getFullUrl(String? path) {
-    if (path == null || path.isEmpty) return '';
-    if (path.startsWith('http')) return path;
-
-    // Remove leading ./ or / if present
-    String cleanPath = path;
-    if (cleanPath.startsWith('./')) {
-      cleanPath = cleanPath.substring(2);
-    }
-    if (cleanPath.startsWith('/')) {
-      cleanPath = cleanPath.substring(1);
+  static String get baseUrl {
+    // If user explicitly chose local via settings
+    final prefs = _prefs;
+    if (prefs != null && prefs.containsKey(_useLocalKey)) {
+      return prefs.getBool(_useLocalKey)! ? localUrl : remoteUrl;
     }
 
-    return '$baseUrl/$cleanPath';
+    // Default logic
+    if (kReleaseMode) return remoteUrl;
+    if (kIsWeb) return remoteUrl;
+
+    return localUrl;
+  }
+
+  static SharedPreferences? _prefs;
+
+  static Future<void> init() async {
+    _prefs = await SharedPreferences.getInstance();
+    _token = _prefs!.getString(_tokenKey);
+    _dio.options.baseUrl = '$baseUrl/api';
+  }
+
+  static bool get isUsingLocal => baseUrl == localUrl;
+
+  static Future<void> toggleBackend(bool useLocal) async {
+    if (_prefs != null) {
+      await _prefs!.setBool(_useLocalKey, useLocal);
+      _dio.options.baseUrl = '$baseUrl/api';
+    }
   }
 
   static final Dio _dio = Dio(BaseOptions(
-    baseUrl: '$baseUrl/api', // Use http://10.0.2.2:5000 for Android emulator
+    baseUrl: 'https://age-systems-backend.onrender.com/api', // Initial placeholder, updated in init()
     connectTimeout: const Duration(seconds: 20),
     receiveTimeout: const Duration(seconds: 20),
     validateStatus: (status) => status != null && status < 500,
@@ -61,11 +67,6 @@ class ApiService {
   ));
 
   static Dio get dio => _dio;
-
-  static Future<void> init() async {
-    final prefs = await SharedPreferences.getInstance();
-    _token = prefs.getString(_tokenKey);
-  }
 
   static void setToken(String token, {bool persist = false}) async {
     _token = token;
@@ -84,6 +85,22 @@ class ApiService {
   }
 
   static bool get isAuthenticated => _token != null;
+
+  static String getFullUrl(String? path) {
+    if (path == null || path.isEmpty) return '';
+    if (path.startsWith('http')) return path;
+
+    // Remove leading ./ or / if present
+    String cleanPath = path;
+    if (cleanPath.startsWith('./')) {
+      cleanPath = cleanPath.substring(2);
+    }
+    if (cleanPath.startsWith('/')) {
+      cleanPath = cleanPath.substring(1);
+    }
+
+    return '$baseUrl/$cleanPath';
+  }
 
   static Future<Response> login(String email, String password) async {
     return await _dio.post('/auth/login', data: {
@@ -205,6 +222,15 @@ class ApiService {
 
   static Future<Response> saveAttendance(Map<String, dynamic> data) async {
     return await _dio.post('/attendance/record', data: data);
+  }
+
+  // Payments
+  static Future<Response> getPaymentsByScholar(String scholarId) async {
+    return await _dio.get('/payments/scholar/$scholarId');
+  }
+
+  static Future<Response> recordPayment(Map<String, dynamic> data) async {
+    return await _dio.post('/payments/record', data: data);
   }
 
   // Academics

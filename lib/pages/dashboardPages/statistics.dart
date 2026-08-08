@@ -6,10 +6,13 @@ class StatisticsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final level = args?['level'] ?? 'University';
+
+    return Scaffold(
       body: Padding(
-        padding: EdgeInsets.all(20),
-        child: StatisticsComponent(level: 'University'),
+        padding: const EdgeInsets.all(20),
+        child: StatisticsComponent(level: level),
       ),
     );
   }

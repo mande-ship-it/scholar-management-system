@@ -66,41 +66,7 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
       final response = await ApiService.getScholarById(id);
       if (response.statusCode == 200) {
         final item = response.data['data'];
-        _student = Student(
-          id: item['id'].toString(),
-          scholarId: item['scholar_id'] ?? 'N/A',
-          name: item['full_name'],
-          age: item['dob'] != null ? DateTime.now().year - DateTime.parse(item['dob']).year : 16,
-          schoolType: item['school_type'] == 'University' || item['schoolType'] == 'University' ? SchoolType.university : SchoolType.secondary,
-          schoolName: item['display_school_name'] ?? 'N/A',
-          currentClass: item['academic_year'] ?? 'N/A',
-          status: item['status'] ?? 'Active',
-          district: item['district'] ?? 'N/A',
-          village: item['village'] ?? 'N/A',
-          donor: item['donor'] ?? 'N/A',
-          phone: item['phone'] ?? 'N/A',
-          email: item['email'] ?? 'N/A',
-          sex: item['sex'] ?? 'Female',
-          dob: item['dob'] ?? '',
-          programType: item['program_type'] ?? '',
-          programName: item['program_name'] ?? 'N/A',
-          previousSchool: item['previous_school'] ?? 'N/A',
-          startYear: item['start_year']?.toString() ?? '2026',
-          endYear: item['end_year']?.toString() ?? '2030',
-          registeredClass: item['registeredClass'] ?? item['registered_class'],
-          programStartYearLabel: item['programStartYearLabel'] ?? item['program_start_year_label'],
-          programDurationYears: item['programDurationYears'] ?? item['program_duration_years'] ?? 4,
-          yearsCompleted: item['yearsCompleted'] ?? item['years_completed'] ?? 0,
-          flag: item['flag'],
-          guardianName: item['guardian_name'],
-          guardianPhone: item['guardian_phone'],
-          guardianEmail: item['guardian_email'],
-          guardianRelation: item['guardian_relation'],
-          guardianOccupation: item['guardian_occupation'],
-          progressionStatus: item['progression_status'] ?? 'Pending',
-          progressionHistory: item['progression_history'] ?? [],
-          yearsRemaining: item['years_remaining'] ?? 0,
-        );
+        _student = Student.fromMap(item);
         
         _extraData = {
           'id': _student!.id,
@@ -127,17 +93,7 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
           setState(() {
             kResults.removeWhere((r) => r.studentId == id);
             for (var rItem in rData) {
-              kResults.add(ResultRecord(
-                studentId: rItem['scholar_id'].toString(),
-                code: rItem['subject_code'] ?? 'N/A',
-                subject: rItem['subject_name'] ?? 'N/A',
-                marks: double.parse(rItem['marks'].toString()),
-                gpa: rItem['gpa'] != null ? double.parse(rItem['gpa'].toString()) : null,
-                points: rItem['points'] != null ? double.parse(rItem['points'].toString()) : null,
-                year: rItem['academic_year'].toString(),
-                term: rItem['term'],
-                semester: rItem['semester'],
-              ));
+              kResults.add(ResultRecord.fromMap(rItem));
             }
           });
         }
