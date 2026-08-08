@@ -160,32 +160,82 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
       return const Center(child: Text("Scholar not found."));
     }
 
-    final bool isMobile = MediaQuery.of(context).size.width < 900;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isSmall = constraints.maxWidth < 600;
+        final bool isMobile = constraints.maxWidth < 900;
+        final double horizontalPadding = isSmall ? 16 : (isMobile ? 24 : 32);
 
-    return Container(
-      color: const Color(0xFFF8F9FA),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildPortalHero(_student!, _extraData, isMobile),
-          Padding(
-            padding: EdgeInsets.fromLTRB(isMobile ? 12 : 32, 24, isMobile ? 12 : 32, 16),
-            child: _buildPortalTabBar(isMobile),
+        return Container(
+          color: const Color(0xFFF8F9FA),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildPortalHero(_student!, _extraData, isSmall, isMobile),
+              Padding(
+                padding: EdgeInsets.fromLTRB(horizontalPadding, isSmall ? 8 : 16, horizontalPadding, 8),
+                child: _buildPortalTabBar(isSmall, isMobile),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  child: _buildTabContent(_student!, _extraData, isSmall, isMobile),
+                ),
+              ),
+            ],
           ),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 32),
-              child: _buildTabContent(_student!, _extraData, isMobile),
-            ),
-          ),
-        ],
-      ),
+        );
+      }
     );
   }
 
-  Widget _buildPortalHero(Student student, Map<String, dynamic>? args, bool isMobile) {
+  Widget _buildPortalHero(Student student, Map<String, dynamic>? args, bool isSmall, bool isMobile) {
     final String status = args?['status'] ?? 'Active';
     final bool isActive = status == 'Active';
+
+    if (isSmall) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+        ),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                _heroAvatar(student, 50),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(student.name.toUpperCase(), 
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), letterSpacing: -0.5)),
+                      const SizedBox(height: 4),
+                      Text("ID: ${student.scholarId}", style: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+                _statusIndicator(status, isActive),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(child: _portalActionBtn(Icons.auto_awesome, "AI", const Color(0xFF9AB334), () => Scaffold.of(context).openEndDrawer(), compact: true)),
+                const SizedBox(width: 8),
+                Expanded(child: _portalActionBtn(Icons.edit_outlined, "EDIT", const Color(0xFF4C3C32), () {
+                  final scholarMap = _getScholarMap(student);
+                  showEditScholarDialog(context, scholarMap).then((_) => _fetchScholarData(student.id, null));
+                }, compact: true)),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
 
     return Container(
       width: double.infinity,
@@ -249,6 +299,17 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
     );
   }
 
+  Widget _statusIndicator(String status, bool isActive) {
+    return Container(
+      width: 10,
+      height: 10,
+      decoration: BoxDecoration(
+        color: isActive ? const Color(0xFF9AB334) : const Color(0xFFE05B1C),
+        shape: BoxShape.circle,
+      ),
+    );
+  }
+
   Widget _heroAvatar(Student student, double size) {
     return Container(
       width: size,
@@ -281,65 +342,70 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
     );
   }
 
-  Widget _portalActionBtn(IconData icon, String label, Color color, VoidCallback onTap, {bool isOutlined = false}) {
+  Widget _portalActionBtn(IconData icon, String label, Color color, VoidCallback onTap, {bool isOutlined = false, bool compact = false}) {
     if (isOutlined) {
       return OutlinedButton.icon(
         onPressed: onTap,
-        icon: Icon(icon, size: 16),
-        label: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+        icon: Icon(icon, size: compact ? 14 : 16),
+        label: Text(label, style: TextStyle(fontSize: compact ? 10 : 11, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
         style: OutlinedButton.styleFrom(
           foregroundColor: color,
           side: BorderSide(color: color, width: 1.5),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 20, vertical: compact ? 12 : 16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
     }
     return ElevatedButton.icon(
       onPressed: onTap,
-      icon: Icon(icon, size: 16),
-      label: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+      icon: Icon(icon, size: compact ? 14 : 16),
+      label: Text(label, style: TextStyle(fontSize: compact ? 10 : 11, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
         foregroundColor: Colors.white,
         elevation: 0,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 20, vertical: compact ? 12 : 16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
   }
 
-  Widget _buildPortalTabBar(bool isMobile) {
-    final items = ["OVERVIEW", "ACADEMIC TRANSCRIPT", "PROGRESSION LEDGER"];
+  Widget _buildPortalTabBar(bool isSmall, bool isMobile) {
+    final items = ["OVERVIEW", "TRANSCRIPT", "LEDGER"];
+    final fullItems = ["OVERVIEW", "ACADEMIC TRANSCRIPT", "PROGRESSION LEDGER"];
+    
     return Container(
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
-      child: Row(
-        children: List.generate(items.length, (index) {
-          final isSelected = _selectedTab == index;
-          return Padding(
-            padding: const EdgeInsets.only(right: 32),
-            child: InkWell(
-              onTap: () => setState(() => _selectedTab = index),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                decoration: BoxDecoration(
-                  border: isSelected ? const Border(bottom: BorderSide(color: Color(0xFF9AB334), width: 3)) : null,
-                ),
-                child: Text(
-                  items[index],
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
-                    color: isSelected ? const Color(0xFF4C3C32) : Colors.grey,
-                    letterSpacing: 1,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: List.generate(items.length, (index) {
+            final isSelected = _selectedTab == index;
+            return Padding(
+              padding: EdgeInsets.only(right: isSmall ? 16 : 32),
+              child: InkWell(
+                onTap: () => setState(() => _selectedTab = index),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  decoration: BoxDecoration(
+                    border: isSelected ? const Border(bottom: BorderSide(color: Color(0xFF9AB334), width: 3)) : null,
+                  ),
+                  child: Text(
+                    isSmall ? items[index] : fullItems[index],
+                    style: TextStyle(
+                      fontSize: isSmall ? 10 : 12,
+                      fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+                      color: isSelected ? const Color(0xFF4C3C32) : Colors.grey,
+                      letterSpacing: 1,
+                    ),
                   ),
                 ),
               ),
-            ),
-          );
-        }),
+            );
+          }),
+        ),
       ),
     );
   }
@@ -449,13 +515,13 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
     );
   }
 
-  Widget _buildTabContent(Student student, Map<String, dynamic>? args, bool isMobile) {
+  Widget _buildTabContent(Student student, Map<String, dynamic>? args, bool isSmall, bool isMobile) {
     return Column(
       children: [
         switch (_selectedTab) {
-          0 => _buildOverviewTab(student, args, isMobile),
-          1 => _buildStatisticsTab(student, isMobile),
-          2 => _buildProgressionTab(student, isMobile),
+          0 => _buildOverviewTab(student, args, isSmall, isMobile),
+          1 => _buildStatisticsTab(student, isSmall, isMobile),
+          2 => _buildProgressionTab(student, isSmall, isMobile),
           _ => const SizedBox(),
         },
         const SizedBox(height: 32),
@@ -463,16 +529,17 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
     );
   }
 
-  Widget _buildProgressionTab(Student student, bool isMobile) {
+  Widget _buildProgressionTab(Student student, bool isSmall, bool isMobile) {
     return Column(
       children: [
         _infoSection(
           title: "Current Progression Status",
           icon: Icons.track_changes_rounded,
           isMobile: isMobile,
+          isSmall: isSmall,
           child: Column(
             children: [
-              if (isMobile) ...[
+              if (isSmall || isMobile) ...[
                 _infoTile("Progression State", student.progressionStatus, isBold: true),
                 const SizedBox(height: 16),
                 _infoTile("Years Remaining", "${student.calculatedRemainingYears} Years"),
@@ -485,9 +552,9 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
                 ),
               ],
               const Divider(height: 32),
-              const Text(
+              Text(
                 "Note: Scholars are automatically promoted based on their term/semester averages. A minimum of 50% is required to move to the next class.",
-                style: TextStyle(fontSize: 12, color: Colors.grey, fontStyle: FontStyle.italic),
+                style: TextStyle(fontSize: isSmall ? 10 : 12, color: Colors.grey, fontStyle: FontStyle.italic),
               ),
             ],
           ),
@@ -497,17 +564,18 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
           title: "Academic Milestone History",
           icon: Icons.history_rounded,
           isMobile: isMobile,
+          isSmall: isSmall,
           child: Column(
             children: [
               if (student.progressionHistory.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 40),
-                  child: Text("No progression history recorded yet.", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 40),
+                  child: Text("No progression history recorded yet.", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic, fontSize: isSmall ? 11 : 13)),
                 )
               else
                 ...student.progressionHistory.map((h) => Container(
                   margin: const EdgeInsets.only(bottom: 16),
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(isSmall ? 12 : 16),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade50,
                     borderRadius: BorderRadius.circular(12),
@@ -519,21 +587,22 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text("Year: ${h['year']}", style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown)),
+                          Text("Year: ${h['year']}", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: isSmall ? 12 : 14)),
                           _badge(
                             h['result'],
                             h['result'] == 'Moved' ? Colors.green.shade50 : Colors.red.shade50,
-                            h['result'] == 'Moved' ? Colors.green.shade700 : Colors.red.shade700
+                            h['result'] == 'Moved' ? Colors.green.shade700 : Colors.red.shade700,
+                            isSmall: isSmall
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
-                      if (isMobile) ...[
-                        _infoTile("From", h['from_class']),
+                      if (isSmall || isMobile) ...[
+                        _infoTile("From", h['from_class'], isSmall: isSmall),
                         const SizedBox(height: 8),
-                        _infoTile("To", h['to_class']),
+                        _infoTile("To", h['to_class'], isSmall: isSmall),
                         const SizedBox(height: 8),
-                        _infoTile("Avg", "${h['average']}%"),
+                        _infoTile("Avg", "${h['average']}%", isSmall: isSmall),
                       ] else ...[
                         Row(
                           children: [
@@ -549,11 +618,11 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
                           children: [
                             const Icon(Icons.auto_awesome_rounded, size: 16, color: kBrandOlive),
                             const SizedBox(width: 8),
-                            const Text("AI Insight", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kBrandOlive)),
+                            Text("AI Insight", style: TextStyle(fontSize: isSmall ? 10 : 12, fontWeight: FontWeight.bold, color: kBrandOlive)),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        Text(h['ai_insight'], style: const TextStyle(fontSize: 13, color: Colors.black87, height: 1.4)),
+                        Text(h['ai_insight'], style: TextStyle(fontSize: isSmall ? 11 : 13, color: Colors.black87, height: 1.4)),
                       ],
                     ],
                   ),
@@ -565,21 +634,22 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
     );
   }
 
-  Widget _buildOverviewTab(Student student, Map<String, dynamic>? args, bool isMobile) {
+  Widget _buildOverviewTab(Student student, Map<String, dynamic>? args, bool isSmall, bool isMobile) {
     return Column(
       children: [
         _infoSection(
           title: "Institutional Affiliation",
           icon: Icons.school_outlined,
           isMobile: isMobile,
+          isSmall: isSmall,
           child: Column(
             children: [
-              _infoTile("Current Institution", student.schoolName, isBold: true),
+              _infoTile("Current Institution", student.schoolName, isBold: true, isSmall: isSmall),
               const Divider(height: 32),
-              if (isMobile) ...[
-                _infoTile("Relative Year", student.calculatedRelativeYear),
+              if (isSmall || isMobile) ...[
+                _infoTile("Relative Year", student.calculatedRelativeYear, isSmall: isSmall),
                 const SizedBox(height: 16),
-                _infoTile("Current Label", student.calculatedAcademicYear),
+                _infoTile("Current Label", student.calculatedAcademicYear, isSmall: isSmall),
               ] else ...[
                 Row(
                   children: [
@@ -589,10 +659,10 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
                 ),
               ],
               const Divider(height: 32),
-              if (isMobile) ...[
-                _infoTile("Program Duration", "${student.programDurationYears} Years"),
+              if (isSmall || isMobile) ...[
+                _infoTile("Program Duration", "${student.programDurationYears} Years", isSmall: isSmall),
                 const SizedBox(height: 16),
-                _infoTile("Years Remaining", "${student.calculatedRemainingYears} Years"),
+                _infoTile("Years Remaining", "${student.calculatedRemainingYears} Years", isSmall: isSmall),
               ] else ...[
                 Row(
                   children: [
@@ -602,10 +672,10 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
                 ),
               ],
               const Divider(height: 32),
-              if (isMobile) ...[
-                _infoTile("Previous School", student.previousSchool),
+              if (isSmall || isMobile) ...[
+                _infoTile("Previous School", student.previousSchool, isSmall: isSmall),
                 const SizedBox(height: 16),
-                _infoTile("Qualification", student.programType.isNotEmpty ? student.programType : 'N/A'),
+                _infoTile("Qualification", student.programType.isNotEmpty ? student.programType : 'N/A', isSmall: isSmall),
               ] else ...[
                 Row(
                   children: [
@@ -616,22 +686,23 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
               ],
               if (student.schoolType == SchoolType.university) ...[
                 const Divider(height: 32),
-                _infoTile("Program of Study", student.programName, isBold: true),
+                _infoTile("Program of Study", student.programName, isBold: true, isSmall: isSmall),
               ],
             ],
           ),
         ),
         const SizedBox(height: 16),
-        if (isMobile) ...[
+        if (isSmall || isMobile) ...[
           _infoSection(
             title: "Personal Details",
             icon: Icons.badge_outlined,
             isMobile: isMobile,
+            isSmall: isSmall,
             child: Column(
               children: [
-                _infoRow(Icons.wc, "Sex", args?['sex'] ?? 'Female'),
-                _infoRow(Icons.cake_outlined, "DOB", args?['dob'] ?? '2009-05-12'),
-                _infoRow(Icons.phone_outlined, "Phone", args?['phone'] ?? '+265 888 123 456'),
+                _infoRow(Icons.wc, "Sex", args?['sex'] ?? 'Female', isSmall: isSmall),
+                _infoRow(Icons.cake_outlined, "DOB", args?['dob'] ?? '2009-05-12', isSmall: isSmall),
+                _infoRow(Icons.phone_outlined, "Phone", args?['phone'] ?? '+265 888 123 456', isSmall: isSmall),
               ],
             ),
           ),
@@ -640,11 +711,12 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
             title: "Home & Origin",
             icon: Icons.map_outlined,
             isMobile: isMobile,
+            isSmall: isSmall,
             child: Column(
               children: [
-                _infoRow(Icons.location_on_outlined, "District", args?['district'] ?? 'Mzimba'),
-                _infoRow(Icons.home_outlined, "Village", args?['village'] ?? 'Chilinde'),
-                _infoRow(Icons.volunteer_activism_outlined, "Donor", args?['donor'] ?? 'PMI'),
+                _infoRow(Icons.location_on_outlined, "District", args?['district'] ?? 'Mzimba', isSmall: isSmall),
+                _infoRow(Icons.home_outlined, "Village", args?['village'] ?? 'Chilinde', isSmall: isSmall),
+                _infoRow(Icons.volunteer_activism_outlined, "Donor", args?['donor'] ?? 'PMI', isSmall: isSmall),
               ],
             ),
           ),
@@ -687,14 +759,15 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
           title: "Parent / Guardian Information",
           icon: Icons.family_restroom_outlined,
           isMobile: isMobile,
+          isSmall: isSmall,
           child: Column(
             children: [
-              _infoTile("Primary Guardian", student.guardianName ?? 'Not Provided', isBold: true),
+              _infoTile("Primary Guardian", student.guardianName ?? 'Not Provided', isBold: true, isSmall: isSmall),
               const Divider(height: 32),
-              if (isMobile) ...[
-                _infoTile("Relationship", student.guardianRelation ?? 'N/A'),
+              if (isSmall || isMobile) ...[
+                _infoTile("Relationship", student.guardianRelation ?? 'N/A', isSmall: isSmall),
                 const SizedBox(height: 16),
-                _infoTile("Phone", student.guardianPhone ?? 'N/A'),
+                _infoTile("Phone", student.guardianPhone ?? 'N/A', isSmall: isSmall),
               ] else ...[
                 Row(
                   children: [
@@ -705,10 +778,10 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
               ],
               if (student.guardianEmail != null || student.guardianOccupation != null) ...[
                 const Divider(height: 32),
-                if (isMobile) ...[
-                  _infoTile("Email", student.guardianEmail ?? 'N/A'),
+                if (isSmall || isMobile) ...[
+                  _infoTile("Email", student.guardianEmail ?? 'N/A', isSmall: isSmall),
                   const SizedBox(height: 16),
-                  _infoTile("Occupation", student.guardianOccupation ?? 'N/A'),
+                  _infoTile("Occupation", student.guardianOccupation ?? 'N/A', isSmall: isSmall),
                 ] else ...[
                   Row(
                     children: [
@@ -725,7 +798,7 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
     );
   }
 
-  Widget _buildStatisticsTab(Student student, bool isMobile) {
+  Widget _buildStatisticsTab(Student student, bool isSmall, bool isMobile) {
     final records = kResults.where((r) => r.studentId == student.id).toList();
     final double avg = records.isEmpty ? 0.0 : records.map((r) => r.marks).reduce((a, b) => a + b) / records.length;
     final band = performanceBand(avg);
@@ -740,22 +813,22 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
       }
     }
 
-    if (isMobile) {
+    if (isSmall || isMobile) {
       return Column(
         children: [
-          _statCard("Average Mark", "${avg.toStringAsFixed(1)}%", band.color, Icons.analytics_rounded, true),
+          _statCard("Average Mark", "${avg.toStringAsFixed(1)}%", band.color, Icons.analytics_rounded, true, isSmall: isSmall),
           const SizedBox(height: 12),
           if (student.schoolType == SchoolType.university) ...[
-            _statCard("Cumulative GPA", totalGpa.toStringAsFixed(2), kBrandOlive, Icons.school_rounded, true),
+            _statCard("Cumulative GPA", totalGpa.toStringAsFixed(2), kBrandOlive, Icons.school_rounded, true, isSmall: isSmall),
             const SizedBox(height: 12),
           ],
-          _statCard("Standing", band.label, band.color, Icons.stars_rounded, true),
+          _statCard("Standing", band.label, band.color, Icons.stars_rounded, true, isSmall: isSmall),
           const SizedBox(height: 12),
-          _statCard("Best Subject", bestResult?.subject ?? 'N/A', kBrandOlive, Icons.emoji_events_outlined, true),
+          _statCard("Best Subject", bestResult?.subject ?? 'N/A', kBrandOlive, Icons.emoji_events_outlined, true, isSmall: isSmall),
           const SizedBox(height: 12),
-          _statCard("Total Records", "${records.length}", kBrandBrown, Icons.inventory_2_outlined, true),
+          _statCard("Total Records", "${records.length}", kBrandBrown, Icons.inventory_2_outlined, true, isSmall: isSmall),
           const SizedBox(height: 24),
-          _buildPerformanceBreakdown(records, isMobile),
+          _buildPerformanceBreakdown(records, isSmall, isMobile),
         ],
       );
     }
@@ -782,22 +855,23 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
           ],
         ),
         const SizedBox(height: 24),
-        _buildPerformanceBreakdown(records, isMobile),
+        _buildPerformanceBreakdown(records, isSmall, isMobile),
       ],
     );
   }
 
-  Widget _buildPerformanceBreakdown(List<ResultRecord> records, bool isMobile) {
+  Widget _buildPerformanceBreakdown(List<ResultRecord> records, bool isSmall, bool isMobile) {
     return _infoSection(
-      title: "Subject Performance Breakdown",
+      title: "Subject Performance",
       icon: Icons.bar_chart_rounded,
       isMobile: isMobile,
+      isSmall: isSmall,
       child: Column(
         children: [
           if (records.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 40),
-              child: Text("No academic records found for this scholar.", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic)),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40),
+              child: Text("No academic records found.", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic, fontSize: isSmall ? 11 : 13)),
             )
           else
             ...records.map((r) => Padding(
@@ -808,8 +882,8 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Expanded(child: Text(r.subject, style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown), overflow: TextOverflow.ellipsis)),
-                      Text("${r.marks.toInt()}%", style: TextStyle(fontWeight: FontWeight.bold, color: r.marks >= 50 ? kBrandOlive : Colors.red)),
+                      Expanded(child: Text(r.subject, style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: isSmall ? 11 : 13), overflow: TextOverflow.ellipsis)),
+                      Text("${r.marks.toInt()}%", style: TextStyle(fontWeight: FontWeight.bold, color: r.marks >= 50 ? kBrandOlive : Colors.red, fontSize: isSmall ? 11 : 13)),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -817,7 +891,7 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
                       value: r.marks / 100,
-                      minHeight: 8,
+                      minHeight: isSmall ? 6 : 8,
                       backgroundColor: Colors.grey.shade100,
                       color: r.marks >= 80 ? Colors.green : (r.marks >= 50 ? kBrandOlive : Colors.orange),
                     ),
@@ -830,9 +904,9 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
     );
   }
 
-  Widget _statCard(String label, String value, Color color, IconData icon, bool isFullWidth) {
+  Widget _statCard(String label, String value, Color color, IconData icon, bool isFullWidth, {bool isSmall = false}) {
     Widget card = Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(isSmall ? 12 : 20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -842,11 +916,11 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(height: 12),
-          Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: kBrandBrown), overflow: TextOverflow.ellipsis),
+          Icon(icon, color: color, size: isSmall ? 16 : 20),
+          SizedBox(height: isSmall ? 8 : 12),
+          Text(value, style: TextStyle(fontSize: isSmall ? 13 : 16, fontWeight: FontWeight.bold, color: kBrandBrown), overflow: TextOverflow.ellipsis),
           const SizedBox(height: 4),
-          Text(label, style: TextStyle(fontSize: 10, color: Colors.grey.shade500, fontWeight: FontWeight.bold)),
+          Text(label, style: TextStyle(fontSize: isSmall ? 8 : 10, color: Colors.grey.shade500, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -855,10 +929,10 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
   }
 
 
-  Widget _infoSection({required String title, required IconData icon, required Widget child, bool isMobile = false}) {
+  Widget _infoSection({required String title, required IconData icon, required Widget child, bool isMobile = false, bool isSmall = false}) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(isMobile ? 20 : 32),
+      padding: EdgeInsets.all(isSmall ? 16 : (isMobile ? 20 : 32)),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -877,45 +951,48 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: EdgeInsets.all(isSmall ? 6 : 10),
                 decoration: BoxDecoration(
                   color: Color(0xFF9AB334).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, size: 20, color: const Color(0xFF9AB334)),
+                child: Icon(icon, size: isSmall ? 16 : 20, color: const Color(0xFF9AB334)),
               ),
-              const SizedBox(width: 16),
-              Text(
-                title.toUpperCase(), 
-                style: const TextStyle(
-                  fontSize: 12, 
-                  fontWeight: FontWeight.w900, 
-                  color: Color(0xFF4C3C32), 
-                  letterSpacing: 1.0
-                )
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title.toUpperCase(), 
+                  style: TextStyle(
+                    fontSize: isSmall ? 9 : 12, 
+                    fontWeight: FontWeight.w900, 
+                    color: Color(0xFF4C3C32), 
+                    letterSpacing: 1.0
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 32),
+          SizedBox(height: isSmall ? 20 : 32),
           child,
         ],
       ),
     );
   }
 
-  Widget _infoTile(String label, String value, {bool isBold = false}) {
+  Widget _infoTile(String label, String value, {bool isBold = false, bool isSmall = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label.toUpperCase(), 
-          style: TextStyle(color: Colors.grey.shade400, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.0)
+          style: TextStyle(color: Colors.grey.shade400, fontSize: isSmall ? 8 : 10, fontWeight: FontWeight.w900, letterSpacing: 1.0)
         ),
         const SizedBox(height: 6),
         Text(
           value, 
           style: TextStyle(
-            fontSize: isBold ? 16 : 14, 
+            fontSize: isBold ? (isSmall ? 14 : 16) : (isSmall ? 12 : 14), 
             fontWeight: isBold ? FontWeight.w900 : FontWeight.w700, 
             color: const Color(0xFF4C3C32),
             letterSpacing: -0.2
@@ -925,25 +1002,25 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
     );
   }
 
-  Widget _infoRow(IconData icon, String label, String value) {
+  Widget _infoRow(IconData icon, String label, String value, {bool isSmall = false}) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 24.0),
+      padding: EdgeInsets.only(bottom: isSmall ? 16 : 24.0),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: Colors.grey.shade300),
-          const SizedBox(width: 16),
+          Icon(icon, size: isSmall ? 16 : 18, color: Colors.grey.shade300),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   label.toUpperCase(), 
-                  style: TextStyle(color: Colors.grey.shade400, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1.0)
+                  style: TextStyle(color: Colors.grey.shade400, fontSize: isSmall ? 8 : 9, fontWeight: FontWeight.w900, letterSpacing: 1.0)
                 ),
                 const SizedBox(height: 2),
                 Text(
                   value, 
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF4C3C32))
+                  style: TextStyle(fontSize: isSmall ? 12 : 14, fontWeight: FontWeight.w700, color: Color(0xFF4C3C32))
                 ),
               ],
             ),
@@ -953,11 +1030,13 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
     );
   }
 
-  Widget _badge(String label, Color bgColor, Color textColor) {
+  Widget _badge(String label, Color bgColor, Color textColor, {bool isSmall = false}) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: isSmall ? 6 : 10, vertical: 4),
       decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(6)),
-      child: Text(label, style: TextStyle(color: textColor, fontSize: 11, fontWeight: FontWeight.bold)),
+      child: Text(label, style: TextStyle(color: textColor, fontSize: isSmall ? 9 : 11, fontWeight: FontWeight.bold)),
     );
   }
+
+
 }

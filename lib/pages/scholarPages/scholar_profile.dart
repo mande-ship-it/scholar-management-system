@@ -23,9 +23,14 @@ class ScholarProfilePage extends StatelessWidget {
               ),
             )
           : null,
-      body: const Padding(
-        padding: EdgeInsets.fromLTRB(24, 8, 24, 0),
-        child: ScholarProfileComponent(),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final bool isSmall = constraints.maxWidth < 600;
+          return Padding(
+            padding: EdgeInsets.fromLTRB(isSmall ? 0 : 24, 8, isSmall ? 0 : 24, 0),
+            child: const ScholarProfileComponent(),
+          );
+        },
       ),
     );
   }
