@@ -1145,6 +1145,8 @@ Future<void> showEditScholarDialog(
     BuildContext context,
     Map<String, String>? scholar,
     ) {
+  final bool isMobile = MediaQuery.of(context).size.width < 600;
+
   return showGeneralDialog(
     context: context,
     barrierDismissible: true,
@@ -1159,10 +1161,14 @@ Future<void> showEditScholarDialog(
         child: Transform.scale(
           scale: 0.94 + (0.06 * curved.value),
           child: Dialog(
-            backgroundColor: Colors.transparent,
-            insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            insetPadding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 16 : 24, 
+                vertical: isMobile ? 16 : 24
+            ),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 560, maxHeight: 720),
+              constraints: const BoxConstraints(maxWidth: 600, maxHeight: 850),
               child: EditScholarComponent(scholarData: scholar),
             ),
           ),
@@ -1567,11 +1573,13 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
       yearsList.sort();
     }
 
+    final bool isSmall = MediaQuery.of(context).size.width < 500;
+
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(16),
       clipBehavior: Clip.antiAlias,
-      elevation: 12,
+      elevation: 0,
       child: Form(
         key: _formKey,
         child: Column(
@@ -1580,41 +1588,40 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
             // ---------------- Header ----------------
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(24, 24, 20, 20),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [kBrandBrown, kBrandOlive],
-                ),
+              padding: const EdgeInsets.fromLTRB(24, 20, 16, 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
               ),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.18),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withOpacity(0.4)),
+                      color: kBrandBrown.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.edit_note_rounded, color: Colors.white, size: 24),
+                    child: const Icon(Icons.edit_note_rounded, color: kBrandBrown, size: 20),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
                           "Edit Scholar Profile",
-                          style: TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                            color: kBrandBrown,
+                            letterSpacing: -0.5
+                          ),
                         ),
-                        const SizedBox(height: 4),
                         Text(
                           _fullNameController.text.isEmpty
-                              ? "Update the scholar's information"
-                              : "Updating ${_fullNameController.text}",
-                          style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 12.5),
+                              ? "Update record details"
+                              : "Updating: ${_fullNameController.text}",
+                          style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
@@ -1622,10 +1629,8 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
                   ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close, color: Colors.white),
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.white.withOpacity(0.15),
-                    ),
+                    icon: const Icon(Icons.close, color: Colors.grey, size: 20),
+                    visualDensity: VisualDensity.compact,
                   ),
                 ],
               ),
@@ -1634,34 +1639,35 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
             // ---------------- Body ----------------
             Flexible(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+                padding: EdgeInsets.fromLTRB(24, 24, 24, isSmall ? 16 : 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _sectionTitle("Academic Information"),
+                    _sectionTitle("Academic Placement"),
                     DropdownButtonFormField<String>(
                       initialValue: _selectedDistrict,
-                      decoration: _fieldDecoration(label: "District", icon: Icons.map_outlined, helperText: "Select district in Malawi"),
-                      items: _districts.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
+                      decoration: _fieldDecoration(label: "District", icon: Icons.map_outlined),
+                      items: _districts.map((d) => DropdownMenuItem(value: d, child: Text(d, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
                       onChanged: (value) => setState(() => _selectedDistrict = value),
-                      validator: (value) => value == null ? "Please select a district" : null,
+                      validator: (value) => value == null ? "Required" : null,
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
                       initialValue: _selectedSchoolType,
-                      decoration: _fieldDecoration(label: "School Type", icon: Icons.category_outlined),
-                      items: _schoolTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+                      decoration: _fieldDecoration(label: "Level of Study", icon: Icons.category_outlined),
+                      items: _schoolTypes.map((t) => DropdownMenuItem(value: t, child: Text(t, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
                       onChanged: (value) {
                         setState(() {
                           _selectedSchoolType = value;
                           _selectedSchool = null;
                         });
                       },
-                      validator: (value) => value == null ? "Please select a school type" : null,
+                      validator: (value) => value == null ? "Required" : null,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _previousSchoolController,
+                      style: const TextStyle(fontWeight: FontWeight.w600, color: kBrandBrown),
                       decoration: _fieldDecoration(
                         label: _selectedSchoolType == 'University' ? "Previous Secondary School" : "Previous Primary School",
                         icon: Icons.history_edu_outlined,
@@ -1676,10 +1682,10 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
                       decoration: _fieldDecoration(
                         label: _isLoadingSchools
                           ? "Loading Institutions..."
-                          : (_getAvailableSchoolsForScholar().isEmpty && _selectedSchoolType != null ? "No matching schools found" : "School Name"),
+                          : (_getAvailableSchoolsForScholar().isEmpty && _selectedSchoolType != null ? "No matching schools found" : "Institution Name"),
                         icon: Icons.school_outlined
                       ),
-                      items: _getAvailableSchoolsForScholar().map((s) => DropdownMenuItem(value: s['name'].toString(), child: Text(s['name'].toString(), overflow: TextOverflow.ellipsis))).toList(),
+                      items: _getAvailableSchoolsForScholar().map((s) => DropdownMenuItem(value: s['name'].toString(), child: Text(s['name'].toString(), overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
                       onChanged: (value) {
                         setState(() {
                           _selectedSchool = value;
@@ -1691,100 +1697,134 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
                           }
                         });
                       },
-                      validator: (value) => value == null ? "Please select a school" : null,
+                      validator: (value) => value == null ? "Required" : null,
                     ),
                     if (_selectedSchoolType == 'University') ...[
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
                         key: ValueKey('programType_$_selectedSchoolType'),
                         initialValue: _selectedProgramType,
-                        decoration: _fieldDecoration(label: "Program Type", icon: Icons.bookmark_outline),
+                        decoration: _fieldDecoration(label: "Qualification", icon: Icons.bookmark_outline),
                         items: const [
-                          DropdownMenuItem(value: "Degree", child: Text("Degree")),
-                          DropdownMenuItem(value: "Diploma", child: Text("Diploma")),
-                          DropdownMenuItem(value: "Certificate", child: Text("Certificate")),
+                          DropdownMenuItem(value: "Degree", child: Text("Degree", style: TextStyle(fontWeight: FontWeight.w600))),
+                          DropdownMenuItem(value: "Diploma", child: Text("Diploma", style: TextStyle(fontWeight: FontWeight.w600))),
+                          DropdownMenuItem(value: "Certificate", child: Text("Certificate", style: TextStyle(fontWeight: FontWeight.w600))),
                         ],
                         onChanged: (value) => setState(() => _selectedProgramType = value),
-                        validator: (value) => value == null ? "Please select a program type" : null,
+                        validator: (value) => value == null ? "Required" : null,
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _programNameController,
-                        decoration: _fieldDecoration(label: "Program of Study", icon: Icons.assignment_outlined),
+                        style: const TextStyle(fontWeight: FontWeight.w600, color: kBrandBrown),
+                        decoration: _fieldDecoration(label: "Specific Course Name", icon: Icons.assignment_outlined),
                         validator: (value) => (_selectedSchoolType == 'University' && (value == null || value.trim().isEmpty)) ? "Required" : null,
                       ),
                     ],
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _yearController,
-                      decoration: _fieldDecoration(label: "Year / Form", icon: Icons.calendar_today_outlined, helperText: "e.g., Form 3, Year 2"),
-                      validator: (value) => (value == null || value.trim().isEmpty) ? "Please enter the academic year or form" : null,
+                      style: const TextStyle(fontWeight: FontWeight.w600, color: kBrandBrown),
+                      decoration: _fieldDecoration(label: "Current Form / Class", icon: Icons.calendar_today_outlined),
+                      validator: (value) => (value == null || value.trim().isEmpty) ? "Required" : null,
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            initialValue: _selectedStartYear,
-                            decoration: _fieldDecoration(
-                              label: _selectedSchoolType == 'University' ? "Start Year" : "Session Start",
-                              icon: Icons.event_outlined,
+                    if (isSmall) ...[
+                      DropdownButtonFormField<String>(
+                        initialValue: _selectedStartYear,
+                        decoration: _fieldDecoration(label: "Enrolment Year", icon: Icons.event_outlined),
+                        items: yearsList.map((y) => DropdownMenuItem(value: y, child: Text(y, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedStartYear = value;
+                            _updateGraduationYear();
+                          });
+                        },
+                        validator: (value) => value == null ? "Required" : null,
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<int>(
+                        initialValue: _selectedDuration,
+                        decoration: _fieldDecoration(label: "Program Duration", icon: Icons.timer_outlined),
+                        items: [1, 2, 3, 4, 5, 6].map((d) => DropdownMenuItem(value: d, child: Text("$d Years", style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+                        onChanged: (v) {
+                          setState(() {
+                            _selectedDuration = v;
+                            _updateGraduationYear();
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        key: ValueKey('end_year_mobile_${_selectedStartYear}_$_selectedDuration'),
+                        initialValue: _selectedEndYear,
+                        decoration: _fieldDecoration(label: "Expected Graduation", icon: Icons.event_available_outlined),
+                        items: yearsList.map((y) => DropdownMenuItem(value: y, child: Text(y, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+                        onChanged: (value) => setState(() => _selectedEndYear = value),
+                        validator: (value) => value == null ? "Required" : null,
+                      ),
+                    ] else ...[
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              initialValue: _selectedStartYear,
+                              decoration: _fieldDecoration(label: "Start Year", icon: Icons.event_outlined),
+                              items: yearsList.map((y) => DropdownMenuItem(value: y, child: Text(y, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedStartYear = value;
+                                  _updateGraduationYear();
+                                });
+                              },
+                              validator: (value) => value == null ? "Required" : null,
                             ),
-                            items: yearsList.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedStartYear = value;
-                                _updateGraduationYear();
-                              });
-                            },
-                            validator: (value) => value == null ? "Required" : null,
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: DropdownButtonFormField<int>(
-                            initialValue: _selectedDuration,
-                            decoration: _fieldDecoration(label: "Duration", icon: Icons.timer_outlined),
-                            items: [1, 2, 3, 4, 5, 6].map((d) => DropdownMenuItem(value: d, child: Text("$d Years"))).toList(),
-                            onChanged: (v) {
-                              setState(() {
-                                _selectedDuration = v;
-                                _updateGraduationYear();
-                              });
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            key: ValueKey('end_year_${_selectedStartYear}_$_selectedDuration'),
-                            initialValue: _selectedEndYear,
-                            decoration: _fieldDecoration(
-                              label: _selectedSchoolType == 'University' ? "End Year" : "Session End",
-                              icon: Icons.event_available_outlined,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: DropdownButtonFormField<int>(
+                              initialValue: _selectedDuration,
+                              decoration: _fieldDecoration(label: "Duration", icon: Icons.timer_outlined),
+                              items: [1, 2, 3, 4, 5, 6].map((d) => DropdownMenuItem(value: d, child: Text("$d Yrs", style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+                              onChanged: (v) {
+                                setState(() {
+                                  _selectedDuration = v;
+                                  _updateGraduationYear();
+                                });
+                              },
                             ),
-                            items: yearsList.map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(),
-                            onChanged: (value) => setState(() => _selectedEndYear = value),
-                            validator: (value) {
-                              if (value == null) return "Required";
-                              if (_selectedStartYear != null) {
-                                final start = int.parse(_selectedStartYear!);
-                                final end = int.parse(value);
-                                if (end < start) return "Must be ≥ start";
-                              }
-                              return null;
-                            },
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              key: ValueKey('end_year_${_selectedStartYear}_$_selectedDuration'),
+                              initialValue: _selectedEndYear,
+                              decoration: _fieldDecoration(label: "End Year", icon: Icons.event_available_outlined),
+                              items: yearsList.map((y) => DropdownMenuItem(value: y, child: Text(y, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+                              onChanged: (value) => setState(() => _selectedEndYear = value),
+                              validator: (value) {
+                                if (value == null) return "Required";
+                                if (_selectedStartYear != null) {
+                                  final start = int.parse(_selectedStartYear!);
+                                  final end = int.parse(value);
+                                  if (end < start) return "Error";
+                                }
+                                return null;
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 32),
 
-                    _sectionTitle("Personal Information"),
+                    _sectionTitle("Personal Identity"),
                     TextFormField(
                       controller: _fullNameController,
-                      decoration: _fieldDecoration(label: "Full Name", icon: Icons.person_outline),
-                      validator: (value) => (value == null || value.trim().isEmpty) ? "Please enter the scholar's full name" : null,
+                      style: const TextStyle(fontWeight: FontWeight.w600, color: kBrandBrown),
+                      decoration: _fieldDecoration(label: "Full Legal Name", icon: Icons.person_outline),
+                      validator: (value) => (value == null || value.trim().isEmpty) ? "Required" : null,
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -1793,7 +1833,7 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
                           child: DropdownButtonFormField<String>(
                             initialValue: _selectedSex,
                             decoration: _fieldDecoration(label: "Sex", icon: Icons.wc_outlined),
-                            items: _sexOptions.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                            items: _sexOptions.map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
                             onChanged: (value) => setState(() => _selectedSex = value),
                             validator: (value) => value == null ? "Required" : null,
                           ),
@@ -1804,6 +1844,7 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
                             controller: _dobController,
                             readOnly: true,
                             onTap: () => _selectDateOfBirth(context),
+                            style: const TextStyle(fontWeight: FontWeight.w600, color: kBrandBrown),
                             decoration: _fieldDecoration(
                               label: "Date of Birth",
                               icon: Icons.cake_outlined,
@@ -1817,34 +1858,37 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _homeVillageController,
-                      decoration: _fieldDecoration(label: "Home Village", icon: Icons.home_outlined),
-                      validator: (value) => (value == null || value.trim().isEmpty) ? "Please enter the home village" : null,
+                      style: const TextStyle(fontWeight: FontWeight.w600, color: kBrandBrown),
+                      decoration: _fieldDecoration(label: "Home Village / T.A.", icon: Icons.home_outlined),
+                      validator: (value) => (value == null || value.trim().isEmpty) ? "Required" : null,
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 32),
 
                     _sectionTitle("Contact & Sponsorship"),
                     TextFormField(
                       controller: _phoneController,
                       keyboardType: TextInputType.phone,
-                      decoration: _fieldDecoration(label: "Phone Number", icon: Icons.phone_outlined),
-                      validator: (value) => (value == null || value.trim().isEmpty) ? "Please enter the phone number" : null,
+                      style: const TextStyle(fontWeight: FontWeight.w600, color: kBrandBrown),
+                      decoration: _fieldDecoration(label: "Primary Phone Number", icon: Icons.phone_outlined),
+                      validator: (value) => (value == null || value.trim().isEmpty) ? "Required" : null,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
-                      decoration: _fieldDecoration(label: "Email Address (optional)", icon: Icons.email_outlined),
+                      style: const TextStyle(fontWeight: FontWeight.w600, color: kBrandBrown),
+                      decoration: _fieldDecoration(label: "Personal Email Address", icon: Icons.email_outlined),
                       validator: _validateOptionalEmail,
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
                       initialValue: _selectedDonor,
-                      decoration: _fieldDecoration(label: "Donor / Sponsor", icon: Icons.volunteer_activism_outlined),
-                      items: _registeredSponsors.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
+                      decoration: _fieldDecoration(label: "Assigned Program Donor", icon: Icons.volunteer_activism_outlined),
+                      items: _registeredSponsors.map((d) => DropdownMenuItem(value: d, child: Text(d, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
                       onChanged: (value) => setState(() => _selectedDonor = value),
-                      validator: (value) => value == null ? "Please select a donor" : null,
+                      validator: (value) => value == null ? "Required" : null,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
@@ -1852,39 +1896,38 @@ class _EditScholarComponentState extends State<EditScholarComponent> {
 
             // ---------------- Footer Actions ----------------
             Container(
-              padding: const EdgeInsets.fromLTRB(24, 14, 24, 20),
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
               decoration: BoxDecoration(
-                border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                color: Colors.grey.shade50,
+                border: Border(top: BorderSide(color: Colors.grey.shade100)),
               ),
               child: Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton.icon(
+                    child: OutlinedButton(
                       onPressed: () => Navigator.of(context).pop(),
-                      icon: const Icon(Icons.close, size: 18),
-                      label: const Text("Cancel"),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        foregroundColor: Colors.grey.shade700,
-                        side: BorderSide(color: Colors.grey.shade300),
+                        foregroundColor: Colors.grey.shade600,
+                        side: BorderSide(color: Colors.grey.shade200),
                       ),
+                      child: const Text("DISCARD", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 0.5)),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     flex: 2,
-                    child: ElevatedButton.icon(
+                    child: ElevatedButton(
                       onPressed: _submitForm,
-                      icon: const Icon(Icons.save_rounded, size: 18),
-                      label: const Text("Save Changes", style: TextStyle(fontWeight: FontWeight.bold)),
                       style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        backgroundColor: kBrandOlive,
+                        backgroundColor: kBrandBrown,
                         foregroundColor: Colors.white,
                         elevation: 0,
                       ),
+                      child: const Text("COMMIT UPDATES", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
                     ),
                   ),
                 ],
