@@ -232,12 +232,12 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
           ),
           boxShadow: isSelected ? [
             BoxShadow(
-              color: (isDark ? theme.colorScheme.primary : kBrandBrown).withValues(alpha: 0.3),
+              color: (isDark ? theme.colorScheme.primary : kBrandBrown).withOpacity(0.3),
               blurRadius: 20,
               offset: const Offset(0, 10)
             )
           ] : [
-            BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 4))
+            BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4))
           ],
         ),
         child: isMobile 
@@ -247,8 +247,8 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: isSelected
-                      ? Colors.white.withValues(alpha: 0.15)
-                      : (isDark ? Colors.white12 : kBrandBrown.withValues(alpha: 0.05)),
+                      ? Colors.white.withOpacity(0.15)
+                      : (isDark ? Colors.white12 : kBrandBrown.withOpacity(0.05)),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(icon, color: isSelected ? Colors.white : (isDark ? Colors.white70 : kBrandBrown), size: 20),
@@ -283,8 +283,8 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: isSelected
-                      ? Colors.white.withValues(alpha: 0.15)
-                      : (isDark ? Colors.white12 : kBrandBrown.withValues(alpha: 0.05)),
+                      ? Colors.white.withOpacity(0.15)
+                      : (isDark ? Colors.white12 : kBrandBrown.withOpacity(0.05)),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(icon, color: isSelected ? Colors.white : (isDark ? Colors.white70 : kBrandBrown), size: 28),
@@ -394,7 +394,7 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: kBrandBrown.withValues(alpha: 0.05), shape: BoxShape.circle),
+            decoration: BoxDecoration(color: kBrandBrown.withOpacity(0.05), shape: BoxShape.circle),
             child: Icon(icon, color: kBrandBrown, size: 20),
           ),
           const SizedBox(width: 20),

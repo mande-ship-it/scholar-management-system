@@ -218,12 +218,26 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
   Widget build(BuildContext context) {
     final filtered = _getFilteredSchools();
     final bool isMobile = MediaQuery.of(context).size.width < 900;
+    final bool canRegister = !widget.hideRegistration && PermissionService.hasPermission('schools.create');
 
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      color: Color(0xFFF8F9FA),
-      child: Column(
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      floatingActionButton: (isMobile && canRegister)
+          ? FloatingActionButton(
+              onPressed: () async {
+                if (widget.onRegisterSchool != null) {
+                  widget.onRegisterSchool!();
+                } else {
+                  final result = await Navigator.pushNamed(context, '/schools/register');
+                  if (result == true) _fetchSchools();
+                }
+              },
+              backgroundColor: const Color(0xFF4C3C32),
+              elevation: 4,
+              child: const Icon(Icons.add_business_rounded, color: Colors.white, size: 28),
+            )
+          : null,
+      body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildPortalHeader(isMobile),
@@ -295,7 +309,7 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
               onPressed: () => setState(() => _isSearchExpanded = true),
             ),
           const SizedBox(width: 8),
-          if (!widget.hideRegistration && PermissionService.hasPermission('schools.create'))
+          if (!isMobile && !widget.hideRegistration && PermissionService.hasPermission('schools.create'))
             ElevatedButton(
               onPressed: () async {
                 if (widget.onRegisterSchool != null) {
@@ -308,19 +322,16 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF4C3C32),
                 foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 elevation: 0,
-                minimumSize: isMobile ? Size.zero : null,
               ),
-              child: Row(
+              child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(isMobile ? Icons.add_rounded : Icons.add_business_rounded, size: 18),
-                  if (!isMobile) ...[
-                    const SizedBox(width: 8),
-                    const Text("REGISTER", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                  ],
+                  Icon(Icons.add_business_rounded, size: 18),
+                  SizedBox(width: 8),
+                  Text("REGISTER", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),

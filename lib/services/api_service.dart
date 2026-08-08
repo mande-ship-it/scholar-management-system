@@ -480,6 +480,10 @@ class ApiService {
     return await _dio.delete('/events/$id');
   }
 
+  static Future<Response> approveEvent(String id) async {
+    return await _dio.patch('/events/$id/approve');
+  }
+
   // Dashboard
   static Future<Response> getDashboardStats({String? level, String? schoolId}) async {
     return await _dio.get('/dashboard', queryParameters: {

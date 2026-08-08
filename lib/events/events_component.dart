@@ -5,6 +5,7 @@ import 'package:pdf/pdf.dart' as pdf;
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:scholar_management_system/services/api_service.dart';
+import 'package:scholar_management_system/services/permission_service.dart';
 import '../academics/academics_utils.dart';
 import 'events_utils.dart';
 
@@ -182,11 +183,13 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
   bool _isSearchExpanded = false;
+  bool _isAdmin = false;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _isAdmin = PermissionService.userRole == 'Administrator';
+    _tabController = TabController(length: _isAdmin ? 3 : 2, vsync: this);
     _searchController.addListener(() => setState(() => _query = _searchController.text.trim().toLowerCase()));
     _fetchEvents();
   }
@@ -207,7 +210,7 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
         _allEvents.clear();
         _allEvents.addAll(data
             .map((json) => OrganisationEvent.fromJson(json))
-            .where((e) => e.status != 'Pending' && !e.isExpired));
+            .where((e) => !e.isExpired));
       }
     } catch (e) {
       debugPrint('Error fetching events: $e');
@@ -227,53 +230,15 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
     });
   }
 
-  void _showEditEventDialog(OrganisationEvent event) {
-    showDialog(
-      context: context,
-      builder: (context) => EventFormDialog(event: event),
-    ).then((value) {
-      if (value == true) {
-        _fetchEvents();
-      }
-    });
-  }
-
   void _viewEventDetails(OrganisationEvent event) {
     if (!mounted) return;
     showDialog(
       context: context,
-      builder: (context) => ViewEventDialog(event: event),
-    );
-  }
-
-  Future<void> _deleteEvent(OrganisationEvent event) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Delete Event', style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown)),
-        content: Text('Are you sure you want to delete "${event.title}"?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL', style: TextStyle(color: Colors.grey))),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700, foregroundColor: Colors.white),
-            child: const Text('DELETE'),
-          ),
-        ],
+      builder: (context) => ViewEventDialog(
+        event: event,
+        onStatusChanged: _fetchEvents,
       ),
     );
-
-    if (confirmed == true) {
-      try {
-        final response = await ApiService.deleteEvent(event.id);
-        if (response.statusCode == 200) {
-          _fetchEvents();
-        }
-      } catch (e) {
-        debugPrint('Error deleting event: $e');
-      }
-    }
   }
 
   List<OrganisationEvent> _filtered(List<OrganisationEvent> events) {
@@ -303,6 +268,8 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
               children: [
                 _buildEventList(_filtered(_allEvents.where((e) => e.isUpcoming).toList()..sort((a, b) => a.fullDateTime.compareTo(b.fullDateTime))), "No upcoming events.", isMobile),
                 _buildEventList(_filtered(_allEvents.where((e) => e.isHistory).toList()..sort((a, b) => b.fullDateTime.compareTo(a.fullDateTime))), "No event history.", isMobile),
+                if (_isAdmin)
+                  _buildEventList(_filtered(_allEvents.where((e) => e.isPending).toList()..sort((a, b) => a.fullDateTime.compareTo(b.fullDateTime))), "No events awaiting approval.", isMobile),
               ],
             ),
           ),
@@ -418,9 +385,10 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
                   indicatorColor: kBrandOlive,
                   indicatorWeight: 3,
                   labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5),
-                  tabs: const [
-                    Tab(text: 'UPCOMING'),
-                    Tab(text: 'HISTORY'),
+                  tabs: [
+                    const Tab(text: 'UPCOMING'),
+                    const Tab(text: 'HISTORY'),
+                    if (_isAdmin) const Tab(text: 'PENDING'),
                   ],
                 ),
               ),
@@ -437,9 +405,10 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
                   indicatorColor: kBrandOlive,
                   indicatorWeight: 3,
                   labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
-                  tabs: const [
-                    Tab(text: 'UPCOMING PROGRAMS'),
-                    Tab(text: 'ARCHIVE & HISTORY'),
+                  tabs: [
+                    const Tab(text: 'UPCOMING PROGRAMS'),
+                    const Tab(text: 'ARCHIVE & HISTORY'),
+                    if (_isAdmin) const Tab(text: 'PENDING APPROVAL'),
                   ],
                 ),
               ),
@@ -475,7 +444,7 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
             children: [
               Container(
                 padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
                 child: Icon(Icons.event_note_rounded, size: 64, color: Colors.grey.shade200),
               ),
               const SizedBox(height: 24),
@@ -496,7 +465,8 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
 
   Widget _buildEventCard(OrganisationEvent event, bool isMobile) {
     final isHistory = event.isHistory;
-    final color = isHistory ? Colors.grey.shade400 : event.category.color;
+    final isPending = event.isPending;
+    final color = isHistory ? Colors.grey.shade400 : (isPending ? Colors.orange : event.category.color);
 
     return Container(
       decoration: BoxDecoration(
@@ -553,6 +523,14 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
                             const SizedBox(width: 8),
                             Text(event.time.format(context),
                               style: TextStyle(color: Colors.grey.shade500, fontSize: 11, fontWeight: FontWeight.bold)),
+                            if (isPending) ...[
+                              const Spacer(),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+                                child: const Text("PENDING APPROVAL", style: TextStyle(color: Colors.orange, fontSize: 8, fontWeight: FontWeight.w900)),
+                              ),
+                            ],
                           ],
                         ),
                         const SizedBox(height: 8),
@@ -585,19 +563,12 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
       ),
     );
   }
-
-  Widget _actionIcon(IconData icon, Color color, VoidCallback onTap) {
-    return IconButton(
-      icon: Icon(icon, color: color, size: 22),
-      onPressed: onTap,
-      style: IconButton.styleFrom(backgroundColor: color.withOpacity(0.05), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-    );
-  }
 }
 
 class ViewEventDialog extends StatefulWidget {
   final OrganisationEvent event;
-  const ViewEventDialog({super.key, required this.event});
+  final VoidCallback? onStatusChanged;
+  const ViewEventDialog({super.key, required this.event, this.onStatusChanged});
 
   @override
   State<ViewEventDialog> createState() => _ViewEventDialogState();
@@ -606,11 +577,74 @@ class ViewEventDialog extends StatefulWidget {
 class _ViewEventDialogState extends State<ViewEventDialog> {
   bool _isPrinting = false;
   bool _isDownloading = false;
+  bool _isApproving = false;
+  bool _isDeleting = false;
+
+  Future<void> _handleApprove() async {
+    setState(() => _isApproving = true);
+    try {
+      final res = await ApiService.approveEvent(widget.event.id);
+      if (res.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Event approved successfully."), backgroundColor: kBrandOlive),
+          );
+          Navigator.pop(context);
+          if (widget.onStatusChanged != null) widget.onStatusChanged!();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error approving event: $e');
+    } finally {
+      if (mounted) setState(() => _isApproving = false);
+    }
+  }
+
+  Future<void> _handleDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Delete Event', style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown)),
+        content: Text('Are you sure you want to delete "${widget.event.title}"?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('CANCEL', style: TextStyle(color: Colors.grey))),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700, foregroundColor: Colors.white),
+            child: const Text('DELETE'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isDeleting = true);
+    try {
+      final res = await ApiService.deleteEvent(widget.event.id);
+      if (res.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Event deleted."), backgroundColor: Colors.red),
+          );
+          Navigator.pop(context);
+          if (widget.onStatusChanged != null) widget.onStatusChanged!();
+        }
+      }
+    } catch (e) {
+      debugPrint('Error deleting event: $e');
+    } finally {
+      if (mounted) setState(() => _isDeleting = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final event = widget.event;
-    final color = event.isHistory ? Colors.grey : event.category.color;
+    final isPending = event.isPending;
+    final isAdmin = PermissionService.userRole == 'Administrator';
+    final color = event.isHistory ? Colors.grey : (isPending ? Colors.orange : event.category.color);
     final bool isMobile = MediaQuery.of(context).size.width < 900;
 
     return Dialog(
@@ -639,7 +673,8 @@ class _ViewEventDialogState extends State<ViewEventDialog> {
                         children: [
                           Text(event.title, style: TextStyle(fontSize: isMobile ? 22 : 28, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
                           const SizedBox(height: 4),
-                          Text(event.category.label.toUpperCase(), style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w900, letterSpacing: 1.0)),
+                          Text(isPending ? "AWAITING APPROVAL" : event.category.label.toUpperCase(), 
+                            style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w900, letterSpacing: 1.0)),
                         ],
                       ),
                     ),
@@ -665,71 +700,86 @@ class _ViewEventDialogState extends State<ViewEventDialog> {
                       child: Text(event.description.isEmpty ? "No description provided." : event.description,
                         style: const TextStyle(fontSize: 13, height: 1.6, color: kBrandBrown)),
                     ),
-                    if (event.targetedParticipants != null && event.targetedParticipants!.isNotEmpty) ...[
-                      const SizedBox(height: 40),
-                      const Text("TARGETED AUDIENCE", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.0)),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: event.targetedParticipants!.map((p) => Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                          decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.05), borderRadius: BorderRadius.circular(8), border: Border.all(color: Color(0xFF9AB334).withOpacity(0.1))),
-                          child: Text(p, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: kBrandBrown)),
-                        )).toList(),
-                      ),
-                    ],
                   ],
                 ),
               ),
               Container(
                 padding: EdgeInsets.all(isMobile ? 20 : 32),
                 decoration: BoxDecoration(color: Colors.grey.shade50, border: const Border(top: BorderSide(color: Color(0xFFEEEEEE)))),
-                child: isMobile 
-                  ? Column(
-                      children: [
-                        _buildActionBtn(isMobile: true, onPressed: _isDownloading ? null : () async {
-                          setState(() => _isDownloading = true);
-                          await downloadEventReport(event);
-                          setState(() => _isDownloading = false);
-                        }, isLoading: _isDownloading, icon: Icons.download_rounded, label: "DOWNLOAD PDF", isPrimary: true),
-                        const SizedBox(height: 12),
-                        _buildActionBtn(isMobile: true, onPressed: _isPrinting ? null : () async {
-                          setState(() => _isPrinting = true);
-                          await printEventReport(event);
-                          setState(() => _isPrinting = false);
-                        }, isLoading: _isPrinting, icon: Icons.print_rounded, label: "PRINT TRANSCRIPT", isPrimary: false),
-                      ],
-                    )
-                  : Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _isPrinting ? null : () async {
-                              setState(() => _isPrinting = true);
-                              await printEventReport(event);
-                              setState(() => _isPrinting = false);
-                            },
-                            icon: _isPrinting ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.print_rounded),
-                            label: const Text("PRINT TRANSCRIPT", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
-                            style: OutlinedButton.styleFrom(foregroundColor: kBrandBrown, padding: const EdgeInsets.symmetric(vertical: 20), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                child: Column(
+                  children: [
+                    if (isPending && isAdmin) ...[
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: _isDeleting ? null : _handleDelete,
+                              icon: _isDeleting ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.delete_outline_rounded),
+                              label: const Text("REJECT & DELETE", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11)),
+                              style: OutlinedButton.styleFrom(foregroundColor: Colors.red, padding: const EdgeInsets.symmetric(vertical: 20), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: _isDownloading ? null : () async {
-                              setState(() => _isDownloading = true);
-                              await downloadEventReport(event);
-                              setState(() => _isDownloading = false);
-                            },
-                            icon: _isDownloading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.download_rounded),
-                            label: const Text("DOWNLOAD PDF", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
-                            style: ElevatedButton.styleFrom(backgroundColor: kBrandOlive, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 20), elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _isApproving ? null : _handleApprove,
+                              icon: _isApproving ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.check_circle_outline_rounded),
+                              label: const Text("APPROVE EVENT", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11)),
+                              style: ElevatedButton.styleFrom(backgroundColor: kBrandOlive, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 20), elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    if (!isPending)
+                      isMobile 
+                        ? Column(
+                            children: [
+                              _buildActionBtn(isMobile: true, onPressed: _isDownloading ? null : () async {
+                                setState(() => _isDownloading = true);
+                                await downloadEventReport(event);
+                                setState(() => _isDownloading = false);
+                              }, isLoading: _isDownloading, icon: Icons.download_rounded, label: "DOWNLOAD PDF", isPrimary: true),
+                              const SizedBox(height: 12),
+                              _buildActionBtn(isMobile: true, onPressed: _isPrinting ? null : () async {
+                                setState(() => _isPrinting = true);
+                                await printEventReport(event);
+                                setState(() => _isPrinting = false);
+                              }, isLoading: _isPrinting, icon: Icons.print_rounded, label: "PRINT TRANSCRIPT", isPrimary: false),
+                            ],
+                          )
+                        : Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: _isPrinting ? null : () async {
+                                    setState(() => _isPrinting = true);
+                                    await printEventReport(event);
+                                    setState(() => _isPrinting = false);
+                                  },
+                                  icon: _isPrinting ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.print_rounded),
+                                  label: const Text("PRINT TRANSCRIPT", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
+                                  style: OutlinedButton.styleFrom(foregroundColor: kBrandBrown, padding: const EdgeInsets.symmetric(vertical: 20), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: _isDownloading ? null : () async {
+                                    setState(() => _isDownloading = true);
+                                    await downloadEventReport(event);
+                                    setState(() => _isDownloading = false);
+                                  },
+                                  icon: _isDownloading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.download_rounded),
+                                  label: const Text("DOWNLOAD PDF", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
+                                  style: ElevatedButton.styleFrom(backgroundColor: kBrandOlive, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 20), elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                                ),
+                              ),
+                            ],
+                          ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -857,7 +907,7 @@ class _EventFormDialogState extends State<EventFormDialog> {
         'date': _selectedDate.toIso8601String(),
         'time': '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}',
         'organizer': _organizerController.text.trim(),
-        'status': widget.event?.status ?? 'Pending',
+        'status': widget.event?.status ?? (PermissionService.userRole == 'Administrator' ? 'Active' : 'Pending'),
       };
       final res = widget.event != null ? await ApiService.updateEvent(widget.event!.id, data) : await ApiService.createEvent(data);
       if (res.statusCode == 200 || res.statusCode == 201) Navigator.of(context).pop(true);

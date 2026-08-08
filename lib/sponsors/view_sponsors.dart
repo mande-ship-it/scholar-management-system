@@ -276,12 +276,25 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
   Widget build(BuildContext context) {
     final bool isMobile = MediaQuery.of(context).size.width < 900;
     final filtered = _filteredSponsors;
+    final bool canRegister = _userRole == 'Administrator' || PermissionService.hasPermission('sponsors.create');
 
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      color: Color(0xFFF8F9FA),
-      child: Column(
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      floatingActionButton: (isMobile && canRegister)
+          ? FloatingActionButton(
+              onPressed: () {
+                if (widget.onRegisterSponsor != null) {
+                  widget.onRegisterSponsor!();
+                } else {
+                  Navigator.pushNamed(context, '/sponsors/register').then((_) => _loadSponsors());
+                }
+              },
+              backgroundColor: const Color(0xFF4C3C32),
+              elevation: 4,
+              child: const Icon(Icons.volunteer_activism_rounded, color: Colors.white, size: 28),
+            )
+          : null,
+      body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildPortalHeader(isMobile),
@@ -351,7 +364,7 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
               onPressed: () => setState(() => _isSearchExpanded = true),
             ),
           const SizedBox(width: 8),
-          if (_userRole == 'Administrator' || PermissionService.hasPermission('sponsors.create'))
+          if (!isMobile && (_userRole == 'Administrator' || PermissionService.hasPermission('sponsors.create')))
             ElevatedButton(
               onPressed: () {
                 if (widget.onRegisterSponsor != null) {
@@ -363,19 +376,16 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF4C3C32),
                 foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 elevation: 0,
-                minimumSize: isMobile ? Size.zero : null,
               ),
-              child: Row(
+              child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(isMobile ? Icons.add_rounded : Icons.volunteer_activism_rounded, size: 18),
-                  if (!isMobile) ...[
-                    const SizedBox(width: 8),
-                    const Text("REGISTER", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                  ],
+                  Icon(Icons.volunteer_activism_rounded, size: 18),
+                  SizedBox(width: 8),
+                  Text("REGISTER", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),

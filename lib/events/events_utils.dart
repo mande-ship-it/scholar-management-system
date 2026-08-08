@@ -55,7 +55,7 @@ class OrganisationEvent {
   final List<String>? targetedParticipants;
   final List<String>? internalParticipants; // List of User IDs
   final List<Map<String, String>>? externalParticipants; // List of {name, email}
-  final String status; // 'Active' or 'History'
+  final String status; // 'Active', 'Pending', or 'History'
 
   OrganisationEvent({
     required this.id,
@@ -88,6 +88,9 @@ class OrganisationEvent {
 
   /// An event is upcoming if it's Active (Approved) AND its date/time hasn't passed yet.
   bool get isUpcoming => status == 'Active' && fullDateTime.isAfter(DateTime.now());
+
+  /// An event is pending if it's awaiting administrator approval.
+  bool get isPending => status == 'Pending';
 
   /// An event is history if it's explicitly marked as 'History' OR it's 'Active' but its time has passed.
   bool get isHistory => status == 'History' || (status == 'Active' && fullDateTime.isBefore(DateTime.now()));

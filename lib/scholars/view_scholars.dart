@@ -328,6 +328,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
     final filteredScholars = _getFilteredScholars();
     final availableSchools = _getAvailableSchoolsForFilter();
     final bool isMobile = MediaQuery.of(context).size.width < 900;
+    final bool canRegister = !widget.hideRegistration && ['Administrator', 'Data Officer', 'Program Coordinator'].contains(_userRole);
 
     // Executive Metrics Calculation
     final totalInSelection = filteredScholars.length;
@@ -344,11 +345,17 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
         .toList();
     availableClasses.sort();
 
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      color: const Color(0xFFF8F9FA),
-      child: Column(
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      floatingActionButton: (isMobile && canRegister)
+          ? FloatingActionButton(
+              onPressed: widget.onRegisterScholar ?? () => Navigator.pushNamed(context, '/registerScholar').then((_) => _fetchScholars()),
+              backgroundColor: const Color(0xFF4C3C32),
+              elevation: 4,
+              child: const Icon(Icons.add_rounded, color: Colors.white, size: 30),
+            )
+          : null,
+      body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildProfessionalHeader(totalInSelection, isMobile),
@@ -440,7 +447,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
                 ),
               _exportButton(icon: Icons.description_outlined, label: "PDF", onTap: _exportToPDF, isVerySmall: isVerySmall),
               _exportButton(icon: Icons.table_view_outlined, label: "EXCEL", onTap: _exportToExcel, isVerySmall: isVerySmall),
-              if (['Administrator', 'Data Officer', 'Program Coordinator'].contains(_userRole))
+              if (!isMobile && ['Administrator', 'Data Officer', 'Program Coordinator'].contains(_userRole))
                 ElevatedButton(
                   onPressed: widget.onRegisterScholar ?? () => Navigator.pushNamed(context, '/registerScholar').then((_) => _fetchScholars()),
                   style: ElevatedButton.styleFrom(

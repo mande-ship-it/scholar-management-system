@@ -139,7 +139,7 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: kBrandOrange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(color: kBrandOrange.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
             child: const Icon(Icons.handshake_rounded, color: kBrandOrange, size: 20),
           ),
           const SizedBox(width: 16),
@@ -161,7 +161,7 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
             icon: const Icon(Icons.list_alt_rounded, size: 16),
             label: Text(isMobile ? "LIST" : "VIEW ALLOCATED", style: const TextStyle(fontSize: 11)),
             style: ElevatedButton.styleFrom(
-              backgroundColor: kBrandOlive.withValues(alpha: 0.1),
+              backgroundColor: kBrandOlive.withOpacity(0.1),
               foregroundColor: kBrandOlive,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             ),
@@ -329,7 +329,7 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
                     contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
                     title: Text(option['full_name'] ?? 'N/A', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: kBrandBrown)),
                     subtitle: Text("${option['scholar_id'] ?? 'N/A'} • ${option['display_school_name'] ?? 'N/A'}", style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
-                    hoverColor: kBrandOlive.withValues(alpha: 0.05),
+                    hoverColor: kBrandOlive.withOpacity(0.05),
                     onTap: () => onSelected(option),
                   );
                 },

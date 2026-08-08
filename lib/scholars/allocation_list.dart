@@ -123,7 +123,7 @@ class _AllocationListPageState extends State<AllocationListPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isCompleted ? Colors.grey.shade100 : kBrandOlive.withValues(alpha: 0.1)),
+        border: Border.all(color: isCompleted ? Colors.grey.shade100 : kBrandOlive.withOpacity(0.1)),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
       ),
       child: Column(
@@ -165,7 +165,7 @@ class _AllocationListPageState extends State<AllocationListPage> {
     final bool active = status == 'Active';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: active ? Colors.green.withValues(alpha: 0.1) : Colors.grey.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+      decoration: BoxDecoration(color: active ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
       child: Text(status.toUpperCase(), style: TextStyle(color: active ? Colors.green : Colors.grey, fontSize: 10, fontWeight: FontWeight.w900)),
     );
   }
