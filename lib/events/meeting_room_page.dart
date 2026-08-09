@@ -18,11 +18,11 @@ class _MeetingRoomPageState extends State<MeetingRoomPage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    if (args != null && args['id'] != null) {
-      _fetchMeeting(args['id']);
-    } else {
-       // Check if ID is in the route name if we used a more complex router,
-       // but here we just rely on arguments.
+    if (args != null) {
+      final String? id = args['id']?.toString();
+      if (id != null) {
+        _fetchMeeting(id);
+      }
     }
   }
 

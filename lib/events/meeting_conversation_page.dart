@@ -26,14 +26,36 @@ class _MeetingConversationPageState extends State<MeetingConversationPage> {
   void initState() {
     super.initState();
     SocketService.addMessageListener(_onNewMessage);
+    SocketService.addCallListener(_onIncomingCall);
   }
 
   @override
   void dispose() {
     SocketService.removeMessageListener(_onNewMessage);
+    SocketService.removeCallListener(_onIncomingCall);
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onIncomingCall(Map<String, dynamic> data) {
+    if (data['meetingId'] != _meetingId) return;
+
+    // If we're already in the chat, we show a simplified "Join Call" banner or prompt
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("${data['callerName']} started a ${data['isVideo'] ? 'video' : 'audio'} call."),
+          backgroundColor: kBrandOlive,
+          action: SnackBarAction(
+            label: "JOIN",
+            textColor: Colors.white,
+            onPressed: _joinGoogleMeet,
+          ),
+          duration: const Duration(seconds: 10),
+        ),
+      );
+    }
   }
 
   void _onNewMessage(Map<String, dynamic> data) {
