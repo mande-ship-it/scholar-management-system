@@ -302,20 +302,6 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
               forcedSchoolType: 'Secondary',
               hideUniversity: true,
               onRegisterScholar: () => onPush("Register Scholar"),
-              onViewGraduates: () => onPush("University Graduates"),
-            ),
-          ),
-          FieldOpsSidebarSubItem(
-            title: "University Registry",
-            page: const SizedBox(),
-            icon: Icons.account_balance_outlined,
-            builder: (onBack, onPush, onPushProfile) => ViewScholarsPage(
-              onViewProfile: onPushProfile,
-              forcedSchoolType: 'University',
-              hideUniversity: false,
-              hideRegistration: true, // Universities usually handled by HQ
-              onRegisterScholar: () => onPush("Register Scholar"),
-              onViewGraduates: () => onPush("University Graduates"),
             ),
           ),
           FieldOpsSidebarSubItem(
@@ -746,13 +732,20 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
                         ),
                         child: ListTile(
                           dense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                          contentPadding: const EdgeInsets.only(left: 20, right: 8),
                           leading: Icon(subItem.icon, size: 16, color: isSubSelected ? kBrandOlive : kBrandBrown.withOpacity(0.4)),
                           title: Text(subItem.title, 
                             style: TextStyle(
                               color: isSubSelected ? kBrandBrown : kBrandBrown.withOpacity(0.6),
                               fontWeight: isSubSelected ? FontWeight.w900 : FontWeight.w500, 
                               fontSize: 12.5)),
+                          trailing: subItem.title == "Secondary Registry"
+                            ? IconButton(
+                                icon: const Icon(Icons.add_circle_outline_rounded, size: 18, color: kBrandOlive),
+                                onPressed: () => _pushSubItem("Register Scholar"),
+                                tooltip: "Register New Scholar",
+                              )
+                            : null,
                           onTap: () {
                             setState(() { 
                               activeCategoryIndex = index; 

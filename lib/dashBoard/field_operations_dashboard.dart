@@ -54,7 +54,7 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
 
       // 2. Fetch Stats and Activities in parallel with a timeout
       final responses = await Future.wait([
-        ApiService.getDashboardStats().catchError((e) {
+        ApiService.getDashboardStats(level: 'Secondary').catchError((e) {
           debugPrint("DASHBOARD: Stats fetch error: $e");
           return Response(requestOptions: RequestOptions(path: ''), statusCode: 500);
         }),
