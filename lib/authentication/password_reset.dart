@@ -99,6 +99,16 @@ class _PasswordResetPageState extends State<PasswordResetPage> with TickerProvid
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
+      appBar: Navigator.canPop(context) 
+        ? AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kBrandBrown, size: 20),
+              onPressed: () => Navigator.pop(context),
+            ),
+          )
+        : null,
       body: Center(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),

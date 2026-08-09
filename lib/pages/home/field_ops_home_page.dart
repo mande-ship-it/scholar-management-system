@@ -739,13 +739,6 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
                               color: isSubSelected ? kBrandBrown : kBrandBrown.withOpacity(0.6),
                               fontWeight: isSubSelected ? FontWeight.w900 : FontWeight.w500, 
                               fontSize: 12.5)),
-                          trailing: subItem.title == "Secondary Registry"
-                            ? IconButton(
-                                icon: const Icon(Icons.add_circle_outline_rounded, size: 18, color: kBrandOlive),
-                                onPressed: () => _pushSubItem("Register Scholar"),
-                                tooltip: "Register New Scholar",
-                              )
-                            : null,
                           onTap: () {
                             setState(() { 
                               activeCategoryIndex = index; 

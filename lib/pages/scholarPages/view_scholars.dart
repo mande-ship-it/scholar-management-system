@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../scholars/view_scholars.dart';
+import '../../academics/academics_utils.dart';
 
 class ViewScholarsPage extends StatelessWidget {
   final VoidCallback? onRegisterScholar;
@@ -22,6 +23,18 @@ class ViewScholarsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: Navigator.canPop(context) 
+        ? AppBar(
+            title: const Text("Scholars Registry", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            backgroundColor: Colors.white,
+            foregroundColor: kBrandBrown,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+              onPressed: () => Navigator.pop(context),
+            ),
+          )
+        : null,
       body: ViewScholarsComponent(
         onRegisterScholar: onRegisterScholar,
         onViewProfile: onViewProfile,

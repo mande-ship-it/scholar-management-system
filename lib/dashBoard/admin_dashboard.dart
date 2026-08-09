@@ -111,15 +111,16 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
 
   @override
   Widget build(BuildContext context) {
-
-    final bool isMobile = MediaQuery.of(context).size.width < 950;
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 950;
+    final bool isVerySmall = screenWidth < 500;
 
     return Container(
       color: const Color(0xFFF8F9FA),
       width: double.infinity,
       height: double.infinity,
       child: SingleChildScrollView(
-        padding: EdgeInsets.all(isMobile ? 12 : 32),
+        padding: EdgeInsets.all(isVerySmall ? 8 : (isMobile ? 12 : 32)),
         physics: const BouncingScrollPhysics(),
         child: Center(
           child: Container(
@@ -133,9 +134,9 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
                 ],
 
                 // KPI Cards - Small and responsive
-                _buildKPISection(isMobile),
+                _buildKPISection(isMobile, isVerySmall),
 
-                const SizedBox(height: 32),
+                SizedBox(height: isVerySmall ? 16 : 32),
 
                 // Multi-column row or vertical stack
                 LayoutBuilder(
@@ -143,13 +144,13 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
                     if (isMobile) {
                       return Column(
                         children: [
-                          _buildUserDistributionCard(isMobile),
+                          _buildUserDistributionCard(isMobile, isVerySmall),
                           const SizedBox(height: 16),
-                          _buildApprovalsDensityCard(isMobile),
+                          _buildApprovalsDensityCard(isMobile, isVerySmall),
                           const SizedBox(height: 16),
-                          _buildActivityLogCard(isMobile),
+                          _buildActivityLogCard(isMobile, isVerySmall),
                           const SizedBox(height: 16),
-                          _buildDatabaseControlsCard(isMobile),
+                          _buildDatabaseControlsCard(isMobile, isVerySmall),
                         ],
                       );
                     }
@@ -160,9 +161,9 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
                           flex: 4,
                           child: Column(
                             children: [
-                              _buildUserDistributionCard(isMobile),
+                              _buildUserDistributionCard(isMobile, isVerySmall),
                               const SizedBox(height: 32),
-                              _buildActivityLogCard(isMobile),
+                              _buildActivityLogCard(isMobile, isVerySmall),
                             ],
                           )
                         ),
@@ -171,9 +172,9 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
                           flex: 3,
                           child: Column(
                             children: [
-                              _buildApprovalsDensityCard(isMobile),
+                              _buildApprovalsDensityCard(isMobile, isVerySmall),
                               const SizedBox(height: 32),
-                              _buildDatabaseControlsCard(isMobile),
+                              _buildDatabaseControlsCard(isMobile, isVerySmall),
                             ],
                           )
                         ),
@@ -227,7 +228,7 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
     );
   }
 
-  Widget _buildKPISection(bool isMobile) {
+  Widget _buildKPISection(bool isMobile, bool isVerySmall) {
     final kpis = [
       ("System Users", "$_totalUsers", Icons.people_alt_rounded, kBrandOlive, "Manage Users"),
       ("Pending Approvals", "$_pendingApprovals", Icons.gavel_rounded, kBrandOrange, "Pending Approvals"),
@@ -239,10 +240,10 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: isMobile ? 2 : 4,
-        crossAxisSpacing: 20,
-        mainAxisSpacing: 20,
-        childAspectRatio: isMobile ? 1.4 : 1.8,
+        crossAxisCount: isVerySmall ? 1 : (isMobile ? 2 : 4),
+        crossAxisSpacing: isVerySmall ? 12 : 20,
+        mainAxisSpacing: isVerySmall ? 12 : 20,
+        childAspectRatio: isVerySmall ? 3.0 : (isMobile ? 1.4 : 1.8),
       ),
       itemCount: kpis.length,
       itemBuilder: (context, i) => _buildPortalCard(
@@ -251,21 +252,22 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
         kpis[i].$3, 
         kpis[i].$4, 
         () => widget.onNavigate?.call(kpis[i].$5),
+        isVerySmall,
       ),
     );
   }
 
-  Widget _buildPortalCard(String label, String value, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildPortalCard(String label, String value, IconData icon, Color color, VoidCallback onTap, bool isVerySmall) {
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(isVerySmall ? 12 : 20),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(isVerySmall ? 12 : 20),
         child: Container(
-          padding: const EdgeInsets.all(28),
+          padding: EdgeInsets.all(isVerySmall ? 16 : 28),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(isVerySmall ? 12 : 20),
             border: Border.all(color: const Color(0xFFEEEEEE)),
             boxShadow: [
               BoxShadow(
@@ -278,14 +280,14 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.all(isVerySmall ? 8 : 12),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(isVerySmall ? 10 : 14),
                 ),
-                child: Icon(icon, color: color, size: 28),
+                child: Icon(icon, color: color, size: isVerySmall ? 20 : 28),
               ),
-              const SizedBox(width: 24),
+              SizedBox(width: isVerySmall ? 16 : 24),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -293,17 +295,17 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
                   children: [
                     Text(
                       value,
-                      style: const TextStyle(
-                        fontSize: 26,
+                      style: TextStyle(
+                        fontSize: isVerySmall ? 20 : 26,
                         fontWeight: FontWeight.w900,
-                        color: Color(0xFF4C3C32),
+                        color: const Color(0xFF4C3C32),
                         letterSpacing: -1,
                       ),
                     ),
                     Text(
                       label.toUpperCase(),
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: isVerySmall ? 8 : 10,
                         fontWeight: FontWeight.w900,
                         color: Colors.grey.shade400,
                         letterSpacing: 1.0,
@@ -320,53 +322,58 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
     );
   }
 
-  Widget _buildUserDistributionCard(bool isMobile) {
+  Widget _buildUserDistributionCard(bool isMobile, bool isVerySmall) {
     final List<PieChartSectionData> sections = [];
     int index = 0;
     _roleDistribution.forEach((role, count) {
-      sections.add(PieChartSectionData(color: chartColors[index % chartColors.length], value: count.toDouble(), title: '', radius: isMobile ? 25 : 40));
+      sections.add(PieChartSectionData(color: chartColors[index % chartColors.length], value: count.toDouble(), title: '', radius: isVerySmall ? 20 : (isMobile ? 25 : 40)));
       index++;
     });
 
+    final content = [
+      SizedBox(
+        height: isVerySmall ? 80 : (isMobile ? 100 : 140),
+        width: isVerySmall ? 80 : (isMobile ? 100 : 140),
+        child: PieChart(PieChartData(sectionsSpace: 2, centerSpaceRadius: isVerySmall ? 20 : (isMobile ? 25 : 35), sections: sections)),
+      ),
+      SizedBox(width: isVerySmall ? 0 : 20, height: isVerySmall ? 20 : 0),
+      Expanded(
+        flex: isVerySmall ? 0 : 1,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: _roleDistribution.keys.take(4).map((role) => Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(
+              children: [
+                Container(width: 8, height: 8, decoration: BoxDecoration(color: chartColors[_roleDistribution.keys.toList().indexOf(role) % chartColors.length], shape: BoxShape.circle)),
+                const SizedBox(width: 8),
+                Expanded(child: Text(role, style: TextStyle(fontSize: isVerySmall ? 10 : 11, fontWeight: FontWeight.bold))),
+              ],
+            ),
+          )).toList(),
+        ),
+      )
+    ];
+
     return _DashboardCard(
       isMobile: isMobile,
+      isVerySmall: isVerySmall,
       title: "Account Allocation",
-      child: Row(
-        children: [
-          SizedBox(
-            height: isMobile ? 100 : 140,
-            width: isMobile ? 100 : 140,
-            child: PieChart(PieChartData(sectionsSpace: 2, centerSpaceRadius: isMobile ? 25 : 35, sections: sections)),
-          ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: _roleDistribution.keys.take(4).map((role) => Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Row(
-                  children: [
-                    Container(width: 8, height: 8, decoration: BoxDecoration(color: chartColors[_roleDistribution.keys.toList().indexOf(role) % chartColors.length], shape: BoxShape.circle)),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(role, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold))),
-                  ],
-                ),
-              )).toList(),
-            ),
-          )
-        ],
-      ),
+      child: isVerySmall
+        ? Column(children: content)
+        : Row(children: content),
     );
   }
 
-  Widget _buildApprovalsDensityCard(bool isMobile) {
+  Widget _buildApprovalsDensityCard(bool isMobile, bool isVerySmall) {
     return _DashboardCard(
       isMobile: isMobile,
+      isVerySmall: isVerySmall,
       title: "Queue Workloads",
       child: Column(
         children: [
           SizedBox(
-            height: 140,
+            height: isVerySmall ? 100 : 140,
             child: BarChart(
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,
@@ -400,27 +407,28 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
     );
   }
 
-  Widget _buildActivityLogCard(bool isMobile) {
+  Widget _buildActivityLogCard(bool isMobile, bool isVerySmall) {
     return _DashboardCard(
       isMobile: isMobile,
+      isVerySmall: isVerySmall,
       title: "Active Operators",
       child: Column(
         children: _activeUsers.take(4).map((u) => Padding(
-          padding: const EdgeInsets.only(bottom: 16),
+          padding: EdgeInsets.only(bottom: isVerySmall ? 12 : 16),
           child: Row(
             children: [
-              CircleAvatar(radius: 14, backgroundColor: kBrandOlive.withOpacity(0.1), child: Text(u['fullName']?[0].toUpperCase() ?? '?', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: kBrandBrown))),
-              const SizedBox(width: 12),
+              CircleAvatar(radius: isVerySmall ? 12 : 14, backgroundColor: kBrandOlive.withOpacity(0.1), child: Text(u['fullName']?[0].toUpperCase() ?? '?', style: TextStyle(fontSize: isVerySmall ? 9 : 10, fontWeight: FontWeight.bold, color: kBrandBrown))),
+              SizedBox(width: isVerySmall ? 8 : 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(u['fullName'] ?? 'Staff', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                    Text(u['roleId']?['name'] ?? 'USER', style: const TextStyle(fontSize: 8, color: Colors.grey, fontWeight: FontWeight.w900)),
+                    Text(u['fullName'] ?? 'Staff', style: TextStyle(fontSize: isVerySmall ? 12 : 13, fontWeight: FontWeight.bold)),
+                    Text(u['roleId']?['name'] ?? 'USER', style: TextStyle(fontSize: isVerySmall ? 7 : 8, color: Colors.grey, fontWeight: FontWeight.w900)),
                   ],
                 ),
               ),
-              const Icon(Icons.circle, size: 6, color: Colors.green),
+              Icon(Icons.circle, size: isVerySmall ? 4 : 6, color: Colors.green),
             ],
           ),
         )).toList(),
@@ -428,9 +436,10 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
     );
   }
 
-  Widget _buildDatabaseControlsCard(bool isMobile) {
+  Widget _buildDatabaseControlsCard(bool isMobile, bool isVerySmall) {
     return _DashboardCard(
       isMobile: isMobile,
+      isVerySmall: isVerySmall,
       title: "System Integrity",
       child: Column(
         children: [
@@ -479,15 +488,16 @@ class _DashboardCard extends StatelessWidget {
   final String title;
   final Widget child;
   final bool isMobile;
-  const _DashboardCard({required this.title, required this.child, this.isMobile = false});
+  final bool isVerySmall;
+  const _DashboardCard({required this.title, required this.child, this.isMobile = false, this.isVerySmall = false});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(isMobile ? 16 : 32),
+      padding: EdgeInsets.all(isVerySmall ? 12 : (isMobile ? 16 : 32)),
       decoration: BoxDecoration(
         color: Colors.white, 
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(isVerySmall ? 12 : 20),
         border: Border.all(color: const Color(0xFFEEEEEE)),
         boxShadow: [
           BoxShadow(
@@ -502,14 +512,14 @@ class _DashboardCard extends StatelessWidget {
         children: [
           Text(
             title.toUpperCase(), 
-            style: const TextStyle(
-              fontSize: 11, 
+            style: TextStyle(
+              fontSize: isVerySmall ? 9 : 11,
               fontWeight: FontWeight.w900, 
-              color: Color(0xFF9AB334), 
+              color: const Color(0xFF9AB334),
               letterSpacing: 1.5
             ),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: isVerySmall ? 16 : 24),
           child,
         ],
       ),

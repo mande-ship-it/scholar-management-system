@@ -182,6 +182,15 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
   Widget _buildHeader() {
     return Row(
       children: [
+        if (Navigator.canPop(context)) ...[
+          IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kBrandBrown, size: 18),
+            onPressed: () => Navigator.pop(context),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 16),
+        ],
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

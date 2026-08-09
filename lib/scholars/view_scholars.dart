@@ -286,7 +286,8 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
     final filteredScholars = _getFilteredScholars();
     final availableSchools = _getAvailableSchoolsForFilter();
     final bool isMobile = MediaQuery.of(context).size.width < 900;
-    final bool canRegister = !widget.hideRegistration && ['Administrator', 'Data Officer', 'Program Coordinator'].contains(_userRole);
+    final bool canRegister = !widget.hideRegistration &&
+        (['Administrator', 'Data Officer', 'Program Coordinator', 'Field Officer', 'Field Coordinator', 'Field Operations', 'Operational Officer'].contains(_userRole));
 
     // Executive Metrics Calculation
     final totalInSelection = filteredScholars.length;
