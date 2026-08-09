@@ -124,18 +124,16 @@ class _ViewAttendanceComponentState extends State<ViewAttendanceComponent> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final bool isMobile = MediaQuery.of(context).size.width < 900;
 
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: const Color(0xFFF0F2F5), // Facebook-style background
+      color: isDark ? theme.scaffoldBackgroundColor : Colors.white,
       child: Column(
         children: [
-          Container(
-            color: Colors.white,
-            child: _buildHeader(isMobile),
-          ),
+          _buildHeader(isMobile),
           Expanded(
             child: SingleChildScrollView(
               padding: EdgeInsets.all(isMobile ? 12 : 32),
@@ -150,7 +148,7 @@ class _ViewAttendanceComponentState extends State<ViewAttendanceComponent> {
                         const SizedBox(height: 16),
                       ],
                       _buildSelectionPanel(isMobile),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 32),
                       if (_isGeneratingReport)
                         const Center(child: Padding(padding: EdgeInsets.all(100), child: CircularProgressIndicator(color: kBrandOlive)))
                       else if (_attendanceReport.isEmpty)
@@ -273,121 +271,115 @@ class _ViewAttendanceComponentState extends State<ViewAttendanceComponent> {
   }
 
   Widget _buildSelectionPanel(bool isMobile) {
-    return Container(
-      padding: EdgeInsets.all(isMobile ? 16 : 24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 1)],
-      ),
-      child: isMobile 
-        ? Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+    if (isMobile) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildDropdown("PARTNER INSTITUTION", Icons.school_rounded, "Select School", _selectedSchoolName, _schools.map((s) => s['name'].toString()).toList(), (val) {
+            final school = _schools.firstWhere((s) => s['name'] == val);
+            setState(() {
+              _selectedSchoolName = val;
+              _selectedSchoolId = school['id'].toString();
+              _selectedSchoolLevel = school['level'];
+              _selectedTerm = null;
+              _selectedSemester = null;
+            });
+          }),
+          const SizedBox(height: 16),
+          Row(
             children: [
-              _buildDropdown("PARTNER INSTITUTION", Icons.school_rounded, "Select School", _selectedSchoolName, _schools.map((s) => s['name'].toString()).toList(), (val) {
-                final school = _schools.firstWhere((s) => s['name'] == val);
-                setState(() {
-                  _selectedSchoolName = val;
-                  _selectedSchoolId = school['id'].toString();
-                  _selectedSchoolLevel = school['level'];
-                  _selectedTerm = null;
-                  _selectedSemester = null;
-                });
-              }),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(child: _buildDropdown("YEAR", Icons.calendar_today_rounded, "Year", _selectedYear, _years, (val) => setState(() => _selectedYear = val!))),
-                  const SizedBox(width: 12),
-                  if (_selectedSchoolLevel != null)
-                    Expanded(
-                      child: (_selectedSchoolLevel == 'Tertiary / University' || _selectedSchoolLevel == 'University')
-                          ? _buildDropdown("SEMESTER", Icons.layers_rounded, "Select", _selectedSemester, _semesters, (val) => setState(() => _selectedSemester = val))
-                          : _buildDropdown("TERM", Icons.layers_rounded, "Select", _selectedTerm, _terms, (val) => setState(() => _selectedTerm = val)),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: (_selectedSchoolId != null && (_selectedTerm != null || _selectedSemester != null)) ? _generateReport : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kBrandOlive,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    elevation: 0,
-                  ),
-                  child: const Text("GENERATE SHEET"),
-                ),
-              ),
-            ],
-          )
-        : Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              // 1. School Selection
-              Expanded(
-                flex: 3,
-                child: _buildDropdown(
-                  "PARTNER INSTITUTION",
-                  Icons.school_rounded,
-                  _isLoadingSchools ? "Loading..." : "Select School",
-                  _selectedSchoolName,
-                  _schools.map((s) => s['name'].toString()).toList(),
-                  (val) {
-                    final school = _schools.firstWhere((s) => s['name'] == val);
-                    setState(() {
-                      _selectedSchoolName = val;
-                      _selectedSchoolId = school['id'].toString();
-                      _selectedSchoolLevel = school['level'];
-                      _selectedTerm = null;
-                      _selectedSemester = null;
-                    });
-                  },
-                ),
-              ),
-              const SizedBox(width: 16),
-              // 2. Year Selection
-              Expanded(
-                flex: 2,
-                child: _buildDropdown(
-                  "ACADEMIC YEAR",
-                  Icons.calendar_today_rounded,
-                  "Year",
-                  _selectedYear,
-                  _years,
-                  (val) => setState(() => _selectedYear = val!),
-                ),
-              ),
-              const SizedBox(width: 16),
-              // 3. Term / Semester
+              Expanded(child: _buildDropdown("YEAR", Icons.calendar_today_rounded, "Year", _selectedYear, _years, (val) => setState(() => _selectedYear = val!))),
+              const SizedBox(width: 12),
               if (_selectedSchoolLevel != null)
                 Expanded(
-                  flex: 2,
                   child: (_selectedSchoolLevel == 'Tertiary / University' || _selectedSchoolLevel == 'University')
                       ? _buildDropdown("SEMESTER", Icons.layers_rounded, "Select", _selectedSemester, _semesters, (val) => setState(() => _selectedSemester = val))
                       : _buildDropdown("TERM", Icons.layers_rounded, "Select", _selectedTerm, _terms, (val) => setState(() => _selectedTerm = val)),
                 ),
-              const SizedBox(width: 24),
-              // 4. Action Button
-              SizedBox(
-                height: 44,
-                child: ElevatedButton(
-                  onPressed: (_selectedSchoolId != null && (_selectedTerm != null || _selectedSemester != null)) ? _generateReport : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kBrandOlive,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    elevation: 0,
-                    textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 0.5),
-                  ),
-                  child: const Text("GENERATE"),
-                ),
-              ),
             ],
           ),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 44,
+            child: ElevatedButton(
+              onPressed: (_selectedSchoolId != null && (_selectedTerm != null || _selectedSemester != null)) ? _generateReport : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kBrandOlive,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                elevation: 0,
+              ),
+              child: const Text("GENERATE SHEET"),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        // 1. School Selection
+        Expanded(
+          flex: 3,
+          child: _buildDropdown(
+            "PARTNER INSTITUTION",
+            Icons.school_rounded,
+            _isLoadingSchools ? "Loading..." : "Select School",
+            _selectedSchoolName,
+            _schools.map((s) => s['name'].toString()).toList(),
+            (val) {
+              final school = _schools.firstWhere((s) => s['name'] == val);
+              setState(() {
+                _selectedSchoolName = val;
+                _selectedSchoolId = school['id'].toString();
+                _selectedSchoolLevel = school['level'];
+                _selectedTerm = null;
+                _selectedSemester = null;
+              });
+            },
+          ),
+        ),
+        const SizedBox(width: 16),
+        // 2. Year Selection
+        Expanded(
+          flex: 2,
+          child: _buildDropdown(
+            "ACADEMIC YEAR",
+            Icons.calendar_today_rounded,
+            "Year",
+            _selectedYear,
+            _years,
+            (val) => setState(() => _selectedYear = val!),
+          ),
+        ),
+        const SizedBox(width: 16),
+        // 3. Term / Semester
+        if (_selectedSchoolLevel != null)
+          Expanded(
+            flex: 2,
+            child: (_selectedSchoolLevel == 'Tertiary / University' || _selectedSchoolLevel == 'University')
+                ? _buildDropdown("SEMESTER", Icons.layers_rounded, "Select", _selectedSemester, _semesters, (val) => setState(() => _selectedSemester = val))
+                : _buildDropdown("TERM", Icons.layers_rounded, "Select", _selectedTerm, _terms, (val) => setState(() => _selectedTerm = val)),
+          ),
+        const SizedBox(width: 24),
+        // 4. Action Button
+        SizedBox(
+          height: 40,
+          child: ElevatedButton(
+            onPressed: (_selectedSchoolId != null && (_selectedTerm != null || _selectedSemester != null)) ? _generateReport : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kBrandOlive,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              elevation: 0,
+              textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 0.5),
+            ),
+            child: const Text("GENERATE"),
+          ),
+        ),
+      ],
     );
   }
 
@@ -399,56 +391,50 @@ class _ViewAttendanceComponentState extends State<ViewAttendanceComponent> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 1)],
-          ),
-          child: isMobile
-            ? Column(
-                children: [
-                  TextField(
+        isMobile
+          ? Column(
+              children: [
+                TextField(
+                  onChanged: (v) => setState(() => _searchQuery = v),
+                  style: TextStyle(color: isDark ? Colors.white : kBrandBrown, fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText: "Search scholar...",
+                    prefixIcon: const Icon(Icons.search_rounded, size: 20, color: kBrandOlive),
+                    filled: true,
+                    fillColor: isDark ? theme.colorScheme.surfaceContainerHighest : const Color(0xFFF8F9FA),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: theme.dividerColor)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: theme.dividerColor)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildLegend(isMobile),
+              ],
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                SizedBox(
+                  width: 320,
+                  child: TextField(
                     onChanged: (v) => setState(() => _searchQuery = v),
-                    style: TextStyle(color: isDark ? Colors.white : kBrandBrown, fontSize: 13),
+                    style: TextStyle(color: isDark ? Colors.white : kBrandBrown, fontWeight: FontWeight.w600, fontSize: 13),
                     decoration: InputDecoration(
-                      hintText: "Search scholar...",
-                      prefixIcon: const Icon(Icons.search_rounded, size: 20, color: kBrandOlive),
+                      hintText: "Search name or ID...",
+                      hintStyle: const TextStyle(fontSize: 12),
+                      prefixIcon: const Icon(Icons.search_rounded, size: 18, color: kBrandOlive),
                       filled: true,
-                      fillColor: const Color(0xFFF0F2F5),
+                      fillColor: isDark ? theme.colorScheme.surfaceContainerHighest : const Color(0xFFF8F9FA),
                       contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: theme.dividerColor)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: theme.dividerColor)),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  _buildLegend(isMobile),
-                ],
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  SizedBox(
-                    width: 400,
-                    child: TextField(
-                      onChanged: (v) => setState(() => _searchQuery = v),
-                      style: TextStyle(color: isDark ? Colors.white : kBrandBrown, fontWeight: FontWeight.w600),
-                      decoration: InputDecoration(
-                        hintText: "Filter by scholar name or ID...",
-                        hintStyle: const TextStyle(fontSize: 13),
-                        prefixIcon: const Icon(Icons.search_rounded, size: 20, color: kBrandOlive),
-                        filled: true,
-                        fillColor: const Color(0xFFF0F2F5),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 20),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
-                      ),
-                    ),
-                  ),
-                  _buildLegend(isMobile),
-                ],
-              ),
-        ),
-        const SizedBox(height: 20),
+                ),
+                _buildLegend(isMobile),
+              ],
+            ),
+        const SizedBox(height: 24),
         
         if (isMobile) 
           _buildMobileReportList(report)

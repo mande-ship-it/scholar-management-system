@@ -26,6 +26,7 @@ dependencies:
   open_file_plus: ^3.4.1
   shared_preferences: ^2.2.2
   intl: ^0.18.1
+  url_launcher: ^6.2.5
   fl_chart: ^0.66.2
   table_calendar: ^3.0.9
   flutter_map: ^6.1.0

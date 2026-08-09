@@ -261,18 +261,20 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   @override
   Widget build(BuildContext context) {
     final bool isMobile = MediaQuery.of(context).size.width < 900;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
       width: double.infinity,
       height: double.infinity,
-      color: const Color(0xFFF8F9FA),
+      color: isDark ? theme.scaffoldBackgroundColor : Colors.white,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildPortalHeader(isMobile),
           Expanded(
             child: SingleChildScrollView(
-              padding: EdgeInsets.all(isMobile ? 16 : 40),
+              padding: EdgeInsets.all(isMobile ? 12 : 32),
               child: Center(
                 child: Container(
                   constraints: const BoxConstraints(maxWidth: 1200),
@@ -280,20 +282,20 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _sectionPortalLabel("Session configuration", Icons.settings_input_composite_rounded),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
                       _buildPortalConfigPanel(isMobile),
-                      const SizedBox(height: 48),
+                      const SizedBox(height: 40),
                       
                       if (_isLoadingScholars)
                         const Center(child: Padding(padding: EdgeInsets.all(100), child: CircularProgressIndicator(color: kBrandOlive)))
                       else if (_entries.isNotEmpty) ...[
                         _sectionPortalLabel("Sitting logistics", Icons.local_shipping_rounded),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
                         _buildPortalLogisticsPanel(isMobile),
-                        const SizedBox(height: 48),
+                        const SizedBox(height: 40),
 
                         _sectionPortalLabel("Attendance register", Icons.fact_check_rounded),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 16),
                         if (isMobile) 
                           _buildMobileAttendanceList()
                         else 
@@ -387,16 +389,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   }
 
   Widget _buildPortalConfigPanel(bool isMobile) {
-    return Container(
-      padding: EdgeInsets.all(isMobile ? 20 : 32),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 15, offset: const Offset(0, 5))],
-      ),
-      child: isMobile ? _buildMobileConfig() : _buildDesktopConfig(),
-    );
+    return isMobile ? _buildMobileConfig() : _buildDesktopConfig();
   }
 
   Widget _buildMobileConfig() {
@@ -476,29 +469,21 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   }
 
   Widget _buildPortalLogisticsPanel(bool isMobile) {
-    return Container(
-      padding: EdgeInsets.all(isMobile ? 20 : 32),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
-      ),
-      child: Column(
-        children: [
-          if (isMobile) ...[
-            _portalTextField(_facilitatorController, "Session Facilitator", Icons.person_pin_rounded),
-            const SizedBox(height: 24),
-            _portalTextField(_locationController, "Venue / Location", Icons.place_rounded),
-          ] else
-            Row(
-              children: [
-                Expanded(child: _portalTextField(_facilitatorController, "Session Facilitator", Icons.person_pin_rounded)),
-                const SizedBox(width: 32),
-                Expanded(child: _portalTextField(_locationController, "Venue / Location", Icons.place_rounded)),
-              ],
-            ),
-        ],
-      ),
+    return Column(
+      children: [
+        if (isMobile) ...[
+          _portalTextField(_facilitatorController, "Session Facilitator", Icons.person_pin_rounded),
+          const SizedBox(height: 24),
+          _portalTextField(_locationController, "Venue / Location", Icons.place_rounded),
+        ] else
+          Row(
+            children: [
+              Expanded(child: _portalTextField(_facilitatorController, "Session Facilitator", Icons.person_pin_rounded)),
+              const SizedBox(width: 32),
+              Expanded(child: _portalTextField(_locationController, "Venue / Location", Icons.place_rounded)),
+            ],
+          ),
+      ],
     );
   }
 
@@ -803,31 +788,36 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   }
 
   Widget _portalDropdown<T>(String label, T value, List<T> items, ValueChanged<T?> onChanged) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1.0)),
+        Text(label.toUpperCase(), style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: isDark ? Colors.white38 : Colors.grey, letterSpacing: 1.0)),
         const SizedBox(height: 8),
         Container(
-          height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: const Color(0xFFF8F9FA),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFFEEEEEE)),
+            color: isDark ? theme.colorScheme.surfaceContainerHighest : const Color(0xFFF8F9FA),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: theme.dividerColor),
           ),
-          child: DropdownButton<T>(
-            value: value,
-            isExpanded: true,
-            underline: const SizedBox(),
-            icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 20, color: Colors.grey),
-            items: items.map((i) {
-              String text = "";
-              if (i is Map) text = i['name'] ?? '';
-              else text = i.toString();
-              return DropdownMenuItem(value: i, child: Text(text, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF4C3C32))));
-            }).toList(),
-            onChanged: onChanged,
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<T>(
+              value: value,
+              isExpanded: true,
+              dropdownColor: theme.cardColor,
+              icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Colors.grey),
+              items: items.map((i) {
+                String text = "";
+                if (i is Map) text = i['name'] ?? '';
+                else text = i.toString();
+                return DropdownMenuItem(value: i, child: Text(text, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kBrandBrown)));
+              }).toList(),
+              onChanged: onChanged,
+            ),
           ),
         ),
       ],
@@ -835,24 +825,27 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   }
 
   Widget _portalTextField(TextEditingController ctrl, String label, IconData icon) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1.0)),
+        Text(label.toUpperCase(), style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: isDark ? Colors.white38 : Colors.grey, letterSpacing: 1.0)),
         const SizedBox(height: 8),
         Container(
-          height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: const Color(0xFFF8F9FA),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFFEEEEEE)),
+            color: isDark ? theme.colorScheme.surfaceContainerHighest : const Color(0xFFF8F9FA),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: theme.dividerColor),
           ),
           child: TextField(
             controller: ctrl,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF4C3C32)),
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kBrandBrown),
             decoration: InputDecoration(
-              icon: Icon(icon, size: 18, color: const Color(0xFF9AB334)),
+              icon: Icon(icon, size: 16, color: kBrandOlive),
               border: InputBorder.none,
               isDense: true,
             ),
@@ -863,10 +856,13 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   }
 
   Widget _portalDatePickerField() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("SITTING DATE", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1.0)),
+        Text("SITTING DATE", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: isDark ? Colors.white38 : Colors.grey, letterSpacing: 1.0)),
         const SizedBox(height: 8),
         InkWell(
           onTap: () async {
@@ -885,19 +881,19 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
             }
           },
           child: Container(
-            height: 48,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            height: 44,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF8F9FA),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFEEEEEE)),
+              color: isDark ? theme.colorScheme.surfaceContainerHighest : const Color(0xFFF8F9FA),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: theme.dividerColor),
             ),
             child: Row(
               children: [
-                const Icon(Icons.calendar_month_rounded, size: 18, color: Color(0xFF9AB334)),
-                const SizedBox(width: 16),
+                const Icon(Icons.calendar_month_rounded, size: 16, color: kBrandOlive),
+                const SizedBox(width: 12),
                 Text(DateFormat('dd MMMM yyyy').format(_selectedDate),
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF4C3C32))),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kBrandBrown)),
               ],
             ),
           ),

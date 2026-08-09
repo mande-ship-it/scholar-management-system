@@ -60,6 +60,12 @@ import 'pages/admin/approvals_page.dart';
 // Interactive Map
 import 'dashBoard/districts_map.dart';
 
+// Event Pages
+import 'pages/eventPages/events.dart';
+import 'events/live_meeting_page.dart';
+import 'events/meeting_conversation_page.dart';
+import 'events/meeting_room_page.dart';
+
 // Splash Screen
 import 'pages/splash/splash_screen.dart';
 
@@ -184,6 +190,12 @@ class MyApp extends StatelessWidget {
             '/dashboard/recentActivities': (context) => RecentActivitiesPage(),
             '/dashboard/notifications': (context) => NotificationsPage(),
             '/dashboard/map': (context) => const DistrictsMapPage(),
+
+            // Events
+            '/events': (context) => const EventsPage(),
+            '/events/liveMeeting': (context) => const LiveMeetingPage(),
+            '/events/conversation': (context) => const MeetingConversationPage(),
+            '/events/live-meeting-join': (context) => const MeetingRoomPage(),
 
             // Scholars
             '/registerScholar': (context) => RegisterScholarPage(),

@@ -303,9 +303,9 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
                 child: const Icon(Icons.school_rounded, color: kBrandOlive, size: 40),
               ),
               const SizedBox(height: 24),
-              const Text("Enrolment Confirmed", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kBrandBrown)),
+              const Text("Enrolment Submitted", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kBrandBrown)),
               const SizedBox(height: 12),
-              Text("Scholar '${student.name}' has been assigned ID ${student.scholarId} and successfully added to the registry.", 
+              Text("Scholar '${student.name}' has been successfully registered and is currently AWAITING APPROVAL by the program management.",
                 textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade600, height: 1.5)),
               const SizedBox(height: 32),
               SizedBox(

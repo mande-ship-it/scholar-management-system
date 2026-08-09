@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../academics/academics_utils.dart';
 import 'package:scholar_management_system/services/api_service.dart';
 import 'package:scholar_management_system/services/permission_service.dart';
@@ -121,12 +122,35 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
           if (mounted) {
             setState(() => _isLoading = false);
             
+            // Handle Redirect logic from email/URL
+            String? redirect;
+            Map<String, dynamic> redirectArgs = {};
+
+            if (kIsWeb) {
+              final uri = Uri.base;
+              redirect = uri.queryParameters['redirect'];
+              // Extract all other parameters as arguments
+              uri.queryParameters.forEach((key, value) {
+                if (key != 'redirect') redirectArgs[key] = value;
+              });
+            } else {
+              final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+              redirect = args?['redirect'];
+              redirectArgs = args ?? {};
+            }
+
             // Role-based Navigation Logic
             final String role = userData['role'] ?? userData['role_name'] ?? 'User';
             final String normalizedRole = role.trim().toLowerCase();
 
             if (userData['mustResetPassword'] == true || userData['isFirstLogin'] == true) {
               Navigator.pushReplacementNamed(context, '/password-reset');
+              return;
+            }
+
+            if (redirect != null && redirect.isNotEmpty) {
+              debugPrint('LOGIN: Redirecting to $redirect with args $redirectArgs');
+              Navigator.pushReplacementNamed(context, redirect, arguments: redirectArgs);
               return;
             }
 

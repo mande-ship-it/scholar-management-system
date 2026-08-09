@@ -105,6 +105,53 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
     }
   }
 
+  Future<void> _rejectScholar() async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Reject Registration"),
+        content: Text("Are you sure you want to reject and remove the registration for ${_student?.name}?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text("Reject"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      setState(() => _isLoading = true);
+      try {
+        final response = await ApiService.rejectActivity('scholar', _student!.id);
+        if (response.statusCode == 200) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Scholar registration rejected."), backgroundColor: Colors.orange),
+            );
+            if (widget.onBack != null) {
+              widget.onBack!();
+            } else {
+              Navigator.pop(context, true);
+            }
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(response.data['message'] ?? "Rejection failed.")),
+            );
+          }
+        }
+      } catch (e) {
+        debugPrint('Error rejecting scholar: $e');
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    }
+  }
+
   Future<void> _deleteScholar() async {
     final bool? confirmed = await showDialog<bool>(
       context: context,
@@ -149,6 +196,31 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
       } finally {
         if (mounted) setState(() => _isLoading = false);
       }
+    }
+  }
+
+  Future<void> _approveScholar() async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await ApiService.approveActivity('scholar', _student!.id);
+      if (response.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Scholar approved successfully!"), backgroundColor: kBrandOlive),
+          );
+          _fetchScholarData(_student!.id, null);
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response.data['message'] ?? "Approval failed.")),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error approving scholar: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -222,6 +294,10 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
               ],
             ),
             const SizedBox(height: 16),
+            if (student.status == 'Pending' && ['Administrator', 'Program Coordinator', 'Country Director'].contains(_userRole)) ...[
+               _portalActionBtn(Icons.check_circle_outline_rounded, "APPROVE SCHOLAR", kBrandOlive, _approveScholar, compact: true),
+               const SizedBox(height: 8),
+            ],
             Row(
               children: [
                 Expanded(child: _portalActionBtn(Icons.auto_awesome, "AI", const Color(0xFF9AB334), () => Scaffold.of(context).openEndDrawer(), compact: true)),
@@ -287,6 +363,12 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
               _portalActionBtn(Icons.auto_awesome, "AI ASSISTANT", const Color(0xFF9AB334), () => Scaffold.of(context).openEndDrawer()),
               const SizedBox(width: 16),
               if (['Administrator', 'Program Coordinator', 'Country Director'].contains(_userRole)) ...[
+                if (student.status == 'Pending') ...[
+                  _portalActionBtn(Icons.check_circle_outline_rounded, "APPROVE SCHOLAR", kBrandOlive, _approveScholar),
+                  const SizedBox(width: 16),
+                  _portalActionBtn(Icons.close_rounded, "REJECT", kBrandOrange, _rejectScholar, isOutlined: true),
+                  const SizedBox(width: 16),
+                ],
                 _portalActionBtn(Icons.edit_outlined, "MODIFY PROFILE", const Color(0xFF4C3C32), () {
                   final scholarMap = _getScholarMap(student);
                   showEditScholarDialog(context, scholarMap).then((_) => _fetchScholarData(student.id, null));

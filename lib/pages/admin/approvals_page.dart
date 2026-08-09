@@ -14,6 +14,7 @@ class ApprovalsPage extends StatefulWidget {
 class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _isLoading = true;
+  String? _fetchedRole;
 
   List<dynamic> _pendingScholars = [];
   List<dynamic> _pendingEvents = [];
@@ -21,7 +22,7 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
   bool _isProcessing = false;
 
   bool get _canApproveScholars {
-    final role = widget.userRole?.toLowerCase() ?? '';
+    final role = (widget.userRole ?? _fetchedRole ?? '').toLowerCase();
     return role == 'administrator' ||
            role == 'admin' ||
            role == 'country director' ||
@@ -32,8 +33,36 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _canApproveScholars ? 3 : 2, vsync: this);
-    _fetchPending();
+    // Initialize with a dummy controller first to avoid late initialization errors.
+    // It will be re-initialized properly in _initData() once roles are fetched.
+    _tabController = TabController(length: 3, vsync: this);
+    _initData();
+  }
+
+  Future<void> _initData() async {
+    setState(() => _isLoading = true);
+    try {
+      // 1. Fetch user role if not provided
+      if (widget.userRole == null) {
+        final profileRes = await ApiService.getAccountProfile();
+        if (profileRes.statusCode == 200) {
+          _fetchedRole = profileRes.data['data']['role_name'];
+        }
+      }
+
+      // 2. Refresh tab controller if needed
+      if (_tabController.length != (_canApproveScholars ? 3 : 2)) {
+         _tabController.dispose();
+         _tabController = TabController(length: _canApproveScholars ? 3 : 2, vsync: this);
+      }
+
+      // 3. Fetch pending activities
+      await _fetchPending();
+    } catch (e) {
+      debugPrint('Error initializing approvals: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _fetchPending() async {
@@ -118,20 +147,22 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
                 children: [
                   _buildHeader(),
                   const SizedBox(height: 24),
-                  _buildTabs(isMobile),
-                  const SizedBox(height: 20),
-                  Expanded(
-                    child: _isLoading
-                      ? Center(child: CircularProgressIndicator(color: kBrandOlive))
-                      : TabBarView(
-                          controller: _tabController,
-                          children: [
-                            if (_canApproveScholars) _buildScholarsList(isMobile),
-                            _buildEventsList(isMobile),
-                            _buildPaymentsList(isMobile),
-                          ],
-                        ),
-                  ),
+                  if (_isLoading)
+                    const Expanded(child: Center(child: CircularProgressIndicator(color: kBrandOlive)))
+                  else ...[
+                    _buildTabs(isMobile),
+                    const SizedBox(height: 20),
+                    Expanded(
+                      child: TabBarView(
+                        controller: _tabController,
+                        children: [
+                          if (_canApproveScholars) _buildScholarsList(isMobile),
+                          _buildEventsList(isMobile),
+                          _buildPaymentsList(isMobile),
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

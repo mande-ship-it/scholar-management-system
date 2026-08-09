@@ -337,11 +337,19 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
               ],
             ),
           ),
-          if (isMobile)
-            IconButton(
-              icon: const Icon(Icons.search_rounded, color: kBrandBrown, size: 22),
-              onPressed: () => setState(() => _isSearchExpanded = true),
+          const SizedBox(width: 8),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pushNamed(context, '/events/liveMeeting'),
+            icon: const Icon(Icons.video_call_rounded, size: 18),
+            label: const Text("LIVE MEETING", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: kBrandBrown,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
+          ),
           const SizedBox(width: 8),
           ElevatedButton(
             onPressed: _showCreateEventDialog,

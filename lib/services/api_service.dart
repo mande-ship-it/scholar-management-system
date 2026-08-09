@@ -556,4 +556,17 @@ class ApiService {
   static Future<Response> getEarlyWarningRisk() async {
     return await _dio.get('/performance/risk-indicators');
   }
+
+  // Meetings
+  static Future<Response> createMeeting(Map<String, dynamic> data) async {
+    return await _dio.post('/meetings', data: data);
+  }
+
+  static Future<Response> getMyMeetings() async {
+    return await _dio.get('/meetings/my');
+  }
+
+  static Future<Response> getMeetingById(String id) async {
+    return await _dio.get('/meetings/$id');
+  }
 }
