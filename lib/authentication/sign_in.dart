@@ -66,7 +66,7 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
           final String normalizedRole = role.trim().toLowerCase();
 
           String targetRoute = '/home';
-          if (normalizedRole == 'administrator') {
+          if (['administrator', 'admin', 'program coordinator', 'country director'].contains(normalizedRole)) {
             targetRoute = '/admin/home';
           } else if ([
             'field officer',
@@ -157,15 +157,17 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
               return;
             }
 
-            // 1. Strict Administrator -> Admin Portal
-            final bool isStrictAdmin = normalizedRole == 'administrator';
+            // 1. Management Roles -> Admin Portal
+            final bool isManagement = [
+              'administrator', 'admin', 'program coordinator', 'country director'
+            ].contains(normalizedRole);
 
             // 2. Field Operations Group -> Field Operations Portal
             final bool isFieldOfficer = [
               'field officer', 'field coordinator', 'field operations', 'operational officer'
             ].contains(normalizedRole);
 
-            if (isStrictAdmin) {
+            if (isManagement) {
               debugPrint('LOGIN: Routing to Admin Portal...');
               Navigator.pushReplacementNamed(context, '/admin/home', arguments: {
                 'username': userData['fullName'] ?? userData['full_name'] ?? _usernameController.text.trim(),

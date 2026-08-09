@@ -482,77 +482,25 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
           const SizedBox(width: 12),
           Padding(
             padding: EdgeInsets.only(right: isMobile ? 12 : 20),
-            child: isMobile 
-              ? GestureDetector(
-                  onTap: () => _scaffoldKey.currentState?.openEndDrawer(),
-                  child: CircleAvatar(
-                    radius: 18,
-                    backgroundColor: kBrandCream,
-                    child: ClipOval(
-                      child: _profileImageUrl != null
-                          ? Image.network(
-                              ApiService.getFullUrl(_profileImageUrl),
-                              fit: BoxFit.cover,
-                              width: 36,
-                              height: 36,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  const Icon(Icons.person, color: kBrandBrown, size: 20),
-                            )
-                          : const Icon(Icons.person, color: kBrandBrown, size: 20),
-                    ),
-                  ),
-                )
-              : PopupMenuButton<String>(
-                  offset: const Offset(0, 48),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  onSelected: (value) {
-                    if (value == 'profile') {
-                      _navigateToSubItem("User Profile");
-                    } else if (value == 'logout') {
-                      ApiService.logout();
-                      Navigator.pushReplacementNamed(context, '/login');
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'profile',
-                      child: Row(
-                        children: [
-                          Icon(Icons.person_outline, size: 20, color: kBrandBrown),
-                          SizedBox(width: 12),
-                          Text("View Profile", style: TextStyle(fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuDivider(),
-                    const PopupMenuItem(
-                      value: 'logout',
-                      child: Row(
-                        children: [
-                          Icon(Icons.logout_rounded, size: 20, color: Colors.redAccent),
-                          SizedBox(width: 12),
-                          Text("Logout", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                  ],
-                  child: CircleAvatar(
-                    radius: 18,
-                    backgroundColor: kBrandCream,
-                    child: ClipOval(
-                      child: _profileImageUrl != null
-                          ? Image.network(
-                              ApiService.getFullUrl(_profileImageUrl),
-                              fit: BoxFit.cover,
-                              width: 36,
-                              height: 36,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  const Icon(Icons.person, color: kBrandBrown, size: 20),
-                            )
-                          : const Icon(Icons.person, color: kBrandBrown, size: 20),
-                    ),
-                  ),
+            child: GestureDetector(
+              onTap: () => _scaffoldKey.currentState?.openEndDrawer(),
+              child: CircleAvatar(
+                radius: 18,
+                backgroundColor: kBrandCream,
+                child: ClipOval(
+                  child: _profileImageUrl != null
+                      ? Image.network(
+                          ApiService.getFullUrl(_profileImageUrl),
+                          fit: BoxFit.cover,
+                          width: 36,
+                          height: 36,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(Icons.person, color: kBrandBrown, size: 20),
+                        )
+                      : const Icon(Icons.person, color: kBrandBrown, size: 20),
                 ),
+              ),
+            ),
           ),
         ],
       ),
@@ -634,32 +582,188 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
 
   Widget _buildEndDrawer(BuildContext context) {
     return Drawer(
-      width: 280,
-      backgroundColor: kBrandCream,
+      width: 320,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(24),
+          bottomLeft: Radius.circular(24),
+        ),
+      ),
       child: Column(
         children: [
-          _buildUserHeader(),
-          const Divider(height: 1),
+          // Executive Profile Header
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+            decoration: const BoxDecoration(
+              color: kBrandBrown,
+              borderRadius: BorderRadius.only(topLeft: Radius.circular(24)),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white.withOpacity(0.2), width: 2),
+                  ),
+                  child: CircleAvatar(
+                    radius: 44,
+                    backgroundColor: Colors.white.withOpacity(0.1),
+                    child: ClipOval(
+                      child: _profileImageUrl != null
+                          ? Image.network(
+                              ApiService.getFullUrl(_profileImageUrl),
+                              fit: BoxFit.cover,
+                              width: 88,
+                              height: 88,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Icon(Icons.person_rounded, size: 48, color: Colors.white70),
+                            )
+                          : const Icon(Icons.person_rounded, size: 48, color: Colors.white70),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  _fullName,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: kBrandOlive.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    _userRole.toUpperCase(),
+                    style: const TextStyle(
+                      color: kBrandOlive,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Action Menu
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              children: [
+                _buildDrawerAction(
+                  icon: Icons.assignment_ind_rounded,
+                  label: "View Personal Profile",
+                  onTap: () {
+                    Navigator.pop(context);
+                    _navigateToSubItem("User Profile");
+                  },
+                ),
+                const SizedBox(height: 8),
+                _buildDrawerAction(
+                  icon: Icons.notifications_active_rounded,
+                  label: "System Notifications",
+                  onTap: () {
+                    Navigator.pop(context);
+                    _navigateToSubItem("Notifications");
+                  },
+                ),
+                const Divider(height: 48, indent: 8, endIndent: 8),
+                _buildDrawerAction(
+                  icon: Icons.power_settings_new_rounded,
+                  label: "Sign Out of Session",
+                  isDestructive: true,
+                  onTap: () {
+                    ApiService.logout();
+                    Navigator.pushReplacementNamed(context, '/login');
+                  },
+                ),
+              ],
+            ),
+          ),
+          
           const Spacer(),
-          const Divider(height: 1),
-          ListTile(
-            leading: const Icon(Icons.person_outline, color: kBrandBrown),
-            title: const Text("View Profile", style: TextStyle(fontWeight: FontWeight.bold)),
-            onTap: () {
-              Navigator.pop(context);
-              _navigateToSubItem("User Profile");
-            },
+          
+          // Branding Footer
+          Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              children: [
+                Image.asset('assets/images/age-logo.png', height: 40, opacity: const AlwaysStoppedAnimation(0.5)),
+                const SizedBox(height: 8),
+                const Text(
+                  "AGE AFRICA SYSTEM v2.0",
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.grey,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+              ],
+            ),
           ),
-          ListTile(
-            leading: const Icon(Icons.logout_rounded, color: Colors.redAccent),
-            title: const Text("Logout", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-            onTap: () {
-              ApiService.logout();
-              Navigator.pushReplacementNamed(context, '/login');
-            },
-          ),
-          const SizedBox(height: 20),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDrawerAction({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+  }) {
+    final Color color = isDestructive ? Colors.redAccent : kBrandBrown;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withOpacity(0.05)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: color.withOpacity(0.8),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, size: 16, color: color.withOpacity(0.3)),
+            ],
+          ),
+        ),
       ),
     );
   }

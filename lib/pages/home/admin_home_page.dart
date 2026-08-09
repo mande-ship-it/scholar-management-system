@@ -196,9 +196,9 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
           final String role = (data['role_name'] ?? "").toString().trim();
           final String normalizedRole = role.toLowerCase();
           
-          final bool isStrictAdmin = normalizedRole == 'administrator';
+          final bool isManagement = ['administrator', 'admin', 'program coordinator', 'country director'].contains(normalizedRole);
 
-          if (!isStrictAdmin) {
+          if (!isManagement) {
             _redirectToHome();
           } else {
             setState(() {
@@ -580,6 +580,7 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
       key: _scaffoldKey,
       backgroundColor: const Color(0xFFF8F9FA),
       drawer: isMobile ? _buildDrawer(context) : null,
+      endDrawer: _buildEndDrawer(context),
       appBar: AppBar(
         elevation: 2,
         backgroundColor: kBrandBrown,
@@ -717,40 +718,8 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
           const SizedBox(width: 12),
           Padding(
             padding: EdgeInsets.only(right: isMobile ? 12 : 20),
-            child: PopupMenuButton<String>(
-              offset: const Offset(0, 48),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              onSelected: (value) {
-                if (value == 'profile') {
-                  _navigateToSubItem("User Profile");
-                } else if (value == 'logout') {
-                  ApiService.logout();
-                  Navigator.pushReplacementNamed(context, '/login');
-                }
-              },
-              itemBuilder: (context) => [
-                PopupMenuItem(
-                  value: 'profile',
-                  child: Row(
-                    children: [
-                      const Icon(Icons.person_outline, size: 20, color: kBrandBrown),
-                      const SizedBox(width: 12),
-                      const Text("View Profile", style: TextStyle(fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                ),
-                const PopupMenuDivider(),
-                PopupMenuItem(
-                  value: 'logout',
-                  child: Row(
-                    children: [
-                      const Icon(Icons.logout_rounded, size: 20, color: Colors.redAccent),
-                      const SizedBox(width: 12),
-                      const Text("Logout", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ),
-              ],
+            child: GestureDetector(
+              onTap: () => _scaffoldKey.currentState?.openEndDrawer(),
               child: CircleAvatar(
                 backgroundColor: kBrandCream,
                 radius: 18,
@@ -1069,6 +1038,191 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
 
   bool isSubSelected(bool catSelected, int activeSub, int currentSub) {
     return catSelected && activeSub == currentSub;
+  }
+
+  Widget _buildEndDrawer(BuildContext context) {
+    return Drawer(
+      width: 320,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(24),
+          bottomLeft: Radius.circular(24),
+        ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+            decoration: const BoxDecoration(
+              color: kBrandBrown,
+              borderRadius: BorderRadius.only(topLeft: Radius.circular(24)),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white.withOpacity(0.2), width: 2),
+                  ),
+                  child: CircleAvatar(
+                    radius: 44,
+                    backgroundColor: Colors.white.withOpacity(0.1),
+                    child: ClipOval(
+                      child: _profileImageUrl != null
+                          ? Image.network(
+                              ApiService.getFullUrl(_profileImageUrl),
+                              fit: BoxFit.cover,
+                              width: 88,
+                              height: 88,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Icon(Icons.person_rounded, size: 48, color: Colors.white70),
+                            )
+                          : const Icon(Icons.person_rounded, size: 48, color: Colors.white70),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  _fullName,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: kBrandOlive.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    _userRole.toUpperCase(),
+                    style: const TextStyle(
+                      color: kBrandOlive,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              children: [
+                _buildDrawerAction(
+                  icon: Icons.assignment_ind_rounded,
+                  label: "Personal Profile",
+                  onTap: () {
+                    Navigator.pop(context);
+                    _navigateToSubItem("User Profile");
+                  },
+                ),
+                const SizedBox(height: 8),
+                _buildDrawerAction(
+                  icon: Icons.notifications_active_rounded,
+                  label: "System Alerts",
+                  onTap: () {
+                    Navigator.pop(context);
+                    _navigateToSubItem("Notifications");
+                  },
+                ),
+                const Divider(height: 48, indent: 8, endIndent: 8),
+                _buildDrawerAction(
+                  icon: Icons.power_settings_new_rounded,
+                  label: "Sign Out",
+                  isDestructive: true,
+                  onTap: () {
+                    ApiService.logout();
+                    Navigator.pushReplacementNamed(context, '/login');
+                  },
+                ),
+              ],
+            ),
+          ),
+          
+          const Spacer(),
+          
+          Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              children: [
+                Image.asset('assets/images/age-logo.png', height: 40, opacity: const AlwaysStoppedAnimation(0.5)),
+                const SizedBox(height: 8),
+                const Text(
+                  "AGE AFRICA ADMIN v2.0",
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.grey,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDrawerAction({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+  }) {
+    final Color color = isDestructive ? Colors.redAccent : kBrandBrown;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withOpacity(0.05)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: color.withOpacity(0.8),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, size: 16, color: color.withOpacity(0.3)),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

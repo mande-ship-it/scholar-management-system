@@ -57,6 +57,11 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
     return ['Field Officer', 'Field Coordinator', 'Field Operations', 'Operational Officer'].contains(currentRole) || widget.hideUniversity;
   }
 
+  bool get _canRegister {
+    return !widget.hideRegistration &&
+        (['Administrator', 'Data Officer', 'Program Coordinator', 'Field Officer', 'Field Coordinator', 'Field Operations', 'Operational Officer'].contains(_userRole));
+  }
+
   @override
   void initState() {
     super.initState();
@@ -286,8 +291,6 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
     final filteredScholars = _getFilteredScholars();
     final availableSchools = _getAvailableSchoolsForFilter();
     final bool isMobile = MediaQuery.of(context).size.width < 900;
-    final bool canRegister = !widget.hideRegistration &&
-        (['Administrator', 'Data Officer', 'Program Coordinator', 'Field Officer', 'Field Coordinator', 'Field Operations', 'Operational Officer'].contains(_userRole));
 
     // Executive Metrics Calculation
     final totalInSelection = filteredScholars.length;
@@ -306,7 +309,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
-      floatingActionButton: (isMobile && canRegister)
+      floatingActionButton: (isMobile && _canRegister)
           ? FloatingActionButton(
               onPressed: widget.onRegisterScholar ?? () => Navigator.pushNamed(context, '/registerScholar').then((_) => _fetchScholars()),
               backgroundColor: const Color(0xFF4C3C32),
@@ -375,15 +378,13 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
             spacing: 6,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              if (isMobile) ...[
-                if (['Administrator', 'Data Officer', 'Program Coordinator'].contains(_userRole))
-                  IconButton(
-                    icon: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF9AB334), size: 22),
-                    onPressed: widget.onRegisterScholar ?? () => Navigator.pushNamed(context, '/registerScholar').then((_) => _fetchScholars()),
-                    tooltip: "Register Scholar",
-                    visualDensity: VisualDensity.compact,
-                  ),
-              ],
+              if (isMobile && _canRegister)
+                IconButton(
+                  icon: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF9AB334), size: 22),
+                  onPressed: widget.onRegisterScholar ?? () => Navigator.pushNamed(context, '/registerScholar').then((_) => _fetchScholars()),
+                  tooltip: "Register Scholar",
+                  visualDensity: VisualDensity.compact,
+                ),
               _exportButton(icon: Icons.description_outlined, label: "PDF", onTap: _exportToPDF, isVerySmall: isVerySmall),
               _exportButton(icon: Icons.table_view_outlined, label: "EXCEL", onTap: _exportToExcel, isVerySmall: isVerySmall),
               if (!isMobile && ['Administrator', 'Data Officer', 'Program Coordinator'].contains(_userRole))

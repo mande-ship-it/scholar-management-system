@@ -232,7 +232,7 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
     final kpis = [
       ("System Users", "$_totalUsers", Icons.people_alt_rounded, kBrandOlive, "Manage Users"),
       ("Pending Approvals", "$_pendingApprovals", Icons.gavel_rounded, kBrandOrange, "Pending Approvals"),
-      ("Institutions", "$_totalSchools", Icons.domain_rounded, kBrandBrown, "Manage Institutions"),
+      ("Institutions", "$_totalSchools", Icons.business_rounded, kBrandBrown, "Manage Institutions"),
       ("Global Sponsors", "$_totalSponsors", Icons.volunteer_activism_rounded, const Color(0xFF1976D2), "Sponsors Directory"),
     ];
 
@@ -243,7 +243,7 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
         crossAxisCount: isVerySmall ? 1 : (isMobile ? 2 : 4),
         crossAxisSpacing: isVerySmall ? 12 : 20,
         mainAxisSpacing: isVerySmall ? 12 : 20,
-        childAspectRatio: isVerySmall ? 3.0 : (isMobile ? 1.4 : 1.8),
+        childAspectRatio: isVerySmall ? 2.5 : (isMobile ? 1.6 : 1.8),
       ),
       itemCount: kpis.length,
       itemBuilder: (context, i) => _buildPortalCard(
@@ -260,55 +260,60 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
   Widget _buildPortalCard(String label, String value, IconData icon, Color color, VoidCallback onTap, bool isVerySmall) {
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(isVerySmall ? 12 : 20),
+      borderRadius: BorderRadius.circular(isVerySmall ? 16 : 24),
+      elevation: 0,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(isVerySmall ? 12 : 20),
+        borderRadius: BorderRadius.circular(isVerySmall ? 16 : 24),
         child: Container(
-          padding: EdgeInsets.all(isVerySmall ? 16 : 28),
+          padding: EdgeInsets.all(isVerySmall ? 16 : 24),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(isVerySmall ? 12 : 20),
-            border: Border.all(color: const Color(0xFFEEEEEE)),
+            borderRadius: BorderRadius.circular(isVerySmall ? 16 : 24),
+            border: Border.all(color: const Color(0xFFEEEEEE), width: 1),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.02),
-                blurRadius: 15,
-                offset: const Offset(0, 5),
+                color: Colors.black.withOpacity(0.01),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
             ],
           ),
           child: Row(
             children: [
               Container(
-                padding: EdgeInsets.all(isVerySmall ? 8 : 12),
+                padding: EdgeInsets.all(isVerySmall ? 10 : 14),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(isVerySmall ? 10 : 14),
+                  color: color.withOpacity(0.08),
+                  shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: color, size: isVerySmall ? 20 : 28),
+                child: Icon(icon, color: color, size: isVerySmall ? 20 : 24),
               ),
-              SizedBox(width: isVerySmall ? 16 : 24),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
-                      value,
-                      style: TextStyle(
-                        fontSize: isVerySmall ? 20 : 26,
-                        fontWeight: FontWeight.w900,
-                        color: const Color(0xFF4C3C32),
-                        letterSpacing: -1,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        value,
+                        style: TextStyle(
+                          fontSize: isVerySmall ? 20 : 24,
+                          fontWeight: FontWeight.w900,
+                          color: const Color(0xFF4C3C32),
+                          letterSpacing: -0.5,
+                        ),
                       ),
                     ),
+                    const SizedBox(height: 2),
                     Text(
                       label.toUpperCase(),
                       style: TextStyle(
-                        fontSize: isVerySmall ? 8 : 10,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.grey.shade400,
-                        letterSpacing: 1.0,
+                        fontSize: isVerySmall ? 8 : 9,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.grey.shade500,
+                        letterSpacing: 0.5,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -326,31 +331,63 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
     final List<PieChartSectionData> sections = [];
     int index = 0;
     _roleDistribution.forEach((role, count) {
-      sections.add(PieChartSectionData(color: chartColors[index % chartColors.length], value: count.toDouble(), title: '', radius: isVerySmall ? 20 : (isMobile ? 25 : 40)));
+      final double value = count.toDouble();
+      final Color color = chartColors[index % chartColors.length];
+      sections.add(
+        PieChartSectionData(
+          color: color,
+          value: value,
+          title: '',
+          radius: isVerySmall ? 15 : (isMobile ? 25 : 40),
+        ),
+      );
       index++;
     });
 
     final content = [
       SizedBox(
-        height: isVerySmall ? 80 : (isMobile ? 100 : 140),
-        width: isVerySmall ? 80 : (isMobile ? 100 : 140),
-        child: PieChart(PieChartData(sectionsSpace: 2, centerSpaceRadius: isVerySmall ? 20 : (isMobile ? 25 : 35), sections: sections)),
+        height: isVerySmall ? 70 : (isMobile ? 100 : 140),
+        width: isVerySmall ? 70 : (isMobile ? 100 : 140),
+        child: PieChart(
+          PieChartData(
+            sectionsSpace: 2,
+            centerSpaceRadius: isVerySmall ? 15 : (isMobile ? 25 : 35),
+            sections: sections,
+          ),
+        ),
       ),
-      SizedBox(width: isVerySmall ? 0 : 20, height: isVerySmall ? 20 : 0),
+      SizedBox(width: isVerySmall ? 0 : 20, height: isVerySmall ? 16 : 0),
       Expanded(
         flex: isVerySmall ? 0 : 1,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: _roleDistribution.keys.take(4).map((role) => Padding(
-            padding: const EdgeInsets.only(bottom: 6),
-            child: Row(
-              children: [
-                Container(width: 8, height: 8, decoration: BoxDecoration(color: chartColors[_roleDistribution.keys.toList().indexOf(role) % chartColors.length], shape: BoxShape.circle)),
-                const SizedBox(width: 8),
-                Expanded(child: Text(role, style: TextStyle(fontSize: isVerySmall ? 10 : 11, fontWeight: FontWeight.bold))),
-              ],
-            ),
-          )).toList(),
+          children: _roleDistribution.keys.take(4).map((role) {
+            final idx = _roleDistribution.keys.toList().indexOf(role);
+            final color = chartColors[idx % chartColors.length];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      role,
+                      style: TextStyle(
+                        fontSize: isVerySmall ? 9 : 11,
+                        fontWeight: FontWeight.bold,
+                        color: kBrandBrown,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
         ),
       )
     ];
@@ -373,19 +410,28 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
       child: Column(
         children: [
           SizedBox(
-            height: isVerySmall ? 100 : 140,
+            height: isVerySmall ? 90 : 140,
             child: BarChart(
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,
                 titlesData: FlTitlesData(
                   show: true,
-                  bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, m) {
-                    const style = TextStyle(fontSize: 9, fontWeight: FontWeight.bold);
-                    if (v.toInt() == 0) return const Text("Scholars", style: style);
-                    if (v.toInt() == 1) return const Text("Events", style: style);
-                    if (v.toInt() == 2) return const Text("Payments", style: style);
-                    return const Text("");
-                  })),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (v, m) {
+                        final style = TextStyle(
+                          fontSize: isVerySmall ? 8 : 9,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey,
+                        );
+                        if (v.toInt() == 0) return Text("Scholars", style: style);
+                        if (v.toInt() == 1) return Text("Events", style: style);
+                        if (v.toInt() == 2) return Text("Payments", style: style);
+                        return const Text("");
+                      },
+                    ),
+                  ),
                   leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -393,15 +439,18 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
                 gridData: const FlGridData(show: false),
                 borderData: FlBorderData(show: false),
                 barGroups: [
-                  BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: (_approvals.where((a) => a['type'] == 'scholar').length).toDouble(), color: kBrandOlive, width: 24)]),
-                  BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: _pendingEvents.toDouble(), color: kBrandOrange, width: 24)]),
-                  BarChartGroupData(x: 2, barRods: [BarChartRodData(toY: _pendingPayments.toDouble(), color: kBrandBrown, width: 24)]),
+                  BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: (_approvals.where((a) => a['type'] == 'scholar').length).toDouble(), color: kBrandOlive, width: isVerySmall ? 18 : 24)]),
+                  BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: _pendingEvents.toDouble(), color: kBrandOrange, width: isVerySmall ? 18 : 24)]),
+                  BarChartGroupData(x: 2, barRods: [BarChartRodData(toY: _pendingPayments.toDouble(), color: kBrandBrown, width: isVerySmall ? 18 : 24)]),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          _opButton("View Full Queue", Icons.checklist_rtl_rounded, kBrandBrown, isMobile, onPressed: () => widget.onNavigate?.call("Pending Approvals")),
+          SizedBox(height: isVerySmall ? 12 : 16),
+          _opButton("View Full Queue", Icons.checklist_rtl_rounded, kBrandBrown, isMobile, 
+            onPressed: () => widget.onNavigate?.call("Pending Approvals"),
+            isVerySmall: isVerySmall,
+          ),
         ],
       ),
     );
@@ -414,20 +463,36 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
       title: "Active Operators",
       child: Column(
         children: _activeUsers.take(4).map((u) => Padding(
-          padding: EdgeInsets.only(bottom: isVerySmall ? 12 : 16),
+          padding: EdgeInsets.only(bottom: isVerySmall ? 8 : 16),
           child: Row(
             children: [
-              CircleAvatar(radius: isVerySmall ? 12 : 14, backgroundColor: kBrandOlive.withOpacity(0.1), child: Text(u['fullName']?[0].toUpperCase() ?? '?', style: TextStyle(fontSize: isVerySmall ? 9 : 10, fontWeight: FontWeight.bold, color: kBrandBrown))),
+              CircleAvatar(
+                radius: isVerySmall ? 10 : 14, 
+                backgroundColor: kBrandOlive.withOpacity(0.1), 
+                child: Text(
+                  u['fullName']?[0].toUpperCase() ?? '?', 
+                  style: TextStyle(fontSize: isVerySmall ? 8 : 10, fontWeight: FontWeight.bold, color: kBrandBrown)
+                )
+              ),
               SizedBox(width: isVerySmall ? 8 : 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(u['fullName'] ?? 'Staff', style: TextStyle(fontSize: isVerySmall ? 12 : 13, fontWeight: FontWeight.bold)),
-                    Text(u['roleId']?['name'] ?? 'USER', style: TextStyle(fontSize: isVerySmall ? 7 : 8, color: Colors.grey, fontWeight: FontWeight.w900)),
+                    Text(
+                      u['fullName'] ?? 'Staff', 
+                      style: TextStyle(fontSize: isVerySmall ? 11 : 13, fontWeight: FontWeight.bold, color: kBrandBrown),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      u['roleId']?['name']?.toString().toUpperCase() ?? 'USER', 
+                      style: TextStyle(fontSize: isVerySmall ? 6 : 8, color: Colors.grey.shade500, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
               Icon(Icons.circle, size: isVerySmall ? 4 : 6, color: Colors.green),
             ],
           ),
@@ -444,6 +509,7 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
       child: Column(
         children: [
           _opButton("Run Cloud Backup", Icons.backup_rounded, kBrandOlive, isMobile, 
+            isVerySmall: isVerySmall,
             onPressed: _isBackingUp ? null : () async {
               setState(() => _isBackingUp = true);
               try {
@@ -460,24 +526,27 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
             }
           ),
           const SizedBox(height: 12),
-          _opButton("Security Audit", Icons.security_rounded, kBrandBrown, isMobile, onPressed: () {}),
+          _opButton("Security Audit", Icons.security_rounded, kBrandBrown, isMobile, 
+            isVerySmall: isVerySmall,
+            onPressed: () {}
+          ),
         ],
       ),
     );
   }
 
-  Widget _opButton(String label, IconData icon, Color color, bool isMobile, {VoidCallback? onPressed}) {
+  Widget _opButton(String label, IconData icon, Color color, bool isMobile, {VoidCallback? onPressed, bool isVerySmall = false}) {
     return ElevatedButton.icon(
       onPressed: onPressed,
       icon: _isBackingUp && label.contains("Backup") 
-        ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-        : Icon(icon, size: 16),
-      label: Text(label.toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+        ? SizedBox(width: isVerySmall ? 12 : 14, height: isVerySmall ? 12 : 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+        : Icon(icon, size: isVerySmall ? 14 : 16),
+      label: Text(label.toUpperCase(), style: TextStyle(fontSize: isVerySmall ? 9 : 11, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
       style: ElevatedButton.styleFrom(
         backgroundColor: color,
         foregroundColor: Colors.white,
-        minimumSize: const Size(double.infinity, 56),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        minimumSize: Size(double.infinity, isVerySmall ? 44 : 56),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(isVerySmall ? 10 : 12)),
         elevation: 0,
       ),
     );
