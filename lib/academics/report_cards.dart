@@ -177,8 +177,8 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.end,
                   children: [
-                    pw.Text("AGE AFRICA", style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(kBrandBrown.toARGB32()))),
-                    pw.Text("Advancing Girls' Education", style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(kBrandOlive.toARGB32()))),
+                    pw.Text("AGE AFRICA", style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(kBrandBrown.value))),
+                    pw.Text("Advancing Girls' Education", style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(kBrandOlive.value))),
                     pw.Text("P.O. Box 2147, Lilongwe, Malawi", style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
                     pw.Text("www.ageafrica.org", style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
                   ],
@@ -186,12 +186,12 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
               ],
             ),
             pw.SizedBox(height: 10),
-            pw.Divider(color: PdfColor.fromInt(kBrandBrown.toARGB32()), thickness: 1.5),
+            pw.Divider(color: PdfColor.fromInt(kBrandBrown.value), thickness: 1.5),
             pw.SizedBox(height: 10),
           ],
         ),
         build: (pw.Context context) {
-          final primaryColor = PdfColor.fromInt(kBrandBrown.toARGB32());
+          final primaryColor = PdfColor.fromInt(kBrandBrown.value);
           
           return [
             pw.Center(

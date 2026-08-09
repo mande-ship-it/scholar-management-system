@@ -23,7 +23,8 @@ class ViewScholarsComponent extends StatefulWidget {
   final VoidCallback? onViewGraduates;
   final String? forcedSchoolType;
   final bool hideUniversity;
-  final bool hideRegistration; // Added this parameter
+  final bool hideRegistration;
+  final int initialTabIndex;
   const ViewScholarsComponent({
     super.key,
     this.onRegisterScholar,
@@ -31,7 +32,8 @@ class ViewScholarsComponent extends StatefulWidget {
     this.onViewGraduates,
     this.forcedSchoolType,
     this.hideUniversity = false,
-    this.hideRegistration = false, // Default to false
+    this.hideRegistration = false,
+    this.initialTabIndex = 0,
   });
 
   @override
@@ -68,7 +70,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
     final String currentRole = PermissionService.userRole ?? 'User';
     final bool isField = ['Field Officer', 'Field Coordinator', 'Field Operations', 'Operational Officer'].contains(currentRole);
     _selectedSchoolType = isField ? 'Secondary' : (widget.forcedSchoolType ?? 'All');
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 2, vsync: this, initialIndex: widget.initialTabIndex);
     _tabController.addListener(() => setState(() {}));
     _fetchUserRole();
     _fetchScholars();

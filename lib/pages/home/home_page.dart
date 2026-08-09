@@ -5,7 +5,6 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../services/api_service.dart';
 import '../../academics/academics_utils.dart';
 import 'package:intl/intl.dart';
-import '../../services/socket_service.dart';
 
 // Dashboard
 import '../dashboardPages/dashboard.dart';
@@ -100,6 +99,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   bool _isSidebarVisible = true;
   int _notificationCount = 0;
+  IO.Socket? _socket;
   String? _currentUserId;
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -132,83 +132,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
 
     _categories = _getRawCategories();
-    SocketService.addCallListener(_handleIncomingCall);
+    _initSocket();
     _fetchNotificationCount();
     _fetchUserProfile();
-  }
-
-  void _handleIncomingCall(Map<String, dynamic> data) {
-    if (!mounted) return;
-    
-    final String caller = data['callerName'] ?? 'Someone';
-    final String meetingId = data['meetingId'];
-    final bool isVideo = data['isVideo'] ?? true;
-
-    // Trigger feedback
-    HapticFeedback.vibrate();
-    SystemSound.play(SystemSoundType.click);
-
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: false,
-      barrierLabel: "Incoming Call",
-      barrierColor: Colors.black.withOpacity(0.85),
-      transitionDuration: const Duration(milliseconds: 400),
-      pageBuilder: (ctx, anim1, anim2) {
-        return Scaffold(
-          backgroundColor: Colors.transparent,
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 120,
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: kBrandOlive.withOpacity(0.2),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: kBrandOlive, width: 2),
-                  ),
-                  child: const Icon(Icons.person_rounded, size: 60, color: kBrandOlive),
-                ),
-                const SizedBox(height: 24),
-                Text(caller.toUpperCase(), 
-                  style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                const SizedBox(height: 8),
-                Text("Incoming ${isVideo ? 'Video' : 'Audio'} Call...", 
-                  style: const TextStyle(color: Colors.white70, fontSize: 16)),
-                const SizedBox(height: 60),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _callActionBtn(Icons.close_rounded, Colors.red, () => Navigator.pop(ctx)),
-                    const SizedBox(width: 40),
-                    _callActionBtn(Icons.videocam_rounded, kBrandOlive, () async {
-                      Navigator.pop(ctx);
-                      // Navigate to Lobby
-                      _navigateToSubItem("Events & Programs");
-                      Navigator.pushNamed(context, '/events/live-meeting-join', arguments: {'id': meetingId});
-                    }),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _callActionBtn(IconData icon, Color color, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(100),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        child: Icon(icon, color: Colors.white, size: 32),
-      ),
-    );
   }
 
   @override
@@ -230,17 +156,18 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       if (response.statusCode == 200) {
         final data = response.data['data'];
         if (data != null && mounted) {
-          final String role = (data['role_name'] ?? "").toString().trim();
-          final String normalizedRole = role.toLowerCase();
+          final String role = data['role_name'] ?? "";
+          final String normalizedRole = role.trim().toLowerCase();
           
-          // 1. Strict Administrator -> Admin Portal
-          if (normalizedRole == 'administrator') {
-            debugPrint('HOME PAGE: Admin detected, moving to Admin Portal.');
+          final bool hasAdminAccess = [
+            'administrator', 'program manager', 'program coordinator', 'country director'
+          ].contains(normalizedRole);
+
+          if (hasAdminAccess) {
             Navigator.pushReplacementNamed(context, '/admin/home');
             return;
           }
           
-          // 2. Field Operations Group -> Field Operations Portal
           final bool isFieldOfficer = [
             'field officer', 
             'field coordinator', 
@@ -249,7 +176,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ].contains(normalizedRole);
 
           if (isFieldOfficer) {
-            debugPrint('HOME PAGE: Field Officer detected, moving to Field Portal.');
             Navigator.pushReplacementNamed(
               context,
               '/field-operations/home',
@@ -261,20 +187,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             );
             return;
           }
-          // 3. Country Director, Program Coordinator, etc. -> Stay here (HomePage)
-          debugPrint('HOME PAGE: $role detected. Loading General Dashboard.');
 
           setState(() {
-            _fullName = data['full_name'] ?? data['fullName'] ?? "User";
+            _fullName = data['full_name'] ?? "User";
             _userRole = role;
-            _profileImageUrl = data['profile_picture'] ?? data['profilePicture'];
-            _currentUserId = data['id'] ?? data['_id'];
+            _profileImageUrl = data['profile_picture'];
+            _currentUserId = data['id'];
             _userPermissions = data['permissions'] ?? {};
-            
-            if (_currentUserId != null) {
-              SocketService.init(_currentUserId!);
-            }
           });
+
+          _joinUserRoom();
         }
       }
     } catch (e) {
@@ -315,6 +237,68 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     }
   }
 
+  void _initSocket() {
+    _socket = IO.io(ApiService.baseUrl, IO.OptionBuilder()
+      .setTransports(['websocket', 'polling'])
+      .enableAutoConnect()
+      .build());
+
+    _socket!.onConnect((_) {
+      debugPrint('Connected to Notification Server');
+      _joinUserRoom();
+    });
+
+    _socket!.onDisconnect((_) {
+      debugPrint('Disconnected from Notification Server');
+    });
+
+    _socket!.on('notification', (data) {
+      if (mounted) {
+        setState(() {
+          _notificationCount++;
+        });
+        _notificationIconController.forward(from: 0.0).then((_) => _notificationIconController.reverse());
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            duration: const Duration(seconds: 5),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: const Color(0xFF4C3C32),
+            margin: const EdgeInsets.all(20),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            content: Row(
+              children: [
+                const Icon(Icons.bolt_rounded, color: Color(0xFF9AB334), size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(data['message'] ?? 'Real-time update received', 
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white)),
+                      Text("Synced at: ${DateTime.now().toString().split(' ')[1].split('.')[0]}",
+                        style: const TextStyle(fontSize: 10, color: Colors.white70)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    });
+
+    _socket!.onDisconnect((_) => debugPrint('Disconnected from Notification Server'));
+    _socket!.onConnectError((err) => debugPrint('Socket Connection Error: $err'));
+  }
+
+  void _joinUserRoom() {
+    if (_socket != null && _socket!.connected && _currentUserId != null) {
+      _socket!.emit('join', _currentUserId);
+    }
+  }
+
   Future<void> _fetchNotificationCount() async {
     try {
       final response = await ApiService.getNotifications();
@@ -334,7 +318,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    SocketService.removeCallListener(_handleIncomingCall);
+    _socket?.disconnect();
     _notificationIconController.dispose();
     _searchController.dispose();
     _searchFocusNode.dispose();
@@ -417,7 +401,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                                   leading: Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: const Color(0x1A9AB334),
+                                      color: const Color(0xFF9AB334).withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Icon(item.icon, color: const Color(0xFF4C3C32), size: 18),
@@ -780,8 +764,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         appBar: AppBar(
           elevation: 2,
           toolbarHeight: 48,
+          shadowColor: brandBrown.withOpacity(0.3),
           backgroundColor: brandBrown,
-          foregroundColor: Colors.white,
           leadingWidth: isMobile ? 56 : 280,
           leading: isMobile 
             ? IconButton(
@@ -798,9 +782,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     child: Image.asset('assets/images/age-logo.png', fit: BoxFit.contain),
                   ),
                   const SizedBox(width: 8),
-                  IconButton(
-                    icon: const Icon(Icons.menu, color: Colors.white, size: 20), 
-                    onPressed: () => setState(() => _isSidebarVisible = !_isSidebarVisible)),
+                  IconButton(icon: const Icon(Icons.menu, color: Colors.white, size: 20), onPressed: () => setState(() => _isSidebarVisible = !_isSidebarVisible)),
                 ],
               ),
           title: _isSearching
@@ -808,74 +790,51 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 alignment: Alignment.centerLeft,
                 width: 450,
                 height: 42,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
                 child: CompositedTransformTarget(
                   link: _searchLayerLink,
                   child: TextField(
                     controller: _searchController,
                     focusNode: _searchFocusNode,
                     onChanged: _onSearchChanged,
-                    style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
+                    style: const TextStyle(color: brandBrown, fontSize: 14, fontWeight: FontWeight.w500),
                     decoration: InputDecoration(
                       hintText: "Search features...",
-                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-                      prefixIcon: const Icon(Icons.search, color: Colors.white, size: 20),
-                      suffixIcon: IconButton(icon: const Icon(Icons.close, color: Colors.white70, size: 18), onPressed: _stopSearching),
+                      prefixIcon: const Icon(Icons.search, color: brandOlive, size: 20),
+                      suffixIcon: IconButton(icon: const Icon(Icons.close, color: Colors.grey, size: 18), onPressed: _stopSearching),
                       border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
-                      focusedBorder: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(vertical: 11),
                     ),
                   ),
                 ),
               )
-            : Text(isMobile ? "AGE System" : "AGE Africa Student Portal", 
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: -0.5)),
+            : Text(isMobile ? "AGE System" : "AGE Africa System", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 16)),
           actions: [
-            IconButton(icon: const Icon(Icons.auto_awesome_outlined, color: Colors.white), onPressed: () => _scaffoldKey.currentState?.openEndDrawer()),
+            IconButton(icon: const Icon(Icons.auto_awesome, color: Colors.white), onPressed: () => _scaffoldKey.currentState?.openEndDrawer()),
             if (!isMobile) IconButton(icon: const Icon(Icons.search, color: Colors.white), onPressed: _startSearching),
             Stack(
               children: [
-                IconButton(icon: const Icon(Icons.notifications_none_rounded, color: Colors.white), onPressed: () {
+                IconButton(icon: const Icon(Icons.notifications, color: Colors.white), onPressed: () {
                   setState(() => _notificationCount = 0);
                   ApiService.markAllNotificationsRead();
                   _navigateToSubItem("Notifications");
                 }),
                 if (_notificationCount > 0)
-                  Positioned(
-                    right: 8, 
-                    top: 8, 
-                    child: Container(
-                      padding: const EdgeInsets.all(2), 
-                      decoration: BoxDecoration(color: brandOrange, shape: BoxShape.circle), 
-                      constraints: const BoxConstraints(minWidth: 16, minHeight: 18), 
-                      child: Text('$_notificationCount', 
-                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold), 
-                        textAlign: TextAlign.center))),
+                  Positioned(right: 8, top: 8, child: Container(padding: const EdgeInsets.all(2), decoration: BoxDecoration(color: brandOrange, shape: BoxShape.circle), constraints: const BoxConstraints(minWidth: 18, minHeight: 18), child: Text('$_notificationCount', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold), textAlign: TextAlign.center))),
               ],
             ),
             const SizedBox(width: 8),
-            if (!isMobile) VerticalDivider(color: Colors.white.withOpacity(0.2), width: 1, indent: 16, endIndent: 16),
+            if (!isMobile) const VerticalDivider(color: Colors.white24, width: 1, indent: 12, endIndent: 12),
             if (!isMobile) const SizedBox(width: 12),
             if (!isMobile)
               GestureDetector(
                 onTap: () => _navigateToSubItem("User Profile"),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    SizedBox(
-                      width: 120,
-                      child: _MovingText(
-                        text: _fullName,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13),
-                      ),
-                    ),
-                    Text(_userRole.toUpperCase(), style: const TextStyle(color: brandOlive, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-                  ],
+                child: SizedBox(
+                  width: 120,
+                  child: _MovingText(
+                    text: _fullName,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+                  ),
                 ),
               ),
             const SizedBox(width: 12),
@@ -897,7 +856,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                     value: 'profile',
                     child: Row(
                       children: [
-                        const Icon(Icons.person_outline, size: 20, color: brandBrown),
+                        const Icon(Icons.person_outline, size: 20, color: Color(0xFF4C3C32)),
                         const SizedBox(width: 12),
                         const Text("View Profile", style: TextStyle(fontWeight: FontWeight.w600)),
                       ],
@@ -950,59 +909,27 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 children: [
                   Container(
                     width: double.infinity,
-                    padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 12),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
-                    ),
+                    padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 8),
+                    color: Colors.white,
                     child: Row(
                       children: [
                         if (_navigationHistory.isNotEmpty || _currentDetailScholarId != null) 
-                          IconButton(
-                            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Color(0xFF4C3C32), size: 16), 
-                            onPressed: _popSubItem,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          ),
-                        if (_navigationHistory.isNotEmpty || _currentDetailScholarId != null) const SizedBox(width: 16),
+                          IconButton(icon: const Icon(Icons.arrow_back, color: Colors.black87, size: 18), onPressed: _popSubItem),
                         if (!isMobile) ...[
-                          GestureDetector(
-                            onTap: () => _navigateToSubItem("Overview"),
-                            child: Text(activeCategory.title.toUpperCase(), 
-                              style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1))),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 8.0),
-                            child: Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 14),
-                          ),
+                          Text(activeCategory.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black54)),
+                          const Icon(Icons.chevron_right, color: Colors.grey, size: 16),
                         ],
                         Expanded(
                           child: Text(
                             _currentDetailScholarId != null ? "Scholar Profile" : activeSubItem.title, 
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF4C3C32)),
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if (!isMobile) ...[
-                          const SizedBox(width: 20),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Color(0xFF9AB334).withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.calendar_today_rounded, size: 12, color: Color(0xFF9AB334)),
-                                const SizedBox(width: 8),
-                                Text(DateFormat('EEE, d MMM yyyy').format(DateTime.now()), 
-                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF9AB334))),
-                              ],
-                            ),
-                          ),
-                        ],
                       ],
                     ),
                   ),
+                  const Divider(height: 1),
                   Expanded(
                     child: Padding(
                       padding: EdgeInsets.all(isMobile ? 12 : 24),
@@ -1013,7 +940,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                           : activeSubItem.page,
                     ),
                   ),
-                  _buildPortalFooter(isMobile),
                 ],
               ),
             ),
@@ -1023,180 +949,108 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildPortalFooter(bool isMobile) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 32),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey.shade100)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text("© 2026 AGE Africa Student Portal", 
-            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey.shade400)),
-          if (!isMobile)
-            Row(
-              children: [
-                _footerLink("Privacy Policy"),
-                const SizedBox(width: 20),
-                _footerLink("Help Center"),
-                const SizedBox(width: 20),
-                _footerLink("Contact Registrar"),
-              ],
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _footerLink(String label) {
-    return Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF9AB334)));
-  }
-
   Widget _buildSidebar(List<SidebarCategory> visibleCategories, bool isMobile) {
     const Color brandBrown = Color(0xFF4C3C32);
     const Color brandCream = Color(0xFFFAF2DB);
     const Color brandCreamDark = Color(0xFFF3E7C4);
-    const Color brandOlive = Color(0xFF9AB334);
+    const Color brandOrange = Color(0xFFE05B1C);
 
     return Container(
-      decoration: const BoxDecoration(
-        color: brandCream,
-        border: Border(right: BorderSide(color: Color(0xFFEEEEEE))),
-      ),
+      color: brandCream,
       child: Column(
         children: [
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
             color: brandCreamDark,
             child: Column(
               children: [
                 if (isMobile) ...[
                   Align(
                     alignment: Alignment.centerLeft,
-                    child: Image.asset('assets/images/age-logo.png', height: 36, fit: BoxFit.contain),
+                    child: Image.asset('assets/images/age-logo.png', height: 40, fit: BoxFit.contain),
                   ),
                   const SizedBox(height: 20),
                 ],
                 GestureDetector(
                   onTap: _pickAndUploadImage,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: brandOlive.withOpacity(0.2), width: 2),
-                    ),
-                    child: CircleAvatar(
-                      radius: 38,
-                      backgroundColor: brandBrown,
-                      child: ClipOval(
-                        child: _profileImageUrl != null
-                            ? Image.network(
-                                ApiService.getFullUrl(_profileImageUrl),
-                                fit: BoxFit.cover,
-                                width: 76,
-                                height: 76,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    const Icon(Icons.person, size: 40, color: Colors.white),
-                              )
-                            : const Icon(Icons.person, size: 40, color: Colors.white),
+                  child: Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 40,
+                        backgroundColor: brandBrown,
+                        child: ClipOval(
+                          child: _profileImageUrl != null
+                              ? Image.network(
+                                  ApiService.getFullUrl(_profileImageUrl),
+                                  fit: BoxFit.cover,
+                                  width: 80,
+                                  height: 80,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(Icons.person, size: 45, color: brandCream),
+                                )
+                              : const Icon(Icons.person, size: 45, color: brandCream),
+                        ),
                       ),
-                    ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(color: Color(0xFFE05B1C), shape: BoxShape.circle),
+                          child: const Icon(Icons.camera_alt, size: 14, color: Colors.white),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 16),
-                Text(_fullName, 
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: brandBrown, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                const SizedBox(height: 12),
+                Text(_fullName, style: const TextStyle(color: brandBrown, fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: brandOlive.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(_userRole.toUpperCase(), 
-                    style: const TextStyle(color: brandOlive, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
-                ),
+                Text(_userRole, style: const TextStyle(color: Colors.black54, fontSize: 12)),
               ],
             ),
           ),
-          const Divider(height: 1),
-          
-          Padding(
-            padding: const EdgeInsets.only(left: 24, top: 24, right: 16, bottom: 12),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                "MAIN NAVIGATION",
-                style: TextStyle(
-                  color: brandBrown.withOpacity(0.4),
-                  fontSize: 10,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.5,
-                ),
-              ),
-            ),
-          ),
-
+          const Divider(height: 1, color: Color(0xFFDCD1B4)),
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              itemCount: visibleCategories.length,
+              padding: EdgeInsets.zero,
+              itemCount: visibleCategories.length + 1,
               itemBuilder: (context, index) {
+                if (index == visibleCategories.length) {
+                  return ListTile(
+                    leading: const Icon(Icons.logout_rounded, color: Colors.redAccent), 
+                    title: const Text("Logout Session", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 14)), 
+                    onTap: () { 
+                      ApiService.logout(); 
+                      Navigator.pushReplacementNamed(context, '/login'); 
+                    }
+                  );
+                }
                 final category = visibleCategories[index];
                 int originalIdx = _categories.indexWhere((c) => c.title == category.title);
                 final isSelected = activeCategoryIndex == originalIdx;
 
                 return Theme(
-                  data: Theme.of(context).copyWith(
-                    dividerColor: Colors.transparent,
-                    hoverColor: brandCreamDark.withOpacity(0.3),
-                  ),
+                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                   child: ExpansionTile(
                     initiallyExpanded: isSelected,
-                    collapsedIconColor: brandBrown.withOpacity(0.5),
-                    iconColor: brandOlive,
-                    collapsedTextColor: brandBrown,
-                    textColor: brandBrown,
-                    tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    leading: Icon(category.icon, size: 20),
-                    title: Text(category.title, 
-                      style: TextStyle(
-                        fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600, 
-                        fontSize: 13,
-                        color: isSelected ? brandBrown : brandBrown.withOpacity(0.7),
-                      )),
+                    leading: Icon(category.icon),
+                    title: Text(category.title, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.w500, fontSize: 14)),
                     children: category.subItems.where((s) => s.isVisible).map((subItem) {
                       int subIdx = _categories[originalIdx].subItems.indexWhere((s) => s.title == subItem.title);
                       final isSubSelected = isSelected && activeSubIndex == subIdx;
-                      
-                      return Container(
-                        margin: const EdgeInsets.only(left: 8, bottom: 2),
-                        decoration: BoxDecoration(
-                          color: isSubSelected ? brandOlive.withOpacity(0.08) : Colors.transparent,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: ListTile(
-                          dense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-                          leading: Icon(subItem.icon, size: 16, color: isSubSelected ? brandOlive : brandBrown.withOpacity(0.4)),
-                          title: Text(subItem.title, 
-                            style: TextStyle(
-                              color: isSubSelected ? brandBrown : brandBrown.withOpacity(0.6),
-                              fontWeight: isSubSelected ? FontWeight.w900 : FontWeight.w500, 
-                              fontSize: 12.5)),
-                          onTap: () {
-                            setState(() { 
-                              activeCategoryIndex = originalIdx; 
-                              activeSubIndex = subIdx; 
-                            });
-                            if (isMobile) Navigator.pop(context);
-                          },
-                        ),
+                      return ListTile(
+                        dense: true,
+                        leading: Icon(subItem.icon, size: 18, color: isSubSelected ? brandOrange : Colors.black54),
+                        title: Text(subItem.title, style: TextStyle(color: isSubSelected ? brandOrange : Colors.black87, fontWeight: isSubSelected ? FontWeight.bold : FontWeight.normal, fontSize: 13)),
+                        onTap: () {
+                          setState(() { 
+                            activeCategoryIndex = originalIdx; 
+                            activeSubIndex = subIdx; 
+                          });
+                          if (isMobile) Navigator.pop(context);
+                        },
                       );
                     }).toList(),
                   ),
@@ -1204,23 +1058,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               },
             ),
           ),
-          const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: ListTile(
-              leading: const Icon(Icons.logout_rounded, color: Colors.redAccent, size: 20), 
-              title: const Text("End Session", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.w900, fontSize: 13)), 
-              onTap: () { 
-                ApiService.logout(); 
-                Navigator.pushReplacementNamed(context, '/login'); 
-              }
-            ),
-          ),
         ],
       ),
     );
   }
-
 }
 
 class _MovingText extends StatefulWidget {

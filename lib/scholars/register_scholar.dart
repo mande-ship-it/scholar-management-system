@@ -69,10 +69,11 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
 
   // Backend state
   List<Map<String, dynamic>> _registeredSchools = [];
-  List<String> _registeredSponsors = [];
+  List<Map<String, dynamic>> _registeredSponsors = [];
   bool _isLoadingSchools = false;
   bool _isLoadingSponsors = false;
   String? _selectedSchoolId;
+  String? _selectedSponsorId;
   String? _assignedDistrict; // From user profile
 
   @override
@@ -136,7 +137,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
         final List<dynamic> data = response.data['data'] ?? [];
         if (mounted) {
           setState(() {
-            _registeredSponsors = data.map((s) => s['name'].toString()).toList();
+            _registeredSponsors = data.map((s) => Map<String, dynamic>.from(s)).toList();
           });
         }
       }
@@ -232,6 +233,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
         'schoolType': _selectedSchoolType,
         'schoolName': _selectedSchool,
         'schoolId': _selectedSchoolId,
+        'sponsorId': _selectedSponsorId,
         'sex': _selectedSex,
         'dob': _dobController.text.trim(),
         'registeredClass': _yearController.text.trim(), // Spec Section 1
@@ -252,6 +254,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
         'guardianEmail': _guardianEmailController.text.trim(),
         'guardianRelation': _selectedGuardianRelation,
         'guardianOccupation': _guardianOccupationController.text.trim(),
+        'status': 'Pending', // Explicitly set for workflow clarity
       };
 
       try {
@@ -973,8 +976,18 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
         DropdownButtonFormField<String>(
           initialValue: _selectedDonor,
           decoration: _inputDeco(_isLoadingSponsors ? "Loading Sponsors..." : "Assigned Program Donor", Icons.monetization_on_outlined),
-          items: _registeredSponsors.map((d) => DropdownMenuItem(value: d, child: Text(d, style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
-          onChanged: (v) => setState(() => _selectedDonor = v),
+          items: _registeredSponsors.map((d) => DropdownMenuItem(value: d['name'].toString(), child: Text(d['name'].toString(), style: const TextStyle(fontWeight: FontWeight.w600)))).toList(),
+          onChanged: (v) {
+            setState(() {
+              _selectedDonor = v;
+              try {
+                final found = _registeredSponsors.firstWhere((s) => s['name'] == v);
+                _selectedSponsorId = (found['id'] ?? found['_id']).toString();
+              } catch (_) {
+                _selectedSponsorId = null;
+              }
+            });
+          },
         ),
       ],
     );

@@ -13,7 +13,7 @@ import 'events_utils.dart';
 // PDF report generation
 // ---------------------------------------------------------------------------
 
-pdf.PdfColor _pdf(Color color) => pdf.PdfColor.fromInt(color.toARGB32());
+pdf.PdfColor _pdf(Color color) => pdf.PdfColor.fromInt(color.value);
 
 Future<pw.Document> buildEventReportPdf(OrganisationEvent event) async {
   final doc = pw.Document(

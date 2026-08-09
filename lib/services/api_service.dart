@@ -22,17 +22,8 @@ class ApiService {
   }
 
   static String get baseUrl {
-    // If user explicitly chose local via settings
-    final prefs = _prefs;
-    if (prefs != null && prefs.containsKey(_useLocalKey)) {
-      return prefs.getBool(_useLocalKey)! ? localUrl : remoteUrl;
-    }
-
-    // Default logic
-    if (kReleaseMode) return remoteUrl;
-    if (kIsWeb) return remoteUrl;
-
-    return localUrl;
+    // Force remote for now to resolve 404s and connectivity issues
+    return remoteUrl;
   }
 
   static SharedPreferences? _prefs;
@@ -54,8 +45,8 @@ class ApiService {
 
   static final Dio _dio = Dio(BaseOptions(
     baseUrl: 'https://age-systems-backend.onrender.com/api', // Initial placeholder, updated in init()
-    connectTimeout: const Duration(seconds: 20),
-    receiveTimeout: const Duration(seconds: 20),
+    connectTimeout: const Duration(seconds: 60),
+    receiveTimeout: const Duration(seconds: 60),
     validateStatus: (status) => status != null && status < 500,
   ))..interceptors.add(InterceptorsWrapper(
     onRequest: (options, handler) {
@@ -88,7 +79,18 @@ class ApiService {
 
   static String getFullUrl(String? path) {
     if (path == null || path.isEmpty) return '';
-    if (path.startsWith('http')) return path;
+
+    // Fix absolute URLs that point to localhost when we are using remote
+    if (path.startsWith('http')) {
+      if (path.contains('localhost:5000') && !isUsingLocal) {
+        // Extract the sub-path after localhost:5000/
+        final parts = path.split('localhost:5000/');
+        if (parts.length > 1) {
+          return '$remoteUrl/${parts.last}';
+        }
+      }
+      return path;
+    }
 
     // Remove leading ./ or / if present
     String cleanPath = path;

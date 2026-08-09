@@ -31,8 +31,76 @@
 
   <title>AGE Africa | Student Management System</title>
   <link rel="manifest" href="manifest.json">
+  <style>
+    body {
+      margin: 0;
+      background-color: #F8F9FA;
+    }
+    .top-loader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      z-index: 10000;
+      background: transparent;
+      overflow: hidden;
+    }
+    .top-loader-bar {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-color: #9AB334; /* kBrandOlive */
+      animation: loading 2s infinite ease-in-out;
+      transform-origin: 0% 50%;
+    }
+    @keyframes loading {
+      0% { transform: translateX(-100%) scaleX(0.2); }
+      50% { transform: translateX(0%) scaleX(0.5); }
+      100% { transform: translateX(100%) scaleX(0.2); }
+    }
+    #initial-loader {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      width: 100vw;
+      background-color: #F8F9FA;
+    }
+    .logo-pulse {
+      width: 80px;
+      height: 80px;
+      animation: pulse 2s infinite ease-in-out;
+    }
+    @keyframes pulse {
+      0% { transform: scale(0.95); opacity: 0.5; }
+      50% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.5; }
+    }
+  </style>
 </head>
 <body>
+  <div id="initial-loader">
+    <div class="top-loader">
+      <div class="top-loader-bar"></div>
+    </div>
+    <img src="favicon.png" class="logo-pulse" alt="Loading...">
+  </div>
+  <script>
+    window.addEventListener('load', function() {
+      // Small delay to ensure Flutter is ready to take over
+      setTimeout(function() {
+        var loader = document.getElementById('initial-loader');
+        if (loader) {
+          loader.style.opacity = '0';
+          loader.style.transition = 'opacity 0.5s ease';
+          setTimeout(function() {
+            loader.remove();
+          }, 500);
+        }
+      }, 1000);
+    });
+  </script>
   <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader

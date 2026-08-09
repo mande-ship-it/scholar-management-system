@@ -66,9 +66,6 @@ import 'events/live_meeting_page.dart';
 import 'events/meeting_conversation_page.dart';
 import 'events/meeting_room_page.dart';
 
-// Splash Screen
-import 'pages/splash/splash_screen.dart';
-
 // Settings Pages
 import 'pages/settingsPages/organisation_profile.dart';
 import 'pages/settingsPages/backup_restore.dart';
@@ -175,8 +172,8 @@ class MyApp extends StatelessWidget {
           ),
           initialRoute: '/login',
           routes: {
-            '/': (context) => const SplashScreen(),
-            '/splash': (context) => const SplashScreen(),
+            '/': (context) => const SignInPage(),
+            '/splash': (context) => const SignInPage(),
             '/login': (context) => const SignInPage(),
             '/password-reset': (context) => const PasswordResetPage(),
             '/forgot-password': (context) => const ForgotPasswordPage(),

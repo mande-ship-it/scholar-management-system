@@ -9,6 +9,7 @@ class ViewScholarsPage extends StatelessWidget {
   final String? forcedSchoolType;
   final bool hideRegistration;
   final bool hideUniversity;
+  final int initialTabIndex;
   const ViewScholarsPage({
     super.key,
     this.onRegisterScholar,
@@ -17,6 +18,7 @@ class ViewScholarsPage extends StatelessWidget {
     this.forcedSchoolType,
     this.hideRegistration = false,
     this.hideUniversity = false,
+    this.initialTabIndex = 0,
   });
 
   @override
@@ -41,7 +43,8 @@ class ViewScholarsPage extends StatelessWidget {
         onViewGraduates: onViewGraduates,
         forcedSchoolType: forcedSchoolType,
         hideUniversity: hideUniversity,
-        hideRegistration: hideRegistration, // Pass through the parameter
+        hideRegistration: hideRegistration,
+        initialTabIndex: initialTabIndex,
       ),
     );
   }

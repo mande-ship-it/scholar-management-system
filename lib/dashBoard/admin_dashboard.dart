@@ -240,10 +240,10 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: isVerySmall ? 1 : (isMobile ? 2 : 4),
+        crossAxisCount: isMobile ? 1 : 4,
         crossAxisSpacing: isVerySmall ? 12 : 20,
         mainAxisSpacing: isVerySmall ? 12 : 20,
-        childAspectRatio: isVerySmall ? 2.5 : (isMobile ? 1.6 : 1.8),
+        childAspectRatio: isVerySmall ? 2.8 : (isMobile ? 3.2 : 1.8),
       ),
       itemCount: kpis.length,
       itemBuilder: (context, i) => _buildPortalCard(

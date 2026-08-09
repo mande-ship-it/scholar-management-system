@@ -69,6 +69,7 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
   bool _isSidebarVisible = true;
   int _notificationCount = 0;
   String? _currentUserId;
+  bool _isApprovalView = false;
 
   String _fullName = "Field Officer";
   String _userRole = "Field Officer";
@@ -301,6 +302,7 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
               onViewProfile: onPushProfile,
               forcedSchoolType: 'Secondary',
               hideUniversity: true,
+              initialTabIndex: _isApprovalView ? 1 : 0,
               onRegisterScholar: () => onPush("Register Scholar"),
             ),
           ),
@@ -309,7 +311,13 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
             page: const SizedBox(),
             icon: Icons.person_add_rounded,
             isVisible: false,
-            builder: (onBack, onPush, onPushProfile) => RegisterScholarPage(onSuccess: onBack, forcedSchoolType: 'Secondary'),
+            builder: (onBack, onPush, onPushProfile) => RegisterScholarPage(
+              onSuccess: () {
+                setState(() => _isApprovalView = true);
+                onBack();
+              }, 
+              forcedSchoolType: 'Secondary'
+            ),
           ),
           FieldOpsSidebarSubItem(
             title: "Institutions",
@@ -362,6 +370,7 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
           setState(() {
             _navigationHistory.clear();
             _currentDetailScholarId = null;
+            _isApprovalView = false; // Reset when navigating directly
             activeCategoryIndex = i;
             activeSubIndex = j;
           });
@@ -402,172 +411,186 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
         activeSubIndex = prev.$2;
         _currentDetailScholarId = prev.$3;
       });
+    } else if (_currentDetailScholarId != null) {
+      setState(() {
+        _currentDetailScholarId = null;
+      });
+    } else if (activeCategoryIndex != 0 || activeSubIndex != 0) {
+      setState(() {
+        activeCategoryIndex = 0;
+        activeSubIndex = 0;
+      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-
     final double screenWidth = MediaQuery.of(context).size.width;
     final bool isMobile = screenWidth < 900;
 
     final activeCategory = _categories[activeCategoryIndex];
     final activeSubItem = activeCategory.subItems[activeSubIndex];
-    debugPrint("FIELD OPS BUILD: Rendering Category=$activeCategoryIndex, SubItem=$activeSubIndex (${activeSubItem.title})");
 
-    return Scaffold(
-      key: _scaffoldKey,
-      backgroundColor: const Color(0xFFF8F9FA),
-      drawer: isMobile ? _buildDrawer(context) : null,
-      endDrawer: isMobile ? _buildEndDrawer(context) : null,
-      appBar: AppBar(
-        elevation: 2,
-        backgroundColor: kBrandBrown,
-        foregroundColor: Colors.white,
-        leadingWidth: isMobile ? 56 : 280,
-        leading: isMobile 
-          ? IconButton(
-              icon: const Icon(Icons.menu, color: Colors.white, size: 24),
-              onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-            )
-          : Row(
-              children: [
-                Container(
-                  width: 200,
-                  height: double.infinity,
-                  color: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                  child: Image.asset('assets/images/age-logo.png', fit: BoxFit.contain),
-                ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.menu, color: Colors.white, size: 20), 
-                  onPressed: () => setState(() => _isSidebarVisible = !_isSidebarVisible)),
-              ],
-            ),
-        title: Text(isMobile ? activeSubItem.title : "Field Operations Portal", 
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: -0.5)),
-        actions: [
-          IconButton(icon: const Icon(Icons.notifications_none_rounded, color: Colors.white), onPressed: () {
-            for (int i = 0; i < _categories.length; i++) {
-              final idx = _categories[i].subItems.indexWhere((s) => s.title == "Notifications");
-              if (idx != -1) {
-                setState(() { activeCategoryIndex = i; activeSubIndex = idx; });
-                break;
-              }
-            }
-          }),
-          if (!isMobile) ...[
-            const SizedBox(width: 8),
-            VerticalDivider(color: Colors.white.withOpacity(0.2), width: 1, indent: 16, endIndent: 16),
-            const SizedBox(width: 12),
-            GestureDetector(
-              onTap: () => _navigateToSubItem("User Profile"),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
+    return PopScope(
+      canPop: _navigationHistory.isEmpty && _currentDetailScholarId == null && activeCategoryIndex == 0 && activeSubIndex == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _popSubItem();
+      },
+      child: Scaffold(
+        key: _scaffoldKey,
+        backgroundColor: const Color(0xFFF8F9FA),
+        drawer: isMobile ? _buildDrawer(context) : null,
+        endDrawer: isMobile ? _buildEndDrawer(context) : null,
+        appBar: AppBar(
+          elevation: 2,
+          backgroundColor: kBrandBrown,
+          foregroundColor: Colors.white,
+          leadingWidth: isMobile ? 56 : 280,
+          leading: isMobile 
+            ? IconButton(
+                icon: const Icon(Icons.menu, color: Colors.white, size: 24),
+                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+              )
+            : Row(
                 children: [
-                  SizedBox(
-                    width: 120,
-                    child: _MovingText(
-                      text: _fullName,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13),
+                  Container(
+                    width: 200,
+                    height: double.infinity,
+                    color: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    child: Image.asset('assets/images/age-logo.png', fit: BoxFit.contain),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.menu, color: Colors.white, size: 20), 
+                    onPressed: () => setState(() => _isSidebarVisible = !_isSidebarVisible)),
+                ],
+              ),
+          title: Text(isMobile ? activeSubItem.title : "Field Operations Portal", 
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: -0.5)),
+          actions: [
+            IconButton(icon: const Icon(Icons.notifications_none_rounded, color: Colors.white), onPressed: () {
+              for (int i = 0; i < _categories.length; i++) {
+                final idx = _categories[i].subItems.indexWhere((s) => s.title == "Notifications");
+                if (idx != -1) {
+                  setState(() { activeCategoryIndex = i; activeSubIndex = idx; });
+                  break;
+                }
+              }
+            }),
+            if (!isMobile) ...[
+              const SizedBox(width: 8),
+              VerticalDivider(color: Colors.white.withOpacity(0.2), width: 1, indent: 16, endIndent: 16),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: () => _navigateToSubItem("User Profile"),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    SizedBox(
+                      width: 120,
+                      child: _MovingText(
+                        text: _fullName,
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13),
+                      ),
+                    ),
+                    Text(_userRole.toUpperCase(), style: const TextStyle(color: kBrandOlive, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(width: 12),
+            Padding(
+              padding: EdgeInsets.only(right: isMobile ? 12 : 20),
+              child: GestureDetector(
+                onTap: () => _scaffoldKey.currentState?.openEndDrawer(),
+                child: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: kBrandCream,
+                  child: ClipOval(
+                    child: _profileImageUrl != null
+                        ? Image.network(
+                            ApiService.getFullUrl(_profileImageUrl),
+                            fit: BoxFit.cover,
+                            width: 36,
+                            height: 36,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Icon(Icons.person, color: kBrandBrown, size: 20),
+                          )
+                        : const Icon(Icons.person, color: kBrandBrown, size: 20),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        body: Row(
+          children: [
+            if (!isMobile && _isSidebarVisible)
+              _buildSidebar(),
+            Expanded(
+              child: Column(
+                children: [
+                  if (!isMobile)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+                    ),
+                    child: Row(
+                      children: [
+                        if (_navigationHistory.isNotEmpty || _currentDetailScholarId != null || (activeCategoryIndex != 0 || activeSubIndex != 0)) ...[
+                          IconButton(
+                            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kBrandBrown, size: 14), 
+                            onPressed: _popSubItem,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                          const SizedBox(width: 12),
+                        ],
+                        if (!isMobile) ...[
+                          GestureDetector(
+                            onTap: () => setState(() {
+                              activeCategoryIndex = 0;
+                              activeSubIndex = 0;
+                              _navigationHistory.clear();
+                              _currentDetailScholarId = null;
+                            }),
+                            child: Text(activeCategory.title.toUpperCase(), 
+                              style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1))),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8.0),
+                            child: Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 12),
+                          ),
+                        ],
+                        Expanded(
+                          child: Text(activeSubItem.title, 
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: kBrandBrown)),
+                        ),
+                      ],
                     ),
                   ),
-                  Text(_userRole.toUpperCase(), style: const TextStyle(color: kBrandOlive, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                  if (!isMobile) const Divider(height: 1),
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.all(isMobile ? 0 : 24),
+                      child: _currentDetailScholarId != null
+                        ? ScholarProfileComponent(scholarId: _currentDetailScholarId, onBack: _popSubItem)
+                        : activeSubItem.builder != null
+                          ? activeSubItem.builder!(_popSubItem, _pushSubItem, _pushScholarProfile)
+                          : const Center(child: Text("Component not configured.")),
+                    ),
+                  ),
                 ],
               ),
             ),
           ],
-          const SizedBox(width: 12),
-          Padding(
-            padding: EdgeInsets.only(right: isMobile ? 12 : 20),
-            child: GestureDetector(
-              onTap: () => _scaffoldKey.currentState?.openEndDrawer(),
-              child: CircleAvatar(
-                radius: 18,
-                backgroundColor: kBrandCream,
-                child: ClipOval(
-                  child: _profileImageUrl != null
-                      ? Image.network(
-                          ApiService.getFullUrl(_profileImageUrl),
-                          fit: BoxFit.cover,
-                          width: 36,
-                          height: 36,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const Icon(Icons.person, color: kBrandBrown, size: 20),
-                        )
-                      : const Icon(Icons.person, color: kBrandBrown, size: 20),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: Row(
-        children: [
-          if (!isMobile && _isSidebarVisible)
-            _buildSidebar(),
-          Expanded(
-            child: Column(
-              children: [
-                if (!isMobile)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
-                  ),
-                  child: Row(
-                    children: [
-                      if (_navigationHistory.isNotEmpty && activeSubItem.title != "Pending Approvals") ...[
-                        IconButton(
-                          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kBrandBrown, size: 12), 
-                          onPressed: _popSubItem,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                        ),
-                        const SizedBox(width: 12),
-                      ],
-                      if (!isMobile) ...[
-                        GestureDetector(
-                          onTap: () => setState(() {
-                            activeCategoryIndex = 0;
-                            activeSubIndex = 0;
-                            _navigationHistory.clear();
-                            _currentDetailScholarId = null;
-                          }),
-                          child: Text(activeCategory.title.toUpperCase(), 
-                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1))),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 8.0),
-                          child: Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 12),
-                        ),
-                      ],
-                      Expanded(
-                        child: Text(activeSubItem.title, 
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: kBrandBrown)),
-                      ),
-                    ],
-                  ),
-                ),
-                if (!isMobile) const Divider(height: 1),
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.all(isMobile ? 0 : 24),
-                    child: _currentDetailScholarId != null
-                      ? ScholarProfileComponent(scholarId: _currentDetailScholarId, onBack: _popSubItem)
-                      : activeSubItem.builder != null
-                        ? activeSubItem.builder!(_popSubItem, _pushSubItem, _pushScholarProfile)
-                        : const Center(child: Text("Component not configured.")),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

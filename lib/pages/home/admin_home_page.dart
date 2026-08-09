@@ -22,6 +22,9 @@ import 'package:scholar_management_system/pages/settingsPages/backup_restore.dar
 import 'package:scholar_management_system/pages/settingsPages/system_settings.dart';
 import 'package:scholar_management_system/pages/settingsPages/account_settings.dart';
 import 'package:scholar_management_system/pages/dashboardPages/notifications.dart';
+import 'package:scholar_management_system/pages/scholarPages/view_scholars.dart';
+import 'package:scholar_management_system/pages/scholarPages/register_scholar.dart';
+import 'package:scholar_management_system/pages/scholarPages/graduates_page.dart';
 
 class AdminSidebarCategory {
   final String title;
@@ -448,6 +451,11 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
         activeCategoryIndex = prev.$1;
         activeSubIndex = prev.$2;
       });
+    } else if (activeCategoryIndex != 0 || activeSubIndex != 0) {
+      setState(() {
+        activeCategoryIndex = 0;
+        activeSubIndex = 0;
+      });
     }
   }
 
@@ -482,6 +490,29 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
             isVisible: false,
             builder: (onBack, onPush) => RegisterSchoolPage(onSuccess: onBack),
           ),
+        ],
+      ),
+      AdminSidebarCategory(
+        title: "Scholars",
+        icon: Icons.school_rounded,
+        subItems: [
+          AdminSidebarSubItem(
+            title: "Scholars Registry",
+            page: const ViewScholarsPage(),
+            icon: Icons.people_rounded,
+            builder: (onBack, onPush) => ViewScholarsPage(
+              onRegisterScholar: () => onPush("Register Scholar"),
+              onViewGraduates: () => onPush("University Graduates"),
+            ),
+          ),
+          AdminSidebarSubItem(
+            title: "Register Scholar",
+            page: const RegisterScholarPage(),
+            icon: Icons.person_add_rounded,
+            isVisible: false,
+            builder: (onBack, onPush) => RegisterScholarPage(onSuccess: () => onPush("Scholars Registry")),
+          ),
+          AdminSidebarSubItem(title: "University Graduates", page: const UniversityGraduatesPage(), icon: Icons.workspace_premium_rounded),
         ],
       ),
       AdminSidebarCategory(
@@ -569,257 +600,263 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
 
   @override
   Widget build(BuildContext context) {
-
     final double screenWidth = MediaQuery.of(context).size.width;
     final bool isMobile = screenWidth < 900;
 
     final activeCategory = _categories[activeCategoryIndex];
     final activeSubItem = activeCategory.subItems[activeSubIndex];
 
-    return Scaffold(
-      key: _scaffoldKey,
-      backgroundColor: const Color(0xFFF8F9FA),
-      drawer: isMobile ? _buildDrawer(context) : null,
-      endDrawer: _buildEndDrawer(context),
-      appBar: AppBar(
-        elevation: 2,
-        backgroundColor: kBrandBrown,
-        foregroundColor: Colors.white,
-        leadingWidth: isMobile ? null : 280,
-        leading: isMobile 
-          ? IconButton(
-              icon: const Icon(Icons.menu, color: Colors.white),
-              onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-            )
-          : Row(
-              children: [
-                Container(
-                  width: 200,
-                  height: double.infinity,
-                  color: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Image.asset(
-                    'assets/images/age-logo.png',
-                    fit: BoxFit.contain,
+    return PopScope(
+      canPop: _navigationHistory.isEmpty && activeCategoryIndex == 0 && activeSubIndex == 0,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _popSubItem();
+      },
+      child: Scaffold(
+        key: _scaffoldKey,
+        backgroundColor: const Color(0xFFF8F9FA),
+        drawer: isMobile ? _buildDrawer(context) : null,
+        endDrawer: _buildEndDrawer(context),
+        appBar: AppBar(
+          elevation: 2,
+          backgroundColor: kBrandBrown,
+          foregroundColor: Colors.white,
+          leadingWidth: isMobile ? null : 280,
+          leading: isMobile 
+            ? IconButton(
+                icon: const Icon(Icons.menu, color: Colors.white),
+                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+              )
+            : Row(
+                children: [
+                  Container(
+                    width: 200,
+                    height: double.infinity,
+                    color: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    child: Image.asset(
+                      'assets/images/age-logo.png',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.menu, color: Colors.white, size: 20),
+                    tooltip: "Toggle Sidebar",
+                    onPressed: () {
+                      setState(() {
+                        _isSidebarVisible = !_isSidebarVisible;
+                      });
+                    },
+                  ),
+                ],
+              ),
+          title: _isSearching
+            ? Container(
+                alignment: Alignment.centerLeft,
+                width: isMobile ? null : 450,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: CompositedTransformTarget(
+                  link: _searchLayerLink,
+                  child: TextField(
+                    controller: _searchController,
+                    focusNode: _searchFocusNode,
+                    onChanged: _onSearchChanged,
+                    style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
+                    decoration: InputDecoration(
+                      hintText: isMobile ? "Search..." : "Search admin features, pages, controls...",
+                      hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
+                      prefixIcon: const Icon(Icons.search, color: Colors.white, size: 20),
+                      suffixIcon: IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white70, size: 18),
+                        onPressed: _stopSearching,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 11),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                IconButton(
-                  icon: const Icon(Icons.menu, color: Colors.white, size: 20),
-                  tooltip: "Toggle Sidebar",
-                  onPressed: () {
-                    setState(() {
-                      _isSidebarVisible = !_isSidebarVisible;
-                    });
-                  },
+              )
+            : Text(isMobile ? activeSubItem.title : "AGE Africa Management Portal", 
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 17, letterSpacing: -0.5)),
+          actions: [
+            if (!_isSearching)
+              IconButton(
+                icon: const Icon(Icons.search, color: Colors.white),
+                tooltip: "Search Portal",
+                onPressed: _startSearching,
+              ),
+            Stack(
+              children: [
+                ScaleTransition(
+                  scale: _notificationIconAnimation,
+                  child: IconButton(
+                    icon: const Icon(Icons.notifications_none_rounded, color: Colors.white),
+                    tooltip: "Notifications",
+                    onPressed: () {
+                      setState(() => _notificationCount = 0);
+                      ApiService.markAllNotificationsRead();
+                      _navigateToSubItem("Notifications");
+                    },
+                  ),
                 ),
+                if (_notificationCount > 0)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: kBrandOrange,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.white, width: 1.5),
+                      ),
+                      constraints: const BoxConstraints(minWidth: 16, minHeight: 18),
+                      child: Text(
+                        '$_notificationCount',
+                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
               ],
             ),
-        title: _isSearching
-          ? Container(
-              alignment: Alignment.centerLeft,
-              width: isMobile ? null : 450,
-              height: 42,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: CompositedTransformTarget(
-                link: _searchLayerLink,
-                child: TextField(
-                  controller: _searchController,
-                  focusNode: _searchFocusNode,
-                  onChanged: _onSearchChanged,
-                  style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
-                  decoration: InputDecoration(
-                    hintText: isMobile ? "Search..." : "Search admin features, pages, controls...",
-                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.4)),
-                    prefixIcon: const Icon(Icons.search, color: Colors.white, size: 20),
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.close, color: Colors.white70, size: 18),
-                      onPressed: _stopSearching,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+            if (!isMobile) ...[
+              const SizedBox(width: 8),
+              VerticalDivider(color: Colors.white.withOpacity(0.2), width: 1, indent: 16, endIndent: 16),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: () => _navigateToSubItem("User Profile"),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    SizedBox(
+                      width: 120,
+                      child: _MovingText(
+                        text: _fullName,
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13),
+                      ),
                     ),
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 11),
+                    Text(_userRole.toUpperCase(), style: const TextStyle(color: kBrandOlive, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(width: 12),
+            Padding(
+              padding: EdgeInsets.only(right: isMobile ? 12 : 20),
+              child: GestureDetector(
+                onTap: () => _scaffoldKey.currentState?.openEndDrawer(),
+                child: CircleAvatar(
+                  backgroundColor: kBrandCream,
+                  radius: 18,
+                  child: ClipOval(
+                    child: _profileImageUrl != null
+                        ? Image.network(
+                            ApiService.getFullUrl(_profileImageUrl),
+                            fit: BoxFit.cover,
+                            width: 36,
+                            height: 36,
+                            errorBuilder: (context, error, stackTrace) =>
+                                const Icon(Icons.person_rounded, color: kBrandBrown, size: 20),
+                          )
+                        : const Icon(Icons.person_rounded, color: kBrandBrown, size: 20),
                   ),
                 ),
               ),
             )
-          : Text(isMobile ? activeSubItem.title : "AGE Africa Management Portal", 
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 17, letterSpacing: -0.5)),
-        actions: [
-          if (!_isSearching)
-            IconButton(
-              icon: const Icon(Icons.search, color: Colors.white),
-              tooltip: "Search Portal",
-              onPressed: _startSearching,
-            ),
-          Stack(
-            children: [
-              ScaleTransition(
-                scale: _notificationIconAnimation,
-                child: IconButton(
-                  icon: const Icon(Icons.notifications_none_rounded, color: Colors.white),
-                  tooltip: "Notifications",
-                  onPressed: () {
-                    setState(() => _notificationCount = 0);
-                    ApiService.markAllNotificationsRead();
-                    _navigateToSubItem("Notifications");
-                  },
-                ),
+          ],
+        ),
+        body: Row(
+          children: [
+            if (!isMobile)
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                width: _isSidebarVisible ? 280 : 0,
+                child: _isSidebarVisible ? _buildSidebar() : const SizedBox.shrink(),
               ),
-              if (_notificationCount > 0)
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      color: kBrandOrange,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.white, width: 1.5),
-                    ),
-                    constraints: const BoxConstraints(minWidth: 16, minHeight: 18),
-                    child: Text(
-                      '$_notificationCount',
-                      style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          if (!isMobile) ...[
-            const SizedBox(width: 8),
-            VerticalDivider(color: Colors.white.withOpacity(0.2), width: 1, indent: 16, endIndent: 16),
-            const SizedBox(width: 12),
-            GestureDetector(
-              onTap: () => _navigateToSubItem("User Profile"),
+            Expanded(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  SizedBox(
-                    width: 120,
-                    child: _MovingText(
-                      text: _fullName,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13),
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 8),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+                    ),
+                    child: Row(
+                      children: [
+                        if (_navigationHistory.isNotEmpty || (activeCategoryIndex != 0 || activeSubIndex != 0)) ...[
+                          IconButton(
+                            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kBrandBrown, size: 14), 
+                            onPressed: _popSubItem,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                          ),
+                          const SizedBox(width: 12),
+                        ],
+                        if (!isMobile) ...[
+                          GestureDetector(
+                            onTap: () => _navigateToSubItem("Admin Overview"),
+                            child: Text(activeCategory.title.toUpperCase(), 
+                              style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1))),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8.0),
+                            child: Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 12),
+                          ),
+                        ],
+                        Expanded(
+                          child: Text(activeSubItem.title, 
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: isMobile ? 14 : 12, fontWeight: FontWeight.w900, color: kBrandBrown)),
+                        ),
+                        if (!isMobile) ...[
+                          const SizedBox(width: 20),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: kBrandOlive.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.calendar_today_rounded, size: 10, color: kBrandOlive),
+                                const SizedBox(width: 6),
+                                Text(DateFormat('d MMM yyyy').format(DateTime.now()), 
+                                  style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBrandOlive)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                  Text(_userRole.toUpperCase(), style: const TextStyle(color: kBrandOlive, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                  const Divider(height: 1),
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.all(isMobile ? 0 : 20),
+                      child: activeSubItem.builder != null
+                        ? activeSubItem.builder!(_popSubItem, _pushSubItem)
+                        : activeSubItem.page,
+                    ),
+                  ),
+                  _buildPortalFooter(isMobile),
                 ],
               ),
             ),
           ],
-          const SizedBox(width: 12),
-          Padding(
-            padding: EdgeInsets.only(right: isMobile ? 12 : 20),
-            child: GestureDetector(
-              onTap: () => _scaffoldKey.currentState?.openEndDrawer(),
-              child: CircleAvatar(
-                backgroundColor: kBrandCream,
-                radius: 18,
-                child: ClipOval(
-                  child: _profileImageUrl != null
-                      ? Image.network(
-                          ApiService.getFullUrl(_profileImageUrl),
-                          fit: BoxFit.cover,
-                          width: 36,
-                          height: 36,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const Icon(Icons.person_rounded, color: kBrandBrown, size: 20),
-                        )
-                      : const Icon(Icons.person_rounded, color: kBrandBrown, size: 20),
-                ),
-              ),
-            ),
-          )
-        ],
-      ),
-      body: Row(
-        children: [
-          if (!isMobile)
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              width: _isSidebarVisible ? 280 : 0,
-              child: _isSidebarVisible ? _buildSidebar() : const SizedBox.shrink(),
-            ),
-          Expanded(
-            child: Column(
-              children: [
-                Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 8),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
-                  ),
-                  child: Row(
-                    children: [
-                      if (_navigationHistory.isNotEmpty && activeSubItem.title != "Pending Approvals") ...[
-                        IconButton(
-                          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kBrandBrown, size: 14), 
-                          onPressed: _popSubItem,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                        ),
-                        const SizedBox(width: 12),
-                      ],
-                      if (!isMobile) ...[
-                        GestureDetector(
-                          onTap: () => _navigateToSubItem("Admin Overview"),
-                          child: Text(activeCategory.title.toUpperCase(), 
-                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1))),
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 8.0),
-                          child: Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 12),
-                        ),
-                      ],
-                      Expanded(
-                        child: Text(activeSubItem.title, 
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: isMobile ? 14 : 12, fontWeight: FontWeight.w900, color: kBrandBrown)),
-                      ),
-                      if (!isMobile) ...[
-                        const SizedBox(width: 20),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: kBrandOlive.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.calendar_today_rounded, size: 10, color: kBrandOlive),
-                              const SizedBox(width: 6),
-                              Text(DateFormat('d MMM yyyy').format(DateTime.now()), 
-                                style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: kBrandOlive)),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const Divider(height: 1),
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.all(isMobile ? 0 : 20),
-                    child: activeSubItem.builder != null
-                      ? activeSubItem.builder!(_popSubItem, _pushSubItem)
-                      : activeSubItem.page,
-                  ),
-                ),
-                _buildPortalFooter(isMobile),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
