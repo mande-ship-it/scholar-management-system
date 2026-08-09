@@ -35,18 +35,31 @@ class _LiveMeetingPageState extends State<LiveMeetingPage> {
   }
 
   Future<void> _fetchUsers() async {
+    if (!mounted) return;
     setState(() => _isLoadingUsers = true);
     try {
       final response = await ApiService.getAllUsers();
-      if (response.statusCode == 200) {
-        setState(() {
-          _allUsers = response.data['data'] ?? [];
-          _isLoadingUsers = false;
-        });
+      if (mounted) {
+        if (response.statusCode == 200) {
+          setState(() {
+            _allUsers = response.data['data'] ?? [];
+            _isLoadingUsers = false;
+          });
+        } else {
+          setState(() => _isLoadingUsers = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Failed to load users: ${response.statusCode}"), backgroundColor: Colors.redAccent),
+          );
+        }
       }
     } catch (e) {
       debugPrint('Error fetching users: $e');
-      setState(() => _isLoadingUsers = false);
+      if (mounted) {
+        setState(() => _isLoadingUsers = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Network error while fetching participants."), backgroundColor: Colors.redAccent),
+        );
+      }
     }
   }
 
@@ -124,38 +137,44 @@ class _LiveMeetingPageState extends State<LiveMeetingPage> {
           color: const Color(0xFFF8F9FA),
           border: Border(top: BorderSide(color: Colors.grey.shade100)),
         ),
-        child: Center(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 800),
-            padding: EdgeInsets.symmetric(horizontal: isSmall ? 12 : 32, vertical: isSmall ? 12 : 24),
-            child: Form(
-              key: _formKey,
-              child: isSmall
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildFormSection(isSmall),
-                      const SizedBox(height: 12),
-                      Expanded(child: _buildParticipantSection(isSmall)),
-                      const SizedBox(height: 16),
-                      _buildSubmitButton(isSmall),
-                    ],
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(flex: 3, child: _buildFormSection(isSmall)),
-                          const SizedBox(width: 24),
-                          Expanded(flex: 4, child: SizedBox(height: 400, child: _buildParticipantSection(isSmall))),
-                        ],
-                      ),
-                      const Spacer(),
-                      _buildSubmitButton(isSmall),
-                    ],
-                  ),
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          padding: EdgeInsets.symmetric(horizontal: isSmall ? 12 : 32, vertical: isSmall ? 12 : 24),
+          child: Center(
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: Form(
+                key: _formKey,
+                child: isSmall
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildFormSection(isSmall),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          height: 350, // Fixed height for participant list on mobile
+                          child: _buildParticipantSection(isSmall),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildSubmitButton(isSmall),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(flex: 3, child: _buildFormSection(isSmall)),
+                            const SizedBox(width: 24),
+                            Expanded(flex: 4, child: SizedBox(height: 400, child: _buildParticipantSection(isSmall))),
+                          ],
+                        ),
+                        const SizedBox(height: 32),
+                        _buildSubmitButton(isSmall),
+                      ],
+                    ),
+              ),
             ),
           ),
         ),
@@ -173,7 +192,7 @@ class _LiveMeetingPageState extends State<LiveMeetingPage> {
       style: ElevatedButton.styleFrom(
         backgroundColor: kBrandBrown,
         foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 20),
+        padding: EdgeInsets.symmetric(vertical: isSmall ? 16 : 20),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         elevation: 0,
       ),
@@ -186,19 +205,19 @@ class _LiveMeetingPageState extends State<LiveMeetingPage> {
       color: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
       child: Padding(
-        padding: EdgeInsets.all(isSmall ? 16 : 24),
+        padding: EdgeInsets.all(isSmall ? 12 : 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text("MEETING DETAILS", style: TextStyle(fontSize: isSmall ? 8 : 11, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.2)),
-            SizedBox(height: isSmall ? 12 : 20),
+            Text("MEETING DETAILS", style: TextStyle(fontSize: isSmall ? 8 : 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.2)),
+            SizedBox(height: isSmall ? 10 : 20),
             TextFormField(
               controller: _titleController,
               style: TextStyle(fontSize: isSmall ? 12 : 14, fontWeight: FontWeight.bold),
               decoration: _inputDeco("Meeting Title", Icons.title_rounded, isSmall),
               validator: (v) => v!.isEmpty ? "Title is required" : null,
             ),
-            SizedBox(height: isSmall ? 12 : 16),
+            SizedBox(height: isSmall ? 10 : 16),
             TextFormField(
               controller: _descController,
               maxLines: isSmall ? 2 : 3,
@@ -217,47 +236,48 @@ class _LiveMeetingPageState extends State<LiveMeetingPage> {
       return name.contains(_searchQuery.toLowerCase());
     }).toList();
 
-    return Expanded(
-      child: Card(
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Colors.grey.shade200)),
-        child: Column(
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.shade200)),
+      child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: EdgeInsets.fromLTRB(isSmall ? 16 : 24, isSmall ? 16 : 24, isSmall ? 16 : 24, 12),
+              padding: EdgeInsets.fromLTRB(isSmall ? 12 : 24, isSmall ? 12 : 24, isSmall ? 12 : 24, 8),
               child: Row(
                 children: [
                   Expanded(
-                    child: Text("SELECT PARTICIPANTS", style: TextStyle(fontSize: isSmall ? 9 : 11, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.2)),
+                    child: Text("SELECT PARTICIPANTS", style: TextStyle(fontSize: isSmall ? 8 : 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.2)),
                   ),
-                  Text("${_selectedUserIds.length} selected", style: TextStyle(fontSize: isSmall ? 9 : 11, fontWeight: FontWeight.bold, color: kBrandOlive)),
+                  Text("${_selectedUserIds.length} selected", style: TextStyle(fontSize: isSmall ? 8 : 10, fontWeight: FontWeight.bold, color: kBrandOlive)),
                 ],
               ),
             ),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: isSmall ? 16 : 24),
+              padding: EdgeInsets.symmetric(horizontal: isSmall ? 12 : 24),
               child: TextField(
                 onChanged: (v) => setState(() => _searchQuery = v),
-                style: TextStyle(fontSize: isSmall ? 13 : 14),
+                style: TextStyle(fontSize: isSmall ? 12 : 14),
                 decoration: InputDecoration(
                   hintText: "Search users...",
-                  prefixIcon: Icon(Icons.search, size: isSmall ? 18 : 20),
+                  prefixIcon: Icon(Icons.search, size: isSmall ? 16 : 20),
                   isDense: true,
                   filled: true,
                   fillColor: Colors.grey.shade50,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 8),
                 ),
               ),
             ),
             const SizedBox(height: 8),
             Expanded(
               child: _isLoadingUsers
-                ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
+                ? const Center(child: CircularProgressIndicator(color: kBrandOlive, strokeWidth: 3))
                 : filteredUsers.isEmpty
-                  ? Center(child: Text("No users found.", style: TextStyle(color: Colors.grey, fontSize: isSmall ? 12 : 14)))
+                  ? Center(child: Text("No users found.", style: TextStyle(color: Colors.grey, fontSize: isSmall ? 11 : 13)))
                   : ListView.separated(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      padding: EdgeInsets.symmetric(horizontal: isSmall ? 4 : 8),
                       itemCount: filteredUsers.length,
                       separatorBuilder: (_, __) => const Divider(height: 1),
                       itemBuilder: (context, index) {
@@ -278,14 +298,15 @@ class _LiveMeetingPageState extends State<LiveMeetingPage> {
                               }
                             });
                           },
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                          dense: true,
                           secondary: CircleAvatar(
-                            radius: isSmall ? 14 : 20,
+                            radius: isSmall ? 12 : 18,
                             backgroundColor: kBrandBrown.withOpacity(0.1),
-                            child: Text(getInitials(name), style: TextStyle(fontSize: isSmall ? 8 : 10, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                            child: Text(getInitials(name), style: TextStyle(fontSize: isSmall ? 7 : 9, fontWeight: FontWeight.bold, color: kBrandBrown)),
                           ),
-                          title: Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: isSmall ? 12 : 14)),
-                          subtitle: Text(role, style: TextStyle(fontSize: isSmall ? 10 : 11, color: Colors.grey)),
+                          title: Text(name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: isSmall ? 11 : 13)),
+                          subtitle: Text(role, style: TextStyle(fontSize: isSmall ? 9 : 10, color: Colors.grey)),
                           activeColor: kBrandOlive,
                           checkboxShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                         );
@@ -294,7 +315,6 @@ class _LiveMeetingPageState extends State<LiveMeetingPage> {
             ),
           ],
         ),
-      ),
     );
   }
 
