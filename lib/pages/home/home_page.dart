@@ -159,15 +159,14 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           final String role = data['role_name'] ?? "";
           final String normalizedRole = role.trim().toLowerCase();
           
-          final bool hasAdminAccess = [
-            'administrator', 'program manager', 'program coordinator', 'country director'
-          ].contains(normalizedRole);
-
-          if (hasAdminAccess) {
+          // 1. Strict Administrator/Admin -> Redirect to Admin Dashboard
+          final bool isAdmin = ['administrator', 'admin'].contains(normalizedRole);
+          if (isAdmin) {
             Navigator.pushReplacementNamed(context, '/admin/home');
             return;
           }
           
+          // 2. Field Officer Group -> Redirect to Field Operations Portal
           final bool isFieldOfficer = [
             'field officer', 
             'field coordinator', 
@@ -188,6 +187,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             return;
           }
 
+          // 3. For everyone else (Country Director, Finance, PC), stay here
           setState(() {
             _fullName = data['full_name'] ?? "User";
             _userRole = role;

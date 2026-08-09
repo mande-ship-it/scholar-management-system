@@ -199,9 +199,10 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
           final String role = (data['role_name'] ?? "").toString().trim();
           final String normalizedRole = role.toLowerCase();
           
-          final bool isManagement = ['administrator', 'admin', 'program coordinator', 'country director'].contains(normalizedRole);
+          // STRICT CHECK: Only Admin/Administrator allowed
+          final bool isAdmin = ['administrator', 'admin'].contains(normalizedRole);
 
-          if (!isManagement) {
+          if (!isAdmin) {
             _redirectToHome();
           } else {
             setState(() {
