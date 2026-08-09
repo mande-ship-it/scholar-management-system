@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
-import '../../services/api_service.dart';
-import '../../academics/academics_utils.dart';
+import 'package:scholar_management_system/services/api_service.dart';
+import 'package:scholar_management_system/services/socket_service.dart';
+import 'package:scholar_management_system/academics/academics_utils.dart';
 
 // Dashboard & Core Components
 import '../../dashBoard/field_operations_dashboard.dart';
@@ -68,7 +68,6 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
   bool _isLoading = true;
   bool _isSidebarVisible = true;
   int _notificationCount = 0;
-  IO.Socket? _socket;
   String? _currentUserId;
 
   String _fullName = "Field Officer";
@@ -85,7 +84,7 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
     activeCategoryIndex = 0;
     activeSubIndex = 0;
     _categories = _getFieldOpsCategories();
-    _initSocket();
+    SocketService.addCallListener(_handleIncomingCall);
     _fetchNotificationCount();
     
     // Safety: ensure loading spinner doesn't stay forever
@@ -99,10 +98,77 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
     });
   }
 
+  void _handleIncomingCall(Map<String, dynamic> data) {
+    if (!mounted) return;
+
+    final String caller = data['callerName'] ?? 'Someone';
+    final String meetingId = data['meetingId'];
+    final bool isVideo = data['isVideo'] ?? true;
+
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierLabel: "Incoming Call",
+      barrierColor: Colors.black.withOpacity(0.85),
+      transitionDuration: const Duration(milliseconds: 400),
+      pageBuilder: (ctx, anim1, anim2) {
+        return Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: kBrandOlive.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: kBrandOlive, width: 2),
+                  ),
+                  child: const Icon(Icons.person_rounded, size: 60, color: kBrandOlive),
+                ),
+                const SizedBox(height: 24),
+                Text(caller.toUpperCase(),
+                  style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                const SizedBox(height: 8),
+                Text("Incoming ${isVideo ? 'Video' : 'Audio'} Call...",
+                  style: const TextStyle(color: Colors.white70, fontSize: 16)),
+                const SizedBox(height: 60),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _callActionBtn(Icons.close_rounded, Colors.red, () => Navigator.pop(ctx)),
+                    const SizedBox(width: 40),
+                    _callActionBtn(Icons.videocam_rounded, kBrandOlive, () {
+                      Navigator.pop(ctx);
+                      Navigator.pushNamed(context, '/events/live-meeting-join', arguments: {'id': meetingId});
+                    }),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _callActionBtn(IconData icon, Color color, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(100),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        child: Icon(icon, color: Colors.white, size: 32),
+      ),
+    );
+  }
+
   @override
   void dispose() {
-    _socket?.disconnect();
-    _socket?.dispose();
+    SocketService.removeCallListener(_handleIncomingCall);
     super.dispose();
   }
 
@@ -168,6 +234,7 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
               _profileImageUrl = data['profile_picture'];
               _currentUserId = data['id'];
               _isLoading = false;
+              if (_currentUserId != null) SocketService.init(_currentUserId!);
             });
           }
         }
@@ -180,14 +247,6 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
       debugPrint('FIELD OPS: Access not granted, redirecting...');
       Navigator.pushReplacementNamed(context, '/home');
     }
-  }
-
-  void _initSocket() {
-    _socket = IO.io(ApiService.baseUrl, IO.OptionBuilder()
-      .setTransports(['websocket', 'polling'])
-      .enableAutoConnect()
-      .build());
-    _socket!.onConnect((_) => debugPrint('Field Ops connected to socket'));
   }
 
   Future<void> _fetchNotificationCount() async {

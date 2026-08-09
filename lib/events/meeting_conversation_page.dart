@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:scholar_management_system/services/api_service.dart';
+import 'package:scholar_management_system/services/socket_service.dart';
+import 'package:scholar_management_system/services/permission_service.dart';
 import '../academics/academics_utils.dart';
 
 class MeetingConversationPage extends StatefulWidget {
@@ -15,17 +18,65 @@ class _MeetingConversationPageState extends State<MeetingConversationPage> {
   final ScrollController _scrollController = ScrollController();
   final List<Map<String, dynamic>> _messages = [];
   String _meetingTitle = "Live Meeting";
+  String? _meetingId;
   String? _meetingLink;
   List<String> _participants = [];
+
+  @override
+  void initState() {
+    super.initState();
+    SocketService.addMessageListener(_onNewMessage);
+  }
+
+  @override
+  void dispose() {
+    SocketService.removeMessageListener(_onNewMessage);
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onNewMessage(Map<String, dynamic> data) {
+    if (data['meetingId'] != _meetingId) return;
+
+    if (mounted) {
+      setState(() {
+        _messages.add({
+          'sender': data['sender'],
+          'text': data['text'],
+          'time': DateTime.parse(data['time']),
+          'isMe': data['sender'] == PermissionService.userName,
+        });
+      });
+      _scrollToBottom();
+    }
+  }
+
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent + 100,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    if (args != null) {
+    if (args != null && _meetingId == null) {
+      _meetingId = args['id'];
       _meetingTitle = args['title'] ?? "Live Meeting";
-      _participants = args['participants'] ?? [];
+      _participants = List<String>.from(args['participants'] ?? []);
       _meetingLink = args['meetingLink'];
+
+      if (_meetingId != null) {
+        SocketService.joinMeeting(_meetingId!);
+        // Send a joining system message
+        SocketService.sendMessage(_meetingId!, "joined the conversation.", PermissionService.userName ?? "User");
+      }
     }
   }
 
@@ -42,47 +93,27 @@ class _MeetingConversationPageState extends State<MeetingConversationPage> {
   }
 
   void _sendMessage() {
-    if (_messageController.text.trim().isEmpty) return;
+    if (_messageController.text.trim().isEmpty || _meetingId == null) return;
 
-    setState(() {
-      _messages.add({
-        'sender': 'Me',
-        'text': _messageController.text.trim(),
-        'time': DateTime.now(),
-        'isMe': true,
-      });
-      _messageController.clear();
-    });
-
-    Future.delayed(const Duration(milliseconds: 100), () {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    });
-
-    // Simulate response
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() {
-          _messages.add({
-            'sender': 'Participant',
-            'text': "Received your message in '$_meetingTitle'. This is a live demonstration.",
-            'time': DateTime.now(),
-            'isMe': false,
-          });
-        });
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
+    HapticFeedback.lightImpact();
+    SocketService.sendMessage(
+      _meetingId!,
+      _messageController.text.trim(),
+      PermissionService.userName ?? "User"
+    );
+    _messageController.clear();
   }
 
   void _startCall(bool isVideo) {
+    if (_meetingId == null) return;
+
+    SocketService.initiateCall(
+      _meetingId!,
+      _participants,
+      PermissionService.userName ?? "User",
+      isVideo
+    );
+
     showGeneralDialog(
       context: context,
       barrierDismissible: false,
@@ -94,6 +125,8 @@ class _MeetingConversationPageState extends State<MeetingConversationPage> {
           title: _meetingTitle,
           isVideo: isVideo,
           participants: _participants.length,
+          onHangUp: () => Navigator.pop(ctx),
+          onJoinMeet: _joinGoogleMeet,
         );
       },
     );
@@ -166,6 +199,22 @@ class _MeetingConversationPageState extends State<MeetingConversationPage> {
 
   Widget _buildMessageBubble(Map<String, dynamic> msg, bool isSmall) {
     final bool isMe = msg['isMe'];
+    final bool isSystem = msg['text'] == "joined the conversation.";
+
+    if (isSystem) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(20)),
+            child: Text("${msg['sender']} ${msg['text']}",
+              style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey.shade600)),
+          ),
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -241,11 +290,15 @@ class _ActiveCallOverlay extends StatefulWidget {
   final String title;
   final bool isVideo;
   final int participants;
+  final VoidCallback onHangUp;
+  final VoidCallback onJoinMeet;
 
   const _ActiveCallOverlay({
     required this.title,
     required this.isVideo,
     required this.participants,
+    required this.onHangUp,
+    required this.onJoinMeet,
   });
 
   @override
@@ -327,16 +380,16 @@ class _ActiveCallOverlayState extends State<_ActiveCallOverlay> {
                 _callActionBtn(
                   Icons.call_end_rounded,
                   Colors.red.shade700,
-                  () => Navigator.pop(context),
+                  widget.onHangUp,
                   size: isSmall ? 28 : 32,
                   padding: isSmall ? 18 : 24,
                   isSmall: isSmall,
                 ),
                 SizedBox(width: isSmall ? 12 : 20),
                 _callActionBtn(
-                  Icons.volume_up_rounded,
-                  Colors.white10,
-                  () {},
+                  Icons.videocam_rounded,
+                  kBrandOlive,
+                  widget.onJoinMeet,
                   isSmall: isSmall,
                 ),
               ],

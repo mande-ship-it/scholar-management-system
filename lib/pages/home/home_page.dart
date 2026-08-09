@@ -5,6 +5,7 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../services/api_service.dart';
 import '../../academics/academics_utils.dart';
 import 'package:intl/intl.dart';
+import '../../services/socket_service.dart';
 
 // Dashboard
 import '../dashboardPages/dashboard.dart';
@@ -99,7 +100,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   bool _isSidebarVisible = true;
   int _notificationCount = 0;
-  IO.Socket? _socket;
   String? _currentUserId;
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -132,9 +132,83 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
 
     _categories = _getRawCategories();
-    _initSocket();
+    SocketService.addCallListener(_handleIncomingCall);
     _fetchNotificationCount();
     _fetchUserProfile();
+  }
+
+  void _handleIncomingCall(Map<String, dynamic> data) {
+    if (!mounted) return;
+    
+    final String caller = data['callerName'] ?? 'Someone';
+    final String meetingId = data['meetingId'];
+    final bool isVideo = data['isVideo'] ?? true;
+
+    // Trigger feedback
+    HapticFeedback.vibrate();
+    SystemSound.play(SystemSoundType.click);
+
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierLabel: "Incoming Call",
+      barrierColor: Colors.black.withOpacity(0.85),
+      transitionDuration: const Duration(milliseconds: 400),
+      pageBuilder: (ctx, anim1, anim2) {
+        return Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: kBrandOlive.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: kBrandOlive, width: 2),
+                  ),
+                  child: const Icon(Icons.person_rounded, size: 60, color: kBrandOlive),
+                ),
+                const SizedBox(height: 24),
+                Text(caller.toUpperCase(), 
+                  style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                const SizedBox(height: 8),
+                Text("Incoming ${isVideo ? 'Video' : 'Audio'} Call...", 
+                  style: const TextStyle(color: Colors.white70, fontSize: 16)),
+                const SizedBox(height: 60),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _callActionBtn(Icons.close_rounded, Colors.red, () => Navigator.pop(ctx)),
+                    const SizedBox(width: 40),
+                    _callActionBtn(Icons.videocam_rounded, kBrandOlive, () async {
+                      Navigator.pop(ctx);
+                      // Navigate to Lobby
+                      _navigateToSubItem("Events & Programs");
+                      Navigator.pushNamed(context, '/events/live-meeting-join', arguments: {'id': meetingId});
+                    }),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _callActionBtn(IconData icon, Color color, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(100),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        child: Icon(icon, color: Colors.white, size: 32),
+      ),
+    );
   }
 
   @override
@@ -196,9 +270,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             _profileImageUrl = data['profile_picture'] ?? data['profilePicture'];
             _currentUserId = data['id'] ?? data['_id'];
             _userPermissions = data['permissions'] ?? {};
+            
+            if (_currentUserId != null) {
+              SocketService.init(_currentUserId!);
+            }
           });
-
-          _joinUserRoom();
         }
       }
     } catch (e) {
@@ -239,68 +315,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     }
   }
 
-  void _initSocket() {
-    _socket = IO.io(ApiService.baseUrl, IO.OptionBuilder()
-      .setTransports(['websocket', 'polling'])
-      .enableAutoConnect()
-      .build());
-
-    _socket!.onConnect((_) {
-      debugPrint('Connected to Notification Server');
-      _joinUserRoom();
-    });
-
-    _socket!.onDisconnect((_) {
-      debugPrint('Disconnected from Notification Server');
-    });
-
-    _socket!.on('notification', (data) {
-      if (mounted) {
-        setState(() {
-          _notificationCount++;
-        });
-        _notificationIconController.forward(from: 0.0).then((_) => _notificationIconController.reverse());
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            duration: const Duration(seconds: 5),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: const Color(0xFF4C3C32),
-            margin: const EdgeInsets.all(20),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            content: Row(
-              children: [
-                const Icon(Icons.bolt_rounded, color: Color(0xFF9AB334), size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(data['message'] ?? 'Real-time update received', 
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white)),
-                      Text("Synced at: ${DateTime.now().toString().split(' ')[1].split('.')[0]}",
-                        style: const TextStyle(fontSize: 10, color: Colors.white70)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }
-    });
-
-    _socket!.onDisconnect((_) => debugPrint('Disconnected from Notification Server'));
-    _socket!.onConnectError((err) => debugPrint('Socket Connection Error: $err'));
-  }
-
-  void _joinUserRoom() {
-    if (_socket != null && _socket!.connected && _currentUserId != null) {
-      _socket!.emit('join', _currentUserId);
-    }
-  }
-
   Future<void> _fetchNotificationCount() async {
     try {
       final response = await ApiService.getNotifications();
@@ -320,7 +334,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    _socket?.disconnect();
+    SocketService.removeCallListener(_handleIncomingCall);
     _notificationIconController.dispose();
     _searchController.dispose();
     _searchFocusNode.dispose();

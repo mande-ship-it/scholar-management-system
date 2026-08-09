@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import '../academics/academics_utils.dart';
 import 'package:scholar_management_system/services/api_service.dart';
 import 'package:scholar_management_system/services/permission_service.dart';
+import 'package:scholar_management_system/services/socket_service.dart';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -118,6 +119,7 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
 
           ApiService.setToken(token, persist: _rememberMe);
           PermissionService.init(userData);
+          SocketService.init(userData['id'] ?? userData['_id']);
 
           if (mounted) {
             setState(() => _isLoading = false);

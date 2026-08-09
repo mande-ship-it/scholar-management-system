@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:scholar_management_system/services/api_service.dart';
+import 'package:scholar_management_system/services/socket_service.dart';
 import 'package:scholar_management_system/academics/academics_utils.dart';
 import 'package:scholar_management_system/dashBoard/admin_dashboard.dart';
 import 'package:scholar_management_system/pages/eventPages/events.dart';
@@ -66,7 +66,6 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
 
   bool _isSidebarVisible = true;
   int _notificationCount = 0;
-  IO.Socket? _socket;
   String? _currentUserId;
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -99,8 +98,76 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
 
     _categories = _getAdminCategories();
     _checkAccess();
-    _initSocket();
+    SocketService.addCallListener(_handleIncomingCall);
     _fetchNotificationCount();
+  }
+
+  void _handleIncomingCall(Map<String, dynamic> data) {
+    if (!mounted) return;
+    
+    final String caller = data['callerName'] ?? 'Someone';
+    final String meetingId = data['meetingId'];
+    final bool isVideo = data['isVideo'] ?? true;
+
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierLabel: "Incoming Call",
+      barrierColor: Colors.black.withOpacity(0.85),
+      transitionDuration: const Duration(milliseconds: 400),
+      pageBuilder: (ctx, anim1, anim2) {
+        return Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: kBrandOlive.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: kBrandOlive, width: 2),
+                  ),
+                  child: const Icon(Icons.person_rounded, size: 60, color: kBrandOlive),
+                ),
+                const SizedBox(height: 24),
+                Text(caller.toUpperCase(), 
+                  style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                const SizedBox(height: 8),
+                Text("Incoming ${isVideo ? 'Video' : 'Audio'} Call...", 
+                  style: const TextStyle(color: Colors.white70, fontSize: 16)),
+                const SizedBox(height: 60),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _callActionBtn(Icons.close_rounded, Colors.red, () => Navigator.pop(ctx)),
+                    const SizedBox(width: 40),
+                    _callActionBtn(Icons.videocam_rounded, kBrandOlive, () {
+                      Navigator.pop(ctx);
+                      Navigator.pushNamed(context, '/events/live-meeting-join', arguments: {'id': meetingId});
+                    }),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _callActionBtn(IconData icon, Color color, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(100),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        child: Icon(icon, color: Colors.white, size: 32),
+      ),
+    );
   }
 
   @override
@@ -136,8 +203,8 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
               _profileImageUrl = data['profile_picture'];
               _currentUserId = data['id'];
               _isLoading = false;
+              if (_currentUserId != null) SocketService.init(_currentUserId!);
             });
-            _joinUserRoom();
           }
           return;
         }
@@ -155,66 +222,6 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
     if (mounted) {
       debugPrint('ADMIN PORTAL: Access Denied. Redirecting to General Dashboard.');
       Navigator.pushReplacementNamed(context, '/home');
-    }
-  }
-
-  void _initSocket() {
-    _socket = IO.io(ApiService.baseUrl, IO.OptionBuilder()
-      .setTransports(['websocket', 'polling'])
-      .enableAutoConnect()
-      .build());
-
-    _socket!.onConnect((_) {
-      debugPrint('Admin connected to Notification Server');
-      _joinUserRoom();
-    });
-
-    _socket!.onDisconnect((_) {
-      debugPrint('Admin disconnected from Notification Server');
-    });
-
-    _socket!.on('notification', (data) {
-      if (mounted) {
-        setState(() {
-          _notificationCount++;
-        });
-        _notificationIconController.forward(from: 0.0).then((_) => _notificationIconController.reverse());
-        SystemSound.play(SystemSoundType.click);
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            duration: const Duration(seconds: 5),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: kBrandBrown,
-            margin: const EdgeInsets.all(20),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            content: Row(
-              children: [
-                const Icon(Icons.security, color: kBrandOlive, size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(data['message'] ?? 'Administrative update received', 
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white)),
-                      Text("Synced at: ${DateTime.now().toString().split(' ')[1].split('.')[0]}",
-                        style: const TextStyle(fontSize: 10, color: Colors.white70)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }
-    });
-  }
-
-  void _joinUserRoom() {
-    if (_socket != null && _socket!.connected && _currentUserId != null) {
-      _socket!.emit('join', _currentUserId);
     }
   }
 
@@ -237,7 +244,7 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
 
   @override
   void dispose() {
-    _socket?.disconnect();
+    SocketService.removeCallListener(_handleIncomingCall);
     _notificationIconController.dispose();
     _searchController.dispose();
     _searchFocusNode.dispose();

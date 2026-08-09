@@ -120,16 +120,38 @@ class _MeetingRoomPageState extends State<MeetingRoomPage> {
                   height: 60,
                   child: ElevatedButton.icon(
                     onPressed: _joinMeet,
-                    icon: const Icon(Icons.launch_rounded),
-                    label: const Text("JOIN GOOGLE MEET", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
+                    icon: const Icon(Icons.videocam_rounded),
+                    label: const Text("JOIN VIDEO CONFERENCE", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: kBrandOlive,
+                      backgroundColor: kBrandBrown,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/events/conversation', arguments: {
+                        'id': _meeting['id'] ?? _meeting['_id'],
+                        'title': _meeting['title'],
+                        'participants': (_meeting['participants'] as List).map((p) => p['_id'].toString()).toList(),
+                        'meetingLink': _meeting['meetingLink'],
+                      });
+                    },
+                    icon: const Icon(Icons.chat_bubble_outline_rounded),
+                    label: const Text("OPEN MEETING CHAT", style: TextStyle(fontWeight: FontWeight.bold)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: kBrandBrown,
+                      side: const BorderSide(color: kBrandBrown, width: 1.5),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
                 TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: const Text("Return to Dashboard", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),

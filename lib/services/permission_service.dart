@@ -4,8 +4,10 @@ import 'api_service.dart';
 class PermissionService {
   static List<String> _userPermissions = [];
   static String? _userRole;
+  static String? _userName;
 
   static void init(Map<String, dynamic> userData) {
+    _userName = userData['fullName'] ?? userData['full_name'] ?? userData['username'];
     _userRole = userData['role_name'] ?? userData['role'] ?? 'User';
     final List<dynamic> perms = userData['roleId']?['permissions'] ?? userData['permissions'] ?? [];
     _userPermissions = perms.map((e) => e.toString()).toList();
@@ -26,5 +28,6 @@ class PermissionService {
   }
 
   static String? get userRole => _userRole;
+  static String? get userName => _userName;
   static List<String> get userPermissions => List.unmodifiable(_userPermissions);
 }
