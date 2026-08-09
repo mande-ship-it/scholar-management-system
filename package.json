@@ -1,0 +1,12 @@
+{
+  "name": "scholar-management-system-frontend",
+  "version": "1.0.0",
+  "description": "Flutter Web frontend for SMS",
+  "main": "index.html",
+  "scripts": {
+    "start": "serve -s build/web -l $PORT"
+  },
+  "dependencies": {
+    "serve": "^14.2.3"
+  }
+}

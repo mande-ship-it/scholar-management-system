@@ -408,11 +408,18 @@ class _ActiveCallOverlayState extends State<_ActiveCallOverlay> {
                   isSmall: isSmall,
                 ),
                 SizedBox(width: isSmall ? 12 : 20),
-                _callActionBtn(
-                  Icons.videocam_rounded,
-                  kBrandOlive,
-                  widget.onJoinMeet,
-                  isSmall: isSmall,
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _callActionBtn(
+                      Icons.videocam_rounded,
+                      kBrandOlive,
+                      widget.onJoinMeet,
+                      isSmall: isSmall,
+                    ),
+                    const SizedBox(height: 8),
+                    const Text("JOIN GOOGLE MEET", style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
+                  ],
                 ),
               ],
             ),

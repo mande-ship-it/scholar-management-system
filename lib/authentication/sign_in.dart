@@ -60,6 +60,7 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
         if (response.statusCode == 200 && mounted) {
           final userData = response.data['data'];
           PermissionService.init(userData);
+          SocketService.init(userData['id'] ?? userData['_id']);
 
           final String role = userData['role_name'] ?? userData['role'] ?? 'User';
           final String normalizedRole = role.trim().toLowerCase();

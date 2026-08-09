@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:scholar_management_system/services/api_service.dart';
+import 'package:scholar_management_system/services/socket_service.dart';
 import '../academics/academics_utils.dart';
 
 class MeetingRoomPage extends StatefulWidget {
@@ -15,14 +16,45 @@ class _MeetingRoomPageState extends State<MeetingRoomPage> {
   dynamic _meeting;
 
   @override
+  void initState() {
+    super.initState();
+    SocketService.addCallListener(_onIncomingCall);
+  }
+
+  @override
+  void dispose() {
+    SocketService.removeCallListener(_onIncomingCall);
+    super.dispose();
+  }
+
+  void _onIncomingCall(Map<String, dynamic> data) {
+    if (_meeting == null || data['meetingId'] != (_meeting['id'] ?? _meeting['_id'])) return;
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("${data['callerName']} has started the call!"),
+          backgroundColor: kBrandOlive,
+          action: SnackBarAction(label: "JOIN", textColor: Colors.white, onPressed: _joinMeet),
+        ),
+      );
+    }
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    if (args != null) {
-      final String? id = args['id']?.toString();
-      if (id != null) {
-        _fetchMeeting(id);
-      }
+    String? id;
+
+    if (args != null && args['id'] != null) {
+      id = args['id'].toString();
+    } else if (Uri.base.queryParameters.containsKey('id')) {
+      id = Uri.base.queryParameters['id'];
+    }
+
+    if (id != null) {
+      _fetchMeeting(id);
     }
   }
 
@@ -121,9 +153,9 @@ class _MeetingRoomPageState extends State<MeetingRoomPage> {
                   child: ElevatedButton.icon(
                     onPressed: _joinMeet,
                     icon: const Icon(Icons.videocam_rounded),
-                    label: const Text("JOIN VIDEO CONFERENCE", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
+                    label: const Text("LAUNCH VIDEO CONFERENCE", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: kBrandBrown,
+                      backgroundColor: kBrandOlive,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),

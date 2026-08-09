@@ -105,6 +105,10 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
     final String meetingId = data['meetingId'];
     final bool isVideo = data['isVideo'] ?? true;
 
+    // Trigger feedback
+    HapticFeedback.vibrate();
+    SystemSound.play(SystemSoundType.click);
+
     showGeneralDialog(
       context: context,
       barrierDismissible: false,

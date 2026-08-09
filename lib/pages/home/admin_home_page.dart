@@ -109,6 +109,10 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
     final String meetingId = data['meetingId'];
     final bool isVideo = data['isVideo'] ?? true;
 
+    // Trigger feedback
+    HapticFeedback.vibrate();
+    SystemSound.play(SystemSoundType.click);
+
     showGeneralDialog(
       context: context,
       barrierDismissible: false,
