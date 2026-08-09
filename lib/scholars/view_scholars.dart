@@ -381,11 +381,18 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               if (isMobile && _canRegister)
-                IconButton(
-                  icon: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF9AB334), size: 22),
-                  onPressed: widget.onRegisterScholar ?? () => Navigator.pushNamed(context, '/registerScholar').then((_) => _fetchScholars()),
-                  tooltip: "Register Scholar",
-                  visualDensity: VisualDensity.compact,
+                InkWell(
+                  onTap: widget.onRegisterScholar ?? () => Navigator.pushNamed(context, '/registerScholar').then((_) => _fetchScholars()),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF9AB334).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFF9AB334).withOpacity(0.3)),
+                    ),
+                    child: const Icon(Icons.add_rounded, color: Color(0xFF9AB334), size: 20),
+                  ),
                 ),
               _exportButton(icon: Icons.description_outlined, label: "PDF", onTap: _exportToPDF, isVerySmall: isVerySmall),
               _exportButton(icon: Icons.table_view_outlined, label: "EXCEL", onTap: _exportToExcel, isVerySmall: isVerySmall),

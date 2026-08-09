@@ -529,13 +529,13 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
           const Text("QUICK OPERATIONS",
             style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 1.0)),
           const SizedBox(height: 32),
-          _actionButton("Take Attendance", Icons.how_to_reg_rounded, () => widget.onNavigate?.call("Scholar Attendance")),
+          _actionButton("Take Attendance", Icons.how_to_reg_rounded, () => widget.onNavigate?.call("Take Attendance")),
           const SizedBox(height: 16),
           _actionButton("Enter Results", Icons.edit_note_rounded, () => widget.onNavigate?.call("Enter Results")),
           const SizedBox(height: 16),
-          _actionButton("Performance", Icons.analytics_rounded, () => widget.onNavigate?.call("Performance Analysis")),
+          _actionButton("Performance", Icons.insights_rounded, () => widget.onNavigate?.call("Performance Analysis")),
           const SizedBox(height: 16),
-          _actionButton("Registry", Icons.people_outline_rounded, () => widget.onNavigate?.call("View Scholars")),
+          _actionButton("Registry", Icons.school_outlined, () => widget.onNavigate?.call("Secondary Registry")),
           if (isMobile) const SizedBox(height: 12),
         ],
       ),
@@ -594,7 +594,27 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
                 ),
                 title: Text(activity['title'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                 subtitle: Text(activity['desc'], style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
-                trailing: Text(activity['time'], style: const TextStyle(color: Colors.grey, fontSize: 10)),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(activity['time'], style: const TextStyle(color: Colors.grey, fontSize: 10)),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, size: 16, color: Colors.grey),
+                      onPressed: () {
+                        setState(() {
+                          _recentActivity.removeAt(index);
+                        });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Log entry removed from view"), duration: Duration(seconds: 1)),
+                        );
+                      },
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ],
+                ),
               );
             },
           ),
