@@ -64,9 +64,10 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
 
           final String role = userData['role_name'] ?? userData['role'] ?? 'User';
           final String normalizedRole = role.trim().toLowerCase();
+          final String deptDashboard = userData['department']?['defaultDashboard'] ?? 'General';
 
           String targetRoute = '/home';
-          if (['administrator', 'admin', 'program coordinator', 'country director'].contains(normalizedRole)) {
+          if (['administrator', 'admin'].contains(normalizedRole)) {
             targetRoute = '/admin/home';
           } else if ([
             'field officer',
@@ -75,6 +76,13 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
             'operational officer'
           ].contains(normalizedRole)) {
             targetRoute = '/field-operations/home';
+          } else {
+            // Respect department policy for other roles
+            if (deptDashboard == 'Admin' && ['administrator', 'admin'].contains(normalizedRole)) {
+              targetRoute = '/admin/home';
+            } else if (deptDashboard == 'Field') {
+              targetRoute = '/field-operations/home';
+            }
           }
 
           Navigator.pushReplacementNamed(
@@ -142,9 +150,10 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
               redirectArgs = args ?? {};
             }
 
-            // Role-based Navigation Logic
+            // Role-based Navigation Logic (Updated per specific requirements)
             final String role = userData['role'] ?? userData['role_name'] ?? 'User';
             final String normalizedRole = role.trim().toLowerCase();
+            final String deptDashboard = userData['department']?['defaultDashboard'] ?? 'General';
 
             if (userData['mustResetPassword'] == true || userData['isFirstLogin'] == true) {
               Navigator.pushReplacementNamed(context, '/password-reset');
@@ -157,39 +166,40 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
               return;
             }
 
-            // 1. Management Roles -> Admin Portal
-            final bool isManagement = [
-              'administrator', 'admin', 'program coordinator', 'country director'
-            ].contains(normalizedRole);
+            // 1. Strict Administrator/Admin -> Admin Portal
+            final bool isAdmin = ['administrator', 'admin'].contains(normalizedRole);
 
             // 2. Field Operations Group -> Field Operations Portal
             final bool isFieldOfficer = [
               'field officer', 'field coordinator', 'field operations', 'operational officer'
             ].contains(normalizedRole);
 
-            if (isManagement) {
+            String targetRoute = '/home'; // Default to General Dashboard
+
+            if (isAdmin) {
               debugPrint('LOGIN: Routing to Admin Portal...');
-              Navigator.pushReplacementNamed(context, '/admin/home', arguments: {
-                'username': userData['fullName'] ?? userData['full_name'] ?? _usernameController.text.trim(),
-                'role': role,
-                'profilePicture': userData['profilePicture'] ?? userData['profile_picture'],
-              });
+              targetRoute = '/admin/home';
             } else if (isFieldOfficer) {
               debugPrint('LOGIN: Routing to Field Operations Portal...');
-              Navigator.pushReplacementNamed(context, '/field-operations/home', arguments: {
-                'username': userData['fullName'] ?? userData['full_name'] ?? _usernameController.text.trim(),
-                'role': role,
-                'profilePicture': userData['profilePicture'] ?? userData['profile_picture'],
-              });
+              targetRoute = '/field-operations/home';
             } else {
-              // Country Director, Program Coordinator, and others -> General Dashboard
-              debugPrint('LOGIN: Routing to General Dashboard...');
-              Navigator.pushReplacementNamed(context, '/home', arguments: {
-                'username': userData['fullName'] ?? userData['full_name'] ?? _usernameController.text.trim(),
-                'role': role,
-                'profilePicture': userData['profilePicture'] ?? userData['profile_picture'],
-              });
+              // Country Director, Finance, Program Coordinator, and others -> General Dashboard
+              // UNLESS specifically overridden by department policy
+              if (deptDashboard == 'Admin' && isAdmin) { // Safety check
+                targetRoute = '/admin/home';
+              } else if (deptDashboard == 'Field') {
+                targetRoute = '/field-operations/home';
+              } else {
+                debugPrint('LOGIN: Routing to General Dashboard...');
+                targetRoute = '/home';
+              }
             }
+
+            Navigator.pushReplacementNamed(context, targetRoute, arguments: {
+              'username': userData['fullName'] ?? userData['full_name'] ?? _usernameController.text.trim(),
+              'role': role,
+              'profilePicture': userData['profilePicture'] ?? userData['profile_picture'],
+            });
           }
         } else {
           if (mounted) {

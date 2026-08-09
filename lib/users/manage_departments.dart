@@ -40,49 +40,104 @@ class _ManageDepartmentsComponentState extends State<ManageDepartmentsComponent>
     final nameCtrl = TextEditingController(text: dept?['name']?.toString() ?? '');
     final codeCtrl = TextEditingController(text: dept?['code']?.toString() ?? '');
     final descCtrl = TextEditingController(text: dept?['description']?.toString() ?? '');
+    String selectedDashboard = dept?['defaultDashboard']?.toString() ?? 'General';
     final isEdit = dept != null;
+
+    final List<String> dashboards = ['General', 'Admin', 'Field'];
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(isEdit ? "Edit Department" : "Create Department"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: "Department Name")),
-            const SizedBox(height: 12),
-            TextField(controller: codeCtrl, decoration: const InputDecoration(labelText: "Code (e.g., FIN)")),
-            const SizedBox(height: 12),
-            TextField(controller: descCtrl, decoration: const InputDecoration(labelText: "Description"), maxLines: 2),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text(isEdit ? "Edit Department" : "Create Department", style: const TextStyle(fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildDialogField(nameCtrl, "Department Name", Icons.apartment_rounded),
+                const SizedBox(height: 16),
+                _buildDialogField(codeCtrl, "Code (e.g., FIN)", Icons.badge_outlined),
+                const SizedBox(height: 16),
+                _buildDialogField(descCtrl, "Description", Icons.description_outlined, maxLines: 2),
+                const SizedBox(height: 24),
+                const Text("Default Portal Dashboard", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: selectedDashboard,
+                      isExpanded: true,
+                      items: dashboards.map((d) => DropdownMenuItem(value: d, child: Text("$d Dashboard", style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)))).toList(),
+                      onChanged: (v) {
+                        if (v != null) setDialogState(() => selectedDashboard = v);
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: kBrandBrown, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+              onPressed: () async {
+                final data = {
+                  'name': nameCtrl.text.trim(),
+                  'code': codeCtrl.text.trim().toUpperCase(),
+                  'description': descCtrl.text.trim(),
+                  'defaultDashboard': selectedDashboard,
+                };
+
+                try {
+                  final response = isEdit
+                      ? await ApiService.updateDepartment(dept!['id'].toString(), data)
+                      : await ApiService.createDepartment(data);
+
+                  if (response.statusCode == 200 || response.statusCode == 201) {
+                    if (ctx.mounted) Navigator.pop(ctx);
+                    _fetchDepartments();
+                  }
+                } catch (e) {
+                  debugPrint('Error saving department: $e');
+                }
+              },
+              child: const Text("SAVE CHANGES", style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
-          ElevatedButton(
-            onPressed: () async {
-              final data = {
-                'name': nameCtrl.text.trim(),
-                'code': codeCtrl.text.trim().toUpperCase(),
-                'description': descCtrl.text.trim(),
-              };
-
-              try {
-                final response = isEdit
-                    ? await ApiService.updateDepartment(dept!['id'].toString(), data)
-                    : await ApiService.createDepartment(data);
-
-                if (response.statusCode == 200 || response.statusCode == 201) {
-                  if (ctx.mounted) Navigator.pop(ctx);
-                  _fetchDepartments();
-                }
-              } catch (e) {
-                debugPrint('Error saving department: $e');
-              }
-            },
-            child: const Text("Save"),
-          ),
-        ],
       ),
+    );
+  }
+
+  Widget _buildDialogField(TextEditingController ctrl, String label, IconData icon, {int maxLines = 1}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1)),
+        const SizedBox(height: 8),
+        TextField(
+          controller: ctrl,
+          maxLines: maxLines,
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          decoration: InputDecoration(
+            prefixIcon: Icon(icon, size: 18, color: kBrandOlive),
+            isDense: true,
+            filled: true,
+            fillColor: Colors.grey.shade50,
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: kBrandOlive, width: 1.5)),
+          ),
+        ),
+      ],
     );
   }
 

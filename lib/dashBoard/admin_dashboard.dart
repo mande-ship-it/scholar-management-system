@@ -236,14 +236,36 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
       ("Global Sponsors", "$_totalSponsors", Icons.volunteer_activism_rounded, const Color(0xFF1976D2), "Sponsors Directory"),
     ];
 
+    if (isMobile) {
+      return Column(
+        children: [
+          Row(
+            children: [
+              Expanded(child: _buildPortalCard(kpis[0].$1, kpis[0].$2, kpis[0].$3, kpis[0].$4, () => widget.onNavigate?.call(kpis[0].$5), isVerySmall)),
+              const SizedBox(width: 12),
+              Expanded(child: _buildPortalCard(kpis[1].$1, kpis[1].$2, kpis[1].$3, kpis[1].$4, () => widget.onNavigate?.call(kpis[1].$5), isVerySmall)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _buildPortalCard(kpis[2].$1, kpis[2].$2, kpis[2].$3, kpis[2].$4, () => widget.onNavigate?.call(kpis[2].$5), isVerySmall)),
+              const SizedBox(width: 12),
+              Expanded(child: _buildPortalCard(kpis[3].$1, kpis[3].$2, kpis[3].$3, kpis[3].$4, () => widget.onNavigate?.call(kpis[3].$5), isVerySmall)),
+            ],
+          ),
+        ],
+      );
+    }
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: isMobile ? 1 : 4,
-        crossAxisSpacing: isVerySmall ? 12 : 20,
-        mainAxisSpacing: isVerySmall ? 12 : 20,
-        childAspectRatio: isVerySmall ? 2.8 : (isMobile ? 3.2 : 1.8),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        crossAxisSpacing: 20,
+        mainAxisSpacing: 20,
+        childAspectRatio: 1.8,
       ),
       itemCount: kpis.length,
       itemBuilder: (context, i) => _buildPortalCard(
@@ -258,22 +280,25 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
   }
 
   Widget _buildPortalCard(String label, String value, IconData icon, Color color, VoidCallback onTap, bool isVerySmall) {
+    final bool isMobile = MediaQuery.of(context).size.width < 950;
+
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(isVerySmall ? 16 : 24),
+      borderRadius: BorderRadius.circular(isMobile ? 24 : 24),
       elevation: 0,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(isVerySmall ? 16 : 24),
+        borderRadius: BorderRadius.circular(isMobile ? 24 : 24),
         child: Container(
-          padding: EdgeInsets.all(isVerySmall ? 16 : 24),
+          padding: EdgeInsets.all(isMobile ? 24 : 24),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(isVerySmall ? 16 : 24),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(isMobile ? 24 : 24),
             border: Border.all(color: const Color(0xFFEEEEEE), width: 1),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.01),
-                blurRadius: 10,
+                color: Colors.black.withOpacity(0.015),
+                blurRadius: 15,
                 offset: const Offset(0, 4),
               ),
             ],
@@ -281,14 +306,14 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
           child: Row(
             children: [
               Container(
-                padding: EdgeInsets.all(isVerySmall ? 10 : 14),
+                padding: EdgeInsets.all(isMobile ? 14 : 14),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.08),
+                  color: color.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: color, size: isVerySmall ? 20 : 24),
+                child: Icon(icon, color: color, size: isMobile ? 24 : 24),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 20),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -299,7 +324,7 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
                       child: Text(
                         value,
                         style: TextStyle(
-                          fontSize: isVerySmall ? 20 : 24,
+                          fontSize: isMobile ? 24 : 24,
                           fontWeight: FontWeight.w900,
                           color: const Color(0xFF4C3C32),
                           letterSpacing: -0.5,
@@ -310,7 +335,7 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
                     Text(
                       label.toUpperCase(),
                       style: TextStyle(
-                        fontSize: isVerySmall ? 8 : 9,
+                        fontSize: isMobile ? 9 : 9,
                         fontWeight: FontWeight.w800,
                         color: Colors.grey.shade500,
                         letterSpacing: 0.5,
@@ -320,6 +345,7 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
                   ],
                 ),
               ),
+              if (isMobile) const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFFEEEEEE)),
             ],
           ),
         ),
