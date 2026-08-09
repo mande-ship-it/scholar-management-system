@@ -14,6 +14,7 @@ import '../../academics/enter_results.dart';
 import '../../academics/performance_analysis.dart';
 import '../../scholars/scholar_profile.dart';
 import '../../scholars/view_scholars.dart';
+import 'package:scholar_management_system/services/permission_service.dart';
 
 // Operation Pages (Scaffolded Page)
 import 'package:scholar_management_system/pages/scholarPages/view_scholars.dart';
@@ -233,6 +234,7 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
 
           if (fieldRoles.contains(normalizedRole)) {
             granted = true;
+            PermissionService.init(data);
             setState(() {
               _fullName = data['full_name'] ?? "Field User";
               _userRole = role;

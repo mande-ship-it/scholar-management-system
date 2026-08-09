@@ -311,7 +311,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
-      floatingActionButton: (isMobile && _canRegister)
+      floatingActionButton: _canRegister
           ? FloatingActionButton(
               onPressed: widget.onRegisterScholar ?? () => Navigator.pushNamed(context, '/registerScholar').then((_) => _fetchScholars()),
               backgroundColor: const Color(0xFF4C3C32),
@@ -380,7 +380,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
             spacing: 6,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              if (isMobile && _canRegister)
+              if (_canRegister)
                 InkWell(
                   onTap: widget.onRegisterScholar ?? () => Navigator.pushNamed(context, '/registerScholar').then((_) => _fetchScholars()),
                   borderRadius: BorderRadius.circular(8),
@@ -425,6 +425,8 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
 
   Widget _buildIntegratedToolbar(List<String> schools, List<String> classes, bool isMobile) {
     final bool isVerySmall = MediaQuery.of(context).size.width < 500;
+    final bool lockDistrict = _isFieldOfficer && _assignedDistrict != null && _assignedDistrict != "All Regions";
+
     return Container(
       padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 12),
       decoration: const BoxDecoration(
@@ -437,8 +439,27 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
           children: [
             _compactSearchField(isMobile),
             const SizedBox(width: 12),
-            _compactFilterDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() => _selectedDistrict = v ?? 'All')),
-            const SizedBox(width: 8),
+            if (!lockDistrict) ...[
+              _compactFilterDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() => _selectedDistrict = v ?? 'All')),
+              const SizedBox(width: 8),
+            ] else ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: kBrandOlive.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: kBrandOlive.withOpacity(0.1)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.location_on_rounded, size: 14, color: kBrandOlive),
+                    const SizedBox(width: 6),
+                    Text(_assignedDistrict!, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: kBrandOlive)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+            ],
             _compactFilterDropdown("Institution", _selectedSchoolName, schools, (v) => setState(() => _selectedSchoolName = v ?? 'All')),
             const SizedBox(width: 8),
             _compactFilterDropdown("Level", _selectedClass, classes, (v) => setState(() => _selectedClass = v ?? 'All')),

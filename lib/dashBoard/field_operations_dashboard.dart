@@ -148,12 +148,14 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
   Widget build(BuildContext context) {
     debugPrint("DASHBOARD BUILD: isLoading=$_isLoading");
 
-    final bool isMobile = MediaQuery.of(context).size.width < 900;
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth < 900;
+    final bool isVerySmall = screenWidth < 400;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(isMobile ? 16 : 32),
+        padding: EdgeInsets.all(isMobile ? (isVerySmall ? 12 : 16) : 32),
         physics: const BouncingScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -162,7 +164,7 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
               _buildExecutiveHeader(isMobile),
               const SizedBox(height: 32),
             ],
-            _buildKPISection(isMobile),
+            _buildKPISection(isMobile, isVerySmall),
             const SizedBox(height: 32),
             if (isMobile)
               Column(
@@ -317,22 +319,22 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
     );
   }
 
-  Widget _buildKPISection(bool isMobile) {
+  Widget _buildKPISection(bool isMobile, bool isVerySmall) {
     if (isMobile) {
       return Column(
         children: [
           Row(
             children: [
               _kpiCard("Scholars", _totalScholars.toString(), Icons.groups_rounded, kBrandOlive, isMobile),
-              const SizedBox(width: 12),
+              SizedBox(width: isVerySmall ? 8 : 12),
               _kpiCard("Schools", "$_schoolCount", Icons.location_city_rounded, kBrandBrown, isMobile),
             ],
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: isVerySmall ? 8 : 12),
           Row(
             children: [
               _kpiCard("Retention", "${_retentionRate.toStringAsFixed(1)}%", Icons.how_to_reg_rounded, kBrandOrange, isMobile),
-              const SizedBox(width: 12),
+              SizedBox(width: isVerySmall ? 8 : 12),
               _kpiCard("District", _assignedDistrict, Icons.my_location_rounded, Colors.blue, isMobile),
             ],
           ),
@@ -355,7 +357,7 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
   Widget _kpiCard(String label, String value, IconData icon, Color color, bool isMobile) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(28),
+        padding: EdgeInsets.all(isMobile ? 16 : 28),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
@@ -371,14 +373,14 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(isMobile ? 8 : 12),
               decoration: BoxDecoration(
                 color: color.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(icon, color: color, size: 24),
+              child: Icon(icon, color: color, size: isMobile ? 20 : 24),
             ),
-            const SizedBox(width: 20),
+            SizedBox(width: isMobile ? 12 : 20),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -388,10 +390,10 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
                     fit: BoxFit.scaleDown,
                     child: Text(
                       value, 
-                      style: const TextStyle(
-                        fontSize: 24, 
+                      style: TextStyle(
+                        fontSize: isMobile ? 18 : 24, 
                         fontWeight: FontWeight.w900, 
-                        color: Color(0xFF4C3C32), 
+                        color: const Color(0xFF4C3C32), 
                         letterSpacing: -1
                       )
                     ),
@@ -399,7 +401,7 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
                   Text(
                     label.toUpperCase(), 
                     style: TextStyle(
-                      fontSize: 9, 
+                      fontSize: isMobile ? 8 : 9,
                       fontWeight: FontWeight.w900, 
                       color: Colors.grey.shade400, 
                       letterSpacing: 1.0
@@ -555,8 +557,18 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
             children: [
               Icon(icon, color: Colors.white, size: 18),
               const SizedBox(width: 16),
-              Text(label.toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5)),
-              const Spacer(),
+              Expanded(
+                child: Text(
+                  label.toUpperCase(), 
+                  style: const TextStyle(
+                    color: Colors.white, 
+                    fontWeight: FontWeight.w900, 
+                    fontSize: 11, 
+                    letterSpacing: 0.5
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white24, size: 12),
             ],
           ),
@@ -592,8 +604,17 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
                   decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), shape: BoxShape.circle),
                   child: const Icon(Icons.flash_on_rounded, color: kBrandOlive, size: 14),
                 ),
-                title: Text(activity['title'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                subtitle: Text(activity['desc'], style: TextStyle(color: Colors.grey.shade600, fontSize: 11)),
+                title: Text(
+                  activity['title'], 
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text(
+                  activity['desc'], 
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
