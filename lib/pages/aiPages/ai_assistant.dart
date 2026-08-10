@@ -18,7 +18,7 @@ class _AIAssistantPageState extends State<AIAssistantPage> {
   final List<Map<String, dynamic>> _messages = [
     {
       'role': 'assistant',
-      'content': '⭐ System Core Online. I am the AGE Africa Strategic AI Analyst. I have established a secure link to the scholar registry. How can I assist with program strategy or analytics today?'
+      'content': '⭐ Strategic AI Engine Online. I have established a deep real-time link to the entire AGE Africa database including scholars, institutions, financials, and operations. How can I analyze the system for you today?'
     }
   ];
   bool _isTyping = false;
@@ -180,10 +180,11 @@ class _AIAssistantPageState extends State<AIAssistantPage> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            _toolChip("Generate Report", Icons.summarize_rounded),
-            _toolChip("Institutional Audit", Icons.domain_verification_rounded),
-            _toolChip("Risk Assessment", Icons.warning_amber_rounded),
-            _toolChip("Sponsor Strategy", Icons.handshake_rounded),
+            _toolChip("Full System Summary", Icons.analytics_rounded),
+            _toolChip("Academic Performance Audit", Icons.school_rounded),
+            _toolChip("Financial Flow Analysis", Icons.payments_rounded),
+            _toolChip("Institutional Risk Heatmap", Icons.warning_amber_rounded),
+            _toolChip("Sponsorship Strategy", Icons.handshake_rounded),
           ],
         ),
       ),
