@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../attendance/view_attendance.dart';
+import '../../attendance/attendance_history.dart';
 import '../../academics/academics_utils.dart';
 
 class AttendanceHistoryPage extends StatelessWidget {
@@ -11,7 +11,7 @@ class AttendanceHistoryPage extends StatelessWidget {
     return Scaffold(
       appBar: Navigator.canPop(context) 
         ? AppBar(
-            title: const Text("Attendance History", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            title: const Text("Attendance Archives", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             backgroundColor: Colors.white,
             foregroundColor: kBrandBrown,
             elevation: 0,
@@ -21,7 +21,7 @@ class AttendanceHistoryPage extends StatelessWidget {
             ),
           )
         : null,
-      body: ViewAttendanceComponent(onMarkAttendance: onMarkAttendance),
+      body: const AttendanceHistoryComponent(),
     );
   }
 }

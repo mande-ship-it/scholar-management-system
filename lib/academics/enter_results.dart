@@ -62,9 +62,10 @@ class _AcademicsManagementComponentState extends State<AcademicsManagementCompon
   }
 
   Widget _buildHeader(bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
@@ -78,7 +79,7 @@ class _AcademicsManagementComponentState extends State<AcademicsManagementCompon
                 Text(
                   _canEdit ? "Examination Results Entry" : "Performance Records Audit",
                   style: TextStyle(
-                    fontSize: isMobile ? 14 : 16, 
+                    fontSize: isVerySmall ? 13 : (isMobile ? 14 : 16), 
                     fontWeight: FontWeight.w900, 
                     color: const Color(0xFF4C3C32), 
                     letterSpacing: -0.2
@@ -89,17 +90,17 @@ class _AcademicsManagementComponentState extends State<AcademicsManagementCompon
           ),
           if (!_canEdit)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: Color(0xFFE05B1C).withOpacity(0.1), 
                 borderRadius: BorderRadius.circular(6), 
                 border: Border.all(color: Color(0xFFE05B1C).withOpacity(0.2))
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(Icons.lock_outline_rounded, size: 12, color: Color(0xFFE05B1C)),
-                  SizedBox(width: 8),
-                  Text("READ-ONLY", style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFFE05B1C), letterSpacing: 0.5)),
+                  const Icon(Icons.lock_outline_rounded, size: 10, color: Color(0xFFE05B1C)),
+                  const SizedBox(width: 6),
+                  Text(isVerySmall ? "LOCKED" : "READ-ONLY", style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Color(0xFFE05B1C), letterSpacing: 0.5)),
                 ],
               ),
             ),
@@ -502,8 +503,9 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
   }
 
   Widget _buildSelectionPanel(bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
     return Container(
-      padding: EdgeInsets.all(isMobile ? 20 : 32),
+      padding: EdgeInsets.all(isVerySmall ? 16 : (isMobile ? 20 : 32)),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -519,7 +521,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
               _compactStaticField("Secondary School", Icons.school_rounded)
             else
               _buildTypeSelector(),
-            const SizedBox(height: 24),
+            SizedBox(height: isVerySmall ? 16 : 24),
             _dropdownField<String>(
               label: "Academic Year", 
               value: _selectedYear, 
@@ -536,7 +538,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                 }
               }
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: isVerySmall ? 16 : 24),
             _dropdownField<String>(
               label: "Partner Institution", 
               value: _selectedSchool?['name'], 
@@ -549,7 +551,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                 });
               }
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: isVerySmall ? 16 : 24),
             _dropdownField<String>(
               label: "Selected Scholar", 
               value: _selectedStudent?.id, 
@@ -558,7 +560,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
               onChanged: _onScholarChanged,
               itemLabel: (id) => _scholarOptions.firstWhere((s) => s.id == id).name,
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: isVerySmall ? 16 : 24),
             _dropdownField<String>(
               label: _schoolType == SchoolType.secondary ? "Academic Term" : "Academic Semester",
               value: _selectedPeriod,
@@ -566,7 +568,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
               icon: Icons.event_note_rounded,
               onChanged: (v) => setState(() => _selectedPeriod = v),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: isVerySmall ? 16 : 24),
             if (_schoolType == SchoolType.secondary)
               _dropdownField<String>(
                 label: "Current Class", 
@@ -729,6 +731,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
   }
 
   Widget _buildResultsTable(bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
     final avg = _currentAverage;
     final avgColor = _getScoreColor(avg);
     final avgLabel = _getScoreLabel(avg);
@@ -744,7 +747,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(isVerySmall ? 16 : 24),
             decoration: BoxDecoration(
               color: avgColor.withOpacity(0.05),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
@@ -752,21 +755,23 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("PERFORMANCE SUMMARY", 
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: avgColor, letterSpacing: 1.2)),
-                    const SizedBox(height: 4),
-                    Text("${avg.toStringAsFixed(1)}% OVERALL AVERAGE", 
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: const Color(0xFF4C3C32), letterSpacing: -0.5)),
-                  ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("PERFORMANCE SUMMARY", 
+                        style: TextStyle(fontSize: isVerySmall ? 8 : 10, fontWeight: FontWeight.w900, color: avgColor, letterSpacing: 1.2)),
+                      const SizedBox(height: 4),
+                      Text("${avg.toStringAsFixed(1)}% AVERAGE", 
+                        style: TextStyle(fontSize: isVerySmall ? 15 : 18, fontWeight: FontWeight.w900, color: const Color(0xFF4C3C32), letterSpacing: -0.5)),
+                    ],
+                  ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 10 : 16, vertical: isVerySmall ? 6 : 8),
                   decoration: BoxDecoration(color: avgColor, borderRadius: BorderRadius.circular(10)),
                   child: Text(avgLabel.toUpperCase(), 
-                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                    style: TextStyle(color: Colors.white, fontSize: isVerySmall ? 9 : 11, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                 ),
               ],
             ),
@@ -828,6 +833,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
   }
 
   Widget _buildRow(_ResultInputRow row, int index, bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
     final score = double.tryParse(row.scoreController.text) ?? 0;
     final color = _getScoreColor(score);
     final label = _getScoreLabel(score);
@@ -835,7 +841,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
 
     if (isMobile) {
       return Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isVerySmall ? 12 : 16),
         decoration: BoxDecoration(
           color: Colors.grey.shade50,
           borderRadius: BorderRadius.circular(12),
@@ -848,10 +854,10 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     value: _subjectOptions.any((s) => s.name == row.subjectController.text) ? row.subjectController.text : null,
-                    hint: const Text("Select subject...", style: TextStyle(fontSize: 13)),
+                    hint: Text("Select subject...", style: TextStyle(fontSize: isVerySmall ? 12 : 13)),
                     isExpanded: true,
                     decoration: const InputDecoration(border: InputBorder.none, isDense: true),
-                    items: _subjectOptions.map((s) => DropdownMenuItem(value: s.name, child: Text(s.name, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis))).toList(),
+                    items: _subjectOptions.map((s) => DropdownMenuItem(value: s.name, child: Text(s.name, style: TextStyle(fontSize: isVerySmall ? 12 : 13), overflow: TextOverflow.ellipsis))).toList(),
                     onChanged: (v) => setState(() => row.subjectController.text = v ?? ''),
                   ),
                 ),
@@ -871,10 +877,10 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                     controller: row.scoreController,
                     enabled: _canEdit,
                     keyboardType: TextInputType.number,
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: hasScore ? color : kBrandBrown),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: isVerySmall ? 12 : 13, color: hasScore ? color : kBrandBrown),
                     decoration: InputDecoration(
                       labelText: "SCORE (0-100)",
-                      labelStyle: const TextStyle(fontSize: 10),
+                      labelStyle: TextStyle(fontSize: isVerySmall ? 9 : 10),
                       hintText: "0",
                       isDense: true,
                       filled: true,
@@ -888,9 +894,9 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                 const SizedBox(width: 12),
                 if (hasScore)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
-                    child: Text(label.toUpperCase(), style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 9)),
+                    child: Text(label.toUpperCase(), style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: isVerySmall ? 8 : 9)),
                   ),
               ],
             ),
@@ -966,52 +972,87 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
   }
 
   Widget _buildActionFooter(bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+      padding: EdgeInsets.all(isVerySmall ? 16 : 24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFFEEEEEE)),
       ),
-      child: Row(
-        children: [
-          const Icon(Icons.info_outline_rounded, color: Color(0xFF4C3C32), size: 24),
-          const SizedBox(width: 20),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text("DATA INTEGRITY VERIFICATION", 
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), letterSpacing: 1.0)),
-                SizedBox(height: 4),
-                Text("Ensure all examination data is verified against physical marksheets before submission.", 
-                  style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
-              ],
-            ),
-          ),
-          const SizedBox(width: 32),
-          SizedBox(
-            width: 240,
-            child: ElevatedButton.icon(
-              onPressed: _isSaving ? null : _save,
-              icon: _isSaving 
-                  ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) 
-                  : const Icon(Icons.verified_user_rounded, size: 18),
-              label: Text(_isSaving ? "AUDITING..." : "AUTHORIZE & SYNC", 
-                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 20),
-                backgroundColor: const Color(0xFF4C3C32),
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: isVerySmall 
+        ? Column(
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.info_outline_rounded, color: Color(0xFF4C3C32), size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text("Ensure all data is verified against marksheets.", 
+                      style: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+                  ),
+                ],
               ),
-            ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _isSaving ? null : _save,
+                  icon: _isSaving 
+                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) 
+                      : const Icon(Icons.verified_user_rounded, size: 16),
+                  label: Text(_isSaving ? "SYNCING..." : "AUTHORIZE & SYNC", 
+                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5)),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: const Color(0xFF4C3C32),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+            ],
+          )
+        : Row(
+            children: [
+              const Icon(Icons.info_outline_rounded, color: Color(0xFF4C3C32), size: 24),
+              const SizedBox(width: 20),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text("DATA INTEGRITY VERIFICATION", 
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), letterSpacing: 1.0)),
+                    SizedBox(height: 4),
+                    Text("Ensure all examination data is verified against physical marksheets before submission.", 
+                      style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 32),
+              SizedBox(
+                width: 240,
+                child: ElevatedButton.icon(
+                  onPressed: _isSaving ? null : _save,
+                  icon: _isSaving 
+                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) 
+                      : const Icon(Icons.verified_user_rounded, size: 18),
+                  label: Text(_isSaving ? "AUDITING..." : "AUTHORIZE & SYNC", 
+                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    backgroundColor: const Color(0xFF4C3C32),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -1045,6 +1086,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
     required ValueChanged<T?> onChanged,
     String Function(T)? itemLabel,
   }) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
     // If it's Term or Semester selection, filter out recorded ones
     List<T> filteredItems = items;
     if (label.contains("Term") || label.contains("Semester")) {
@@ -1054,7 +1096,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kBrandBrown)),
+        Text(label, style: TextStyle(fontSize: isVerySmall ? 11 : 12, fontWeight: FontWeight.bold, color: kBrandBrown)),
         const SizedBox(height: 6),
         Container(
           height: 40,
@@ -1067,12 +1109,12 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
           child: DropdownButton<T>(
             value: filteredItems.contains(value) ? value : null,
             isExpanded: true,
-            hint: const Text("Select...", style: TextStyle(fontSize: 13)),
+            hint: Text("Select...", style: TextStyle(fontSize: isVerySmall ? 12 : 13)),
             underline: const SizedBox(),
             icon: const Icon(Icons.arrow_drop_down, size: 20),
             items: filteredItems.map((e) => DropdownMenuItem<T>(
               value: e, 
-              child: Text(itemLabel != null ? itemLabel(e) : e.toString(), style: const TextStyle(fontSize: 13))
+              child: Text(itemLabel != null ? itemLabel(e) : e.toString(), style: TextStyle(fontSize: isVerySmall ? 12 : 13), overflow: TextOverflow.ellipsis)
             )).toList(),
             onChanged: onChanged,
           ),
@@ -1082,10 +1124,11 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
   }
 
   Widget _datePickerField(String label) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: kBrandBrown)),
+        Text(label, style: TextStyle(fontSize: isVerySmall ? 11 : 12, fontWeight: FontWeight.bold, color: kBrandBrown)),
         const SizedBox(height: 6),
         InkWell(
           onTap: () async {
@@ -1102,9 +1145,9 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.calendar_month_rounded, size: 16, color: kBrandBrown),
+                Icon(Icons.calendar_month_rounded, size: isVerySmall ? 14 : 16, color: kBrandBrown),
                 const SizedBox(width: 8),
-                Text(DateFormat('dd/MM/yyyy').format(_resultsDate), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                Text(DateFormat('dd/MM/yyyy').format(_resultsDate), style: TextStyle(fontSize: isVerySmall ? 12 : 13, fontWeight: FontWeight.w600)),
               ],
             ),
           ),

@@ -708,6 +708,33 @@ class _ViewEventDialogState extends State<ViewEventDialog> {
                       child: Text(event.description.isEmpty ? "No description provided." : event.description,
                         style: const TextStyle(fontSize: 13, height: 1.6, color: kBrandBrown)),
                     ),
+
+                    if (event.attendees != null && event.attendees!.isNotEmpty) ...[
+                      const SizedBox(height: 40),
+                      const Text("CONFIRMED GUEST LIST", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.0)),
+                      const SizedBox(height: 16),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: event.attendees!.map((a) {
+                          final p = a['participantId'];
+                          if (p == null) return const SizedBox.shrink();
+                          final name = p['fullName'] ?? p['full_name'] ?? 'Guest';
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(30), border: Border.all(color: Colors.grey.shade200)),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CircleAvatar(radius: 10, backgroundColor: kBrandOlive.withOpacity(0.2), child: Text(name[0].toUpperCase(), style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: kBrandOlive))),
+                                const SizedBox(width: 8),
+                                Text(name, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -871,6 +898,11 @@ class _EventFormDialogState extends State<EventFormDialog> {
   late DateTime _selectedDate;
   late TimeOfDay _selectedTime;
   bool _isSaving = false;
+  bool _isLoadingPeople = false;
+
+  List<dynamic> _allPeople = [];
+  final List<Map<String, dynamic>> _selectedAttendees = [];
+  String _personSearch = '';
 
   @override
   void initState() {
@@ -882,6 +914,43 @@ class _EventFormDialogState extends State<EventFormDialog> {
     _selectedCategory = widget.event?.category ?? EventCategory.workshop;
     _selectedDate = widget.event?.date ?? DateTime.now();
     _selectedTime = widget.event?.time ?? TimeOfDay.now();
+    _fetchPeople();
+  }
+
+  Future<void> _fetchPeople() async {
+    setState(() => _isLoadingPeople = true);
+    try {
+      final scholarsRes = await ApiService.getAllScholars();
+      final usersRes = await ApiService.getAllUsers();
+      
+      if (mounted) {
+        setState(() {
+          final List scholars = scholarsRes.data['data'] ?? [];
+          final List users = usersRes.data['data'] ?? [];
+          
+          _allPeople = [
+            ...users.map((u) => {
+              'id': (u['id'] ?? u['_id']).toString(),
+              'name': u['full_name'] ?? u['fullName'] ?? 'Staff Member',
+              'type': 'User',
+              'email': u['email'],
+              'role': u['role_name'] ?? 'Staff'
+            }),
+            ...scholars.map((s) => {
+              'id': (s['id'] ?? s['_id']).toString(),
+              'name': s['full_name'] ?? s['fullName'] ?? 'Scholar',
+              'type': 'Scholar',
+              'email': s['email'],
+              'role': 'Scholar'
+            })
+          ];
+          _isLoadingPeople = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching people for event: $e');
+      if (mounted) setState(() => _isLoadingPeople = false);
+    }
   }
 
   @override
@@ -916,6 +985,10 @@ class _EventFormDialogState extends State<EventFormDialog> {
         'time': '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}',
         'organizer': _organizerController.text.trim(),
         'status': widget.event?.status ?? (PermissionService.userRole == 'Administrator' ? 'Active' : 'Pending'),
+        'attendees': _selectedAttendees.map((a) => {
+          'participantId': a['id'],
+          'participantType': a['type']
+        }).toList(),
       };
       final res = widget.event != null ? await ApiService.updateEvent(widget.event!.id, data) : await ApiService.createEvent(data);
       if (res.statusCode == 200 || res.statusCode == 201) Navigator.of(context).pop(true);
@@ -932,44 +1005,139 @@ class _EventFormDialogState extends State<EventFormDialog> {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 500),
+        constraints: const BoxConstraints(maxWidth: 600),
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(32),
           child: Form(
             key: _formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(widget.event == null ? 'New Event' : 'Edit Event', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                Center(child: Text(widget.event == null ? 'Schedule New Event' : 'Edit Event', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kBrandBrown))),
                 const SizedBox(height: 24),
-                _buildField(_titleController, 'Title', Icons.title, true),
-                const SizedBox(height: 16),
-                _buildField(_descController, 'Description', Icons.description, false, maxLines: 3),
-                const SizedBox(height: 16),
-                _buildCategoryDropdown(),
-                const SizedBox(height: 16),
-                _buildField(_locationController, 'Venue', Icons.place, true),
-                const SizedBox(height: 16),
-                _buildField(_organizerController, 'Organizer', Icons.person, false),
+                _buildField(_titleController, 'Event Title', Icons.title, true),
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    Expanded(child: _pickerTile(Icons.calendar_today, "DATE", DateFormat('dd MMM').format(_selectedDate), _pickDate, isMobile)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _pickerTile(Icons.access_time, "TIME", _selectedTime.format(context), _pickTime, isMobile)),
+                    Expanded(child: _buildCategoryDropdown()),
+                    const SizedBox(width: 16),
+                    Expanded(child: _buildField(_locationController, 'Venue', Icons.place, true)),
                   ],
                 ),
+                const SizedBox(height: 16),
+                _buildField(_descController, 'Detailed Description', Icons.description, false, maxLines: 3),
+                const SizedBox(height: 16),
+                _buildField(_organizerController, 'Organizing Authority', Icons.person, false),
                 const SizedBox(height: 24),
+                
+                const Text("SITTING LOGISTICS", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.0)),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(child: _pickerTile(Icons.calendar_today, "DATE", DateFormat('dd MMM yyyy').format(_selectedDate), _pickDate, isMobile)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _pickerTile(Icons.access_time, "START TIME", _selectedTime.format(context), _pickTime, isMobile)),
+                  ],
+                ),
+
+                const SizedBox(height: 32),
+                const Text("INVITE PARTICIPANTS", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.0)),
+                const SizedBox(height: 12),
+                _buildAttendeeSelection(),
+
+                const SizedBox(height: 40),
                 ElevatedButton(
                   onPressed: _isSaving ? null : _save,
-                  style: ElevatedButton.styleFrom(backgroundColor: kBrandOlive, foregroundColor: Colors.white, minimumSize: const Size(double.infinity, 50)),
-                  child: _isSaving ? const CircularProgressIndicator(color: Colors.white) : const Text('SAVE EVENT'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kBrandBrown, 
+                    foregroundColor: Colors.white, 
+                    minimumSize: const Size(double.infinity, 56),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: _isSaving 
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) 
+                    : const Text('AUTHORIZE & BROADCAST EVENT', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
                 ),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildAttendeeSelection() {
+    final filtered = _allPeople.where((p) => 
+      p['name'].toString().toLowerCase().contains(_personSearch.toLowerCase()) ||
+      p['role'].toString().toLowerCase().contains(_personSearch.toLowerCase())
+    ).take(5).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_selectedAttendees.isNotEmpty) ...[
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _selectedAttendees.map((a) => Chip(
+              label: Text(a['name'], style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              avatar: CircleAvatar(backgroundColor: kBrandOlive.withOpacity(0.2), child: Text(a['name'][0], style: const TextStyle(fontSize: 9, color: kBrandOlive))),
+              onDeleted: () => setState(() => _selectedAttendees.remove(a)),
+              deleteIconColor: Colors.red,
+              padding: EdgeInsets.zero,
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: Colors.grey.shade200)),
+            )).toList(),
+          ),
+          const SizedBox(height: 16),
+        ],
+        TextField(
+          onChanged: (v) => setState(() => _personSearch = v),
+          decoration: InputDecoration(
+            hintText: "Search staff or scholars to invite...",
+            hintStyle: const TextStyle(fontSize: 13),
+            prefixIcon: const Icon(Icons.person_search_rounded, size: 20, color: kBrandOlive),
+            isDense: true,
+            filled: true,
+            fillColor: Colors.grey.shade50,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade200)),
+          ),
+        ),
+        if (_personSearch.isNotEmpty && filtered.isNotEmpty)
+          Container(
+            margin: const EdgeInsets.only(top: 8),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade200)),
+            child: ListView.separated(
+              shrinkWrap: true,
+              padding: EdgeInsets.zero,
+              itemCount: filtered.length,
+              separatorBuilder: (_, __) => const Divider(height: 1),
+              itemBuilder: (ctx, i) {
+                final p = filtered[i];
+                final isSelected = _selectedAttendees.any((a) => a['id'] == p['id']);
+                return ListTile(
+                  dense: true,
+                  title: Text(p['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  subtitle: Text(p['role'], style: const TextStyle(fontSize: 11)),
+                  trailing: isSelected ? const Icon(Icons.check_circle, color: kBrandOlive, size: 20) : const Icon(Icons.add_circle_outline, size: 20),
+                  onTap: () {
+                    setState(() {
+                      if (isSelected) {
+                        _selectedAttendees.removeWhere((a) => a['id'] == p['id']);
+                      } else {
+                        _selectedAttendees.add(p);
+                      }
+                      _personSearch = '';
+                    });
+                  },
+                );
+              },
+            ),
+          ),
+        if (_isLoadingPeople)
+          const Padding(padding: EdgeInsets.all(8.0), child: Center(child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)))),
+      ],
     );
   }
 

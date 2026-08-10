@@ -651,14 +651,20 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         icon: Icons.event_available,
         subItems: [
           SidebarSubItem(
-            title: "View Attendance",
-            page: const AttendanceHistoryPage(),
-            icon: Icons.calendar_month,
-            builder: (onBack, onPush, onPushProfile) => AttendanceHistoryPage(
-              onMarkAttendance: () => onPush("Scholar Attendance"),
-            ),
+            title: "Scholar Attendance", 
+            page: const ScholarAttendancePage(), 
+            icon: Icons.how_to_reg
           ),
-          SidebarSubItem(title: "Scholar Attendance", page: const ScholarAttendancePage(), icon: Icons.how_to_reg),
+          SidebarSubItem(
+            title: "Attendance Archives",
+            page: const AttendanceHistoryPage(),
+            icon: Icons.history_rounded,
+          ),
+          SidebarSubItem(
+            title: "Participation Sheet", 
+            page: const AttendanceModuleReportsPage(), 
+            icon: Icons.assessment_rounded
+          ),
         ],
       ),
       SidebarCategory(

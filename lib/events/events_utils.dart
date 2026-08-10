@@ -53,8 +53,7 @@ class OrganisationEvent {
   final String location;
   final String? organizer;
   final List<String>? targetedParticipants;
-  final List<String>? internalParticipants; // List of User IDs
-  final List<Map<String, String>>? externalParticipants; // List of {name, email}
+  final List<Map<String, dynamic>>? attendees;
   final String status; // 'Active', 'Pending', or 'History'
 
   OrganisationEvent({
@@ -67,8 +66,7 @@ class OrganisationEvent {
     required this.location,
     this.organizer,
     this.targetedParticipants,
-    this.internalParticipants,
-    this.externalParticipants,
+    this.attendees,
     this.status = 'Active',
   });
 
@@ -121,10 +119,7 @@ class OrganisationEvent {
       location: json['location'] ?? 'No location',
       organizer: json['organizer'],
       targetedParticipants: json['targetedParticipants'] != null ? List<String>.from(json['targetedParticipants']) : null,
-      internalParticipants: json['internalParticipants'] != null ? List<String>.from(json['internalParticipants']) : null,
-      externalParticipants: json['externalParticipants'] != null 
-          ? (json['externalParticipants'] as List).map((e) => Map<String, String>.from(e)).toList() 
-          : null,
+      attendees: json['attendees'] != null ? (json['attendees'] as List).map((e) => Map<String, dynamic>.from(e)).toList() : null,
       status: json['status'] ?? 'Active',
     );
   }
