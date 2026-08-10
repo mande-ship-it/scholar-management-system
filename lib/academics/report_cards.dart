@@ -10,7 +10,8 @@ import 'package:scholar_management_system/services/api_service.dart';
 import 'academics_utils.dart';
 
 class ReportCardsComponent extends StatefulWidget {
-  const ReportCardsComponent({super.key});
+  final VoidCallback? onBack;
+  const ReportCardsComponent({super.key, this.onBack});
 
   @override
   State<ReportCardsComponent> createState() => _ReportCardsComponentState();

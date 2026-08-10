@@ -9,8 +9,9 @@ typedef OnSponsorRegistered = Future<void> Function(Sponsor sponsor);
 class RegisterSponsorComponent extends StatefulWidget {
   final OnSponsorRegistered? onRegister;
   final Sponsor? existingSponsor;
+  final VoidCallback? onBack;
 
-  const RegisterSponsorComponent({super.key, this.onRegister, this.existingSponsor});
+  const RegisterSponsorComponent({super.key, this.onRegister, this.existingSponsor, this.onBack});
 
   @override
   State<RegisterSponsorComponent> createState() => _RegisterSponsorComponentState();
@@ -259,15 +260,19 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
       ),
       child: Row(
         children: [
-          if (Navigator.canPop(context)) ...[
-            IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
-            const SizedBox(width: 16),
-          ],
+          IconButton(
+            onPressed: widget.onBack ?? () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                Navigator.pushReplacementNamed(context, '/home');
+              }
+            },
+            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 16),
           Expanded(
             child: Text(
               _isEditing ? "Partner Update" : "Partner Onboarding",

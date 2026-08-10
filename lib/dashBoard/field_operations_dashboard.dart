@@ -95,12 +95,25 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
               }
               _pendingScholars = data['pendingScholarsCount'] ?? 0;
               _engagementData = data['engagementSeries'];
+              
+              // New: Process operational log from dashboard stats if available
+              if (data['operationalLog'] != null && (data['operationalLog'] as List).isNotEmpty) {
+                final List logData = data['operationalLog'];
+                _recentActivity = logData.map((a) => {
+                  'title': a['actor']?.toString().toUpperCase() ?? 'SYSTEM',
+                  'desc': a['message'] ?? '',
+                  'time': _formatTime(a['time']),
+                }).toList();
+                debugPrint("DASHBOARD: Operational Log processed from stats.");
+              }
             });
             debugPrint("DASHBOARD: Stats processed. Total: $_totalScholars, Active: $_activeScholars");
           }
         }
 
-        if (responses.length > 1) {
+        // Fallback or secondary update from dedicated activities endpoint if needed
+        // but we prioritize the one from stats now
+        if (responses.length > 1 && _recentActivity.isEmpty) {
           final activitiesRes = responses[1];
           if (activitiesRes.statusCode == 200) {
             final List? data = activitiesRes.data['data'];
@@ -115,7 +128,7 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
                   };
                 }).toList();
               });
-              debugPrint("DASHBOARD: Activities processed.");
+              debugPrint("DASHBOARD: Activities processed from legacy endpoint.");
             }
           }
         }

@@ -7,7 +7,7 @@ import 'package:scholar_management_system/academics/academics_utils.dart';
 // Dashboard & Core Components
 import '../../dashBoard/field_operations_dashboard.dart';
 import '../dashboardPages/notifications.dart';
-import '../../users/user_profile.dart';
+import '../userPages/user_profile.dart';
 
 // Operations Components (Direct Components)
 import '../../academics/enter_results.dart';
@@ -288,7 +288,7 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
             title: "Notifications",
             page: const SizedBox(),
             icon: Icons.notifications_active_rounded,
-            builder: (onBack, onPush, onPushProfile) => const NotificationsPage(),
+            builder: (onBack, onPush, onPushProfile) => NotificationsPage(onBack: onBack),
           ),
         ],
       ),
@@ -301,6 +301,7 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
             page: const SizedBox(),
             icon: Icons.school_outlined,
             builder: (onBack, onPush, onPushProfile) => ViewScholarsPage(
+              onBack: onBack,
               onViewProfile: onPushProfile,
               forcedSchoolType: 'Secondary',
               hideUniversity: true,
@@ -314,6 +315,7 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
             icon: Icons.person_add_rounded,
             isVisible: false,
             builder: (onBack, onPush, onPushProfile) => RegisterScholarPage(
+              onBack: onBack,
               onSuccess: () {
                 setState(() => _isApprovalView = true);
                 onBack();
@@ -325,7 +327,8 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
             title: "Institutions",
             page: const SizedBox(),
             icon: Icons.domain_rounded,
-            builder: (onBack, onPush, onPushProfile) => const ViewSchoolsPage(
+            builder: (onBack, onPush, onPushProfile) => ViewSchoolsPage(
+              onBack: onBack,
               forcedLevel: 'Secondary School',
               hideRegistration: true,
             ),
@@ -334,19 +337,28 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
             title: "Take Attendance",
             page: const SizedBox(),
             icon: Icons.how_to_reg_rounded,
-            builder: (onBack, onPush, onPushProfile) => const ScholarAttendancePage(forcedSchoolType: SchoolType.secondary),
+            builder: (onBack, onPush, onPushProfile) => ScholarAttendancePage(
+              onBack: onBack,
+              forcedSchoolType: SchoolType.secondary
+            ),
           ),
           FieldOpsSidebarSubItem(
             title: "Enter Results",
             page: const SizedBox(),
             icon: Icons.edit_note_rounded,
-            builder: (onBack, onPush, onPushProfile) => const AcademicsManagementComponent(forcedSchoolType: SchoolType.secondary),
+            builder: (onBack, onPush, onPushProfile) => AcademicsManagementComponent(
+              onBack: onBack,
+              forcedSchoolType: SchoolType.secondary
+            ),
           ),
           FieldOpsSidebarSubItem(
             title: "Performance Analysis",
             page: const SizedBox(),
             icon: Icons.insights_rounded,
-            builder: (onBack, onPush, onPushProfile) => PerformanceAnalysisPage(forcedSchoolType: SchoolType.secondary),
+            builder: (onBack, onPush, onPushProfile) => PerformanceAnalysisPage(
+              onBack: onBack,
+              forcedSchoolType: SchoolType.secondary
+            ),
           ),
         ],
       ),
@@ -358,7 +370,7 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
             title: "User Profile",
             page: const SizedBox(),
             icon: Icons.assignment_ind_rounded,
-            builder: (onBack, onPush, onPushProfile) => const UserProfileComponent(),
+            builder: (onBack, onPush, onPushProfile) => UserProfilePage(onBack: onBack),
           ),
         ],
       ),

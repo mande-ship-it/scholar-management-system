@@ -12,10 +12,11 @@ import 'package:scholar_management_system/academics/academics_utils.dart';
 import 'school_dialogs.dart';
 
 class ViewSchoolsComponent extends StatefulWidget {
+  final VoidCallback? onBack;
   final VoidCallback? onRegisterSchool;
   final String? forcedLevel;
   final bool hideRegistration;
-  const ViewSchoolsComponent({super.key, this.onRegisterSchool, this.forcedLevel, this.hideRegistration = false});
+  const ViewSchoolsComponent({super.key, this.onBack, this.onRegisterSchool, this.forcedLevel, this.hideRegistration = false});
 
   @override
   State<ViewSchoolsComponent> createState() => _ViewSchoolsComponentState();
@@ -223,15 +224,19 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
         children: [
           Row(
             children: [
-              if (Navigator.canPop(context)) ...[
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-                const SizedBox(width: 16),
-              ],
+              IconButton(
+                onPressed: widget.onBack ?? () {
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  } else {
+                    Navigator.pushReplacementNamed(context, '/home');
+                  }
+                },
+                icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+              const SizedBox(width: 16),
               Expanded(
                 child: Text(
                   widget.forcedLevel != null ? "${widget.forcedLevel} Registry" : "Institution Registry",

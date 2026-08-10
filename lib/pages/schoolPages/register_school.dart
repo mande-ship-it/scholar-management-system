@@ -5,7 +5,8 @@ import '../../academics/academics_utils.dart';
 
 class RegisterSchoolPage extends StatefulWidget {
   final VoidCallback? onSuccess;
-  const RegisterSchoolPage({super.key, this.onSuccess});
+  final VoidCallback? onBack;
+  const RegisterSchoolPage({super.key, this.onSuccess, this.onBack});
 
   @override
   State<RegisterSchoolPage> createState() => _RegisterSchoolPageState();
@@ -115,7 +116,7 @@ class _RegisterSchoolPageState extends State<RegisterSchoolPage> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: widget.onBack ?? () => Navigator.pop(context),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: kBrandBrown,
                           foregroundColor: Colors.white,
@@ -139,6 +140,9 @@ class _RegisterSchoolPageState extends State<RegisterSchoolPage> {
       );
     }
 
-    return RegisterSchoolComponent(onRegister: widget.onSuccess != null ? (_) => widget.onSuccess!() : null);
+    return RegisterSchoolComponent(
+      onBack: widget.onBack,
+      onRegister: widget.onSuccess != null ? (_) => widget.onSuccess!() : null
+    );
   }
 }

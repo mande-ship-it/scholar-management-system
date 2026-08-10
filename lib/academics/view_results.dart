@@ -34,12 +34,14 @@ enum ViewResultsMode { selection, secondary, university }
 /// -------------------------------------------------------
 
 class ViewResultsComponent extends StatefulWidget {
+  final VoidCallback? onBack;
   final VoidCallback? onEnterResults;
   final VoidCallback? onViewPerformance;
   final VoidCallback? onViewReports;
 
   const ViewResultsComponent({
     super.key, 
+    this.onBack,
     this.onEnterResults,
     this.onViewPerformance,
     this.onViewReports,

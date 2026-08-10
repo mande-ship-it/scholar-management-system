@@ -4,7 +4,9 @@ import 'package:scholar_management_system/services/api_service.dart';
 import 'school_dialogs.dart';
 
 class SchoolProfileComponent extends StatefulWidget {
-  const SchoolProfileComponent({super.key});
+  final String? schoolId;
+  final VoidCallback? onBack;
+  const SchoolProfileComponent({super.key, this.schoolId, this.onBack});
 
   @override
   State<SchoolProfileComponent> createState() => _SchoolProfileComponentState();
@@ -55,7 +57,13 @@ class _SchoolProfileComponentState extends State<SchoolProfileComponent> {
       child: Row(
         children: [
           IconButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: widget.onBack ?? () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                Navigator.pushReplacementNamed(context, '/home');
+              }
+            },
             icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),

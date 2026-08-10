@@ -3,10 +3,11 @@ import '../../attendance/attendance_reports.dart';
 import '../../academics/academics_utils.dart';
 
 class AttendanceModuleReportsPage extends StatelessWidget {
-  const AttendanceModuleReportsPage({super.key});
+  final VoidCallback? onBack;
+  const AttendanceModuleReportsPage({super.key, this.onBack});
 
   @override
   Widget build(BuildContext context) {
-    return const AttendanceReportsComponent();
+    return AttendanceReportsComponent(onBack: onBack);
   }
 }

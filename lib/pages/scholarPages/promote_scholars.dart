@@ -3,10 +3,11 @@ import '../../scholars/promote_scholars.dart';
 import '../../academics/academics_utils.dart';
 
 class PromoteScholarsPage extends StatelessWidget {
-  const PromoteScholarsPage({super.key});
+  final VoidCallback? onBack;
+  const PromoteScholarsPage({super.key, this.onBack});
 
   @override
   Widget build(BuildContext context) {
-    return const PromoteScholarsComponent();
+    return PromoteScholarsComponent(onBack: onBack);
   }
 }

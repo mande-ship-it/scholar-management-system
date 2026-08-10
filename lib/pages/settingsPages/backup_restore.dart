@@ -3,10 +3,11 @@ import '../../settings/backup_restore.dart';
 import '../../academics/academics_utils.dart';
 
 class BackupRestorePage extends StatelessWidget {
-  const BackupRestorePage({super.key});
+  final VoidCallback? onBack;
+  const BackupRestorePage({super.key, this.onBack});
 
   @override
   Widget build(BuildContext context) {
-    return const BackupRestoreComponent();
+    return BackupRestoreComponent(onBack: onBack);
   }
 }

@@ -7,12 +7,14 @@ import 'sponsors_utils.dart';
 import 'register_sponsor.dart';
 
 class ViewSponsorsComponent extends StatefulWidget {
+  final VoidCallback? onBack;
   final VoidCallback? onRegisterSponsor;
   final Function(Sponsor)? onSaveSponsor;
   final Function(Sponsor)? onDeleteSponsor;
 
   const ViewSponsorsComponent({
     super.key,
+    this.onBack,
     this.onRegisterSponsor,
     this.onSaveSponsor,
     this.onDeleteSponsor,
@@ -286,15 +288,19 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
         children: [
           Row(
             children: [
-              if (Navigator.canPop(context)) ...[
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-                const SizedBox(width: 16),
-              ],
+            IconButton(
+              onPressed: widget.onBack ?? () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
+              },
+              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 16),
               Expanded(
                 child: Text(
                   "Strategic Partners",

@@ -73,7 +73,7 @@ class SidebarSubItem {
   final Widget page;
   final IconData icon;
   final bool isVisible;
-  final Widget Function(VoidCallback onBack, Function(String) onPush, Function(String) onPushProfile)? builder;
+  final Widget Function(VoidCallback backFunc, Function(String) onPush, Function(String) onPushProfile)? builder;
 
   const SidebarSubItem({
     required this.title,
@@ -542,10 +542,20 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             title: Translator.translate("Overview"), 
             page: DashboardPage(),
             icon: Icons.view_quilt,
-            builder: (onBack, onPush, onPushProfile) => DashboardPage(onNavigate: onPush, userRole: _userRole),
+            builder: (backFunc, onPush, onPushProfile) => DashboardPage(onNavigate: onPush, userRole: _userRole, onBack: backFunc),
           ),
-          SidebarSubItem(title: "Events & Programs", page: const EventsPage(), icon: Icons.event_available),
-          SidebarSubItem(title: "Notifications", page: const NotificationsPage(), icon: Icons.notifications_active),
+          SidebarSubItem(
+            title: "Events & Programs", 
+            page: const EventsPage(), 
+            icon: Icons.event_available,
+            builder: (backFunc, onPush, onPushProfile) => EventsPage(onBack: backFunc),
+          ),
+          SidebarSubItem(
+            title: "Notifications", 
+            page: const NotificationsPage(), 
+            icon: Icons.notifications_active,
+            builder: (backFunc, onPush, onPushProfile) => NotificationsPage(onBack: backFunc),
+          ),
         ],
       ),
       SidebarCategory(
@@ -556,7 +566,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             title: "Secondary Registry",
             page: const ViewScholarsPage(forcedSchoolType: 'Secondary'),
             icon: Icons.school_outlined,
-            builder: (onBack, onPush, onPushProfile) => ViewScholarsPage(
+            builder: (backFunc, onPush, onPushProfile) => ViewScholarsPage(
+              onBack: backFunc,
               forcedSchoolType: 'Secondary',
               onRegisterScholar: () => onPush("Register Scholar"),
               onViewProfile: onPushProfile,
@@ -567,21 +578,33 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             title: "University Registry",
             page: const ViewScholarsPage(forcedSchoolType: 'University'),
             icon: Icons.account_balance_outlined,
-            builder: (onBack, onPush, onPushProfile) => ViewScholarsPage(
+            builder: (backFunc, onPush, onPushProfile) => ViewScholarsPage(
+              onBack: backFunc,
               forcedSchoolType: 'University',
               onRegisterScholar: () => onPush("Register Scholar"),
               onViewProfile: onPushProfile,
               onViewGraduates: () => onPush("University Graduates"),
             ),
           ),
-          const SidebarSubItem(
+          SidebarSubItem(
             title: "Register Scholar", 
             page: RegisterScholarPage(), 
             icon: Icons.person_add,
             isVisible: false,
+            builder: (backFunc, onPush, onPushProfile) => RegisterScholarPage(onBack: backFunc),
           ),
-          SidebarSubItem(title: "University Graduates", page: const UniversityGraduatesPage(), icon: Icons.workspace_premium_rounded),
-          SidebarSubItem(title: "Internship Allocation", page: const InternshipAllocationComponent(), icon: Icons.handshake_rounded),
+          SidebarSubItem(
+            title: "University Graduates", 
+            page: UniversityGraduatesPage(), 
+            icon: Icons.workspace_premium_rounded,
+            builder: (backFunc, onPush, onPushProfile) => UniversityGraduatesPage(onBack: backFunc),
+          ),
+          SidebarSubItem(
+            title: "Internship Allocation", 
+            page: InternshipAllocationComponent(),
+            icon: Icons.handshake_rounded,
+            builder: (backFunc, onPush, onPushProfile) => InternshipAllocationComponent(onBack: backFunc),
+          ),
         ],
       ),
       SidebarCategory(
@@ -590,22 +613,34 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         subItems: [
           SidebarSubItem(
             title: "View Results",
-            page: const ViewResultsPage(),
+            page: ViewResultsPage(),
             icon: Icons.pageview,
-            builder: (onBack, onPush, onPushProfile) => ViewResultsPage(
+            builder: (backFunc, onPush, onPushProfile) => ViewResultsPage(
+              onBack: backFunc,
               onEnterResults: () => onPush("Enter Results"),
               onViewPerformance: () => onPush("Performance Analysis"),
               onViewReports: () => onPush("Report Cards"),
             ),
           ),
-          const SidebarSubItem(
+          SidebarSubItem(
             title: "Enter Results", 
             page: EnterResultsPage(), 
             icon: Icons.edit_note,
             isVisible: false,
+            builder: (backFunc, onPush, onPushProfile) => EnterResultsPage(onBack: backFunc),
           ),
-          SidebarSubItem(title: "Report Cards", page: const ReportCardsPage(), icon: Icons.badge),
-          SidebarSubItem(title: "Performance Analysis", page: const PerformanceAnalysisPage(), icon: Icons.analytics),
+          SidebarSubItem(
+            title: "Report Cards", 
+            page: ReportCardsPage(), 
+            icon: Icons.badge,
+            builder: (backFunc, onPush, onPushProfile) => ReportCardsPage(onBack: backFunc),
+          ),
+          SidebarSubItem(
+            title: "Performance Analysis", 
+            page: PerformanceAnalysisPage(), 
+            icon: Icons.analytics,
+            builder: (backFunc, onPush, onPushProfile) => PerformanceAnalysisPage(onBack: backFunc),
+          ),
         ],
       ),
       SidebarCategory(
@@ -614,18 +649,21 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         subItems: [
           SidebarSubItem(
             title: "Scholar Attendance", 
-            page: const ScholarAttendancePage(), 
-            icon: Icons.how_to_reg
+            page: ScholarAttendancePage(), 
+            icon: Icons.how_to_reg,
+            builder: (backFunc, onPush, onPushProfile) => ScholarAttendancePage(onBack: backFunc),
           ),
           SidebarSubItem(
             title: "Attendance Archives",
-            page: const AttendanceHistoryPage(),
+            page: AttendanceHistoryPage(),
             icon: Icons.history_rounded,
+            builder: (backFunc, onPush, onPushProfile) => AttendanceHistoryPage(onBack: backFunc),
           ),
           SidebarSubItem(
             title: "Participation Sheet", 
-            page: const AttendanceModuleReportsPage(), 
-            icon: Icons.assessment_rounded
+            page: AttendanceModuleReportsPage(),
+            icon: Icons.assessment_rounded,
+            builder: (backFunc, onPush, onPushProfile) => AttendanceModuleReportsPage(onBack: backFunc),
           ),
         ],
       ),
@@ -633,24 +671,54 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         title: "AI Strategy",
         icon: Icons.auto_awesome,
         subItems: [
-          const SidebarSubItem(title: "AI Analyst", page: AIAssistantPage(), icon: Icons.bolt),
+          SidebarSubItem(
+            title: "AI Analyst", 
+            page: AIAssistantPage(), 
+            icon: Icons.bolt,
+            builder: (backFunc, onPush, onPushProfile) => AIAssistantPage(onBack: backFunc),
+          ),
         ],
       ),
       SidebarCategory(
         title: "Settings",
         icon: Icons.settings,
         subItems: [
-          SidebarSubItem(title: "User Profile", page: const UserProfilePage(), icon: Icons.assignment_ind),
-          SidebarSubItem(title: "Organisation Profile", page: const OrganisationProfilePage(), icon: Icons.corporate_fare),
-          SidebarSubItem(title: "System Settings", page: const SystemSettingsPage(), icon: Icons.settings_applications),
-          SidebarSubItem(title: "Account Settings", page: const AccountSettingsPage(), icon: Icons.manage_accounts),
+          SidebarSubItem(
+            title: "User Profile", 
+            page: UserProfilePage(), 
+            icon: Icons.assignment_ind,
+            builder: (backFunc, onPush, onPushProfile) => UserProfilePage(onBack: backFunc),
+          ),
+          SidebarSubItem(
+            title: "Organisation Profile", 
+            page: OrganisationProfilePage(), 
+            icon: Icons.corporate_fare,
+            builder: (backFunc, onPush, onPushProfile) => OrganisationProfilePage(onBack: backFunc),
+          ),
+          SidebarSubItem(
+            title: "System Settings", 
+            page: SystemSettingsPage(), 
+            icon: Icons.settings_applications,
+            builder: (backFunc, onPush, onPushProfile) => SystemSettingsPage(onBack: backFunc),
+          ),
+          SidebarSubItem(
+            title: "Account Settings", 
+            page: AccountSettingsPage(), 
+            icon: Icons.manage_accounts,
+            builder: (backFunc, onPush, onPushProfile) => AccountSettingsPage(onBack: backFunc),
+          ),
         ],
       ),
       SidebarCategory(
         title: "Operations",
         icon: Icons.settings_suggest_rounded,
         subItems: [
-          SidebarSubItem(title: "Pending Approvals", page: const ApprovalsPage(), icon: Icons.rule_folder),
+          SidebarSubItem(
+            title: "Pending Approvals", 
+            page: ApprovalsPage(),
+            icon: Icons.rule_folder,
+            builder: (backFunc, onPush, onPushProfile) => ApprovalsPage(onBack: backFunc),
+          ),
         ],
       ),
     ];
@@ -727,6 +795,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             isDrawer: true, 
             currentPage: activeSubItem.title,
             targetId: _currentDetailScholarId != null ? kStudents.firstWhere((s) => s.id == _currentDetailScholarId).scholarId : null,
+            onBack: () => Navigator.pop(context),
           ),
         ),
         appBar: AppBar(

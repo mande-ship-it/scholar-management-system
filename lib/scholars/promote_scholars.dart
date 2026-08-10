@@ -3,7 +3,8 @@ import '../academics/academics_utils.dart';
 import '../services/api_service.dart';
 
 class PromoteScholarsComponent extends StatefulWidget {
-  const PromoteScholarsComponent({super.key});
+  final VoidCallback? onBack;
+  const PromoteScholarsComponent({super.key, this.onBack});
 
   @override
   State<PromoteScholarsComponent> createState() => _PromoteScholarsComponentState();
@@ -205,7 +206,13 @@ class _PromoteScholarsComponentState extends State<PromoteScholarsComponent> {
             children: [
               if (Navigator.canPop(context)) ...[
                 IconButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: widget.onBack ?? () {
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              Navigator.pushReplacementNamed(context, '/home');
+            }
+          },
                   icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),

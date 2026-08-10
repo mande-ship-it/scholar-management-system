@@ -3,10 +3,11 @@ import '../../events/events_component.dart';
 import '../../academics/academics_utils.dart';
 
 class EventsPage extends StatelessWidget {
-  const EventsPage({super.key});
+  final VoidCallback? onBack;
+  const EventsPage({super.key, this.onBack});
 
   @override
   Widget build(BuildContext context) {
-    return const EventsComponent();
+    return EventsComponent(onBack: onBack);
   }
 }

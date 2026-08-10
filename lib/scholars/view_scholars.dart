@@ -18,6 +18,7 @@ final RegExp _kEmailRegex = RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[\w\-]{2,4}$');
 // ============================================================
 
 class ViewScholarsComponent extends StatefulWidget {
+  final VoidCallback? onBack;
   final VoidCallback? onRegisterScholar;
   final Function(String)? onViewProfile;
   final VoidCallback? onViewGraduates;
@@ -27,6 +28,7 @@ class ViewScholarsComponent extends StatefulWidget {
   final int initialTabIndex;
   const ViewScholarsComponent({
     super.key,
+    this.onBack,
     this.onRegisterScholar,
     this.onViewProfile,
     this.onViewGraduates,
@@ -361,14 +363,19 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
         children: [
           Row(
             children: [
-              if (Navigator.canPop(context)) 
-                IconButton(
-                  icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
-                  onPressed: () => Navigator.pop(context),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              if (Navigator.canPop(context)) const SizedBox(width: 12),
+              IconButton(
+                icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+                onPressed: widget.onBack ?? () {
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  } else {
+                    Navigator.pushReplacementNamed(context, '/home');
+                  }
+                },
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: _compactSearchField(isMobile),
               ),

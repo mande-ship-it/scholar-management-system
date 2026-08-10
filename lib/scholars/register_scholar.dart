@@ -8,8 +8,9 @@ typedef OnScholarRegistered = Future<void> Function(Student scholar);
 
 class RegisterScholarComponent extends StatefulWidget {
   final OnScholarRegistered? onRegister;
+  final VoidCallback? onBack;
   final String? forcedSchoolType;
-  const RegisterScholarComponent({super.key, this.onRegister, this.forcedSchoolType});
+  const RegisterScholarComponent({super.key, this.onRegister, this.onBack, this.forcedSchoolType});
 
   @override
   State<RegisterScholarComponent> createState() => _RegisterScholarComponentState();
@@ -412,15 +413,19 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
       ),
       child: Row(
         children: [
-          if (Navigator.canPop(context)) ...[
-            IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
-            const SizedBox(width: 16),
-          ],
+          IconButton(
+            onPressed: widget.onBack ?? () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                Navigator.pushReplacementNamed(context, '/home');
+              }
+            },
+            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 16),
           Expanded(
             child: Text(
               "Scholar Enrolment",

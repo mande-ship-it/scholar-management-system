@@ -4,7 +4,8 @@ import 'package:scholar_management_system/services/api_service.dart';
 import '../academics/academics_utils.dart';
 
 class SystemSettingsComponent extends StatefulWidget {
-  const SystemSettingsComponent({super.key});
+  final VoidCallback? onBack;
+  const SystemSettingsComponent({super.key, this.onBack});
 
   @override
   State<SystemSettingsComponent> createState() => _SystemSettingsComponentState();

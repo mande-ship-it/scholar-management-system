@@ -3,7 +3,8 @@ import 'package:scholar_management_system/services/api_service.dart';
 import '../academics/academics_utils.dart';
 
 class PermissionsComponent extends StatefulWidget {
-  const PermissionsComponent({super.key});
+  final VoidCallback? onBack;
+  const PermissionsComponent({super.key, this.onBack});
 
   @override
   State<PermissionsComponent> createState() => _PermissionsComponentState();
@@ -157,6 +158,19 @@ class _PermissionsComponentState extends State<PermissionsComponent> {
       ),
       child: Row(
         children: [
+          IconButton(
+            onPressed: widget.onBack ?? () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                Navigator.pushReplacementNamed(context, '/home');
+              }
+            },
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 16),
           Expanded(
             child: Text("Permissions", 
               style: TextStyle(fontSize: isVerySmall ? 13 : 16, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.2)),

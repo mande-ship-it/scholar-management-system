@@ -34,6 +34,7 @@ class AppUser {
 /// MANAGE USERS COMPONENT
 /// ---------------------------------------------------------------------
 class ManageUsersComponent extends StatefulWidget {
+  final VoidCallback? onBack;
   final VoidCallback? onAddUser;
   final VoidCallback? onViewRoles;
   final VoidCallback? onViewPermissions;
@@ -43,6 +44,7 @@ class ManageUsersComponent extends StatefulWidget {
 
   const ManageUsersComponent({
     super.key,
+    this.onBack,
     this.onAddUser,
     this.onViewRoles,
     this.onViewPermissions,
@@ -738,12 +740,14 @@ class _EditUserDialog extends StatefulWidget {
   final List<String> roles;
   final List<dynamic> departments;
   final Function(AppUser) onUserUpdated;
+  final VoidCallback? onBack;
 
   const _EditUserDialog({
     required this.user,
     required this.roles,
     required this.departments,
     required this.onUserUpdated,
+    this.onBack,
   });
 
   @override
@@ -839,10 +843,12 @@ class _EditUserDialogState extends State<_EditUserDialog> {
         ],
       ),
       content: SizedBox(
-        width: 500,
-        child: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
+        width: MediaQuery.of(context).size.width * 0.9,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: SingleChildScrollView(
+            child: Form(
+              key: _formKey,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -874,9 +880,16 @@ class _EditUserDialogState extends State<_EditUserDialog> {
           ),
         ),
       ),
+    ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: widget.onBack ?? () {
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              Navigator.pushReplacementNamed(context, '/home');
+            }
+          },
           child: const Text("Discard", style: TextStyle(color: Colors.grey)),
         ),
         const SizedBox(width: 8),

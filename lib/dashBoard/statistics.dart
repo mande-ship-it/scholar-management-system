@@ -4,7 +4,8 @@ import 'package:scholar_management_system/services/api_service.dart';
 
 class StatisticsComponent extends StatefulWidget {
   final String level; // 'University' or 'Secondary'
-  const StatisticsComponent({super.key, required this.level});
+  final VoidCallback? onBack;
+  const StatisticsComponent({super.key, required this.level, this.onBack});
 
   @override
   State<StatisticsComponent> createState() => _StatisticsComponentState();

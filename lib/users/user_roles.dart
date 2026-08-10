@@ -39,9 +39,10 @@ class _RoleFormResult {
 }
 
 class UserRolesComponent extends StatefulWidget {
+  final VoidCallback? onBack;
   final void Function(UserRole role)? onManagePermissions;
 
-  const UserRolesComponent({super.key, this.onManagePermissions});
+  const UserRolesComponent({super.key, this.onBack, this.onManagePermissions});
 
   @override
   State<UserRolesComponent> createState() => _UserRolesComponentState();
@@ -208,7 +209,13 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
                                 ),
                               ),
                               IconButton(
-                                onPressed: () => Navigator.pop(context),
+                                onPressed: widget.onBack ?? () {
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          } else {
+            Navigator.pushReplacementNamed(context, '/home');
+          }
+        },
                                 icon: const Icon(Icons.close, size: 20),
                               ),
                             ],
@@ -327,7 +334,13 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
                             children: [
                               Expanded(
                                 child: OutlinedButton(
-                                  onPressed: () => Navigator.pop(context),
+                                  onPressed: widget.onBack ?? () {
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          } else {
+            Navigator.pushReplacementNamed(context, '/home');
+          }
+        },
                                   style: OutlinedButton.styleFrom(
                                     padding:
                                     const EdgeInsets.symmetric(vertical: 13),

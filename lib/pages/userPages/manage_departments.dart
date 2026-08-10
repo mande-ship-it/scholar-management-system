@@ -3,10 +3,11 @@ import '../../users/manage_departments.dart';
 import '../../academics/academics_utils.dart';
 
 class ManageDepartmentsPage extends StatelessWidget {
-  const ManageDepartmentsPage({super.key});
+  final VoidCallback? onBack;
+  const ManageDepartmentsPage({super.key, this.onBack});
 
   @override
   Widget build(BuildContext context) {
-    return const ManageDepartmentsComponent();
+    return ManageDepartmentsComponent(onBack: onBack);
   }
 }

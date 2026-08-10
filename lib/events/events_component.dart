@@ -170,7 +170,8 @@ Future<void> downloadEventReport(OrganisationEvent event) async {
 // ---------------------------------------------------------------------------
 
 class EventsComponent extends StatefulWidget {
-  const EventsComponent({super.key});
+  final VoidCallback? onBack;
+  const EventsComponent({super.key, this.onBack});
 
   @override
   State<EventsComponent> createState() => _EventsComponentState();
@@ -265,7 +266,13 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
             children: [
               if (Navigator.canPop(context)) ...[
                 IconButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: widget.onBack ?? () {
+                    if (Navigator.canPop(context)) {
+                      Navigator.pop(context);
+                    } else {
+                      Navigator.pushReplacementNamed(context, '/home');
+                    }
+                  },
                   icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),

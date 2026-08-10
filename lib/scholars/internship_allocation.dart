@@ -5,7 +5,8 @@ import 'package:intl/intl.dart';
 import 'allocation_list.dart';
 
 class InternshipAllocationComponent extends StatefulWidget {
-  const InternshipAllocationComponent({super.key});
+  final VoidCallback? onBack;
+  const InternshipAllocationComponent({super.key, this.onBack});
 
   @override
   State<InternshipAllocationComponent> createState() => _InternshipAllocationComponentState();
@@ -140,7 +141,13 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
         children: [
           if (Navigator.canPop(context)) ...[
             IconButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: widget.onBack ?? () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
+              },
               icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),

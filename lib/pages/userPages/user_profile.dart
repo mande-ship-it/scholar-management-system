@@ -3,10 +3,11 @@ import '../../users/user_profile.dart';
 import '../../academics/academics_utils.dart';
 
 class UserProfilePage extends StatelessWidget {
-  const UserProfilePage({super.key});
+  final VoidCallback? onBack;
+  const UserProfilePage({super.key, this.onBack});
 
   @override
   Widget build(BuildContext context) {
-    return const UserProfileComponent();
+    return UserProfileComponent(onBack: onBack);
   }
 }

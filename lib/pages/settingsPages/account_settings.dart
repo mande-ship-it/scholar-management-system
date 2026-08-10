@@ -3,10 +3,11 @@ import '../../settings/account_settings.dart';
 import '../../academics/academics_utils.dart';
 
 class AccountSettingsPage extends StatelessWidget {
-  const AccountSettingsPage({super.key});
+  final VoidCallback? onBack;
+  const AccountSettingsPage({super.key, this.onBack});
 
   @override
   Widget build(BuildContext context) {
-    return const AccountSettingsComponent();
+    return AccountSettingsComponent(onBack: onBack);
   }
 }

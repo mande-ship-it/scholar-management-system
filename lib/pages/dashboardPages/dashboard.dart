@@ -5,10 +5,11 @@ import '../../academics/academics_utils.dart';
 class DashboardPage extends StatelessWidget {
   final Function(String)? onNavigate;
   final String? userRole;
-  const DashboardPage({super.key, this.onNavigate, this.userRole});
+  final VoidCallback? onBack;
+  const DashboardPage({super.key, this.onNavigate, this.userRole, this.onBack});
 
   @override
   Widget build(BuildContext context) {
-    return DashboardComponent(onNavigate: onNavigate, userRole: userRole);
+    return DashboardComponent(onNavigate: onNavigate, userRole: userRole, onBack: onBack);
   }
 }

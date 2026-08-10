@@ -3,7 +3,8 @@ import 'package:scholar_management_system/services/api_service.dart';
 import '../academics/academics_utils.dart';
 
 class ManageDepartmentsComponent extends StatefulWidget {
-  const ManageDepartmentsComponent({super.key});
+  final VoidCallback? onBack;
+  const ManageDepartmentsComponent({super.key, this.onBack});
 
   @override
   State<ManageDepartmentsComponent> createState() => _ManageDepartmentsComponentState();
@@ -567,7 +568,8 @@ class _DepartmentTileState extends State<_DepartmentTile> {
 
 class _UserDetailsDialog extends StatefulWidget {
   final String userId;
-  const _UserDetailsDialog({required this.userId});
+  final VoidCallback? onBack;
+  const _UserDetailsDialog({required this.userId, this.onBack});
 
   @override
   State<_UserDetailsDialog> createState() => _UserDetailsDialogState();
@@ -697,7 +699,13 @@ class _UserDetailsDialogState extends State<_UserDetailsDialog> {
                 child: SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: widget.onBack ?? () {
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              Navigator.pushReplacementNamed(context, '/home');
+            }
+          },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: kBrandBrown,
                       foregroundColor: Colors.white,

@@ -3,10 +3,11 @@ import '../../dashBoard/notifications.dart';
 import '../../academics/academics_utils.dart';
 
 class NotificationsPage extends StatelessWidget {
-  const NotificationsPage({super.key});
+  final VoidCallback? onBack;
+  const NotificationsPage({super.key, this.onBack});
 
   @override
   Widget build(BuildContext context) {
-    return const NotificationsComponent();
+    return NotificationsComponent(onBack: onBack);
   }
 }

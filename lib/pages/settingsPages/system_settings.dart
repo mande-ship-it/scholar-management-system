@@ -3,10 +3,11 @@ import '../../settings/system_settings.dart';
 import '../../academics/academics_utils.dart';
 
 class SystemSettingsPage extends StatelessWidget {
-  const SystemSettingsPage({super.key});
+  final VoidCallback? onBack;
+  const SystemSettingsPage({super.key, this.onBack});
 
   @override
   Widget build(BuildContext context) {
-    return const SystemSettingsComponent();
+    return SystemSettingsComponent(onBack: onBack);
   }
 }

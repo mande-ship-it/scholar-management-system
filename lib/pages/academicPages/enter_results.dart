@@ -3,10 +3,11 @@ import '../../academics/enter_results.dart';
 import '../../academics/academics_utils.dart';
 
 class EnterResultsPage extends StatelessWidget {
-  const EnterResultsPage({super.key});
+  final VoidCallback? onBack;
+  const EnterResultsPage({super.key, this.onBack});
 
   @override
   Widget build(BuildContext context) {
-    return const AcademicsManagementComponent();
+    return AcademicsManagementComponent(onBack: onBack);
   }
 }

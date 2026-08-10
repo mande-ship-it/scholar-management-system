@@ -6,7 +6,8 @@ import 'academics_utils.dart';
 
 class PerformanceAnalysisComponent extends StatefulWidget {
   final SchoolType? forcedSchoolType;
-  const PerformanceAnalysisComponent({super.key, this.forcedSchoolType});
+  final VoidCallback? onBack;
+  const PerformanceAnalysisComponent({super.key, this.forcedSchoolType, this.onBack});
 
   @override
   State<PerformanceAnalysisComponent> createState() => _PerformanceAnalysisComponentState();
@@ -132,7 +133,13 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
             children: [
               if (Navigator.canPop(context)) ...[
                 IconButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: widget.onBack ?? () {
+                    if (Navigator.canPop(context)) {
+                      Navigator.pop(context);
+                    } else {
+                      Navigator.pushReplacementNamed(context, '/home');
+                    }
+                  },
                   icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),

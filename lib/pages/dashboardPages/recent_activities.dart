@@ -3,12 +3,13 @@ import '../../dashBoard/recent_activities.dart';
 import '../../academics/academics_utils.dart';
 
 class RecentActivitiesPage extends StatelessWidget {
-  const RecentActivitiesPage({super.key});
+  final VoidCallback? onBack;
+  const RecentActivitiesPage({super.key, this.onBack});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: Navigator.canPop(context) 
+      appBar: (Navigator.canPop(context) || onBack != null) 
         ? AppBar(
             title: const Text("Recent Activities", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             backgroundColor: Colors.white,
@@ -16,13 +17,13 @@ class RecentActivitiesPage extends StatelessWidget {
             elevation: 0,
             leading: IconButton(
               icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-              onPressed: () => Navigator.pop(context),
+              onPressed: onBack ?? () => Navigator.pop(context),
             ),
           )
         : null,
-      body: const Padding(
-        padding: EdgeInsets.all(20),
-        child: RecentActivitiesComponent(),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: RecentActivitiesComponent(onBack: onBack),
       ),
     );
   }

@@ -4,7 +4,8 @@ import 'package:scholar_management_system/services/api_service.dart';
 import '../academics/academics_utils.dart';
 
 class RecentActivitiesComponent extends StatefulWidget {
-  const RecentActivitiesComponent({super.key});
+  final VoidCallback? onBack;
+  const RecentActivitiesComponent({super.key, this.onBack});
 
   @override
   State<RecentActivitiesComponent> createState() => _RecentActivitiesComponentState();

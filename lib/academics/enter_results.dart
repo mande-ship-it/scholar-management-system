@@ -9,7 +9,8 @@ import 'package:scholar_management_system/services/api_service.dart';
 
 class AcademicsManagementComponent extends StatefulWidget {
   final SchoolType? forcedSchoolType;
-  const AcademicsManagementComponent({super.key, this.forcedSchoolType});
+  final VoidCallback? onBack;
+  const AcademicsManagementComponent({super.key, this.forcedSchoolType, this.onBack});
 
   @override
   State<AcademicsManagementComponent> createState() => _AcademicsManagementComponentState();

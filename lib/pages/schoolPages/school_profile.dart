@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import '../../schools/school_profile.dart';
 
 class SchoolProfilePage extends StatelessWidget {
-  const SchoolProfilePage({super.key});
+  final VoidCallback? onBack;
+  const SchoolProfilePage({super.key, this.onBack});
 
   @override
   Widget build(BuildContext context) {
-    return const SchoolProfileComponent();
+    return SchoolProfileComponent(onBack: onBack);
   }
 }

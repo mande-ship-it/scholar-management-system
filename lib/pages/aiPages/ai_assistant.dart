@@ -6,7 +6,8 @@ class AIAssistantPage extends StatefulWidget {
   final bool isDrawer;
   final String? currentPage;
   final String? targetId;
-  const AIAssistantPage({super.key, this.isDrawer = false, this.currentPage, this.targetId});
+  final VoidCallback? onBack;
+  const AIAssistantPage({super.key, this.isDrawer = false, this.currentPage, this.targetId, this.onBack});
 
   @override
   State<AIAssistantPage> createState() => _AIAssistantPageState();
@@ -93,7 +94,13 @@ class _AIAssistantPageState extends State<AIAssistantPage> {
       child: Row(
         children: [
           IconButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: widget.onBack ?? () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                Navigator.pushReplacementNamed(context, '/home');
+              }
+            },
             icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),

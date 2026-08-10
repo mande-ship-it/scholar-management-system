@@ -43,7 +43,7 @@ class AdminSidebarSubItem {
   final Widget page;
   final IconData icon;
   final bool isVisible;
-  final Widget Function(VoidCallback onBack, Function(String) onPush)? builder;
+  final Widget Function(VoidCallback backFunc, Function(String) onPush)? builder;
 
   const AdminSidebarSubItem({
     required this.title,
@@ -471,7 +471,12 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
             page: AdminDashboardComponent(onNavigate: _pushSubItem),
             icon: Icons.admin_panel_settings_rounded,
           ),
-          AdminSidebarSubItem(title: Translator.translate("Notifications"), page: const NotificationsPage(), icon: Icons.notifications_active),
+          AdminSidebarSubItem(
+            title: Translator.translate("Notifications"), 
+            page: NotificationsPage(), 
+            icon: Icons.notifications_active,
+            builder: (backFunc, onPush) => NotificationsPage(onBack: backFunc),
+          ),
         ],
       ),
       AdminSidebarCategory(
@@ -480,16 +485,16 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
         subItems: [
           AdminSidebarSubItem(
             title: Translator.translate("Manage Institutions"),
-            page: const ViewSchoolsPage(),
+            page: ViewSchoolsPage(),
             icon: Icons.domain_verification_rounded,
-            builder: (onBack, onPush) => ViewSchoolsPage(onRegisterSchool: () => onPush("Register School")),
+            builder: (backFunc, onPush) => ViewSchoolsPage(onBack: backFunc, onRegisterSchool: () => onPush("Register School")),
           ),
           AdminSidebarSubItem(
             title: Translator.translate("Register School"),
-            page: const RegisterSchoolPage(),
+            page: RegisterSchoolPage(),
             icon: Icons.add_business_rounded,
             isVisible: false,
-            builder: (onBack, onPush) => RegisterSchoolPage(onSuccess: onBack),
+            builder: (backFunc, onPush) => RegisterSchoolPage(onBack: backFunc, onSuccess: backFunc),
           ),
         ],
       ),
@@ -499,21 +504,27 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
         subItems: [
           AdminSidebarSubItem(
             title: "Scholars Registry",
-            page: const ViewScholarsPage(),
+            page: ViewScholarsPage(),
             icon: Icons.people_rounded,
-            builder: (onBack, onPush) => ViewScholarsPage(
+            builder: (backFunc, onPush) => ViewScholarsPage(
+              onBack: backFunc,
               onRegisterScholar: () => onPush("Register Scholar"),
               onViewGraduates: () => onPush("University Graduates"),
             ),
           ),
           AdminSidebarSubItem(
             title: "Register Scholar",
-            page: const RegisterScholarPage(),
+            page: RegisterScholarPage(),
             icon: Icons.person_add_rounded,
             isVisible: false,
-            builder: (onBack, onPush) => RegisterScholarPage(onSuccess: () => onPush("Scholars Registry")),
+            builder: (backFunc, onPush) => RegisterScholarPage(onBack: backFunc, onSuccess: () => onPush("Scholars Registry")),
           ),
-          AdminSidebarSubItem(title: "University Graduates", page: const UniversityGraduatesPage(), icon: Icons.workspace_premium_rounded),
+          AdminSidebarSubItem(
+            title: "University Graduates", 
+            page: UniversityGraduatesPage(), 
+            icon: Icons.workspace_premium_rounded,
+            builder: (backFunc, onPush) => UniversityGraduatesPage(onBack: backFunc),
+          ),
         ],
       ),
       AdminSidebarCategory(
@@ -522,16 +533,16 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
         subItems: [
           AdminSidebarSubItem(
             title: "Sponsors Directory",
-            page: const ViewSponsorsPage(),
+            page: ViewSponsorsPage(),
             icon: Icons.supervised_user_circle_rounded,
-            builder: (onBack, onPush) => ViewSponsorsPage(onRegisterSponsor: () => onPush("Register Sponsor")),
+            builder: (backFunc, onPush) => ViewSponsorsPage(onBack: backFunc, onRegisterSponsor: () => onPush("Register Sponsor")),
           ),
           AdminSidebarSubItem(
             title: "Register Sponsor",
-            page: const RegisterSponsorPage(),
+            page: RegisterSponsorPage(),
             icon: Icons.person_add_alt_1_rounded,
             isVisible: false,
-            builder: (onBack, onPush) => RegisterSponsorPage(onSuccess: () => onPush("Sponsors Directory")),
+            builder: (backFunc, onPush) => RegisterSponsorPage(onBack: backFunc, onSuccess: () => onPush("Sponsors Directory")),
           ),
         ],
       ),
@@ -539,10 +550,11 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
         title: "Activities",
         icon: Icons.event_available_rounded,
         subItems: [
-          const AdminSidebarSubItem(
+          AdminSidebarSubItem(
             title: "Events & Programs",
             page: EventsPage(),
             icon: Icons.calendar_month_rounded,
+            builder: (backFunc, onPush) => EventsPage(onBack: backFunc),
           ),
         ],
       ),
@@ -560,17 +572,50 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
               onViewProfile: () => _pushSubItem("User Profile"),
             ),
             icon: Icons.manage_accounts,
+            builder: (backFunc, onPush) => ManageUsersPage(
+              onBack: backFunc,
+              onAddUser: () => onPush("Create User"),
+              onViewRoles: () => onPush("User Roles"),
+              onViewDepartments: () => onPush("Manage Departments"),
+              onViewPermissions: () => onPush("Permissions"),
+              onViewProfile: () => onPush("User Profile"),
+            ),
           ),
           AdminSidebarSubItem(
             title: "Create User",
-            page: const CreateUserPage(),
+            page: CreateUserPage(),
             icon: Icons.person_add_alt_1,
             isVisible: false,
+            builder: (backFunc, onPush) => CreateUserPage(onBack: backFunc),
           ),
-          AdminSidebarSubItem(title: "User Roles", page: const UserRolesPage(), icon: Icons.security, isVisible: false),
-          AdminSidebarSubItem(title: "Manage Departments", page: const ManageDepartmentsPage(), icon: Icons.apartment_rounded, isVisible: false),
-          AdminSidebarSubItem(title: "Permissions", page: const PermissionsPage(), icon: Icons.rule, isVisible: false),
-          AdminSidebarSubItem(title: "User Profile", page: const UserProfilePage(), icon: Icons.assignment_ind, isVisible: false),
+          AdminSidebarSubItem(
+            title: "User Roles", 
+            page: UserRolesPage(), 
+            icon: Icons.security, 
+            isVisible: false,
+            builder: (backFunc, onPush) => UserRolesPage(onBack: backFunc),
+          ),
+          AdminSidebarSubItem(
+            title: "Manage Departments", 
+            page: ManageDepartmentsPage(), 
+            icon: Icons.apartment_rounded, 
+            isVisible: false,
+            builder: (backFunc, onPush) => ManageDepartmentsPage(onBack: backFunc),
+          ),
+          AdminSidebarSubItem(
+            title: "Permissions", 
+            page: PermissionsPage(), 
+            icon: Icons.rule, 
+            isVisible: false,
+            builder: (backFunc, onPush) => PermissionsPage(onBack: backFunc),
+          ),
+          AdminSidebarSubItem(
+            title: "User Profile", 
+            page: UserProfilePage(), 
+            icon: Icons.assignment_ind, 
+            isVisible: false,
+            builder: (backFunc, onPush) => UserProfilePage(onBack: backFunc),
+          ),
         ],
       ),
       AdminSidebarCategory(
@@ -581,7 +626,7 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
             title: "Pending Approvals",
             page: ApprovalsPage(userRole: _userRole),
             icon: Icons.rule_folder_rounded,
-            builder: (onBack, onPush) => ApprovalsPage(userRole: _userRole),
+            builder: (backFunc, onPush) => ApprovalsPage(onBack: backFunc, userRole: _userRole),
           ),
         ],
       ),
@@ -589,11 +634,36 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
         title: "Settings",
         icon: Icons.settings,
         subItems: [
-          AdminSidebarSubItem(title: "User Profile", page: const UserProfilePage(), icon: Icons.assignment_ind),
-          AdminSidebarSubItem(title: "Organisation Profile", page: const OrganisationProfilePage(), icon: Icons.corporate_fare),
-          AdminSidebarSubItem(title: "Backup & Restore", page: const BackupRestorePage(), icon: Icons.backup),
-          AdminSidebarSubItem(title: "System Settings", page: const SystemSettingsPage(), icon: Icons.settings_applications),
-          AdminSidebarSubItem(title: "Account Settings", page: const AccountSettingsPage(), icon: Icons.manage_accounts),
+          AdminSidebarSubItem(
+            title: "User Profile", 
+            page: UserProfilePage(), 
+            icon: Icons.assignment_ind,
+            builder: (backFunc, onPush) => UserProfilePage(onBack: backFunc),
+          ),
+          AdminSidebarSubItem(
+            title: "Organisation Profile", 
+            page: OrganisationProfilePage(), 
+            icon: Icons.corporate_fare,
+            builder: (backFunc, onPush) => OrganisationProfilePage(onBack: backFunc),
+          ),
+          AdminSidebarSubItem(
+            title: "Backup & Restore", 
+            page: BackupRestorePage(), 
+            icon: Icons.backup,
+            builder: (backFunc, onPush) => BackupRestorePage(onBack: backFunc),
+          ),
+          AdminSidebarSubItem(
+            title: "System Settings", 
+            page: SystemSettingsPage(), 
+            icon: Icons.settings_applications,
+            builder: (backFunc, onPush) => SystemSettingsPage(onBack: backFunc),
+          ),
+          AdminSidebarSubItem(
+            title: "Account Settings", 
+            page: AccountSettingsPage(),
+            icon: Icons.manage_accounts,
+            builder: (backFunc, onPush) => AccountSettingsPage(onBack: backFunc),
+          ),
         ],
       ),
     ];

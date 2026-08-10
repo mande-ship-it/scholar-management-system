@@ -3,6 +3,7 @@ import '../../users/manage_users.dart';
 import '../../academics/academics_utils.dart';
 
 class ManageUsersPage extends StatelessWidget {
+  final VoidCallback? onBack;
   final VoidCallback? onAddUser;
   final VoidCallback? onViewRoles;
   final VoidCallback? onViewPermissions;
@@ -11,6 +12,7 @@ class ManageUsersPage extends StatelessWidget {
 
   const ManageUsersPage({
     super.key,
+    this.onBack,
     this.onAddUser,
     this.onViewRoles,
     this.onViewPermissions,
@@ -21,6 +23,7 @@ class ManageUsersPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ManageUsersComponent(
+      onBack: onBack,
       onAddUser: onAddUser,
       onViewRoles: onViewRoles,
       onViewPermissions: onViewPermissions,

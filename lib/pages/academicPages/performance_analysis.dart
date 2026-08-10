@@ -4,10 +4,11 @@ import '../../academics/academics_utils.dart';
 
 class PerformanceAnalysisPage extends StatelessWidget {
   final SchoolType? forcedSchoolType;
-  const PerformanceAnalysisPage({super.key, this.forcedSchoolType});
+  final VoidCallback? onBack;
+  const PerformanceAnalysisPage({super.key, this.forcedSchoolType, this.onBack});
 
   @override
   Widget build(BuildContext context) {
-    return PerformanceAnalysisComponent(forcedSchoolType: forcedSchoolType);
+    return PerformanceAnalysisComponent(forcedSchoolType: forcedSchoolType, onBack: onBack);
   }
 }

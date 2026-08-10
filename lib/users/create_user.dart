@@ -3,7 +3,8 @@ import 'package:scholar_management_system/services/api_service.dart';
 import '../academics/academics_utils.dart';
 
 class CreateUserComponent extends StatefulWidget {
-  const CreateUserComponent({super.key});
+  final VoidCallback? onBack;
+  const CreateUserComponent({super.key, this.onBack});
 
   @override
   State<CreateUserComponent> createState() => _CreateUserComponentState();
@@ -266,7 +267,13 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
         children: [
           if (Navigator.canPop(context)) ...[
             IconButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: widget.onBack ?? () {
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              Navigator.pushReplacementNamed(context, '/home');
+            }
+          },
               icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),

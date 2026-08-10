@@ -4,7 +4,8 @@ import '../academics/academics_utils.dart';
 import 'package:intl/intl.dart';
 
 class UniversityGraduatesComponent extends StatefulWidget {
-  const UniversityGraduatesComponent({super.key});
+  final VoidCallback? onBack;
+  const UniversityGraduatesComponent({super.key, this.onBack});
 
   @override
   State<UniversityGraduatesComponent> createState() => _UniversityGraduatesComponentState();
@@ -138,7 +139,13 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
             children: [
               if (Navigator.canPop(context)) ...[
                 IconButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: widget.onBack ?? () {
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  } else {
+                    Navigator.pushReplacementNamed(context, '/home');
+                  }
+                },
                   icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),

@@ -11,7 +11,8 @@ class _BackupItem {
 }
 
 class BackupRestoreComponent extends StatefulWidget {
-  const BackupRestoreComponent({super.key});
+  final VoidCallback? onBack;
+  const BackupRestoreComponent({super.key, this.onBack});
 
   @override
   State<BackupRestoreComponent> createState() => _BackupRestoreComponentState();

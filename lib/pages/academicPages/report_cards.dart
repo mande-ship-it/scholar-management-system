@@ -3,10 +3,11 @@ import '../../academics/report_cards.dart';
 import '../../academics/academics_utils.dart';
 
 class ReportCardsPage extends StatelessWidget {
-  const ReportCardsPage({super.key});
+  final VoidCallback? onBack;
+  const ReportCardsPage({super.key, this.onBack});
 
   @override
   Widget build(BuildContext context) {
-    return const ReportCardsComponent();
+    return ReportCardsComponent(onBack: onBack);
   }
 }

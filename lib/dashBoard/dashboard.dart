@@ -9,7 +9,8 @@ import '../academics/academics_utils.dart';
 class DashboardComponent extends StatefulWidget {
   final Function(String)? onNavigate;
   final String? userRole;
-  const DashboardComponent({super.key, this.onNavigate, this.userRole});
+  final VoidCallback? onBack;
+  const DashboardComponent({super.key, this.onNavigate, this.userRole, this.onBack});
 
   @override
   State<DashboardComponent> createState() => _DashboardComponentState();
@@ -130,6 +131,13 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
         ),
         child: Row(
           children: [
+            if (widget.onBack != null) ...[
+              IconButton(
+                icon: const Icon(Icons.arrow_back, color: Color(0xFF4C3C32)),
+                onPressed: widget.onBack,
+              ),
+              const SizedBox(width: 8),
+            ],
             Expanded(
               child: _buildLevelToggle(true),
             ),
@@ -149,6 +157,13 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          if (widget.onBack != null) ...[
+            IconButton(
+              icon: const Icon(Icons.arrow_back, color: Color(0xFF4C3C32)),
+              onPressed: widget.onBack,
+            ),
+            const SizedBox(width: 12),
+          ],
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,7 +232,7 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
         ),
         child: Center(
           child: Text(
-            isSmall ? "${level.toUpperCase()} DASHBOARD" : level.toUpperCase(),
+            isSmall ? level.toUpperCase() : "${level.toUpperCase()} DASHBOARD",
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: isSmall ? 11 : 10,

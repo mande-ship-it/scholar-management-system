@@ -3,6 +3,7 @@ import '../../scholars/view_scholars.dart';
 import '../../academics/academics_utils.dart';
 
 class ViewScholarsPage extends StatelessWidget {
+  final VoidCallback? onBack;
   final VoidCallback? onRegisterScholar;
   final Function(String)? onViewProfile;
   final VoidCallback? onViewGraduates;
@@ -12,6 +13,7 @@ class ViewScholarsPage extends StatelessWidget {
   final int initialTabIndex;
   const ViewScholarsPage({
     super.key,
+    this.onBack,
     this.onRegisterScholar,
     this.onViewProfile,
     this.onViewGraduates,
@@ -24,6 +26,7 @@ class ViewScholarsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ViewScholarsComponent(
+      onBack: onBack,
       onRegisterScholar: onRegisterScholar,
       onViewProfile: onViewProfile,
       onViewGraduates: onViewGraduates,

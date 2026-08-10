@@ -3,7 +3,8 @@ import 'package:scholar_management_system/services/api_service.dart';
 import '../academics/academics_utils.dart';
 
 class OrganisationProfileComponent extends StatefulWidget {
-  const OrganisationProfileComponent({super.key});
+  final VoidCallback? onBack;
+  const OrganisationProfileComponent({super.key, this.onBack});
 
   @override
   State<OrganisationProfileComponent> createState() =>

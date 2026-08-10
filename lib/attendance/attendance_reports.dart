@@ -4,7 +4,8 @@ import '../academics/academics_utils.dart';
 import 'package:scholar_management_system/services/api_service.dart';
 
 class AttendanceReportsComponent extends StatefulWidget {
-  const AttendanceReportsComponent({super.key});
+  final VoidCallback? onBack;
+  const AttendanceReportsComponent({super.key, this.onBack});
 
   @override
   State<AttendanceReportsComponent> createState() => _AttendanceReportsComponentState();
@@ -93,7 +94,13 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
         children: [
           if (Navigator.canPop(context)) ...[
             IconButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: widget.onBack ?? () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
+              },
               icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: isDark ? Colors.white : kBrandBrown),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),

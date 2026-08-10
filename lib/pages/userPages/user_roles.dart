@@ -3,10 +3,11 @@ import '../../users/user_roles.dart';
 import '../../academics/academics_utils.dart';
 
 class UserRolesPage extends StatelessWidget {
-  const UserRolesPage({super.key});
+  final VoidCallback? onBack;
+  const UserRolesPage({super.key, this.onBack});
 
   @override
   Widget build(BuildContext context) {
-    return const UserRolesComponent();
+    return UserRolesComponent(onBack: onBack);
   }
 }

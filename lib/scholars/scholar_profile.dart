@@ -279,7 +279,13 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
           Row(
             children: [
               IconButton(
-                onPressed: widget.onBack ?? () => Navigator.pop(context),
+                onPressed: widget.onBack ?? () {
+                  if (Navigator.canPop(context)) {
+                    Navigator.pop(context);
+                  } else {
+                    Navigator.pushReplacementNamed(context, '/home');
+                  }
+                },
                 icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),

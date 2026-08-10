@@ -70,7 +70,8 @@ class AttendanceEntry {
 class ScholarAttendanceComponent extends StatefulWidget {
   final SchoolType? forcedSchoolType;
   final AttendanceModuleType? forcedModuleType;
-  const ScholarAttendanceComponent({super.key, this.forcedSchoolType, this.forcedModuleType});
+  final VoidCallback? onBack;
+  const ScholarAttendanceComponent({super.key, this.forcedSchoolType, this.forcedModuleType, this.onBack});
 
   @override
   State<ScholarAttendanceComponent> createState() => _ScholarAttendanceComponentState();
@@ -320,15 +321,19 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
       ),
       child: Row(
         children: [
-          if (Navigator.canPop(context)) ...[
-            IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
-            const SizedBox(width: 16),
-          ],
+          IconButton(
+            onPressed: widget.onBack ?? () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                Navigator.pushReplacementNamed(context, '/home');
+              }
+            },
+            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 16),
           Expanded(
             child: Text(
               _isFieldOfficer ? "Session Telemetry" : "Attendance Audit",

@@ -5,7 +5,8 @@ import '../academics/academics_utils.dart';
 class RegisterSchoolComponent extends StatefulWidget {
   final Function(Map<String, dynamic>)? onRegister;
   final Function()? onSuccess;
-  const RegisterSchoolComponent({super.key, this.onRegister, this.onSuccess});
+  final VoidCallback? onBack;
+  const RegisterSchoolComponent({super.key, this.onRegister, this.onSuccess, this.onBack});
 
   @override
   State<RegisterSchoolComponent> createState() => _RegisterSchoolComponentState();
@@ -332,15 +333,19 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
       ),
       child: Row(
         children: [
-          if (Navigator.canPop(context)) ...[
-            IconButton(
-              onPressed: () => Navigator.pop(context),
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
-            const SizedBox(width: 16),
-          ],
+          IconButton(
+            onPressed: widget.onBack ?? () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                Navigator.pushReplacementNamed(context, '/home');
+              }
+            },
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 16),
           Expanded(
             child: Text(
               "Institution Registration",

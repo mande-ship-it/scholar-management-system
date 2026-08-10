@@ -3,11 +3,13 @@ import '../../attendance/scholar_attendance.dart';
 import '../../academics/academics_utils.dart';
 
 class ScholarAttendancePage extends StatelessWidget {
+  final VoidCallback? onBack;
   final SchoolType? forcedSchoolType;
   final AttendanceModuleType? forcedModuleType;
 
   const ScholarAttendancePage({
     super.key,
+    this.onBack,
     this.forcedSchoolType,
     this.forcedModuleType,
   });
@@ -33,6 +35,7 @@ class ScholarAttendancePage extends StatelessWidget {
     }
 
     return ScholarAttendanceComponent(
+      onBack: onBack,
       forcedSchoolType: effectiveSchoolType,
       forcedModuleType: effectiveModuleType,
     );
