@@ -126,53 +126,48 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
         children: [
-          Row(
-            children: [
-              if (Navigator.canPop(context)) ...[
-                IconButton(
-                  onPressed: widget.onBack ?? () {
-                    if (Navigator.canPop(context)) {
-                      Navigator.pop(context);
-                    } else {
-                      Navigator.pushReplacementNamed(context, '/home');
-                    }
-                  },
-                  icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+          if (Navigator.canPop(context)) ...[
+            IconButton(
+              onPressed: widget.onBack ?? () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
+              },
+              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 16),
+          ],
+          if (!_isSearchExpanded)
+            Expanded(
+              child: Text(
+                "Perform. Analysis",
+                style: TextStyle(
+                  fontSize: isVerySmall ? 13 : 16, 
+                  fontWeight: FontWeight.w900, 
+                  color: const Color(0xFF4C3C32), 
+                  letterSpacing: -0.2
                 ),
-                const SizedBox(width: 16),
-              ],
-              Expanded(
-                child: Text(
-                  "Performance Analysis",
-                  style: TextStyle(
-                    fontSize: isVerySmall ? 13 : 16, 
-                    fontWeight: FontWeight.w900, 
-                    color: const Color(0xFF4C3C32), 
-                    letterSpacing: -0.2
-                  ),
-                ),
+                overflow: TextOverflow.ellipsis,
               ),
-              if (!isVerySmall) ...[
-                _buildTypeToggle(false),
-                const SizedBox(width: 12),
-              ],
-              IconButton(
-                onPressed: _fetchCurrentTabData,
-                icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
-                tooltip: "Sync Analysis",
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-            ],
-          ),
-          if (isVerySmall) ...[
-            const SizedBox(height: 8),
-            _buildTypeToggle(true),
+            ),
+          if (_tabController.index == 0) _buildScholarPicker(isMobile: isMobile),
+          if (!_isSearchExpanded) ...[
+            const SizedBox(width: 12),
+            _buildTypeToggle(false),
+            const SizedBox(width: 12),
+            IconButton(
+              onPressed: _fetchCurrentTabData,
+              icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+              tooltip: "Sync Analysis",
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
           ],
         ],
       ),
@@ -207,22 +202,21 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
   }
 
   Widget _buildTypeToggle(bool isMobile) {
-    return SizedBox(
-      width: isMobile ? double.infinity : null,
-      child: SegmentedButton<String>(
-        segments: const [
-          ButtonSegment(value: 'Secondary', label: Text("SEC"), icon: Icon(Icons.school_outlined, size: 16)),
-          ButtonSegment(value: 'University', label: Text("UNI"), icon: Icon(Icons.account_balance_outlined, size: 16)),
-        ],
-        selected: {_selectedType},
-        onSelectionChanged: (val) {
-          setState(() => _selectedType = val.first);
-          _fetchCurrentTabData();
-        },
-        style: SegmentedButton.styleFrom(
-          selectedBackgroundColor: kBrandBrown,
-          selectedForegroundColor: Colors.white,
-        ),
+    return SegmentedButton<String>(
+      segments: const [
+        ButtonSegment(value: 'Secondary', label: Text("SEC")),
+        ButtonSegment(value: 'University', label: Text("UNI")),
+      ],
+      selected: {_selectedType},
+      onSelectionChanged: (val) {
+        setState(() => _selectedType = val.first);
+        _fetchCurrentTabData();
+      },
+      showSelectedIcon: false,
+      style: SegmentedButton.styleFrom(
+        visualDensity: VisualDensity.compact,
+        selectedBackgroundColor: kBrandBrown,
+        selectedForegroundColor: Colors.white,
       ),
     );
   }
@@ -260,8 +254,6 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildScholarPicker(isMobile: isMobile),
-          const SizedBox(height: 32),
           if (_individualData != null) ...[
             _buildIndividualInsightsSummary(isMobile),
             const SizedBox(height: 32),

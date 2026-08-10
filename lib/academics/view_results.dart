@@ -276,6 +276,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
       return _buildSelectionScreen();
     }
 
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
     final students = _filteredStudents;
 
     return Container(
@@ -286,6 +287,7 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildPortalIntegratedHeader(),
+          _buildFilterBar(isMobile),
           Expanded(
             child: Column(
               children: [
@@ -315,59 +317,79 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
         children: [
-          Row(
-            children: [
+          IconButton(
+            onPressed: () => setState(() {
+              _mode = ViewResultsMode.selection;
+              _selectedDistrict = null;
+              _selectedSchool = null;
+              _selectedScholarId = null;
+              _selectedYear = null;
+              _selectedTerm = null;
+              _selectedSemester = null;
+            }),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 14, color: kBrandBrown),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 16),
+          if (!_isSearchExpanded)
+            Expanded(
+              child: Text(
+                isSecondary ? "Sec Results" : "Uni Results",
+                style: TextStyle(
+                  fontSize: isVerySmall ? 13 : 16, 
+                  fontWeight: FontWeight.w900, 
+                  color: const Color(0xFF4C3C32), 
+                  letterSpacing: -0.2
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          _portalCompactSearchField(isMobile),
+          if (!_isSearchExpanded) ...[
+            const SizedBox(width: 8),
+            if (_selectedSchool != null || (isSecondary && _selectedDistrict != null))
               IconButton(
-                onPressed: () => setState(() {
-                  _mode = ViewResultsMode.selection;
-                  _selectedDistrict = null;
-                  _selectedSchool = null;
-                  _selectedScholarId = null;
-                  _selectedYear = null;
-                  _selectedTerm = null;
-                  _selectedSemester = null;
-                }),
-                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 14, color: kBrandBrown),
+                onPressed: _openConsolidatedRoster,
+                icon: const Icon(Icons.grid_view_rounded, color: kBrandBrown, size: 20),
+                tooltip: "Roster",
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _portalCompactSearchField(isMobile),
-              ),
-              const SizedBox(width: 8),
-              if (_selectedSchool != null || (isSecondary && _selectedDistrict != null))
-                IconButton(
-                  onPressed: _openConsolidatedRoster,
-                  icon: const Icon(Icons.grid_view_rounded, color: kBrandBrown, size: 20),
-                  tooltip: "Roster",
-                ),
-              IconButton(
-                onPressed: widget.onEnterResults ?? () => Navigator.pushNamed(context, '/academics/enterResults'),
-                icon: const Icon(Icons.add_circle_outline_rounded, color: kBrandOlive, size: 24),
-                tooltip: "Record",
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                if (isSecondary) ...[
-                  _portalCompactDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() { _selectedDistrict = v; _selectedSchool = null; _selectedScholarId = null; })),
-                  const SizedBox(width: 8),
-                ],
-                _portalCompactDropdown(isSecondary ? "School" : "University", _selectedSchool, _availableSchools, (v) => setState(() { _selectedSchool = v; _selectedScholarId = null; })),
-                const SizedBox(width: 8),
-                _portalCompactDropdown("Year", _selectedYear, _academicYears, (v) => setState(() => _selectedYear = v)),
-              ],
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: widget.onEnterResults ?? () => Navigator.pushNamed(context, '/academics/enterResults'),
+              icon: const Icon(Icons.add_circle_outline_rounded, color: kBrandOlive, size: 24),
+              tooltip: "Record",
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
             ),
-          ),
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildFilterBar(bool isMobile) {
+    final bool isSecondary = _mode == ViewResultsMode.secondary;
+    return Container(
+      color: Colors.white,
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 32, vertical: 12),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            if (isSecondary) ...[
+              _portalCompactDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() { _selectedDistrict = v; _selectedSchool = null; _selectedScholarId = null; })),
+              const SizedBox(width: 8),
+            ],
+            _portalCompactDropdown(isSecondary ? "School" : "University", _selectedSchool, _availableSchools, (v) => setState(() { _selectedSchool = v; _selectedScholarId = null; })),
+            const SizedBox(width: 8),
+            _portalCompactDropdown("Year", _selectedYear, _academicYears, (v) => setState(() => _selectedYear = v)),
+          ],
+        ),
       ),
     );
   }

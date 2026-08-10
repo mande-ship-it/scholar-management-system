@@ -75,21 +75,29 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
             ),
             const SizedBox(width: 16),
           ],
-          Expanded(
-            child: Text("Attendance Archives",
-              style: TextStyle(fontSize: isVerySmall ? 13 : 16, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.2)),
-          ),
-          IconButton(
-            onPressed: () => setState(() {
-              _filterType = null;
-              _filterSchool = null;
-              _fetchHistory();
-            }),
-            icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
-            tooltip: "Reload Archives",
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
+          if (!_isSearchExpanded)
+            Expanded(
+              child: Text("Attendance Archives",
+                style: TextStyle(fontSize: isVerySmall ? 13 : 16, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.2)),
+            ),
+          _textFilter("INSTITUTION", Icons.search_rounded, "Search school...", (v) {
+            setState(() => _filterSchool = v.isEmpty ? null : v);
+            _fetchHistory();
+          }),
+          if (!_isSearchExpanded) ...[
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: () => setState(() {
+                _filterType = null;
+                _filterSchool = null;
+                _fetchHistory();
+              }),
+              icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+              tooltip: "Reload Archives",
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ],
         ],
       ),
     );
@@ -144,55 +152,16 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
   }
 
   Widget _buildFilterBar(bool isMobile) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     return Container(
-      padding: EdgeInsets.all(isMobile ? 16 : 24),
-      decoration: BoxDecoration(
-        color: isDark ? theme.colorScheme.surfaceContainerHighest : Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: theme.dividerColor),
-      ),
-      child: isMobile 
-        ? Row(
-            children: [
-              Expanded(
-                child: _dropdownFilter("MODULE", _filterType, [
-                  const DropdownMenuItem(value: null, child: Text("All Modules")),
-                  ...AttendanceModuleType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.label))),
-                ], (v) {
-                  setState(() => _filterType = v);
-                  _fetchHistory();
-                }),
-              ),
-              const SizedBox(width: 12),
-              _textFilter("INSTITUTION", Icons.search_rounded, "Search school...", (v) {
-                setState(() => _filterSchool = v.isEmpty ? null : v);
-                _fetchHistory();
-              }),
-            ],
-          )
-        : Row(
-            children: [
-              Expanded(
-                child: _dropdownFilter("MODULE", _filterType, [
-                  const DropdownMenuItem(value: null, child: Text("All Modules")),
-                  ...AttendanceModuleType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.label))),
-                ], (v) {
-                  setState(() => _filterType = v);
-                  _fetchHistory();
-                }),
-              ),
-              const SizedBox(width: 24),
-              Expanded(
-                child: _textFilter("INSTITUTION", Icons.search_rounded, "Search school or partner...", (v) {
-                  setState(() => _filterSchool = v.isEmpty ? null : v);
-                  _fetchHistory();
-                }),
-              ),
-            ],
-          ),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      color: Colors.white,
+      child: _dropdownFilter("MODULE", _filterType, [
+        const DropdownMenuItem(value: null, child: Text("All Modules")),
+        ...AttendanceModuleType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.label))),
+      ], (v) {
+        setState(() => _filterType = v);
+        _fetchHistory();
+      }),
     );
   }
 

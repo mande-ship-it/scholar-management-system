@@ -259,64 +259,63 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
         children: [
-          Row(
-            children: [
-              if (Navigator.canPop(context)) ...[
-                IconButton(
-                  onPressed: widget.onBack ?? () {
-                    if (Navigator.canPop(context)) {
-                      Navigator.pop(context);
-                    } else {
-                      Navigator.pushReplacementNamed(context, '/home');
-                    }
-                  },
-                  icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+          if (Navigator.canPop(context)) ...[
+            IconButton(
+              onPressed: widget.onBack ?? () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
+              },
+              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 16),
+          ],
+          if (!_isSearchExpanded)
+            Expanded(
+              child: Text(
+                "Events & Programs",
+                style: TextStyle(
+                  fontSize: isVerySmall ? 13 : 16, 
+                  fontWeight: FontWeight.w900, 
+                  color: const Color(0xFF4C3C32), 
+                  letterSpacing: -0.2
                 ),
-                const SizedBox(width: 16),
-              ],
-              Expanded(
-                child: Text(
-                  "Events & Programs",
-                  style: TextStyle(
-                    fontSize: isVerySmall ? 13 : 16, 
-                    fontWeight: FontWeight.w900, 
-                    color: const Color(0xFF4C3C32), 
-                    letterSpacing: -0.2
-                  ),
-                ),
+                overflow: TextOverflow.ellipsis,
               ),
-              IconButton(
-                onPressed: () => Navigator.pushNamed(context, '/events/liveMeeting'),
-                icon: const Icon(Icons.video_call_rounded, color: kBrandBrown, size: 24),
-                tooltip: "Live Meeting",
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-              const SizedBox(width: 12),
-              IconButton(
-                onPressed: _showCreateEventDialog,
-                icon: Icon(Icons.add_circle_outline_rounded, color: kBrandOlive, size: 24),
-                tooltip: "Create Event",
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-              const SizedBox(width: 8),
-              IconButton(
-                onPressed: _fetchEvents,
-                icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
-                tooltip: "Sync Events",
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
+            ),
           _buildSearchField(isMobile),
+          if (!_isSearchExpanded) ...[
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: () => Navigator.pushNamed(context, '/events/liveMeeting'),
+              icon: const Icon(Icons.video_call_rounded, color: kBrandBrown, size: 24),
+              tooltip: "Live Meeting",
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 12),
+            IconButton(
+              onPressed: _showCreateEventDialog,
+              icon: Icon(Icons.add_circle_outline_rounded, color: kBrandOlive, size: 24),
+              tooltip: "Create Event",
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: _fetchEvents,
+              icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+              tooltip: "Sync Events",
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ],
         ],
       ),
     );

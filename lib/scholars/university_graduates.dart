@@ -113,6 +113,7 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildProfessionalHeader(isMobile),
+          _buildTabNavigation(isMobile),
           _buildControlPanel(isMobile),
           Expanded(
             child: _isLoading
@@ -133,65 +134,74 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
         children: [
-          Row(
-            children: [
-              if (Navigator.canPop(context)) ...[
-                IconButton(
-                  onPressed: widget.onBack ?? () {
-                  if (Navigator.canPop(context)) {
-                    Navigator.pop(context);
-                  } else {
-                    Navigator.pushReplacementNamed(context, '/home');
-                  }
-                },
-                  icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-                const SizedBox(width: 16),
-              ],
-              Expanded(
-                child: Text(
-                  "Alumni Registry",
-                  style: TextStyle(
-                    fontSize: isVerySmall ? 13 : 16, 
-                    fontWeight: FontWeight.w900, 
-                    color: const Color(0xFF4C3C32), 
-                    letterSpacing: -0.2
-                  ),
-                ),
-              ),
-              IconButton(
-                onPressed: _fetchData,
-                icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
-                tooltip: "Sync Registry",
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              labelColor: kBrandOlive,
-              unselectedLabelColor: Colors.grey,
-              indicatorColor: kBrandOlive,
-              indicatorWeight: 2,
-              labelPadding: const EdgeInsets.symmetric(horizontal: 12),
-              labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: isVerySmall ? 11 : 12),
-              tabs: [
-                Tab(text: "GRADUATES", height: isVerySmall ? 32 : 36),
-                Tab(text: "ALUMNI", height: isVerySmall ? 32 : 36),
-              ],
+          if (Navigator.canPop(context)) ...[
+            IconButton(
+              onPressed: widget.onBack ?? () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
+              },
+              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
             ),
-          ),
+            const SizedBox(width: 16),
+          ],
+          if (!_isSearchExpanded)
+            Expanded(
+              child: Text(
+                "Alumni Registry",
+                style: TextStyle(
+                  fontSize: isVerySmall ? 13 : 16, 
+                  fontWeight: FontWeight.w900, 
+                  color: const Color(0xFF4C3C32), 
+                  letterSpacing: -0.2
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          _buildSearchField(),
+          if (!_isSearchExpanded) ...[
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: _fetchData,
+              icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+              tooltip: "Sync Registry",
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildTabNavigation(bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE)))),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          labelColor: kBrandOlive,
+          unselectedLabelColor: Colors.grey,
+          indicatorColor: kBrandOlive,
+          indicatorWeight: 2,
+          labelPadding: const EdgeInsets.symmetric(horizontal: 12),
+          labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: isVerySmall ? 11 : 12),
+          tabs: [
+            Tab(text: "GRADUATES", height: isVerySmall ? 40 : 48),
+            Tab(text: "ALUMNI", height: isVerySmall ? 40 : 48),
+          ],
+        ),
       ),
     );
   }

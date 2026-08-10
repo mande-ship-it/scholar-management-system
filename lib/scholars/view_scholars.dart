@@ -325,7 +325,8 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildPortalIntegratedHeader(availableSchools, availableClasses, isMobile),
+          _buildPortalIntegratedHeader(isMobile),
+          _buildFilterArchitecture(availableSchools, availableClasses, isMobile),
           Expanded(
             child: Column(
               children: [
@@ -347,9 +348,8 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
     );
   }
 
-  Widget _buildPortalIntegratedHeader(List<String> schools, List<String> classes, bool isMobile) {
+  Widget _buildPortalIntegratedHeader(bool isMobile) {
     final bool isVerySmall = MediaQuery.of(context).size.width < 500;
-    final bool lockDistrict = _isFieldOfficer && _assignedDistrict != null && _assignedDistrict != "All Regions";
 
     return Container(
       width: double.infinity,
@@ -358,82 +358,62 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
         children: [
-          Row(
-            children: [
+          IconButton(
+            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+            onPressed: widget.onBack ?? () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                Navigator.pushReplacementNamed(context, '/home');
+              }
+            },
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 16),
+          if (!_isSearchExpanded)
+            Expanded(
+              child: Text(
+                _selectedSchoolType == 'University' ? "Uni Registry" : "Scholars Registry",
+                style: TextStyle(
+                  fontSize: isVerySmall ? 13 : 16, 
+                  fontWeight: FontWeight.w900, 
+                  color: const Color(0xFF4C3C32), 
+                  letterSpacing: -0.2
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          _compactSearchField(isMobile),
+          if (!_isSearchExpanded) ...[
+            const SizedBox(width: 8),
+            if (_canRegister)
               IconButton(
-                icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
-                onPressed: widget.onBack ?? () {
-                  if (Navigator.canPop(context)) {
-                    Navigator.pop(context);
-                  } else {
-                    Navigator.pushReplacementNamed(context, '/home');
-                  }
-                },
+                icon: Icon(Icons.add_circle_outline_rounded, color: kBrandOlive, size: 24),
+                onPressed: widget.onRegisterScholar ?? () => Navigator.pushNamed(context, '/registerScholar').then((_) => _fetchScholars()),
+                tooltip: "Register Scholar",
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _compactSearchField(isMobile),
-              ),
-              const SizedBox(width: 8),
-              if (_canRegister)
-                IconButton(
-                  icon: Icon(Icons.add_circle_outline_rounded, color: kBrandOlive, size: 24),
-                  onPressed: widget.onRegisterScholar ?? () => Navigator.pushNamed(context, '/registerScholar').then((_) => _fetchScholars()),
-                  tooltip: "Register Scholar",
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              const SizedBox(width: 8),
-              PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert_rounded, color: Colors.grey, size: 20),
-                onSelected: (val) {
-                  if (val == 'pdf') _exportToPDF();
-                  if (val == 'excel') _exportToExcel();
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(value: 'pdf', child: Text("Export PDF")),
-                  const PopupMenuItem(value: 'excel', child: Text("Export Excel")),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                if (!lockDistrict) ...[
-                  _compactFilterDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() => _selectedDistrict = v ?? 'All')),
-                  const SizedBox(width: 8),
-                ] else ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: kBrandOlive.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: kBrandOlive.withOpacity(0.1)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.location_on_rounded, size: 12, color: kBrandOlive),
-                        const SizedBox(width: 4),
-                        Text(_assignedDistrict!, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kBrandOlive)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                _compactFilterDropdown("Institution", _selectedSchoolName, schools, (v) => setState(() => _selectedSchoolName = v ?? 'All')),
-                const SizedBox(width: 8),
-                _compactFilterDropdown("Level", _selectedClass, classes, (v) => setState(() => _selectedClass = v ?? 'All')),
+            const SizedBox(width: 8),
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert_rounded, color: Colors.grey, size: 20),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              onSelected: (val) {
+                if (val == 'pdf') _exportToPDF();
+                if (val == 'excel') _exportToExcel();
+                if (val == 'sync') _fetchScholars();
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(value: 'sync', child: Text("Refresh Registry")),
+                const PopupMenuItem(value: 'pdf', child: Text("Export PDF")),
+                const PopupMenuItem(value: 'excel', child: Text("Export Excel")),
               ],
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -534,62 +514,40 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
   }
 
   Widget _buildFilterArchitecture(List<String> availableSchools, List<String> availableClasses, bool isMobile) {
+    final bool lockDistrict = _isFieldOfficer && _assignedDistrict != null && _assignedDistrict != "All Regions";
     return Container(
       color: Colors.white,
-      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 32, vertical: 16),
-      child: Column(
-        children: [
-          if (isMobile) ...[
-            Row(
-              children: [
-                Expanded(child: _compactSearchField(isMobile)),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: widget.onRegisterScholar,
-                  icon: const Icon(Icons.add_circle_outline_rounded, color: kBrandOlive),
-                  style: IconButton.styleFrom(backgroundColor: const Color(0xFFF0F2F5), padding: const EdgeInsets.all(8)),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 32, vertical: 12),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            if (!lockDistrict) ...[
+              _compactFilterDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() => _selectedDistrict = v ?? 'All')),
+              const SizedBox(width: 8),
+            ] else ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: kBrandOlive.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: kBrandOlive.withOpacity(0.1)),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _compactFilterDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() => _selectedDistrict = v ?? 'All')),
-                  const SizedBox(width: 8),
-                  _compactFilterDropdown("Institution", _selectedSchoolName, availableSchools, (v) => setState(() => _selectedSchoolName = v ?? 'All')),
-                  const SizedBox(width: 8),
-                  _compactFilterDropdown("Level", _selectedClass, availableClasses, (v) => setState(() => _selectedClass = v ?? 'All')),
-                ],
+                child: Row(
+                  children: [
+                    const Icon(Icons.location_on_rounded, size: 12, color: kBrandOlive),
+                    const SizedBox(width: 4),
+                    Text(_assignedDistrict!, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kBrandOlive)),
+                  ],
+                ),
               ),
-            ),
-          ] else ...[
-            Row(
-              children: [
-                Expanded(
-                  child: Row(
-                    children: [
-                      _compactSearchField(false),
-                      const SizedBox(width: 16),
-                      _compactFilterDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() => _selectedDistrict = v ?? 'All')),
-                      const SizedBox(width: 12),
-                      _compactFilterDropdown("Institution", _selectedSchoolName, availableSchools, (v) => setState(() => _selectedSchoolName = v ?? 'All')),
-                      const SizedBox(width: 12),
-                      _compactFilterDropdown("Level", _selectedClass, availableClasses, (v) => setState(() => _selectedClass = v ?? 'All')),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 24),
-                _exportButton(icon: Icons.description_outlined, label: "PDF", onTap: _exportToPDF, isVerySmall: false),
-                const SizedBox(width: 8),
-                _exportButton(icon: Icons.table_view_outlined, label: "EXCEL", onTap: _exportToExcel, isVerySmall: false),
-              ],
-            ),
+              const SizedBox(width: 8),
+            ],
+            _compactFilterDropdown("Institution", _selectedSchoolName, availableSchools, (v) => setState(() => _selectedSchoolName = v ?? 'All')),
+            const SizedBox(width: 8),
+            _compactFilterDropdown("Level", _selectedClass, availableClasses, (v) => setState(() => _selectedClass = v ?? 'All')),
           ],
-          const SizedBox(height: 12),
-          const Divider(height: 1),
-        ],
+        ),
       ),
     );
   }

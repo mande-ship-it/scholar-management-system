@@ -219,76 +219,81 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
         children: [
-          Row(
-            children: [
+          IconButton(
+            onPressed: widget.onBack ?? () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                Navigator.pushReplacementNamed(context, '/home');
+              }
+            },
+            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 16),
+          if (!_isSearchExpanded)
+            Expanded(
+              child: Text(
+                widget.forcedLevel != null ? "${widget.forcedLevel} Registry" : "Inst. Registry",
+                style: TextStyle(
+                  fontSize: isVerySmall ? 13 : 16, 
+                  fontWeight: FontWeight.w900, 
+                  color: const Color(0xFF4C3C32), 
+                  letterSpacing: -0.2
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          _portalCompactSearchField(isMobile),
+          if (!_isSearchExpanded) ...[
+            const SizedBox(width: 8),
+            if (!widget.hideRegistration && PermissionService.hasPermission('schools.create'))
               IconButton(
-                onPressed: widget.onBack ?? () {
-                  if (Navigator.canPop(context)) {
-                    Navigator.pop(context);
+                icon: Icon(Icons.add_circle_outline_rounded, color: kBrandOlive, size: 24),
+                onPressed: () async {
+                  if (widget.onRegisterSchool != null) {
+                    widget.onRegisterSchool!();
                   } else {
-                    Navigator.pushReplacementNamed(context, '/home');
+                    final result = await Navigator.pushNamed(context, '/schools/register');
+                    if (result == true) _fetchSchools();
                   }
                 },
-                icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+                tooltip: "Register School",
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  widget.forcedLevel != null ? "${widget.forcedLevel} Registry" : "Institution Registry",
-                  style: TextStyle(
-                    fontSize: isVerySmall ? 13 : 16, 
-                    fontWeight: FontWeight.w900, 
-                    color: const Color(0xFF4C3C32), 
-                    letterSpacing: -0.2
-                  ),
-                ),
-              ),
-              if (!widget.hideRegistration && PermissionService.hasPermission('schools.create'))
-                IconButton(
-                  icon: Icon(Icons.add_circle_outline_rounded, color: kBrandOlive, size: 24),
-                  onPressed: () async {
-                    if (widget.onRegisterSchool != null) {
-                      widget.onRegisterSchool!();
-                    } else {
-                      final result = await Navigator.pushNamed(context, '/schools/register');
-                      if (result == true) _fetchSchools();
-                    }
-                  },
-                  tooltip: "Register School",
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              const SizedBox(width: 8),
-              IconButton(
-                onPressed: _fetchSchools,
-                icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
-                tooltip: "Sync Registry",
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _portalCompactSearchField(isMobile),
-                const SizedBox(width: 8),
-                if (widget.forcedLevel == null) ...[
-                  _portalCompactDropdown("Type", _selectedLevel, _schoolLevels, (v) => setState(() => _selectedLevel = v!), width: 150),
-                  const SizedBox(width: 8),
-                ],
-                _portalCompactDropdown("Region", _selectedRegion, _regions, (v) => setState(() => _selectedRegion = v!), width: 140),
-              ],
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: _fetchSchools,
+              icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+              tooltip: "Sync Registry",
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
             ),
-          ),
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildFilterBar(bool isMobile) {
+    return Container(
+      color: Colors.white,
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 24, vertical: 12),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            if (widget.forcedLevel == null) ...[
+              _portalCompactDropdown("Type", _selectedLevel, _schoolLevels, (v) => setState(() => _selectedLevel = v!), width: 150),
+              const SizedBox(width: 8),
+            ],
+            _portalCompactDropdown("Region", _selectedRegion, _regions, (v) => setState(() => _selectedRegion = v!), width: 140),
+          ],
+        ),
       ),
     );
   }
@@ -320,6 +325,7 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildPortalHeader(isMobile),
+          _buildFilterBar(isMobile),
           Expanded(
             child: _isLoading 
                 ? const Center(child: CircularProgressIndicator(color: kBrandOlive))

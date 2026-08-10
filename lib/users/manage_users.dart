@@ -317,8 +317,6 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
               padding: EdgeInsets.fromLTRB(isMobile ? 16 : 32, 0, isMobile ? 16 : 32, 32),
               child: Column(
                 children: [
-                  _buildFilterBar(isMobile),
-                  const SizedBox(height: 24),
                   if (isMobile)
                     _buildMobileUserList(filtered)
                   else
@@ -343,25 +341,52 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
       ),
       child: Row(
         children: [
-          Expanded(
-            child: Text(
-              "Identity & Access Governance",
-              style: TextStyle(
-                fontSize: isVerySmall ? 13 : 16, 
-                fontWeight: FontWeight.w900, 
-                color: kBrandBrown, 
-                letterSpacing: -0.2
+          IconButton(
+            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+            onPressed: widget.onBack ?? () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                Navigator.pushReplacementNamed(context, '/home');
+              }
+            },
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 16),
+          if (!_isSearchExpanded)
+            Expanded(
+              child: Text(
+                "Access Governance",
+                style: TextStyle(
+                  fontSize: isVerySmall ? 13 : 16, 
+                  fontWeight: FontWeight.w900, 
+                  color: kBrandBrown, 
+                  letterSpacing: -0.2
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-          ),
-          if (PermissionService.hasPermission('users.create'))
+          _buildFilterBar(isMobile),
+          if (!_isSearchExpanded) ...[
+            const SizedBox(width: 8),
+            if (PermissionService.hasPermission('users.create'))
+              IconButton(
+                onPressed: widget.onAddUser,
+                icon: const Icon(Icons.person_add_rounded, color: kBrandOlive, size: 24),
+                tooltip: "Add User",
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            const SizedBox(width: 8),
             IconButton(
-              onPressed: widget.onAddUser,
-              icon: const Icon(Icons.person_add_rounded, color: kBrandOlive, size: 24),
-              tooltip: "Add User",
+              onPressed: _fetchUsers,
+              icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+              tooltip: "Sync Users",
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
             ),
+          ],
         ],
       ),
     );
@@ -444,17 +469,13 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
           IconButton(
             onPressed: () => setState(() => _isSearchExpanded = true),
             icon: const Icon(Icons.search, color: kBrandBrown),
-            style: IconButton.styleFrom(
-              backgroundColor: Colors.grey.shade50,
-              padding: const EdgeInsets.all(10),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              side: BorderSide(color: Colors.grey.shade200),
-            ),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
           const SizedBox(width: 12),
-          Expanded(child: _dropdownFilter("ROLES", _roleFilter, _roles, (v) => setState(() => _roleFilter = v))),
+          _dropdownFilter("ROLES", _roleFilter, _roles, (v) => setState(() => _roleFilter = v)),
           const SizedBox(width: 8),
-          Expanded(child: _dropdownFilter("STATUS", _statusFilter, ['All', 'Active', 'Inactive'], (v) => setState(() => _statusFilter = v ?? 'All'))),
+          _dropdownFilter("STATUS", _statusFilter, ['All', 'Active', 'Inactive'], (v) => setState(() => _statusFilter = v ?? 'All')),
           if (_hasActiveFilters) ...[
             const SizedBox(width: 8),
             IconButton(
@@ -468,40 +489,36 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
       );
     }
 
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            height: 40,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade200),
+    return Expanded(
+      child: Container(
+        height: 40,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: TextField(
+          onChanged: (val) => setState(() => _searchQuery = val),
+          autofocus: true,
+          style: const TextStyle(fontSize: 13),
+          decoration: InputDecoration(
+            hintText: "Search identities...",
+            hintStyle: const TextStyle(fontSize: 12, color: Colors.grey),
+            prefixIcon: const Icon(Icons.search, size: 18),
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.close, size: 18), 
+              onPressed: () => setState(() {
+                _isSearchExpanded = false;
+                _searchQuery = '';
+              }),
             ),
-            child: TextField(
-              onChanged: (val) => setState(() => _searchQuery = val),
-              autofocus: true,
-              style: const TextStyle(fontSize: 13),
-              decoration: InputDecoration(
-                hintText: "Search identities...",
-                hintStyle: const TextStyle(fontSize: 12, color: Colors.grey),
-                prefixIcon: const Icon(Icons.search, size: 18),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.close, size: 18), 
-                  onPressed: () => setState(() {
-                    _isSearchExpanded = false;
-                    _searchQuery = '';
-                  }),
-                ),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(vertical: 10),
-              ),
-            ),
+            border: InputBorder.none,
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(vertical: 10),
           ),
         ),
-      ],
+      ),
     );
   }
 

@@ -282,72 +282,60 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
         children: [
-          Row(
-            children: [
-            IconButton(
-              onPressed: widget.onBack ?? () {
-                if (Navigator.canPop(context)) {
-                  Navigator.pop(context);
-                } else {
-                  Navigator.pushReplacementNamed(context, '/home');
-                }
-              },
-              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
-            const SizedBox(width: 16),
-              Expanded(
-                child: Text(
-                  "Strategic Partners",
-                  style: TextStyle(
-                    fontSize: isVerySmall ? 13 : 16, 
-                    fontWeight: FontWeight.w900, 
-                    color: const Color(0xFF4C3C32), 
-                    letterSpacing: -0.2
-                  ),
+          IconButton(
+            onPressed: widget.onBack ?? () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                Navigator.pushReplacementNamed(context, '/home');
+              }
+            },
+            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 16),
+          if (!_isSearchExpanded)
+            Expanded(
+              child: Text(
+                "Strategic Partners",
+                style: TextStyle(
+                  fontSize: isVerySmall ? 13 : 16, 
+                  fontWeight: FontWeight.w900, 
+                  color: const Color(0xFF4C3C32), 
+                  letterSpacing: -0.2
                 ),
+                overflow: TextOverflow.ellipsis,
               ),
-              if (_userRole == 'Administrator' || PermissionService.hasPermission('sponsors.create'))
-                IconButton(
-                  icon: Icon(Icons.add_circle_outline_rounded, color: kBrandOlive, size: 24),
-                  onPressed: () {
-                    if (widget.onRegisterSponsor != null) {
-                      widget.onRegisterSponsor!();
-                    } else {
-                      Navigator.pushNamed(context, '/sponsors/register').then((_) => _loadSponsors());
-                    }
-                  },
-                  tooltip: "Register Sponsor",
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              const SizedBox(width: 8),
+            ),
+          _portalCompactSearchField(isMobile),
+          if (!_isSearchExpanded) ...[
+            const SizedBox(width: 8),
+            if (_userRole == 'Administrator' || PermissionService.hasPermission('sponsors.create'))
               IconButton(
-                onPressed: _loadSponsors,
-                icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
-                tooltip: "Sync Registry",
+                icon: Icon(Icons.add_circle_outline_rounded, color: kBrandOlive, size: 24),
+                onPressed: () {
+                  if (widget.onRegisterSponsor != null) {
+                    widget.onRegisterSponsor!();
+                  } else {
+                    Navigator.pushNamed(context, '/sponsors/register').then((_) => _loadSponsors());
+                  }
+                },
+                tooltip: "Register Sponsor",
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
               ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _portalCompactSearchField(isMobile),
-                if (!isMobile) ...[
-                  const SizedBox(width: 24),
-                  _miniStat(Icons.handshake_rounded, "${_filteredSponsors.length} Partners"),
-                ],
-              ],
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: _loadSponsors,
+              icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+              tooltip: "Sync Registry",
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
             ),
-          ),
+          ],
         ],
       ),
     );
