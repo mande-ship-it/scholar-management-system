@@ -585,44 +585,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         ],
       ),
       SidebarCategory(
-        title: "Schools",
-        icon: Icons.domain,
-        subItems: [
-          SidebarSubItem(
-            title: "View Schools", 
-            page: const ViewSchoolsPage(), 
-            icon: Icons.store,
-            builder: (onBack, onPush, onPushProfile) => ViewSchoolsPage(onRegisterSchool: () => onPush("Register School")),
-          ),
-          SidebarSubItem(
-            title: "Register School", 
-            page: const RegisterSchoolPage(), 
-            icon: Icons.add_business,
-            isVisible: false,
-            builder: (onBack, onPush, onPushProfile) => RegisterSchoolPage(onSuccess: onBack),
-          ),
-        ],
-      ),
-      SidebarCategory(
-        title: "Sponsors",
-        icon: Icons.handshake,
-        subItems: [
-          SidebarSubItem(
-            title: "View Sponsors", 
-            page: const ViewSponsorsPage(), 
-            icon: Icons.supervisor_account,
-            builder: (onBack, onPush, onPushProfile) => ViewSponsorsPage(onRegisterSponsor: () => onPush("Register Sponsor")),
-          ),
-          SidebarSubItem(
-            title: "Register Sponsor", 
-            page: const RegisterSponsorPage(), 
-            icon: Icons.add_moderator,
-            isVisible: false,
-            builder: (onBack, onPush, onPushProfile) => RegisterSponsorPage(onSuccess: onBack),
-          ),
-        ],
-      ),
-      SidebarCategory(
         title: "Academics",
         icon: Icons.menu_book,
         subItems: [
@@ -933,15 +895,18 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     const Color brandBrown = Color(0xFF4C3C32);
     const Color brandCream = Color(0xFFFAF2DB);
     const Color brandCreamDark = Color(0xFFF3E7C4);
-    const Color brandOrange = Color(0xFFE05B1C);
+    const Color brandOlive = Color(0xFF9AB334);
 
     return Container(
-      color: brandCream,
+      decoration: const BoxDecoration(
+        color: brandCream,
+        border: Border(right: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
       child: Column(
         children: [
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
             color: brandCreamDark,
             child: Column(
               children: [
@@ -977,7 +942,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                         right: 0,
                         child: Container(
                           padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(color: Color(0xFFE05B1C), shape: BoxShape.circle),
+                          decoration: const BoxDecoration(color: brandOlive, shape: BoxShape.circle),
                           child: const Icon(Icons.camera_alt, size: 14, color: Colors.white),
                         ),
                       ),
@@ -1012,9 +977,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                 final isSelected = activeCategoryIndex == originalIdx;
 
                 return Theme(
-                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                  data: Theme.of(context).copyWith(
+                    dividerColor: Colors.transparent,
+                    hoverColor: brandOlive.withOpacity(0.1),
+                  ),
                   child: ExpansionTile(
                     initiallyExpanded: isSelected,
+                    collapsedIconColor: brandBrown.withOpacity(0.5),
+                    iconColor: brandOlive,
+                    collapsedTextColor: brandBrown,
+                    textColor: brandBrown,
                     leading: Icon(category.icon),
                     title: Text(category.title, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.w500, fontSize: 14)),
                     children: category.subItems.where((s) => s.isVisible).map((subItem) {
@@ -1022,8 +994,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                       final isSubSelected = isSelected && activeSubIndex == subIdx;
                       return ListTile(
                         dense: true,
-                        leading: Icon(subItem.icon, size: 18, color: isSubSelected ? brandOrange : Colors.black54),
-                        title: Text(subItem.title, style: TextStyle(color: isSubSelected ? brandOrange : Colors.black87, fontWeight: isSubSelected ? FontWeight.bold : FontWeight.normal, fontSize: 13)),
+                        leading: Icon(subItem.icon, size: 18, color: isSubSelected ? brandOlive : Colors.black54),
+                        title: Text(subItem.title, style: TextStyle(color: isSubSelected ? brandOlive : Colors.black87, fontWeight: isSubSelected ? FontWeight.bold : FontWeight.normal, fontSize: 13)),
                         onTap: () {
                           setState(() { 
                             activeCategoryIndex = originalIdx; 
