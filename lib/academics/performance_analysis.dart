@@ -260,7 +260,7 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildScholarPicker(),
+          _buildScholarPicker(isMobile: isMobile),
           const SizedBox(height: 32),
           if (_individualData != null) ...[
             _buildIndividualInsightsSummary(isMobile),
@@ -298,6 +298,19 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
   }
 
   Widget _buildScholarPicker({bool isMobile = false}) {
+    if (!_isSearchExpanded) {
+      return IconButton(
+        onPressed: () => setState(() => _isSearchExpanded = true),
+        icon: const Icon(Icons.search, color: kBrandBrown),
+        style: IconButton.styleFrom(
+          backgroundColor: Colors.white,
+          padding: const EdgeInsets.all(10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          side: const BorderSide(color: Color(0xFFEEEEEE)),
+        ),
+      );
+    }
+
     return Autocomplete<Student>(
       displayStringForOption: (s) => s.name,
       optionsBuilder: (val) {
@@ -313,24 +326,29 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
       },
       fieldViewBuilder: (ctx, ctrl, focus, onSubmitted) {
         return Container(
-          height: isMobile ? 40 : null,
-          decoration: isMobile ? BoxDecoration(
+          height: 44,
+          width: isMobile ? double.infinity : 320,
+          decoration: BoxDecoration(
             color: const Color(0xFFF8F9FA),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: const Color(0xFFEEEEEE)),
-          ) : null,
+          ),
           child: TextField(
             controller: ctrl,
             focusNode: focus,
-            autofocus: isMobile,
-            style: TextStyle(fontSize: isMobile ? 13 : 14, fontWeight: isMobile ? FontWeight.w600 : FontWeight.normal),
+            autofocus: true,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
             decoration: InputDecoration(
-              hintText: isMobile ? "Search scholar..." : "Search scholar for detailed mapping...",
-              prefixIcon: Icon(isMobile ? Icons.search : Icons.person_search_rounded, color: kBrandOlive, size: isMobile ? 18 : 24),
-              filled: !isMobile,
-              fillColor: isMobile ? null : Colors.grey.shade50,
-              border: isMobile ? InputBorder.none : OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-              contentPadding: isMobile ? const EdgeInsets.symmetric(vertical: 10) : null,
+              hintText: "Search scholar...",
+              prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Colors.grey),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.close, size: 18), 
+                onPressed: () => setState(() {
+                  _isSearchExpanded = false;
+                }),
+              ),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(vertical: 11),
             ),
           ),
         );

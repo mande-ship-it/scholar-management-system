@@ -393,22 +393,42 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
   }
 
   Widget _portalCompactSearchField(bool isMobile) {
+    if (!_isSearchExpanded) {
+      return IconButton(
+        onPressed: () => setState(() => _isSearchExpanded = true),
+        icon: const Icon(Icons.search, color: kBrandBrown),
+        style: IconButton.styleFrom(
+          backgroundColor: const Color(0xFFF8F9FA),
+          padding: const EdgeInsets.all(10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          side: const BorderSide(color: Color(0xFFEEEEEE)),
+        ),
+      );
+    }
+
     return Container(
       width: isMobile ? double.infinity : 280,
       height: 44,
       decoration: BoxDecoration(
         color: const Color(0xFFF8F9FA),
         borderRadius: BorderRadius.circular(10),
-        border: isMobile ? Border.all(color: const Color(0xFFEEEEEE)) : null,
+        border: Border.all(color: const Color(0xFFEEEEEE)),
       ),
       child: TextField(
         controller: _searchController,
         onChanged: (v) => setState(() {}),
-        autofocus: isMobile,
+        autofocus: true,
         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
         decoration: InputDecoration(
-          hintText: isMobile ? "Search scholars..." : "Search scholar...",
+          hintText: "Search scholars...",
           prefixIcon: const Icon(Icons.search, size: 18, color: Colors.grey),
+          suffixIcon: IconButton(
+            icon: const Icon(Icons.close, size: 18), 
+            onPressed: () => setState(() {
+              _isSearchExpanded = false;
+              _searchController.clear();
+            }),
+          ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 11),
         ),

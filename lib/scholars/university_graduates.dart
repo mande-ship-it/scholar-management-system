@@ -22,6 +22,7 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
   String _selectedInstitution = 'All';
   String _selectedYear = 'All';
   String _searchQuery = '';
+  bool _isSearchExpanded = false;
 
   @override
   void initState() {
@@ -278,18 +279,50 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
 
   Widget _buildSearchField() {
     final bool showingGraduates = _tabController.index == 0;
-    return TextField(
-      onChanged: (v) {
-        _searchQuery = v;
-        _applyFilters();
-      },
-      decoration: InputDecoration(
-        hintText: showingGraduates ? "Search graduates..." : "Search alumni...",
-        prefixIcon: const Icon(Icons.search_rounded, size: 20, color: kBrandOlive),
-        filled: true,
-        fillColor: const Color(0xFFF8F9FA),
-        contentPadding: const EdgeInsets.symmetric(vertical: 0),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
+
+    if (!_isSearchExpanded) {
+      return IconButton(
+        onPressed: () => setState(() => _isSearchExpanded = true),
+        icon: const Icon(Icons.search, color: kBrandBrown),
+        style: IconButton.styleFrom(
+          backgroundColor: const Color(0xFFF8F9FA),
+          padding: const EdgeInsets.all(10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          side: const BorderSide(color: Color(0xFFEEEEEE)),
+        ),
+      );
+    }
+
+    return Container(
+      width: isMobile ? double.infinity : 320,
+      height: 44,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+      ),
+      child: TextField(
+        onChanged: (v) {
+          _searchQuery = v;
+          _applyFilters();
+        },
+        autofocus: true,
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        decoration: InputDecoration(
+          hintText: showingGraduates ? "Search graduates..." : "Search alumni...",
+          prefixIcon: const Icon(Icons.search_rounded, size: 20, color: kBrandOlive),
+          suffixIcon: IconButton(
+            icon: const Icon(Icons.close, size: 18), 
+            onPressed: () => setState(() {
+              _isSearchExpanded = false;
+              _searchQuery = '';
+              _applyFilters();
+            }),
+          ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 11),
+        ),
       ),
     );
   }

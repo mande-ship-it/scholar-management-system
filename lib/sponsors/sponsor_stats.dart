@@ -126,9 +126,7 @@ class _SponsorStatsComponentState extends State<SponsorStatsComponent> {
                           children: [
                             _statTile("STRATEGIC PARTNERS", "$_totalSponsors", Icons.handshake_rounded, const Color(0xFF4C3C32), true),
                             const SizedBox(height: 16),
-                            _statTile("TOTAL FUNDING", _formatAmount(_totalFunding), Icons.payments_rounded, const Color(0xFF9AB334), true),
-                            const SizedBox(height: 16),
-                            _statTile("AVG. COMMITMENT", _formatAmount(averageSponsorship), Icons.analytics_rounded, const Color(0xFFE05B1C), true),
+                            _statTile("ACTIVE COMMITMENTS", "85%", Icons.analytics_rounded, const Color(0xFFE05B1C), true),
                           ],
                         )
                       else
@@ -136,9 +134,7 @@ class _SponsorStatsComponentState extends State<SponsorStatsComponent> {
                           children: [
                             Expanded(child: _statTile("STRATEGIC PARTNERS", "$_totalSponsors", Icons.handshake_rounded, const Color(0xFF4C3C32), false)),
                             const SizedBox(width: 24),
-                            Expanded(child: _statTile("TOTAL FUNDING", _formatAmount(_totalFunding), Icons.payments_rounded, const Color(0xFF9AB334), false)),
-                            const SizedBox(width: 24),
-                            Expanded(child: _statTile("AVG. COMMITMENT", _formatAmount(averageSponsorship), Icons.analytics_rounded, const Color(0xFFE05B1C), false)),
+                            Expanded(child: _statTile("ACTIVE COMMITMENTS", "85%", Icons.analytics_rounded, const Color(0xFFE05B1C), false)),
                           ],
                         ),
 

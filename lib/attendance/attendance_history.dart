@@ -16,6 +16,7 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
   String? _filterSchool;
   AttendanceModuleType? _filterType;
   bool _isLoading = true;
+  bool _isSearchExpanded = false;
   List<dynamic> _history = [];
 
   @override
@@ -154,17 +155,19 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
         border: Border.all(color: theme.dividerColor),
       ),
       child: isMobile 
-        ? Column(
+        ? Row(
             children: [
-              _dropdownFilter("MODULE", _filterType, [
-                const DropdownMenuItem(value: null, child: Text("All Modules")),
-                ...AttendanceModuleType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.label))),
-              ], (v) {
-                setState(() => _filterType = v);
-                _fetchHistory();
-              }),
-              const SizedBox(height: 16),
-              _textFilter("INSTITUTION", Icons.search_rounded, "Search school or partner...", (v) {
+              Expanded(
+                child: _dropdownFilter("MODULE", _filterType, [
+                  const DropdownMenuItem(value: null, child: Text("All Modules")),
+                  ...AttendanceModuleType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.label))),
+                ], (v) {
+                  setState(() => _filterType = v);
+                  _fetchHistory();
+                }),
+              ),
+              const SizedBox(width: 12),
+              _textFilter("INSTITUTION", Icons.search_rounded, "Search school...", (v) {
                 setState(() => _filterSchool = v.isEmpty ? null : v);
                 _fetchHistory();
               }),
@@ -228,14 +231,30 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
   Widget _textFilter(String label, IconData icon, String hint, ValueChanged<String> onChanged) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
+
+    if (!_isSearchExpanded) {
+      return IconButton(
+        onPressed: () => setState(() => _isSearchExpanded = true),
+        icon: Icon(icon, color: kBrandOlive),
+        style: IconButton.styleFrom(
+          backgroundColor: isDark ? theme.cardColor : Colors.white,
+          padding: const EdgeInsets.all(12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          side: BorderSide(color: theme.dividerColor),
+        ),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.0)),
-        const SizedBox(height: 8),
+        if (!isMobile)
+          Text(label, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.0)),
+        if (!isMobile) const SizedBox(height: 8),
         Container(
           height: 48,
+          width: isMobile ? null : 280,
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
             color: theme.cardColor,
@@ -244,6 +263,7 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
           ),
           child: TextField(
             onChanged: onChanged,
+            autofocus: true,
             style: TextStyle(fontSize: 13, color: isDark ? Colors.white : kBrandBrown, fontWeight: FontWeight.w600),
             decoration: InputDecoration(
               hintText: hint,
@@ -252,6 +272,14 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(vertical: 14),
               icon: Icon(icon, size: 18, color: kBrandOlive),
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.close, size: 18), 
+                onPressed: () => setState(() {
+                  _isSearchExpanded = false;
+                  _filterSchool = null;
+                  _fetchHistory();
+                }),
+              ),
             ),
           ),
         ),

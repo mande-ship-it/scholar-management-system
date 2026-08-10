@@ -77,7 +77,6 @@ class Student {
 
   // Additional Data
   final List<dynamic> documents;
-  final List<dynamic> payments;
 
   int get calculatedRemainingYears {
     // Spec Section 2: yearsRemaining = programDurationYears - yearsCompleted
@@ -148,7 +147,6 @@ class Student {
     this.progressionHistory = const [],
     this.yearsRemaining = 0,
     this.documents = const [],
-    this.payments = const [],
   });
 
   factory Student.fromMap(Map<String, dynamic> map) {
@@ -214,7 +212,6 @@ class Student {
       yearsCompleted: map['years_completed'] ?? map['yearsCompleted'] ?? 0,
       flag: map['flag'],
       documents: map['documents'] ?? [],
-      payments: map['payments'] ?? [],
     );
   }
 
@@ -254,7 +251,6 @@ class Student {
     List<dynamic>? progressionHistory,
     int? yearsRemaining,
     List<dynamic>? documents,
-    List<dynamic>? payments,
   }) {
     return Student(
       id: id ?? this.id,
@@ -292,7 +288,6 @@ class Student {
       progressionHistory: progressionHistory ?? this.progressionHistory,
       yearsRemaining: yearsRemaining ?? this.yearsRemaining,
       documents: documents ?? this.documents,
-      payments: payments ?? this.payments,
     );
   }
 }

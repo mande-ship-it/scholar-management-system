@@ -323,8 +323,22 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
   }
 
   Widget _buildSearchField(bool isMobile) {
+    if (!_isSearchExpanded) {
+      return IconButton(
+        onPressed: () => setState(() => _isSearchExpanded = true),
+        icon: const Icon(Icons.search, color: kBrandBrown),
+        style: IconButton.styleFrom(
+          backgroundColor: const Color(0xFFF8F9FA),
+          padding: const EdgeInsets.all(10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          side: const BorderSide(color: Color(0xFFEEEEEE)),
+        ),
+      );
+    }
+
     return Container(
       height: 40,
+      width: isMobile ? double.infinity : 280,
       decoration: BoxDecoration(
         color: const Color(0xFFF8F9FA),
         borderRadius: BorderRadius.circular(20),
@@ -332,12 +346,20 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
       ),
       child: TextField(
         controller: _searchController,
+        autofocus: true,
         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           hintText: "Search programs...",
-          prefixIcon: Icon(Icons.search_rounded, size: 18, color: Colors.grey),
+          prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Colors.grey),
+          suffixIcon: IconButton(
+            icon: const Icon(Icons.close, size: 18), 
+            onPressed: () => setState(() {
+              _isSearchExpanded = false;
+              _searchController.clear();
+            }),
+          ),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: 10),
+          contentPadding: const EdgeInsets.symmetric(vertical: 10),
         ),
       ),
     );

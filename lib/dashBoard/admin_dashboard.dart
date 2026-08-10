@@ -24,11 +24,11 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
 
   Map<String, int> _roleDistribution = {};
   int _pendingEvents = 0;
-  int _pendingPayments = 0;
 
   List<Map<String, dynamic>> _schoolsRiskData = [];
   List<dynamic> _activeUsers = [];
   List<dynamic> _approvals = [];
+  String _selectedContext = 'Secondary'; // New context toggle state
 
   static const List<Color> chartColors = [
     Color(0xFF9AB334), Color(0xFFE05B1C), Color(0xFF4C3C32), Color(0xFF1976D2), Color(0xFF8E24AA),
@@ -70,15 +70,12 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
           final pData = pendingRes.data['data'] ?? {};
           final List scholars = pData['scholars'] ?? [];
           final List events = pData['events'] ?? [];
-          final List payments = pData['payments'] ?? [];
 
           _approvals = [];
           for (var s in scholars) _approvals.add({...s, 'type': 'scholar'});
           for (var e in events) _approvals.add({...e, 'type': 'event'});
-          for (var p in payments) _approvals.add({...p, 'type': 'payment'});
 
           _pendingEvents = events.length;
-          _pendingPayments = payments.length;
         }
 
         final sponsorsRes = await ApiService.getAllSponsors();
@@ -101,7 +98,7 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
   void _loadFallbackMockData() {
     _totalUsers = 12;
     _roleDistribution = {'Administrator': 2, 'Field Coordinator': 4, 'Donor': 3, 'Staff': 3};
-    _pendingApprovals = 6; _pendingEvents = 2; _pendingPayments = 1;
+    _pendingApprovals = 6; _pendingEvents = 2;
     _totalSchools = 8; _totalSponsors = 15; _backupCount = 4;
     _activeUsers = [
       {'fullName': 'Edward Shaba', 'roleId': {'name': 'Administrator'}, 'lastLogin': DateTime.now().toString()},
@@ -118,28 +115,62 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: Text(
-              "System Intelligence Hub",
-              style: TextStyle(
-                fontSize: isVerySmall ? 13 : 16, 
-                fontWeight: FontWeight.w900, 
-                color: const Color(0xFF4C3C32), 
-                letterSpacing: -0.2
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              if (!isMobile)
+                Expanded(
+                  child: Text(
+                    "System Intelligence Hub",
+                    style: TextStyle(
+                      fontSize: 16, 
+                      fontWeight: FontWeight.w900, 
+                      color: const Color(0xFF4C3C32), 
+                      letterSpacing: -0.2
+                    ),
+                  ),
+                ),
+              if (isMobile)
+                const Spacer(),
+              _buildContextToggle(isMobile),
+              const Spacer(),
+              IconButton(
+                onPressed: _loadDashboardData,
+                icon: const Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+                tooltip: "Sync Analytics",
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
               ),
-            ),
-          ),
-          IconButton(
-            onPressed: _loadDashboardData,
-            icon: const Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
-            tooltip: "Sync Analytics",
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildContextToggle(bool isMobile) {
+    return SegmentedButton<String>(
+      segments: const [
+        ButtonSegment(value: 'Secondary', label: Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text("Secondary", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900)))),
+        ButtonSegment(value: 'University', label: Padding(padding: EdgeInsets.symmetric(horizontal: 8), child: Text("University", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900)))),
+      ],
+      selected: {_selectedContext},
+      onSelectionChanged: (val) {
+        setState(() => _selectedContext = val.first);
+        _loadDashboardData();
+      },
+      showSelectedIcon: false,
+      style: SegmentedButton.styleFrom(
+        visualDensity: VisualDensity.standard,
+        selectedBackgroundColor: kBrandBrown,
+        selectedForegroundColor: Colors.white,
+        backgroundColor: Colors.white,
+        foregroundColor: kBrandBrown,
+        side: BorderSide(color: kBrandBrown.withOpacity(0.2)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -450,7 +481,6 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
                         );
                         if (v.toInt() == 0) return Text("Scholars", style: style);
                         if (v.toInt() == 1) return Text("Events", style: style);
-                        if (v.toInt() == 2) return Text("Payments", style: style);
                         return const Text("");
                       },
                     ),
@@ -464,7 +494,6 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
                 barGroups: [
                   BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: (_approvals.where((a) => a['type'] == 'scholar').length).toDouble(), color: kBrandOlive, width: isVerySmall ? 18 : 24)]),
                   BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: _pendingEvents.toDouble(), color: kBrandOrange, width: isVerySmall ? 18 : 24)]),
-                  BarChartGroupData(x: 2, barRods: [BarChartRodData(toY: _pendingPayments.toDouble(), color: kBrandBrown, width: isVerySmall ? 18 : 24)]),
                 ],
               ),
             ),

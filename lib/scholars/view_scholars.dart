@@ -595,20 +595,41 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
   }
 
   Widget _compactSearchField(bool isMobile) {
+    if (!_isSearchExpanded) {
+      return IconButton(
+        onPressed: () => setState(() => _isSearchExpanded = true),
+        icon: const Icon(Icons.search, color: kBrandBrown),
+        style: IconButton.styleFrom(
+          backgroundColor: Colors.white,
+          padding: const EdgeInsets.all(8),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          side: BorderSide(color: Colors.grey.shade200),
+        ),
+      );
+    }
+
     return Container(
-      width: isMobile ? 200 : 280,
+      width: isMobile ? double.infinity : 280,
       height: 40,
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FA),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
       child: TextField(
         onChanged: (v) => setState(() => _searchQuery = v),
-        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        autofocus: true,
+        style: const TextStyle(fontSize: 13),
         decoration: InputDecoration(
           hintText: "Search scholars...",
           prefixIcon: const Icon(Icons.search, size: 18, color: Colors.grey),
+          suffixIcon: IconButton(
+            icon: const Icon(Icons.close, size: 18), 
+            onPressed: () => setState(() {
+              _isSearchExpanded = false;
+              _searchQuery = '';
+            }),
+          ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 10),
         ),

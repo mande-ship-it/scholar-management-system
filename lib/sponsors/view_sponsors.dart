@@ -186,7 +186,6 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               _infoRow("Sponsorship Level", sponsor.sponsorshipType, Icons.workspace_premium_outlined),
-                              _infoRow("Total Funding", _formatAmount(sponsor.amount), Icons.payments_outlined),
                               _infoRow("Primary Contact", sponsor.contactPerson, Icons.person_outline_rounded),
                               _infoRow("Email Address", sponsor.email, Icons.email_outlined),
                               _infoRow("Phone Number", sponsor.phone, Icons.phone_outlined),
@@ -419,8 +418,21 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
   }
 
   Widget _portalCompactSearchField(bool isMobile) {
+    if (!_isSearchExpanded) {
+      return IconButton(
+        onPressed: () => setState(() => _isSearchExpanded = true),
+        icon: const Icon(Icons.search, color: Color(0xFF4C3C32)),
+        style: IconButton.styleFrom(
+          backgroundColor: const Color(0xFFF8F9FA),
+          padding: const EdgeInsets.all(10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          side: const BorderSide(color: Color(0xFFEEEEEE)),
+        ),
+      );
+    }
+
     return Container(
-      width: isMobile ? 200 : 320,
+      width: isMobile ? double.infinity : 320,
       height: 44,
       decoration: BoxDecoration(
         color: const Color(0xFFF8F9FA),
@@ -432,10 +444,19 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
           _searchQuery = val;
           _applyFilter();
         },
+        autofocus: true,
         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
         decoration: InputDecoration(
           hintText: "Search partners...",
           prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Colors.grey),
+          suffixIcon: IconButton(
+            icon: const Icon(Icons.close, size: 18), 
+            onPressed: () => setState(() {
+              _isSearchExpanded = false;
+              _searchQuery = '';
+              _applyFilter();
+            }),
+          ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 11),
         ),

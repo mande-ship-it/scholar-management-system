@@ -422,18 +422,6 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
             },
           ),
         ),
-        const SizedBox(height: 16),
-        _buildPreferenceTile(
-          title: isChichewa ? "Ndalama za M'derali" : "Financial Currency",
-          subtitle: isChichewa ? "Sankhani ndalama zomwe zikuonekera pa ma ripoti." : "Standard denominator for disbursement logs.",
-          icon: Icons.payments_outlined,
-          trailing: DropdownButton<String>(
-            value: _currency,
-            underline: const SizedBox(),
-            items: ["Malawian Kwacha (MWK)", "US Dollar (USD)"].map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontWeight: FontWeight.bold)))).toList(),
-            onChanged: (v) { setState(() => _currency = v!); _updateSettings({'currency': v}); },
-          ),
-        ),
       ],
     );
   }

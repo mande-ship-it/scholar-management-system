@@ -230,7 +230,6 @@ class _AIAssistantPageState extends State<AIAssistantPage> {
           children: [
             _toolChip("Full System Summary", Icons.analytics_rounded),
             _toolChip("Academic Performance Audit", Icons.school_rounded),
-            _toolChip("Financial Flow Analysis", Icons.payments_rounded),
             _toolChip("Institutional Risk Heatmap", Icons.warning_amber_rounded),
             _toolChip("Sponsorship Strategy", Icons.handshake_rounded),
           ],

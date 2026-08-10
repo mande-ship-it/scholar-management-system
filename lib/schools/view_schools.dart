@@ -359,8 +359,21 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
   }
 
   Widget _portalCompactSearchField(bool isMobile) {
+    if (!_isSearchExpanded) {
+      return IconButton(
+        onPressed: () => setState(() => _isSearchExpanded = true),
+        icon: const Icon(Icons.search, color: Color(0xFF4C3C32)),
+        style: IconButton.styleFrom(
+          backgroundColor: const Color(0xFFF8F9FA),
+          padding: const EdgeInsets.all(10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          side: const BorderSide(color: Color(0xFFEEEEEE)),
+        ),
+      );
+    }
+
     return Container(
-      width: isMobile ? 200 : 280,
+      width: isMobile ? double.infinity : 280,
       height: 44,
       decoration: BoxDecoration(
         color: const Color(0xFFF8F9FA),
@@ -369,10 +382,18 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
       ),
       child: TextField(
         onChanged: (val) => setState(() => _searchQuery = val),
+        autofocus: true,
         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
         decoration: InputDecoration(
           hintText: "Search institutions...",
           prefixIcon: const Icon(Icons.search_rounded, size: 18, color: Colors.grey),
+          suffixIcon: IconButton(
+            icon: const Icon(Icons.close, size: 18), 
+            onPressed: () => setState(() {
+              _isSearchExpanded = false;
+              _searchQuery = '';
+            }),
+          ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 11),
         ),

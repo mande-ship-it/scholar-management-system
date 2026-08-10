@@ -149,6 +149,7 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
   String? _roleFilter;
   String _statusFilter = 'All';
   bool _sortAscending = true;
+  bool _isSearchExpanded = false;
 
   final List<String> _roles = [];
   final List<dynamic> _departments = [];
@@ -437,50 +438,36 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
   }
 
   Widget _buildFilterBar(bool isMobile) {
-    if (isMobile) {
-      return Column(
+    if (!_isSearchExpanded) {
+      return Row(
         children: [
-          Container(
-            height: 40,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: TextField(
-              onChanged: (val) => setState(() => _searchQuery = val),
-              style: const TextStyle(fontSize: 13),
-              decoration: const InputDecoration(
-                hintText: "Search identities...",
-                hintStyle: TextStyle(fontSize: 12, color: Colors.grey),
-                prefixIcon: Icon(Icons.search, size: 18),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(vertical: 10),
-              ),
+          IconButton(
+            onPressed: () => setState(() => _isSearchExpanded = true),
+            icon: const Icon(Icons.search, color: kBrandBrown),
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.grey.shade50,
+              padding: const EdgeInsets.all(10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              side: BorderSide(color: Colors.grey.shade200),
             ),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(child: _dropdownFilter("ROLES", _roleFilter, _roles, (v) => setState(() => _roleFilter = v))),
-              const SizedBox(width: 8),
-              Expanded(child: _dropdownFilter("STATUS", _statusFilter, ['All', 'Active', 'Inactive'], (v) => setState(() => _statusFilter = v ?? 'All'))),
-              if (_hasActiveFilters) ...[
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: _clearFilters, 
-                  icon: const Icon(Icons.filter_list_off_rounded, color: Colors.redAccent, size: 18),
-                  constraints: const BoxConstraints(),
-                  padding: const EdgeInsets.all(8),
-                ),
-              ],
-            ],
-          ),
+          const SizedBox(width: 12),
+          Expanded(child: _dropdownFilter("ROLES", _roleFilter, _roles, (v) => setState(() => _roleFilter = v))),
+          const SizedBox(width: 8),
+          Expanded(child: _dropdownFilter("STATUS", _statusFilter, ['All', 'Active', 'Inactive'], (v) => setState(() => _statusFilter = v ?? 'All'))),
+          if (_hasActiveFilters) ...[
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: _clearFilters, 
+              icon: const Icon(Icons.filter_list_off_rounded, color: Colors.redAccent, size: 18),
+              constraints: const BoxConstraints(),
+              padding: const EdgeInsets.all(8),
+            ),
+          ],
         ],
       );
     }
+
     return Row(
       children: [
         Expanded(
@@ -494,29 +481,26 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
             ),
             child: TextField(
               onChanged: (val) => setState(() => _searchQuery = val),
+              autofocus: true,
               style: const TextStyle(fontSize: 13),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: "Search identities...",
-                hintStyle: TextStyle(fontSize: 12, color: Colors.grey),
-                prefixIcon: Icon(Icons.search, size: 18),
+                hintStyle: const TextStyle(fontSize: 12, color: Colors.grey),
+                prefixIcon: const Icon(Icons.search, size: 18),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.close, size: 18), 
+                  onPressed: () => setState(() {
+                    _isSearchExpanded = false;
+                    _searchQuery = '';
+                  }),
+                ),
                 border: InputBorder.none,
                 isDense: true,
-                contentPadding: EdgeInsets.symmetric(vertical: 10),
+                contentPadding: const EdgeInsets.symmetric(vertical: 10),
               ),
             ),
           ),
         ),
-        const SizedBox(width: 12),
-        _dropdownFilter("ROLES", _roleFilter, _roles, (v) => setState(() => _roleFilter = v)),
-        const SizedBox(width: 12),
-        _dropdownFilter("STATUS", _statusFilter, ['All', 'Active', 'Inactive'], (v) => setState(() => _statusFilter = v ?? 'All')),
-        if (_hasActiveFilters)
-          IconButton(
-            onPressed: _clearFilters, 
-            icon: const Icon(Icons.filter_list_off_rounded, color: Colors.redAccent, size: 18),
-            constraints: const BoxConstraints(),
-            padding: const EdgeInsets.all(8),
-          ),
       ],
     );
   }

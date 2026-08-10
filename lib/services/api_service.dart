@@ -227,15 +227,6 @@ class ApiService {
     return await _dio.post('/attendance/record', data: data);
   }
 
-  // Payments
-  static Future<Response> getPaymentsByScholar(String scholarId) async {
-    return await _dio.get('/payments/scholar/$scholarId');
-  }
-
-  static Future<Response> recordPayment(Map<String, dynamic> data) async {
-    return await _dio.post('/payments/record', data: data);
-  }
-
   // Academics
   static Future<Response> getResultsByScholar(String scholarId, {String? year}) async {
     return await _dio.get('/academic/results', queryParameters: {
