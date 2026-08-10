@@ -45,12 +45,9 @@ class ScholarAttendancePage extends StatelessWidget {
             ),
           )
         : null,
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: ScholarAttendanceComponent(
-          forcedSchoolType: effectiveSchoolType,
-          forcedModuleType: effectiveModuleType,
-        ),
+      body: ScholarAttendanceComponent(
+        forcedSchoolType: effectiveSchoolType,
+        forcedModuleType: effectiveModuleType,
       ),
     );
   }

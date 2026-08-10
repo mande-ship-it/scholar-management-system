@@ -183,7 +183,9 @@ class Student {
                   (map['schoolType']?.toString().toLowerCase().contains('university') ?? false)
           ? SchoolType.university
           : SchoolType.secondary,
-      schoolName: map['display_school_name'] ?? map['schoolName'] ?? 'N/A',
+      schoolName: map['display_school_name'] ?? 
+                  map['schoolName'] ?? 
+                  (map['schoolId'] is Map ? map['schoolId']['name'] : 'N/A'),
       currentClass: (map['academic_year'] ?? map['academicYear'] ?? map['current_class'] ?? map['currentClass'] ?? '').toString(),
       status: map['status'] ?? 'Active',
       district: map['district'] ?? 'N/A',

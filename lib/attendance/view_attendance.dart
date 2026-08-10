@@ -205,68 +205,44 @@ class _ViewAttendanceComponentState extends State<ViewAttendanceComponent> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 40, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       decoration: BoxDecoration(
         color: isDark ? theme.cardColor : Colors.white,
         border: Border(bottom: BorderSide(color: theme.dividerColor)),
       ),
-      child: isMobile
-        ? Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Participation Registry",
+                  style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.2)),
+              ],
+            ),
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Text("Participation Sheet",
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown)),
-            ],
-          )
-        : Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Participation Sheet",
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.2)),
-                  const Text("Institutional attendance audit.",
-                    style: TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-                ],
-              ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (widget.onMarkAttendance != null) ...[
-                    ElevatedButton.icon(
-                      onPressed: widget.onMarkAttendance,
-                      icon: const Icon(Icons.how_to_reg_rounded, size: 16),
-                      label: const Text("MARK REGISTER"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: kBrandOlive,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                  ],
-                  if (_attendanceReport.isNotEmpty)
-                    ElevatedButton.icon(
-                      onPressed: _exportToPDF,
-                      icon: const Icon(Icons.file_download_rounded, size: 16),
-                      label: const Text("DOWNLOAD SHEET"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isDark ? theme.colorScheme.primaryContainer : kBrandBrown,
-                        foregroundColor: isDark ? theme.colorScheme.onPrimaryContainer : Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5),
-                      ),
-                    ),
-                ],
-              ),
+              if (widget.onMarkAttendance != null) ...[
+                IconButton(
+                  onPressed: widget.onMarkAttendance,
+                  icon: const Icon(Icons.how_to_reg_rounded, size: 20, color: kBrandOlive),
+                  tooltip: "Mark Register",
+                ),
+                const SizedBox(width: 8),
+              ],
+              if (_attendanceReport.isNotEmpty)
+                IconButton(
+                  onPressed: _exportToPDF,
+                  icon: const Icon(Icons.file_download_rounded, size: 20, color: kBrandBrown),
+                  tooltip: "Download Sheet",
+                ),
             ],
           ),
+        ],
+      ),
     );
   }
 

@@ -20,10 +20,7 @@ class AttendanceModuleReportsPage extends StatelessWidget {
             ),
           )
         : null,
-      body: const Padding(
-        padding: EdgeInsets.all(20),
-        child: AttendanceReportsComponent(),
-      ),
+      body: const AttendanceReportsComponent(),
     );
   }
 }

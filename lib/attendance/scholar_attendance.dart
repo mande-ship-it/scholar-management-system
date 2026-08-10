@@ -85,7 +85,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   bool _isFieldOfficer = false;
 
   String _selectedYear = DateTime.now().year.toString();
-  String _selectedMonth = DateFormat('MMMM').format(DateTime.now());
+  int _selectedMonth = DateTime.now().month;
   int _selectedWeek = 1;
   String? _selectedPeriod; // Term or Semester
 
@@ -393,20 +393,30 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   }
 
   Widget _buildMobileConfig() {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 400;
     final periods = _schoolType == SchoolType.university ? kSemesters : kTerms;
     return Column(
       children: [
-        _portalDropdown("Partner Institution", _selectedSchool, _schoolOptions, (v) {
+        _portalDropdown("Institution", _selectedSchool, _schoolOptions, (v) {
           setState(() {
             _selectedSchool = v;
             _loadRegister();
           });
         }),
-        const SizedBox(height: 16),
-        _portalDropdown("Academic Cycle", _selectedYear, academicYearOptions(), (v) => setState(() => _selectedYear = v!)),
-        const SizedBox(height: 16),
-        _portalDropdown("Period / Term", _selectedPeriod, periods, (v) => setState(() => _selectedPeriod = v!)),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
+        if (isVerySmall) ...[
+          _portalDropdown("Cycle", _selectedYear, academicYearOptions(), (v) => setState(() => _selectedYear = v!)),
+          const SizedBox(height: 12),
+          _portalDropdown("Period", _selectedPeriod, periods, (v) => setState(() => _selectedPeriod = v!)),
+        ] else
+          Row(
+            children: [
+              Expanded(child: _portalDropdown("Cycle", _selectedYear, academicYearOptions(), (v) => setState(() => _selectedYear = v!))),
+              const SizedBox(width: 12),
+              Expanded(child: _portalDropdown("Period", _selectedPeriod, periods, (v) => setState(() => _selectedPeriod = v!))),
+            ],
+          ),
+        const SizedBox(height: 12),
         _portalDatePickerField(),
       ],
     );
@@ -455,7 +465,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
                   children: [
                     const Icon(Icons.info_outline_rounded, size: 16, color: Colors.grey),
                     const SizedBox(width: 12),
-                    Text("Telemetry Log: $_selectedMonth | Week $_selectedWeek", 
+                    Text("Telemetry Log: ${DateFormat('MMMM').format(DateTime(2026, _selectedMonth))} | Week $_selectedWeek",
                       style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF4C3C32))),
                   ],
                 ),
@@ -587,9 +597,10 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   }
 
   Widget _buildMobileAttendanceCard(AttendanceEntry entry) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 400;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(isVerySmall ? 12 : 16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -601,9 +612,9 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
           Row(
             children: [
               CircleAvatar(
-                radius: 18,
+                radius: isVerySmall ? 16 : 18,
                 backgroundColor: const Color(0xFFFAF2DB),
-                child: Text(getInitials(entry.scholar.name), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF4C3C32))),
+                child: Text(getInitials(entry.scholar.name), style: TextStyle(fontSize: isVerySmall ? 9 : 10, fontWeight: FontWeight.w900, color: const Color(0xFF4C3C32))),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -613,8 +624,8 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
                     Text(entry.scholar.name.toUpperCase(), 
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFF4C3C32))),
-                    Text(entry.scholar.scholarId, style: TextStyle(fontSize: 10, color: Colors.grey.shade400, fontWeight: FontWeight.bold)),
+                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: isVerySmall ? 12 : 13, color: const Color(0xFF4C3C32))),
+                    Text(entry.scholar.scholarId, style: TextStyle(fontSize: isVerySmall ? 9 : 10, color: Colors.grey.shade400, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
@@ -631,10 +642,10 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
             ),
             child: TextField(
               onChanged: (v) => entry.note = v,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-              decoration: const InputDecoration(
-                hintText: "Specific session notes...",
-                hintStyle: TextStyle(fontSize: 11),
+              style: TextStyle(fontSize: isVerySmall ? 11 : 12, fontWeight: FontWeight.w600),
+              decoration: InputDecoration(
+                hintText: isVerySmall ? "Notes..." : "Specific session notes...",
+                hintStyle: TextStyle(fontSize: isVerySmall ? 10 : 11),
                 border: InputBorder.none,
                 isDense: true,
               ),
@@ -646,6 +657,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   }
 
   Widget _buildStatusPicker(AttendanceEntry entry, {bool isMobile = false}) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 400;
     return IgnorePointer(
       ignoring: !_isFieldOfficer,
       child: Row(
@@ -660,7 +672,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
                 borderRadius: BorderRadius.circular(8),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
                     color: isSelected ? status.color : const Color(0xFFF8F9FA),
                     borderRadius: BorderRadius.circular(8),
@@ -672,12 +684,15 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(status.icon, size: 14, color: isSelected ? Colors.white : Colors.grey.shade300),
+                      Icon(status.icon, size: 12, color: isSelected ? Colors.white : Colors.grey.shade300),
                       if (isSelected) ...[
-                        const SizedBox(width: 8),
-                        Text(
-                          status.label,
-                          style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            isVerySmall ? status.label.substring(0, 3).toUpperCase() : status.label.toUpperCase(),
+                            style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       ],
                     ],
@@ -875,7 +890,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
             if (picked != null) {
               setState(() {
                 _selectedDate = picked;
-                _selectedMonth = DateFormat('MMMM').format(picked);
+                _selectedMonth = picked.month;
                 _selectedWeek = ((picked.day - 1) / 7).floor() + 1;
               });
             }

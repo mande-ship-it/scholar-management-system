@@ -239,28 +239,21 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
     if (isMobile) {
       return Column(
         children: [
-          if (isVerySmall)
-            ...kpis.map((kpi) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _buildPortalCard(kpi.$1, kpi.$2, kpi.$3, kpi.$4, () => widget.onNavigate?.call(kpi.$5), isVerySmall),
-            )).toList()
-          else ...[
-            Row(
-              children: [
-                Expanded(child: _buildPortalCard(kpis[0].$1, kpis[0].$2, kpis[0].$3, kpis[0].$4, () => widget.onNavigate?.call(kpis[0].$5), isVerySmall)),
-                const SizedBox(width: 12),
-                Expanded(child: _buildPortalCard(kpis[1].$1, kpis[1].$2, kpis[1].$3, kpis[1].$4, () => widget.onNavigate?.call(kpis[1].$5), isVerySmall)),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(child: _buildPortalCard(kpis[2].$1, kpis[2].$2, kpis[2].$3, kpis[2].$4, () => widget.onNavigate?.call(kpis[2].$5), isVerySmall)),
-                const SizedBox(width: 12),
-                Expanded(child: _buildPortalCard(kpis[3].$1, kpis[3].$2, kpis[3].$3, kpis[3].$4, () => widget.onNavigate?.call(kpis[3].$5), isVerySmall)),
-              ],
-            ),
-          ],
+          Row(
+            children: [
+              Expanded(child: _buildPortalCard(kpis[0].$1, kpis[0].$2, kpis[0].$3, kpis[0].$4, () => widget.onNavigate?.call(kpis[0].$5))),
+              const SizedBox(width: 12),
+              Expanded(child: _buildPortalCard(kpis[1].$1, kpis[1].$2, kpis[1].$3, kpis[1].$4, () => widget.onNavigate?.call(kpis[1].$5))),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _buildPortalCard(kpis[2].$1, kpis[2].$2, kpis[2].$3, kpis[2].$4, () => widget.onNavigate?.call(kpis[2].$5))),
+              const SizedBox(width: 12),
+              Expanded(child: _buildPortalCard(kpis[3].$1, kpis[3].$2, kpis[3].$3, kpis[3].$4, () => widget.onNavigate?.call(kpis[3].$5))),
+            ],
+          ),
         ],
       );
     }
@@ -281,26 +274,25 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
         kpis[i].$3, 
         kpis[i].$4, 
         () => widget.onNavigate?.call(kpis[i].$5),
-        isVerySmall,
       ),
     );
   }
 
-  Widget _buildPortalCard(String label, String value, IconData icon, Color color, VoidCallback onTap, bool isVerySmall) {
+  Widget _buildPortalCard(String label, String value, IconData icon, Color color, VoidCallback onTap) {
     final bool isMobile = MediaQuery.of(context).size.width < 950;
 
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(isVerySmall ? 16 : 24),
+      borderRadius: BorderRadius.circular(20),
       elevation: 0,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(isVerySmall ? 16 : 24),
+        borderRadius: BorderRadius.circular(20),
         child: Container(
-          padding: EdgeInsets.all(isVerySmall ? 16 : 24),
+          padding: EdgeInsets.all(isMobile ? 16 : 28),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(isVerySmall ? 16 : 24),
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(color: const Color(0xFFEEEEEE), width: 1),
             boxShadow: [
               BoxShadow(
@@ -313,14 +305,14 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
           child: Row(
             children: [
               Container(
-                padding: EdgeInsets.all(isVerySmall ? 10 : 14),
+                padding: EdgeInsets.all(isMobile ? 8 : 12),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.1),
-                  shape: BoxShape.circle,
+                  borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(icon, color: color, size: isVerySmall ? 20 : 24),
+                child: Icon(icon, color: color, size: isMobile ? 20 : 24),
               ),
-              SizedBox(width: isVerySmall ? 12 : 20),
+              SizedBox(width: isMobile ? 12 : 20),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -331,28 +323,26 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
                       child: Text(
                         value,
                         style: TextStyle(
-                          fontSize: isMobile ? 24 : 24,
+                          fontSize: isMobile ? 18 : 26,
                           fontWeight: FontWeight.w900,
                           color: const Color(0xFF4C3C32),
-                          letterSpacing: -0.5,
+                          letterSpacing: -1,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 2),
                     Text(
                       label.toUpperCase(),
                       style: TextStyle(
-                        fontSize: isMobile ? 9 : 9,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.grey.shade500,
-                        letterSpacing: 0.5,
+                        fontSize: isMobile ? 8 : 10,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.grey.shade400,
+                        letterSpacing: 1.0,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
-              if (isMobile) const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFFEEEEEE)),
             ],
           ),
         ),

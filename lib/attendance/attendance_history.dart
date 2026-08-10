@@ -276,9 +276,15 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
           separatorBuilder: (_, index) => const SizedBox(height: 16),
           itemBuilder: (context, index) {
             final item = _history[index];
-            final typeLabel = item['type'] ?? 'CHATs';
-            final moduleType = typeLabel == 'CHATs' ? AttendanceModuleType.chats : AttendanceModuleType.studyCircle;
-            final String dateStr = item['session_date'] != null ? DateFormat('dd MMM yyyy').format(DateTime.parse(item['session_date'])) : 'N/A';
+            final typeLabel = item['type']?.toString() ?? 'CHATs';
+
+            AttendanceModuleType moduleType = AttendanceModuleType.chats;
+            if (typeLabel.contains('Study')) moduleType = AttendanceModuleType.studyCircle;
+            if (typeLabel.contains('Class')) moduleType = AttendanceModuleType.classAttendance;
+
+            final String dateStr = item['sessionDate'] != null
+                ? DateFormat('dd MMM yyyy').format(DateTime.parse(item['sessionDate']))
+                : (item['session_date'] != null ? DateFormat('dd MMM yyyy').format(DateTime.parse(item['session_date'])) : 'N/A');
 
             if (isMobile) {
               return Container(

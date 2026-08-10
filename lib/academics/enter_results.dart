@@ -16,6 +16,7 @@ class AcademicsManagementComponent extends StatefulWidget {
 }
 
 class _AcademicsManagementComponentState extends State<AcademicsManagementComponent> {
+  bool _canEdit = false;
   bool _isFieldOfficer = false;
 
   @override
@@ -28,10 +29,16 @@ class _AcademicsManagementComponentState extends State<AcademicsManagementCompon
     try {
       final res = await ApiService.getAccountProfile();
       if (res.statusCode == 200) {
-        final role = (res.data['data']['role_name'] ?? '').toString().toLowerCase();
+        final data = res.data['data'];
+        final role = (data['role_name'] ?? '').toString().toLowerCase().trim();
+        
+        final List<String> fieldRoles = ['field officer', 'field coordinator', 'field operations', 'operational officer'];
+        final List<String> managementRoles = ['administrator', 'admin', 'program coordinator', 'country director', 'program manager', 'data officer'];
+        
         if (mounted) {
           setState(() {
-            _isFieldOfficer = role.contains('field');
+            _isFieldOfficer = fieldRoles.contains(role);
+            _canEdit = fieldRoles.contains(role) || managementRoles.contains(role);
           });
         }
       }
@@ -69,7 +76,7 @@ class _AcademicsManagementComponentState extends State<AcademicsManagementCompon
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _isFieldOfficer ? "Examination Results Entry" : "Performance Records Audit",
+                  _canEdit ? "Examination Results Entry" : "Performance Records Audit",
                   style: TextStyle(
                     fontSize: isMobile ? 14 : 16, 
                     fontWeight: FontWeight.w900, 
@@ -80,7 +87,7 @@ class _AcademicsManagementComponentState extends State<AcademicsManagementCompon
               ],
             ),
           ),
-          if (!_isFieldOfficer)
+          if (!_canEdit)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
@@ -113,7 +120,8 @@ class EnterResultsComponent extends StatefulWidget {
 class _EnterResultsComponentState extends State<EnterResultsComponent> {
   bool _isLoading = false;
   bool _isSaving = false;
-  bool _isFieldOfficer = false;
+  bool _canEdit = false;
+  bool _isStrictFieldOfficer = false;
 
   // Selection State
   late SchoolType _schoolType;
@@ -153,10 +161,20 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
     try {
       final res = await ApiService.getAccountProfile();
       if (res.statusCode == 200) {
-        final role = (res.data['data']['role_name'] ?? '').toString().toLowerCase();
+        final data = res.data['data'];
+        final role = (data['role_name'] ?? '').toString().toLowerCase().trim();
+        
+        final List<String> fieldRoles = ['field officer', 'field coordinator', 'field operations', 'operational officer'];
+        final List<String> managementRoles = ['administrator', 'admin', 'program coordinator', 'country director', 'program manager', 'data officer'];
+        
         if (mounted) {
           setState(() {
-            _isFieldOfficer = role.contains('field');
+            _isStrictFieldOfficer = fieldRoles.contains(role);
+            _canEdit = fieldRoles.contains(role) || managementRoles.contains(role);
+            
+            if (_isStrictFieldOfficer) {
+              _schoolType = SchoolType.secondary;
+            }
           });
         }
       }
@@ -177,16 +195,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
           _registeredSchools = List<Map<String, dynamic>>.from(schoolsRes.data['data'] ?? []);
           
           final List<dynamic> scholarData = scholarsRes.data['data'] ?? [];
-          _allScholars = scholarData.map((s) => Student(
-            id: (s['id'] ?? s['_id'] ?? '').toString(),
-            scholarId: s['scholar_id'] ?? 'N/A',
-            name: s['full_name'] ?? 'N/A',
-            status: s['status'] ?? 'Active',
-            age: s['dob'] != null ? DateTime.now().year - DateTime.parse(s['dob']).year : 16,
-            schoolType: s['school_type'] == 'University' || s['schoolType'] == 'University' ? SchoolType.university : SchoolType.secondary,
-            schoolName: s['display_school_name'] ?? 'N/A',
-            currentClass: s['academic_year'] ?? '',
-          )).toList();
+          _allScholars = scholarData.map((s) => Student.fromMap(s)).toList();
 
           final List<dynamic> subjectData = subjectsRes.data['data'] ?? [];
           _availableSubjects = subjectData.map((sub) => Subject(
@@ -359,8 +368,8 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
       }
     }
 
-    final int minSubjects = _isFieldOfficer ? 8 : (isUniversity ? 5 : 6);
-    final int maxSubjects = _isFieldOfficer ? 10 : (isUniversity ? 8 : 12);
+    final int minSubjects = _isStrictFieldOfficer ? 8 : (isUniversity ? 5 : 6);
+    final int maxSubjects = _isStrictFieldOfficer ? 10 : (isUniversity ? 8 : 12);
 
     if (validResults.length < minSubjects) {
       _showError("Please enter at least $minSubjects ${isUniversity ? 'courses' : 'subjects'}.");
@@ -506,7 +515,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
         children: [
           if (isMobile) ...[
             _portalSelectionLabel("Institution Level"),
-            if (_isFieldOfficer)
+            if (_isStrictFieldOfficer)
               _compactStaticField("Secondary School", Icons.school_rounded)
             else
               _buildTypeSelector(),
@@ -516,7 +525,16 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
               value: _selectedYear, 
               items: _academicYears, 
               icon: Icons.calendar_today_rounded, 
-              onChanged: (v) => setState(() => _selectedYear = v)
+              onChanged: (v) {
+                setState(() {
+                  _selectedYear = v;
+                  _recordedPeriods = [];
+                  _selectedPeriod = null;
+                });
+                if (_selectedStudent != null && v != null) {
+                  _checkCompleteness(_selectedStudent!.id, int.parse(v));
+                }
+              }
             ),
             const SizedBox(height: 24),
             _dropdownField<String>(
@@ -567,7 +585,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _portalSelectionLabel("Institution Level"),
-                      if (_isFieldOfficer)
+                      if (_isStrictFieldOfficer)
                         _compactStaticField("Secondary School", Icons.school_rounded)
                       else
                         _buildTypeSelector(),
@@ -581,7 +599,16 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                     value: _selectedYear, 
                     items: _academicYears, 
                     icon: Icons.calendar_today_rounded, 
-                    onChanged: (v) => setState(() => _selectedYear = v)
+                    onChanged: (v) {
+                      setState(() {
+                        _selectedYear = v;
+                        _recordedPeriods = [];
+                        _selectedPeriod = null;
+                      });
+                      if (_selectedStudent != null && v != null) {
+                        _checkCompleteness(_selectedStudent!.id, int.parse(v));
+                      }
+                    }
                   ),
                 ),
               ],
@@ -769,7 +796,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
           ),
           Padding(
             padding: const EdgeInsets.all(24),
-            child: _isFieldOfficer ? _portalAddRowBtn() : const SizedBox(),
+            child: _canEdit ? _portalAddRowBtn() : const SizedBox(),
           ),
         ],
       ),
@@ -842,7 +869,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                 Expanded(
                   child: TextField(
                     controller: row.scoreController,
-                    enabled: _isFieldOfficer,
+                    enabled: _canEdit,
                     keyboardType: TextInputType.number,
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: hasScore ? color : kBrandBrown),
                     decoration: InputDecoration(
@@ -894,7 +921,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
               height: 36,
               child: TextField(
                 controller: row.scoreController,
-                enabled: _isFieldOfficer,
+                enabled: _canEdit,
                 keyboardType: TextInputType.number,
                 textAlign: TextAlign.center,
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: hasScore ? color : kBrandBrown),

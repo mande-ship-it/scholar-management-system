@@ -134,37 +134,26 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: isMobile ? 24 : 40, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       decoration: BoxDecoration(
         color: isDark ? theme.cardColor : Colors.white,
         border: Border(bottom: BorderSide(color: theme.dividerColor)),
       ),
-      child: isMobile 
-        ? Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Attendance Intel',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.5)),
-              const SizedBox(height: 8),
-              _buildActionButtons(isMobile),
-            ],
-          )
-        : Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Attendance Intelligence',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.5)),
-                    const Text('Analyze program participation telemetry.',
-                      style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w500)),
-                  ],
-                ),
-              ),
-              _buildActionButtons(isMobile),
-            ],
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Attendance Intelligence',
+                  style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.2)),
+              ],
+            ),
           ),
+          _buildActionButtons(isMobile),
+        ],
+      ),
     );
   }
 
