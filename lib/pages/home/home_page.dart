@@ -913,38 +913,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             Expanded(
               child: Column(
                 children: [
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 8),
-                    color: Colors.white,
-                    child: Row(
-                      children: [
-                        if (_navigationHistory.isNotEmpty || _currentDetailScholarId != null) 
-                          IconButton(icon: const Icon(Icons.arrow_back, color: Colors.black87, size: 18), onPressed: _popSubItem),
-                        if (!isMobile) ...[
-                          Text(activeCategory.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black54)),
-                          const Icon(Icons.chevron_right, color: Colors.grey, size: 16),
-                        ],
-                        Expanded(
-                          child: Text(
-                            _currentDetailScholarId != null ? "Scholar Profile" : activeSubItem.title, 
-                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1),
                   Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.all(isMobile ? 12 : 24),
-                      child: _currentDetailScholarId != null
+                    child: _currentDetailScholarId != null
                         ? ScholarProfileComponent(scholarId: _currentDetailScholarId, onBack: _popSubItem)
                         : activeSubItem.builder != null
                           ? activeSubItem.builder!(_popSubItem, _pushSubItem, _pushScholarProfile)
                           : activeSubItem.page,
-                    ),
                   ),
                 ],
               ),

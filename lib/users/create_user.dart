@@ -254,37 +254,42 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
   }
 
   Widget _buildHeader(bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
     return Container(
-      padding: EdgeInsets.fromLTRB(isMobile ? 16 : 24, 12, isMobile ? 16 : 20, 12),
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: Row(
         children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: kBrandOlive.withOpacity(0.15),
-              shape: BoxShape.circle,
+          if (Navigator.canPop(context)) ...[
+            IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
             ),
-            alignment: Alignment.center,
+            const SizedBox(width: 16),
+          ],
+          Expanded(
             child: Text(
-              _initialsOf(_fullNameController.text),
-              style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: 12),
+              "Identity Provisioning",
+              style: TextStyle(
+                fontSize: isVerySmall ? 13 : 16, 
+                fontWeight: FontWeight.w900, 
+                color: const Color(0xFF4C3C32), 
+                letterSpacing: -0.2
+              ),
             ),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Create User Account", 
-                  style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                const Text("Provision a new system user.", style: TextStyle(fontSize: 11, color: Colors.grey)),
-              ],
-            ),
+          IconButton(
+            onPressed: _resetForm,
+            icon: const Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+            tooltip: "Reset Form",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
         ],
       ),

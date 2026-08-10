@@ -54,52 +54,80 @@ class _AllocationListPageState extends State<AllocationListPage> {
   @override
   Widget build(BuildContext context) {
     final bool isMobile = MediaQuery.of(context).size.width < 900;
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
-      appBar: AppBar(
-        title: _isSearching 
-          ? TextField(
-              autofocus: true,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                hintText: "Search allocated scholars...",
-                hintStyle: TextStyle(color: Colors.white70),
-                border: InputBorder.none,
-                filled: false,
-              ),
-              onChanged: (v) {
-                _searchQuery = v;
-                _applyFilter();
-              },
-            )
-          : const Text("Allocated Scholars"),
-        actions: [
-          IconButton(
-            icon: Icon(_isSearching ? Icons.close : Icons.search),
-            onPressed: () {
-              setState(() {
-                _isSearching = !_isSearching;
-                if (!_isSearching) {
-                  _searchQuery = '';
-                  _applyFilter();
-                }
-              });
-            },
+      body: Column(
+        children: [
+          _buildPortalIntegratedHeader(isVerySmall, isMobile),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
+                : _filteredInternships.isEmpty
+                    ? const Center(child: Text("No allocations found."))
+                    : ListView.separated(
+                        padding: EdgeInsets.all(isMobile ? 16 : 32),
+                        itemCount: _filteredInternships.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 16),
+                        itemBuilder: (context, index) => _allocationCard(_filteredInternships[index]),
+                      ),
           ),
-          IconButton(onPressed: _fetchInternships, icon: const Icon(Icons.refresh)),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
-          : _filteredInternships.isEmpty
-              ? const Center(child: Text("No allocations found."))
-              : ListView.separated(
-                  padding: EdgeInsets.all(isMobile ? 16 : 32),
-                  itemCount: _filteredInternships.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 16),
-                  itemBuilder: (context, index) => _allocationCard(_filteredInternships[index]),
+    );
+  }
+
+  Widget _buildPortalIntegratedHeader(bool isVerySmall, bool isMobile) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Container(
+              height: 40,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F9FA),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFEEEEEE)),
+              ),
+              child: TextField(
+                onChanged: (v) {
+                  _searchQuery = v;
+                  _applyFilter();
+                },
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                decoration: const InputDecoration(
+                  hintText: "Search allocations...",
+                  prefixIcon: Icon(Icons.search, size: 18, color: Colors.grey),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(vertical: 10),
                 ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            onPressed: _fetchInternships,
+            icon: const Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+            tooltip: "Refresh",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
     );
   }
 

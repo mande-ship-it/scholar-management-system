@@ -109,6 +109,41 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
     ];
   }
 
+  Widget _buildAdminPortalHeader(bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Text(
+              "System Intelligence Hub",
+              style: TextStyle(
+                fontSize: isVerySmall ? 13 : 16, 
+                fontWeight: FontWeight.w900, 
+                color: const Color(0xFF4C3C32), 
+                letterSpacing: -0.2
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: _loadDashboardData,
+            icon: const Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+            tooltip: "Sync Analytics",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
@@ -119,110 +154,75 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
       color: const Color(0xFFF8F9FA),
       width: double.infinity,
       height: double.infinity,
-      child: SingleChildScrollView(
-        padding: EdgeInsets.all(isVerySmall ? 8 : (isMobile ? 12 : 32)),
-        physics: const BouncingScrollPhysics(),
-        child: Center(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 1400),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (!isMobile) ...[
-                  _buildAdminPortalHeader(isMobile),
-                  const SizedBox(height: 32),
-                ],
-
-                // KPI Cards - Small and responsive
-                _buildKPISection(isMobile, isVerySmall),
-
-                SizedBox(height: isVerySmall ? 16 : 32),
-
-                // Multi-column row or vertical stack
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    if (isMobile) {
-                      return Column(
-                        children: [
-                          _buildUserDistributionCard(isMobile, isVerySmall),
-                          const SizedBox(height: 16),
-                          _buildApprovalsDensityCard(isMobile, isVerySmall),
-                          const SizedBox(height: 16),
-                          _buildActivityLogCard(isMobile, isVerySmall),
-                          const SizedBox(height: 16),
-                          _buildDatabaseControlsCard(isMobile, isVerySmall),
-                        ],
-                      );
-                    }
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          flex: 4,
-                          child: Column(
-                            children: [
-                              _buildUserDistributionCard(isMobile, isVerySmall),
-                              const SizedBox(height: 32),
-                              _buildActivityLogCard(isMobile, isVerySmall),
-                            ],
-                          )
-                        ),
-                        const SizedBox(width: 32),
-                        Expanded(
-                          flex: 3,
-                          child: Column(
-                            children: [
-                              _buildApprovalsDensityCard(isMobile, isVerySmall),
-                              const SizedBox(height: 32),
-                              _buildDatabaseControlsCard(isMobile, isVerySmall),
-                            ],
-                          )
-                        ),
-                      ],
-                    );
-                  }
-                ),
-                const SizedBox(height: 60),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAdminPortalHeader(bool isMobile) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
         children: [
+          _buildAdminPortalHeader(isMobile),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "System Intelligence Hub",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF4C3C32),
-                    letterSpacing: -0.2,
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(isVerySmall ? 8 : (isMobile ? 12 : 32)),
+              physics: const BouncingScrollPhysics(),
+              child: Center(
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 1400),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // KPI Cards - Small and responsive
+                      _buildKPISection(isMobile, isVerySmall),
+
+                      SizedBox(height: isVerySmall ? 16 : 32),
+
+                      // Multi-column row or vertical stack
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          if (isMobile) {
+                            return Column(
+                              children: [
+                                _buildUserDistributionCard(isMobile, isVerySmall),
+                                const SizedBox(height: 16),
+                                _buildApprovalsDensityCard(isMobile, isVerySmall),
+                                const SizedBox(height: 16),
+                                _buildActivityLogCard(isMobile, isVerySmall),
+                                const SizedBox(height: 16),
+                                _buildDatabaseControlsCard(isMobile, isVerySmall),
+                              ],
+                            );
+                          }
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                flex: 4,
+                                child: Column(
+                                  children: [
+                                    _buildUserDistributionCard(isMobile, isVerySmall),
+                                    const SizedBox(height: 32),
+                                    _buildActivityLogCard(isMobile, isVerySmall),
+                                  ],
+                                )
+                              ),
+                              const SizedBox(width: 32),
+                              Expanded(
+                                flex: 3,
+                                child: Column(
+                                  children: [
+                                    _buildApprovalsDensityCard(isMobile, isVerySmall),
+                                    const SizedBox(height: 32),
+                                    _buildDatabaseControlsCard(isMobile, isVerySmall),
+                                  ],
+                                )
+                              ),
+                            ],
+                          );
+                        }
+                      ),
+                      const SizedBox(height: 60),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
           ),
-          IconButton(
-            onPressed: _loadDashboardData,
-            icon: const Icon(Icons.refresh_rounded, size: 20, color: Color(0xFF4C3C32)),
-          )
         ],
       ),
     );

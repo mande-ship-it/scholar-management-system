@@ -264,120 +264,70 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
   Widget _buildPortalHero(Student student, Map<String, dynamic>? args, bool isSmall, bool isMobile) {
     final String status = args?['status'] ?? 'Active';
     final bool isActive = status == 'Active';
-
-    if (isSmall) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
-        ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                _heroAvatar(student, 50),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(student.name.toUpperCase(), 
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), letterSpacing: -0.5)),
-                      const SizedBox(height: 4),
-                      Text("ID: ${student.scholarId}", style: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                ),
-                _statusIndicator(status, isActive),
-              ],
-            ),
-            const SizedBox(height: 16),
-            if (student.status == 'Pending' && ['Administrator', 'Program Coordinator', 'Country Director'].contains(_userRole)) ...[
-               _portalActionBtn(Icons.check_circle_outline_rounded, "APPROVE SCHOLAR", kBrandOlive, _approveScholar, compact: true),
-               const SizedBox(height: 8),
-            ],
-            Row(
-              children: [
-                Expanded(child: _portalActionBtn(Icons.auto_awesome, "AI", const Color(0xFF9AB334), () => Scaffold.of(context).openEndDrawer(), compact: true)),
-                const SizedBox(width: 8),
-                Expanded(child: _portalActionBtn(Icons.edit_outlined, "EDIT", const Color(0xFF4C3C32), () {
-                  final scholarMap = _getScholarMap(student);
-                  showEditScholarDialog(context, scholarMap).then((_) => _fetchScholarData(student.id, null));
-                }, compact: true)),
-              ],
-            ),
-          ],
-        ),
-      );
-    }
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(isMobile ? 24 : 40),
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
-      child: isMobile
-        ? Column(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
             children: [
-              _heroAvatar(student, 70),
-              const SizedBox(height: 20),
-              Text(student.name.toUpperCase(), 
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), letterSpacing: -0.5)),
-              const SizedBox(height: 8),
-              _heroBadges(student, status, isActive),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _portalActionBtn(Icons.auto_awesome, "ASK AI", const Color(0xFF9AB334), () => Scaffold.of(context).openEndDrawer()),
-                  const SizedBox(width: 12),
-                  _portalActionBtn(Icons.edit_outlined, "EDIT", const Color(0xFF4C3C32), () {
-                    final scholarMap = _getScholarMap(student);
-                    showEditScholarDialog(context, scholarMap).then((_) => _fetchScholarData(student.id, null));
-                  }),
-                ],
+              IconButton(
+                onPressed: widget.onBack ?? () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
               ),
-            ],
-          )
-        : Row(
-            children: [
-              _heroAvatar(student, 90),
-              const SizedBox(width: 32),
+              const SizedBox(width: 16),
+              _heroAvatar(student, isVerySmall ? 32 : 40),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(student.name.toUpperCase(), 
-                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), letterSpacing: -1)),
-                    const SizedBox(height: 8),
-                    _heroBadges(student, status, isActive),
+                      style: TextStyle(fontSize: isVerySmall ? 13 : 15, fontWeight: FontWeight.w900, color: const Color(0xFF4C3C32), letterSpacing: -0.2),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text("ID: ${student.scholarId}", style: TextStyle(fontSize: 9, color: Colors.grey.shade500, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
-              const SizedBox(width: 40),
-              _portalActionBtn(Icons.auto_awesome, "AI ASSISTANT", const Color(0xFF9AB334), () => Scaffold.of(context).openEndDrawer()),
-              const SizedBox(width: 16),
-              if (['Administrator', 'Program Coordinator', 'Country Director'].contains(_userRole)) ...[
-                if (student.status == 'Pending') ...[
-                  _portalActionBtn(Icons.check_circle_outline_rounded, "APPROVE SCHOLAR", kBrandOlive, _approveScholar),
-                  const SizedBox(width: 16),
-                  _portalActionBtn(Icons.close_rounded, "REJECT", kBrandOrange, _rejectScholar, isOutlined: true),
-                  const SizedBox(width: 16),
+              const SizedBox(width: 8),
+              if (!isVerySmall) _statusIndicator(status, isActive),
+              const SizedBox(width: 8),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert_rounded, color: Colors.grey, size: 20),
+                onSelected: (val) {
+                   if (val == 'ai') Scaffold.of(context).openEndDrawer();
+                   if (val == 'edit') {
+                     final scholarMap = _getScholarMap(student);
+                     showEditScholarDialog(context, scholarMap).then((_) => _fetchScholarData(student.id, null));
+                   }
+                   if (val == 'approve') _approveScholar();
+                   if (val == 'reject') _rejectScholar();
+                   if (val == 'delete') _deleteScholar();
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(value: 'ai', child: Row(children: [Icon(Icons.auto_awesome, size: 18, color: kBrandOlive), SizedBox(width: 8), Text("AI Assistant")])),
+                  const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit_outlined, size: 18), SizedBox(width: 8), Text("Modify Profile")])),
+                  if (student.status == 'Pending' && ['Administrator', 'Program Coordinator', 'Country Director'].contains(_userRole)) ...[
+                    const PopupMenuItem(value: 'approve', child: Row(children: [Icon(Icons.check_circle_outline, size: 18, color: kBrandOlive), SizedBox(width: 8), Text("Approve")])),
+                    const PopupMenuItem(value: 'reject', child: Row(children: [Icon(Icons.close_rounded, size: 18, color: kBrandOrange), SizedBox(width: 8), Text("Reject")])),
+                  ],
+                  if (['Administrator', 'Program Coordinator', 'Country Director'].contains(_userRole))
+                    const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete_outline, size: 18, color: Colors.red), SizedBox(width: 8), Text("Archive / Delete")])),
                 ],
-                _portalActionBtn(Icons.edit_outlined, "MODIFY PROFILE", const Color(0xFF4C3C32), () {
-                  final scholarMap = _getScholarMap(student);
-                  showEditScholarDialog(context, scholarMap).then((_) => _fetchScholarData(student.id, null));
-                }),
-                const SizedBox(width: 16),
-                _portalActionBtn(Icons.delete_outline_rounded, "ARCHIVE", const Color(0xFFE05B1C), _deleteScholar, isOutlined: true),
-              ],
+              ),
             ],
           ),
+        ],
+      ),
     );
   }
 

@@ -154,54 +154,74 @@ class _MeetingConversationPageState extends State<MeetingConversationPage> {
     );
   }
 
+  Widget _buildPortalHeader(bool isSmall) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: isSmall ? 12 : 24, vertical: 8),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(_meetingTitle, 
+                  style: TextStyle(fontSize: isSmall ? 13 : 15, fontWeight: FontWeight.w900, color: const Color(0xFF4C3C32), letterSpacing: -0.2),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text("${_participants.length + 1} participants", style: TextStyle(fontSize: 9, color: Colors.grey.shade500, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.call_rounded, size: isSmall ? 20 : 22, color: kBrandBrown),
+            onPressed: () => _startCall(false),
+            tooltip: "Audio Call",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 16),
+          IconButton(
+            icon: Icon(Icons.videocam_rounded, size: isSmall ? 20 : 22, color: kBrandOlive),
+            onPressed: () => _startCall(true),
+            tooltip: "Video Call",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          if (_meetingLink != null) ...[
+            const SizedBox(width: 16),
+            IconButton(
+              icon: const Icon(Icons.open_in_new_rounded, color: Colors.blue, size: 20),
+              onPressed: _joinGoogleMeet,
+              tooltip: "Join Google Meet",
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isSmall = MediaQuery.of(context).size.width < 500;
     
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        titleSpacing: isSmall ? 0 : null,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(_meetingTitle, style: TextStyle(fontSize: isSmall ? 14 : 16, fontWeight: FontWeight.bold)),
-            Text("${_participants.length + 1} participants active", style: TextStyle(fontSize: isSmall ? 9 : 11, color: Colors.white70)),
-          ],
-        ),
-        actions: [
-          if (_meetingLink != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 8.0),
-              child: TextButton.icon(
-                onPressed: _joinGoogleMeet,
-                icon: const Icon(Icons.videocam_rounded, color: Colors.white, size: 18),
-                label: const Text("JOIN GOOGLE MEET", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
-                style: TextButton.styleFrom(
-                  backgroundColor: kBrandOlive,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
-            ),
-          IconButton(
-            icon: Icon(Icons.call_rounded, size: isSmall ? 20 : 24),
-            onPressed: () => _startCall(false),
-            tooltip: "Audio Call",
-          ),
-          IconButton(
-            icon: Icon(Icons.videocam_rounded, size: isSmall ? 20 : 24),
-            onPressed: () => _startCall(true),
-            tooltip: "Video Call",
-          ),
-          if (!isSmall) ...[
-            const SizedBox(width: 8),
-            IconButton(icon: const Icon(Icons.info_outline), onPressed: () {}),
-          ],
-        ],
-      ),
       body: Column(
         children: [
+          _buildPortalHeader(isSmall),
           Expanded(
             child: ListView.builder(
               controller: _scrollController,

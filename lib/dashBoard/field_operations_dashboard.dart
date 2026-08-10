@@ -285,9 +285,10 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
   }
 
   Widget _buildExecutiveHeader(bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
@@ -295,25 +296,23 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
       child: Row(
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "$_assignedDistrict Overview",
-                  style: const TextStyle(
-                    fontSize: 16, 
-                    fontWeight: FontWeight.w900, 
-                    color: Color(0xFF4C3C32), 
-                    letterSpacing: -0.2
-                  ),
-                ),
-              ],
+            child: Text(
+              "$_assignedDistrict Hub",
+              style: TextStyle(
+                fontSize: isVerySmall ? 13 : 16, 
+                fontWeight: FontWeight.w900, 
+                color: const Color(0xFF4C3C32), 
+                letterSpacing: -0.2
+              ),
             ),
           ),
           IconButton(
             onPressed: _loadDashboardData,
-            icon: const Icon(Icons.refresh_rounded, size: 20, color: Color(0xFF4C3C32)),
-          )
+            icon: const Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+            tooltip: "Sync Command Center",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
         ],
       ),
     );

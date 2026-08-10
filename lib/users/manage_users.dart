@@ -330,9 +330,10 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
   }
 
   Widget _buildProfessionalHeader(bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(isMobile ? 16 : 24, 32, isMobile ? 16 : 24, 8),
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
@@ -340,32 +341,23 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
       child: Row(
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Identity & Access Governance",
-                  style: TextStyle(
-                    fontSize: isMobile ? 14 : 16, 
-                    fontWeight: FontWeight.w900, 
-                    color: kBrandBrown, 
-                    letterSpacing: -0.2
-                  ),
-                ),
-              ],
+            child: Text(
+              "Identity & Access Governance",
+              style: TextStyle(
+                fontSize: isVerySmall ? 13 : 16, 
+                fontWeight: FontWeight.w900, 
+                color: kBrandBrown, 
+                letterSpacing: -0.2
+              ),
             ),
           ),
           if (PermissionService.hasPermission('users.create'))
-            ElevatedButton.icon(
+            IconButton(
               onPressed: widget.onAddUser,
-              icon: Icon(Icons.person_add_alt_1_rounded, size: 14),
-              label: const Text("REGISTER", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: kBrandBrown,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
+              icon: const Icon(Icons.person_add_rounded, color: kBrandOlive, size: 24),
+              tooltip: "Add User",
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
             ),
         ],
       ),

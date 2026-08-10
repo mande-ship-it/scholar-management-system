@@ -139,21 +139,6 @@ class _RegisterSchoolPageState extends State<RegisterSchoolPage> {
       );
     }
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: Navigator.canPop(context) 
-        ? AppBar(
-            title: const Text("Register School", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            backgroundColor: Colors.white,
-            foregroundColor: kBrandBrown,
-            elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-              onPressed: () => Navigator.pop(context),
-            ),
-          )
-        : null,
-      body: RegisterSchoolComponent(onRegister: widget.onSuccess != null ? (_) => widget.onSuccess!() : null),
-    );
+    return RegisterSchoolComponent(onRegister: widget.onSuccess != null ? (_) => widget.onSuccess!() : null);
   }
 }

@@ -249,49 +249,42 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
   }
 
   Widget _buildPortalHeader(bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(32, 32, 32, 24),
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Color(0xFF9AB334).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+          if (Navigator.canPop(context)) ...[
+            IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
             ),
-            child: Icon(_isEditing ? Icons.edit_note_rounded : Icons.handshake_rounded, color: const Color(0xFF9AB334), size: 24),
-          ),
-          const SizedBox(width: 20),
+            const SizedBox(width: 16),
+          ],
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "PARTNER ONBOARDING",
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF9AB334),
-                    letterSpacing: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _isEditing ? "Modify Strategic Partner Profile" : "Register Philanthropic Partner",
-                  style: TextStyle(
-                    fontSize: isMobile ? 18 : 22, 
-                    fontWeight: FontWeight.w900, 
-                    color: const Color(0xFF4C3C32), 
-                    letterSpacing: -0.5
-                  ),
-                ),
-              ],
+            child: Text(
+              _isEditing ? "Partner Update" : "Partner Onboarding",
+              style: TextStyle(
+                fontSize: isVerySmall ? 13 : 16, 
+                fontWeight: FontWeight.w900, 
+                color: const Color(0xFF4C3C32), 
+                letterSpacing: -0.2
+              ),
             ),
+          ),
+          IconButton(
+            onPressed: _resetForm,
+            icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+            tooltip: "Reset Form",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
         ],
       ),

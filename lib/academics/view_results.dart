@@ -283,12 +283,11 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildPortalHeader(),
-          _buildIntegratedToolbar(),
+          _buildPortalIntegratedHeader(),
           Expanded(
             child: Column(
               children: [
-                _buildTabsAndArchiveToggle(),
+                _buildTabNavigation(),
                 Expanded(
                   child: students.isEmpty
                       ? _buildNoResultsState()
@@ -302,34 +301,11 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
     );
   }
 
-  Widget _buildPortalHeader() {
+  Widget _buildPortalIntegratedHeader() {
     final bool isSecondary = _mode == ViewResultsMode.secondary;
     final bool isMobile = MediaQuery.of(context).size.width < 900;
     final bool isVerySmall = MediaQuery.of(context).size.width < 500;
 
-    if (isMobile && _isSearchExpanded) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
-        ),
-        child: Row(
-          children: [
-            Expanded(child: _portalCompactSearchField(true)),
-            IconButton(
-              icon: const Icon(Icons.close_rounded, color: Colors.grey),
-              onPressed: () => setState(() {
-                _isSearchExpanded = false;
-                _searchController.clear();
-              }),
-            ),
-          ],
-        ),
-      );
-    }
-    
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
@@ -337,142 +313,79 @@ class _ViewResultsComponentState extends State<ViewResultsComponent> with Single
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          IconButton.filledTonal(
-            onPressed: () => setState(() {
-              _mode = ViewResultsMode.selection;
-              _selectedDistrict = null;
-              _selectedSchool = null;
-              _selectedScholarId = null;
-              _selectedYear = null;
-              _selectedTerm = null;
-              _selectedSemester = null;
-            }),
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 12),
-            style: IconButton.styleFrom(
-              backgroundColor: Color(0xFF4C3C32).withOpacity(0.05),
-              foregroundColor: const Color(0xFF4C3C32),
-              padding: EdgeInsets.zero,
-              minimumSize: const Size(32, 32),
-            ),
-          ),
-          SizedBox(width: isVerySmall ? 8 : 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isVerySmall ? "Results Audit" : "Examination Performance Ledger",
-                  style: TextStyle(
-                    fontSize: isVerySmall ? 13 : (isMobile ? 14 : 16), 
-                    fontWeight: FontWeight.w900, 
-                    color: const Color(0xFF4C3C32), 
-                    letterSpacing: -0.2
-                  ),
+          Row(
+            children: [
+              IconButton(
+                onPressed: () => setState(() {
+                  _mode = ViewResultsMode.selection;
+                  _selectedDistrict = null;
+                  _selectedSchool = null;
+                  _selectedScholarId = null;
+                  _selectedYear = null;
+                  _selectedTerm = null;
+                  _selectedSemester = null;
+                }),
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 14, color: kBrandBrown),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _portalCompactSearchField(isMobile),
+              ),
+              const SizedBox(width: 8),
+              if (_selectedSchool != null || (isSecondary && _selectedDistrict != null))
+                IconButton(
+                  onPressed: _openConsolidatedRoster,
+                  icon: const Icon(Icons.grid_view_rounded, color: kBrandBrown, size: 20),
+                  tooltip: "Roster",
                 ),
+              IconButton(
+                onPressed: widget.onEnterResults ?? () => Navigator.pushNamed(context, '/academics/enterResults'),
+                icon: const Icon(Icons.add_circle_outline_rounded, color: kBrandOlive, size: 24),
+                tooltip: "Record",
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                if (isSecondary) ...[
+                  _portalCompactDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() { _selectedDistrict = v; _selectedSchool = null; _selectedScholarId = null; })),
+                  const SizedBox(width: 8),
+                ],
+                _portalCompactDropdown(isSecondary ? "School" : "University", _selectedSchool, _availableSchools, (v) => setState(() { _selectedSchool = v; _selectedScholarId = null; })),
+                const SizedBox(width: 8),
+                _portalCompactDropdown("Year", _selectedYear, _academicYears, (v) => setState(() => _selectedYear = v)),
               ],
             ),
           ),
-          if (isMobile) ...[
-            IconButton(
-              icon: const Icon(Icons.search_rounded, color: Color(0xFF4C3C32), size: 20),
-              onPressed: () => setState(() => _isSearchExpanded = true),
-              visualDensity: VisualDensity.compact,
-            ),
-            if (!isVerySmall) const SizedBox(width: 4),
-            IconButton(
-              onPressed: widget.onEnterResults ?? () => Navigator.pushNamed(context, '/academics/enterResults'),
-              icon: const Icon(Icons.add_rounded, color: Colors.white, size: 18),
-              style: IconButton.styleFrom(
-                backgroundColor: const Color(0xFF9AB334),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                minimumSize: const Size(36, 36),
-                padding: EdgeInsets.zero,
-              ),
-            ),
-          ] else ...[
-            if (_selectedSchool != null || (isSecondary && _selectedDistrict != null))
-              _portalHeaderActionBtn(
-                onTap: _openConsolidatedRoster,
-                icon: Icons.grid_view_rounded,
-                label: "Roster",
-                color: const Color(0xFF4C3C32),
-              ),
-            const SizedBox(width: 8),
-            _portalHeaderActionBtn(
-              onTap: widget.onEnterResults ?? () => Navigator.pushNamed(context, '/academics/enterResults'),
-              icon: Icons.add_rounded,
-              label: "Record",
-              color: const Color(0xFF9AB334),
-            ),
-          ],
         ],
       ),
     );
   }
 
-  Widget _portalHeaderActionBtn({required VoidCallback onTap, required IconData icon, required String label, required Color color}) {
-    return ElevatedButton.icon(
-      onPressed: onTap,
-      icon: Icon(icon, size: 16),
-      label: Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        elevation: 0,
-      ),
-    );
-  }
-
-  Widget _buildIntegratedToolbar() {
-    final bool isSecondary = _mode == ViewResultsMode.secondary;
-    final bool isMobile = MediaQuery.of(context).size.width < 900;
-
+  Widget _buildTabNavigation() {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 32, vertical: 16),
+      width: double.infinity,
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFF3F4F6))),
       ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: isMobile
-            ? Row(
-                children: [
-                  if (isSecondary) ...[
-                    _portalCompactDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() { _selectedDistrict = v; _selectedSchool = null; _selectedScholarId = null; })),
-                    const SizedBox(width: 8),
-                  ],
-                  _portalCompactDropdown(isSecondary ? "School" : "University", _selectedSchool, _availableSchools, (v) => setState(() { _selectedSchool = v; _selectedScholarId = null; })),
-                ],
-              )
-            : Row(
-                children: [
-                  _portalCompactSearchField(false),
-                  const SizedBox(width: 16),
-                  if (isSecondary) ...[
-                    SizedBox(
-                      width: 180,
-                      child: _portalCompactDropdown("District", _selectedDistrict, kMalawiDistricts, (v) => setState(() { _selectedDistrict = v; _selectedSchool = null; _selectedScholarId = null; })),
-                    ),
-                    const SizedBox(width: 12),
-                  ],
-                  SizedBox(
-                    width: 240,
-                    child: _portalCompactDropdown(isSecondary ? "Institution" : "University", _selectedSchool, _availableSchools, (v) => setState(() { _selectedSchool = v; _selectedScholarId = null; })),
-                  ),
-                  const SizedBox(width: 12),
-                  SizedBox(
-                    width: 140,
-                    child: _portalCompactDropdown("Year", _selectedYear, _academicYears, (v) => setState(() => _selectedYear = v)),
-                  ),
-                  const SizedBox(width: 24),
-                  _miniStat(Icons.groups_rounded, "${_filteredStudents.length} Scholars found"),
-                ],
-              ),
+      child: TabBar(
+        controller: _tabController,
+        isScrollable: true,
+        labelColor: const Color(0xFF9AB334),
+        unselectedLabelColor: Colors.grey,
+        indicatorColor: const Color(0xFF9AB334),
+        indicatorWeight: 3,
+        labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+        tabs: const [Tab(text: "Active scholars"), Tab(text: "Alumni / Graduates")],
       ),
     );
   }

@@ -353,6 +353,46 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
     }
   }
 
+  Widget _buildPortalHeader(bool isVerySmall) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              "Account Governance",
+              style: TextStyle(
+                fontSize: isVerySmall ? 13 : 16, 
+                fontWeight: FontWeight.w900, 
+                color: const Color(0xFF4C3C32), 
+                letterSpacing: -0.2
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: _fetchProfile,
+            icon: const Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+            tooltip: "Sync Profile",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ---------------------------------------------------------------------
   // BUILD
   // ---------------------------------------------------------------------
@@ -360,6 +400,7 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
     final bool isMobile = screenWidth < 900;
+    final bool isVerySmall = screenWidth < 500;
 
     return Container(
       width: double.infinity,
@@ -370,23 +411,30 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
               padding: EdgeInsets.all(80.0),
               child: CircularProgressIndicator(),
             ))
-          : SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildHeaderCard(isMobile),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 24, vertical: 20),
+          : Column(
+              children: [
+                _buildPortalHeader(isVerySmall),
+                Expanded(
+                  child: SingleChildScrollView(
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        if (_selectedTab == 0) _buildPersonalInfoCard(isMobile),
-                        if (_selectedTab == 1) _buildSecurityCard(isMobile),
-                        if (_selectedTab == 2) _buildActivityCard(isMobile),
+                        _buildHeaderCard(isMobile),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 24, vertical: 20),
+                          child: Column(
+                            children: [
+                              if (_selectedTab == 0) _buildPersonalInfoCard(isMobile),
+                              if (_selectedTab == 1) _buildSecurityCard(isMobile),
+                              if (_selectedTab == 2) _buildActivityCard(isMobile),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
     );
   }

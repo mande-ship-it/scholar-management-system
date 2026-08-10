@@ -35,75 +35,101 @@ class _ScholarStatsComponentState extends State<ScholarStatsComponent> {
     }
   }
 
+  Widget _buildPortalHeader(bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Row(
+        children: [
+          if (Navigator.canPop(context)) ...[
+            IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 16),
+          ],
+          Expanded(
+            child: Text(
+              "Cohort Analytics",
+              style: TextStyle(
+                fontSize: isVerySmall ? 13 : 16, 
+                fontWeight: FontWeight.w900, 
+                color: const Color(0xFF4C3C32), 
+                letterSpacing: -0.2
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: _fetchStats,
+            icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+            tooltip: "Refresh Stats",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) return const SizedBox.shrink();
 
     final bool isMobile = MediaQuery.of(context).size.width < 900;
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(isMobile ? 12 : 32),
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      color: const Color(0xFFF8F9FA),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildPortalHeader(isMobile),
-          const SizedBox(height: 32),
-          if (isMobile)
-            Column(
-              children: [
-                _statTile("TOTAL SCHOLARS", _stats['total']?.toString() ?? '0', Icons.groups_rounded, const Color(0xFF9AB334), true),
-                const SizedBox(height: 16),
-                _statTile("ACTIVE REGISTRY", _stats['active']?.toString() ?? '0', Icons.check_circle_outline_rounded, Colors.blue, true),
-                const SizedBox(height: 16),
-                _statTile("PENDING APPROVAL", _stats['pending']?.toString() ?? '0', Icons.pending_actions_rounded, const Color(0xFFE05B1C), true),
-              ],
-            )
-          else
-            Row(
-              children: [
-                Expanded(child: _statTile("TOTAL SCHOLARS", _stats['total']?.toString() ?? '0', Icons.groups_rounded, const Color(0xFF9AB334), false)),
-                const SizedBox(width: 24),
-                Expanded(child: _statTile("ACTIVE REGISTRY", _stats['active']?.toString() ?? '0', Icons.check_circle_outline_rounded, Colors.blue, false)),
-                const SizedBox(width: 24),
-                Expanded(child: _statTile("PENDING APPROVAL", _stats['pending']?.toString() ?? '0', Icons.pending_actions_rounded, const Color(0xFFE05B1C), false)),
-              ],
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(isMobile ? 12 : 32),
+              child: Center(
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 1200),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (isMobile)
+                        Column(
+                          children: [
+                            _statTile("TOTAL SCHOLARS", _stats['total']?.toString() ?? '0', Icons.groups_rounded, const Color(0xFF9AB334), true),
+                            const SizedBox(height: 16),
+                            _statTile("ACTIVE REGISTRY", _stats['active']?.toString() ?? '0', Icons.check_circle_outline_rounded, Colors.blue, true),
+                            const SizedBox(height: 16),
+                            _statTile("PENDING APPROVAL", _stats['pending']?.toString() ?? '0', Icons.pending_actions_rounded, const Color(0xFFE05B1C), true),
+                          ],
+                        )
+                      else
+                        Row(
+                          children: [
+                            Expanded(child: _statTile("TOTAL SCHOLARS", _stats['total']?.toString() ?? '0', Icons.groups_rounded, const Color(0xFF9AB334), false)),
+                            const SizedBox(width: 24),
+                            Expanded(child: _statTile("ACTIVE REGISTRY", _stats['active']?.toString() ?? '0', Icons.check_circle_outline_rounded, Colors.blue, false)),
+                            const SizedBox(width: 24),
+                            Expanded(child: _statTile("PENDING APPROVAL", _stats['pending']?.toString() ?? '0', Icons.pending_actions_rounded, const Color(0xFFE05B1C), false)),
+                          ],
+                        ),
+                      const SizedBox(height: 32),
+                      _buildDataAnalysisSections(isMobile),
+                    ],
+                  ),
+                ),
+              ),
             ),
-          const SizedBox(height: 32),
-          _buildDataAnalysisSections(isMobile),
+          ),
         ],
       ),
-    );
-  }
-
-  Widget _buildPortalHeader(bool isMobile) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          "COHORT ANALYTICS",
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.w900,
-            color: Color(0xFF9AB334),
-            letterSpacing: 2.0,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          "Scholar Statistics",
-          style: TextStyle(
-            fontSize: isMobile ? 22 : 28, 
-            fontWeight: FontWeight.w900, 
-            color: const Color(0xFF4C3C32), 
-            letterSpacing: -0.5
-          ),
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          "Longitudinal data analysis for program cohorts and institutional performance.",
-          style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500),
-        ),
-      ],
     );
   }
 

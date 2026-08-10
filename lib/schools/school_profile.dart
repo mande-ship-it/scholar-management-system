@@ -44,6 +44,46 @@ class _SchoolProfileComponentState extends State<SchoolProfileComponent> {
     }
   }
 
+  Widget _buildPortalHeader(String name, String code, bool isVerySmall) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name.toUpperCase(), 
+                  style: TextStyle(fontSize: isVerySmall ? 13 : 15, fontWeight: FontWeight.w900, color: const Color(0xFF4C3C32), letterSpacing: -0.2),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text("CODE: $code", style: TextStyle(fontSize: 9, color: Colors.grey.shade500, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () => _fetchSchoolDetails(_schoolData!['id']),
+            icon: const Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+            tooltip: "Sync Profile",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -56,6 +96,7 @@ class _SchoolProfileComponentState extends State<SchoolProfileComponent> {
     }
 
     final bool isMobile = MediaQuery.of(context).size.width < 900;
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
 
     final String name = data['name'] ?? 'N/A';
     final String code = data['code'] ?? 'N/A';
@@ -82,312 +123,319 @@ class _SchoolProfileComponentState extends State<SchoolProfileComponent> {
     final double schoolAvg = double.tryParse(stats['averageMarks']?.toString() ?? '0.0') ?? 0.0;
     final band = performanceBand(schoolAvg);
 
-    return Container(
-      color: const Color(0xFFF0F2F5), // Facebook-style background
-      child: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 24, vertical: 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 1. Profile Summary
-            _buildSectionContainer(
-              isMobile: isMobile,
-              child: isMobile 
-                ? Column(
-                    children: [
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.green.withOpacity(0.2), width: 2),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join(''),
-                          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.green),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(name, textAlign: TextAlign.center, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        alignment: WrapAlignment.center,
-                        children: [
-                          _badge("CODE: $code", Colors.grey.shade100, Colors.grey.shade700),
-                          _badge(status, isActive ? Colors.green.shade50 : Colors.red.shade50, isActive ? Colors.green.shade700 : Colors.red.shade700),
-                        ],
-                      ),
-                    ],
-                  )
-                : Row(
-                    children: [
-                      Container(
-                        width: 90,
-                        height: 90,
-                        decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.green.withOpacity(0.2), width: 2),
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join(''),
-                          style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.green),
-                        ),
-                      ),
-                      const SizedBox(width: 24),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      body: Column(
+        children: [
+          _buildPortalHeader(name, code, isVerySmall),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 24, vertical: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // 1. Profile Summary
+                  _buildSectionContainer(
+                    isMobile: isMobile,
+                    child: isMobile 
+                      ? Column(
                           children: [
-                            Text(name, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                            const SizedBox(height: 8),
-                            Row(
+                            Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                color: Colors.green.withOpacity(0.1),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.green.withOpacity(0.2), width: 2),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join(''),
+                                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.green),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(name, textAlign: TextAlign.center, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                            const SizedBox(height: 12),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              alignment: WrapAlignment.center,
                               children: [
                                 _badge("CODE: $code", Colors.grey.shade100, Colors.grey.shade700),
-                                const SizedBox(width: 8),
                                 _badge(status, isActive ? Colors.green.shade50 : Colors.red.shade50, isActive ? Colors.green.shade700 : Colors.red.shade700),
                               ],
                             ),
                           ],
+                        )
+                      : Row(
+                          children: [
+                            Container(
+                              width: 90,
+                              height: 90,
+                              decoration: BoxDecoration(
+                                color: Colors.green.withOpacity(0.1),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.green.withOpacity(0.2), width: 2),
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                name.split(' ').map((e) => e.isNotEmpty ? e[0] : '').take(2).join(''),
+                                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.green),
+                              ),
+                            ),
+                            const SizedBox(width: 24),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(name, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      _badge("CODE: $code", Colors.grey.shade100, Colors.grey.shade700),
+                                      const SizedBox(width: 8),
+                                      _badge(status, isActive ? Colors.green.shade50 : Colors.red.shade50, isActive ? Colors.green.shade700 : Colors.red.shade700),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
                   ),
-            ),
-          const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-          // 2. Statistics Row
-          if (isMobile)
-            Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(child: _statCard("Scholars", "$scholarsCount", Colors.blue, Icons.people_outline_rounded)),
-                    const SizedBox(width: 12),
-                    Expanded(child: _statCard("Overall Avg", "${schoolAvg.toStringAsFixed(1)}%", band.color, Icons.auto_graph_rounded)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _statCard("Academic Standing", band.label, band.color, Icons.stars_outlined, isFullWidth: true),
-              ],
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Row(
-                children: [
-                  Expanded(child: _statCard("Total Scholars", "$scholarsCount", Colors.blue, Icons.people_outline_rounded)),
-                  const SizedBox(width: 16),
-                  Expanded(child: _statCard("Overall Avg", "${schoolAvg.toStringAsFixed(1)}%", band.color, Icons.auto_graph_rounded)),
-                  const SizedBox(width: 16),
-                  Expanded(child: _statCard("Performance", band.label, band.color, Icons.stars_outlined)),
+                  // 2. Statistics Row
+                  if (isMobile)
+                    Column(
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(child: _statCard("Scholars", "$scholarsCount", Colors.blue, Icons.people_outline_rounded)),
+                            const SizedBox(width: 12),
+                            Expanded(child: _statCard("Overall Avg", "${schoolAvg.toStringAsFixed(1)}%", band.color, Icons.auto_graph_rounded)),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        _statCard("Academic Standing", band.label, band.color, Icons.stars_outlined, isFullWidth: true),
+                      ],
+                    )
+                  else
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Row(
+                        children: [
+                          Expanded(child: _statCard("Total Scholars", "$scholarsCount", Colors.blue, Icons.people_outline_rounded)),
+                          const SizedBox(width: 16),
+                          Expanded(child: _statCard("Overall Avg", "${schoolAvg.toStringAsFixed(1)}%", band.color, Icons.auto_graph_rounded)),
+                          const SizedBox(width: 16),
+                          Expanded(child: _statCard("Performance", band.label, band.color, Icons.stars_outlined)),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 20),
+
+                  // 3. School Details
+                  if (isMobile)
+                    Column(
+                      children: [
+                        _buildSectionContainer(
+                          isMobile: true,
+                          title: "Location Details",
+                          icon: Icons.location_on_outlined,
+                          child: Column(
+                            children: [
+                              _infoRow(Icons.map_outlined, "Region", region),
+                              _infoRow(Icons.my_location_outlined, "District", district),
+                              _infoRow(Icons.home_outlined, "Address", address),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildSectionContainer(
+                          isMobile: true,
+                          title: "Contact Info",
+                          icon: Icons.contact_phone_outlined,
+                          child: Column(
+                            children: [
+                              _infoRow(Icons.phone_outlined, "Primary Phone", phone),
+                              _infoRow(Icons.email_outlined, "Email Address", email),
+                              _infoRow(Icons.language_outlined, "Website", website),
+                            ],
+                          ),
+                        ),
+                      ],
+                    )
+                  else
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: _buildSectionContainer(
+                            title: "Location Details",
+                            icon: Icons.location_on_outlined,
+                            child: Column(
+                              children: [
+                                _infoRow(Icons.map_outlined, "Region", region),
+                                _infoRow(Icons.my_location_outlined, "District", district),
+                                _infoRow(Icons.home_outlined, "Physical Address", address),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: _buildSectionContainer(
+                            title: "Contact Info",
+                            icon: Icons.contact_phone_outlined,
+                            child: Column(
+                              children: [
+                                _infoRow(Icons.phone_outlined, "Primary Phone", phone),
+                                _infoRow(Icons.email_outlined, "Email Address", email),
+                                _infoRow(Icons.language_outlined, "Website", website),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  const SizedBox(height: 20),
+
+                  // 4. Administration
+                  _buildSectionContainer(
+                    isMobile: isMobile,
+                    title: "Administration",
+                    icon: Icons.person_outline,
+                    child: isMobile 
+                      ? Column(
+                          children: [
+                            _infoListTile("Contact Person", adminName, isHighlight: true),
+                            const SizedBox(height: 16),
+                            _infoListTile("Role / Designation", adminRole),
+                            const SizedBox(height: 16),
+                            _infoListTile("Direct Phone", adminPhone),
+                          ],
+                        )
+                      : Row(
+                          children: [
+                            Expanded(child: _infoListTile("Contact Person", adminName, isHighlight: true)),
+                            Expanded(child: _infoListTile("Role / Designation", adminRole)),
+                            Expanded(child: _infoListTile("Direct Phone", adminPhone)),
+                          ],
+                        ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 5. Policy & Notes
+                  _buildSectionContainer(
+                    isMobile: isMobile,
+                    title: "Policy & Information",
+                    icon: Icons.info_outline,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (isMobile)
+                          Column(
+                            children: [
+                              _infoListTile("Gender Policy", genderPolicy),
+                              const SizedBox(height: 16),
+                              _infoListTile("Agency Type", type),
+                            ],
+                          )
+                        else
+                          Row(
+                            children: [
+                              Expanded(child: _infoListTile("Gender Policy", genderPolicy)),
+                              Expanded(child: _infoListTile("Agency Type", type)),
+                            ],
+                          ),
+                        const SizedBox(height: 24),
+                        const Text("Profile Description", style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        Text(description, style: const TextStyle(fontSize: 14, height: 1.5, color: kBrandBrown)),
+                        const SizedBox(height: 24),
+                        const Text("Internal Notes", style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        Text(notes, style: const TextStyle(fontSize: 13, fontStyle: FontStyle.italic, color: Colors.grey)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // 6. Actions
+                  if (isMobile)
+                    Column(
+                      children: [
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () => _handleEdit(data),
+                            icon: const Icon(Icons.edit_outlined, size: 18),
+                            label: const Text("Edit School"),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              side: const BorderSide(color: Colors.blue),
+                              foregroundColor: Colors.blue,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () => _handleDelete(data, name),
+                            icon: const Icon(Icons.delete_outline, size: 18),
+                            label: const Text("Delete Institution"),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              backgroundColor: Colors.red.shade700,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  else
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: () => _handleEdit(data),
+                          icon: const Icon(Icons.edit_outlined, size: 18),
+                          label: const Text("Edit School"),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                            side: const BorderSide(color: Colors.blue),
+                            foregroundColor: Colors.blue,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        ElevatedButton.icon(
+                          onPressed: () => _handleDelete(data, name),
+                          icon: const Icon(Icons.delete_outline, size: 18),
+                          label: const Text("Delete School"),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                            backgroundColor: Colors.red.shade700,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
-          const SizedBox(height: 20),
-
-          // 3. School Details
-          if (isMobile)
-            Column(
-              children: [
-                _buildSectionContainer(
-                  isMobile: true,
-                  title: "Location Details",
-                  icon: Icons.location_on_outlined,
-                  child: Column(
-                    children: [
-                      _infoRow(Icons.map_outlined, "Region", region),
-                      _infoRow(Icons.my_location_outlined, "District", district),
-                      _infoRow(Icons.home_outlined, "Address", address),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                _buildSectionContainer(
-                  isMobile: true,
-                  title: "Contact Info",
-                  icon: Icons.contact_phone_outlined,
-                  child: Column(
-                    children: [
-                      _infoRow(Icons.phone_outlined, "Primary Phone", phone),
-                      _infoRow(Icons.email_outlined, "Email Address", email),
-                      _infoRow(Icons.language_outlined, "Website", website),
-                    ],
-                  ),
-                ),
-              ],
-            )
-          else
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _buildSectionContainer(
-                    title: "Location Details",
-                    icon: Icons.location_on_outlined,
-                    child: Column(
-                      children: [
-                        _infoRow(Icons.map_outlined, "Region", region),
-                        _infoRow(Icons.my_location_outlined, "District", district),
-                        _infoRow(Icons.home_outlined, "Physical Address", address),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _buildSectionContainer(
-                    title: "Contact Info",
-                    icon: Icons.contact_phone_outlined,
-                    child: Column(
-                      children: [
-                        _infoRow(Icons.phone_outlined, "Primary Phone", phone),
-                        _infoRow(Icons.email_outlined, "Email Address", email),
-                        _infoRow(Icons.language_outlined, "Website", website),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          const SizedBox(height: 20),
-
-          // 4. Administration
-          _buildSectionContainer(
-            isMobile: isMobile,
-            title: "Administration",
-            icon: Icons.person_outline,
-            child: isMobile 
-              ? Column(
-                  children: [
-                    _infoListTile("Contact Person", adminName, isHighlight: true),
-                    const SizedBox(height: 16),
-                    _infoListTile("Role / Designation", adminRole),
-                    const SizedBox(height: 16),
-                    _infoListTile("Direct Phone", adminPhone),
-                  ],
-                )
-              : Row(
-                  children: [
-                    Expanded(child: _infoListTile("Contact Person", adminName, isHighlight: true)),
-                    Expanded(child: _infoListTile("Role / Designation", adminRole)),
-                    Expanded(child: _infoListTile("Direct Phone", adminPhone)),
-                  ],
-                ),
           ),
-          const SizedBox(height: 20),
-
-          // 5. Policy & Notes
-          _buildSectionContainer(
-            isMobile: isMobile,
-            title: "Policy & Information",
-            icon: Icons.info_outline,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (isMobile)
-                  Column(
-                    children: [
-                      _infoListTile("Gender Policy", genderPolicy),
-                      const SizedBox(height: 16),
-                      _infoListTile("Agency Type", type),
-                    ],
-                  )
-                else
-                  Row(
-                    children: [
-                      Expanded(child: _infoListTile("Gender Policy", genderPolicy)),
-                      Expanded(child: _infoListTile("Agency Type", type)),
-                    ],
-                  ),
-                const SizedBox(height: 24),
-                const Text("Profile Description", style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Text(description, style: const TextStyle(fontSize: 14, height: 1.5, color: kBrandBrown)),
-                const SizedBox(height: 24),
-                const Text("Internal Notes", style: TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Text(notes, style: const TextStyle(fontSize: 13, fontStyle: FontStyle.italic, color: Colors.grey)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 32),
-
-          // 6. Actions
-          if (isMobile)
-            Column(
-              children: [
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () => _handleEdit(data),
-                    icon: const Icon(Icons.edit_outlined, size: 18),
-                    label: const Text("Edit School"),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      side: const BorderSide(color: Colors.blue),
-                      foregroundColor: Colors.blue,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () => _handleDelete(data, name),
-                    icon: const Icon(Icons.delete_outline, size: 18),
-                    label: const Text("Delete Institution"),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: Colors.red.shade700,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
-                ),
-              ],
-            )
-          else
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                OutlinedButton.icon(
-                  onPressed: () => _handleEdit(data),
-                  icon: const Icon(Icons.edit_outlined, size: 18),
-                  label: const Text("Edit School"),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                    side: const BorderSide(color: Colors.blue),
-                    foregroundColor: Colors.blue,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                ElevatedButton.icon(
-                  onPressed: () => _handleDelete(data, name),
-                  icon: const Icon(Icons.delete_outline, size: 18),
-                  label: const Text("Delete School"),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                    backgroundColor: Colors.red.shade700,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ],
-            ),
-          const SizedBox(height: 40),
         ],
       ),
-    ),
     );
   }
 

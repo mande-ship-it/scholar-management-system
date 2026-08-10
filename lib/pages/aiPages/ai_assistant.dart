@@ -82,12 +82,49 @@ class _AIAssistantPageState extends State<AIAssistantPage> {
     });
   }
 
+  Widget _buildPortalHeader(bool isVerySmall) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              "Intelligence Assistant",
+              style: TextStyle(
+                fontSize: isVerySmall ? 13 : 16, 
+                fontWeight: FontWeight.w900, 
+                color: const Color(0xFF4C3C32), 
+                letterSpacing: -0.2
+              ),
+            ),
+          ),
+          const Icon(Icons.bolt_rounded, color: kBrandOlive, size: 24),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
+
     return Container(
       color: const Color(0xFFF4F7F5),
       child: Column(
         children: [
+          if (!widget.isDrawer) _buildPortalHeader(isVerySmall),
           if (widget.isDrawer)
             Align(
               alignment: Alignment.topRight,

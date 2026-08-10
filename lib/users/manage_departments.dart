@@ -188,9 +188,10 @@ class _ManageDepartmentsComponentState extends State<ManageDepartmentsComponent>
   }
 
   Widget _buildHeader(bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(isMobile ? 16 : 24, 32, isMobile ? 16 : 24, 8),
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
@@ -199,24 +200,15 @@ class _ManageDepartmentsComponentState extends State<ManageDepartmentsComponent>
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Departments", style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.2)),
-              ],
-            ),
+            child: Text("Departments", 
+              style: TextStyle(fontSize: isVerySmall ? 13 : 16, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.2)),
           ),
-          ElevatedButton.icon(
+          IconButton(
             onPressed: () => _showDeptDialog(),
-            icon: const Icon(Icons.add, size: 14),
-            label: Text(isMobile ? "ADD" : "CREATE"),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kBrandBrown,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              textStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-            ),
+            icon: const Icon(Icons.add_circle_outline_rounded, color: kBrandOlive, size: 24),
+            tooltip: "Create Department",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
         ],
       ),

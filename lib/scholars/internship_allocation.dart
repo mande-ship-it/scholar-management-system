@@ -132,39 +132,33 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
   }
 
   Widget _buildHeader(bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
       decoration: const BoxDecoration(color: Colors.white, border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE)))),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: kBrandOrange.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-            child: const Icon(Icons.handshake_rounded, color: kBrandOrange, size: 20),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Internship Allocation", 
-                  style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                const Text("Enrol graduates into strategic work placements.", 
-                  style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
-              ],
+          if (Navigator.canPop(context)) ...[
+            IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
             ),
+            const SizedBox(width: 16),
+          ],
+          Expanded(
+            child: Text("Internship Allotment", 
+              style: TextStyle(fontSize: isVerySmall ? 13 : 16, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.2)),
           ),
-          ElevatedButton.icon(
+          IconButton(
             onPressed: () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => const AllocationListPage()));
             },
-            icon: const Icon(Icons.list_alt_rounded, size: 16),
-            label: Text(isMobile ? "LIST" : "VIEW ALLOCATED", style: const TextStyle(fontSize: 11)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kBrandOlive.withOpacity(0.1),
-              foregroundColor: kBrandOlive,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            ),
+            icon: Icon(Icons.list_alt_rounded, color: kBrandOlive, size: 22),
+            tooltip: "View Allocated",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
         ],
       ),

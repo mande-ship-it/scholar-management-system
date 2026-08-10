@@ -63,6 +63,52 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
     }
   }
 
+  Widget _buildExecutiveHeader(bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    bool isChichewa = _language == "Chichewa";
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        border: Border(bottom: BorderSide(color: theme.dividerColor)),
+      ),
+      child: Row(
+        children: [
+          if (Navigator.canPop(context)) ...[
+            IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: isDark ? Colors.white : kBrandBrown),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 16),
+          ],
+          Expanded(
+            child: Text(
+              isChichewa ? "Makonzedwe" : "System Environment",
+              style: TextStyle(
+                fontSize: isVerySmall ? 13 : 16, 
+                fontWeight: FontWeight.w900, 
+                color: isDark ? Colors.white : kBrandBrown, 
+                letterSpacing: -0.2
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: _fetchSettings,
+            icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+            tooltip: "Sync Settings",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
@@ -84,7 +130,7 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
         : Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (!isMobile) _buildExecutiveHeader(isMobile),
+            _buildExecutiveHeader(isMobile),
             Expanded(
               child: SingleChildScrollView(
                 padding: EdgeInsets.all(isMobile ? 16 : 40),
@@ -214,32 +260,6 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
             ),
           ],
         ),
-    );
-  }
-
-  Widget _buildExecutiveHeader(bool isMobile) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    bool isChichewa = _language == "Chichewa";
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        border: Border(bottom: BorderSide(color: theme.dividerColor)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(isChichewa ? "Makonzedwe" : "Environment Settings",
-                  style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.5)),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 

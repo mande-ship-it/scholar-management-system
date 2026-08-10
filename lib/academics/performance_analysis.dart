@@ -116,6 +116,62 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
     }
   }
 
+  Widget _buildExecutiveHeader(bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              if (Navigator.canPop(context)) ...[
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+                const SizedBox(width: 16),
+              ],
+              Expanded(
+                child: Text(
+                  "Performance Analysis",
+                  style: TextStyle(
+                    fontSize: isVerySmall ? 13 : 16, 
+                    fontWeight: FontWeight.w900, 
+                    color: const Color(0xFF4C3C32), 
+                    letterSpacing: -0.2
+                  ),
+                ),
+              ),
+              if (!isVerySmall) ...[
+                _buildTypeToggle(false),
+                const SizedBox(width: 12),
+              ],
+              IconButton(
+                onPressed: _fetchCurrentTabData,
+                icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+                tooltip: "Sync Analysis",
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+          if (isVerySmall) ...[
+            const SizedBox(height: 8),
+            _buildTypeToggle(true),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isMobile = MediaQuery.of(context).size.width < 900;
@@ -123,18 +179,11 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
       color: Colors.white,
       child: Column(
         children: [
-          if (!isMobile) _buildExecutiveHeader(isMobile),
-          if (isMobile) ...[
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _buildTypeToggle(true),
-            ),
-          ],
+          _buildExecutiveHeader(isMobile),
           _buildMainTabBar(isMobile),
           Expanded(
             child: _isLoading 
-              ? const SizedBox.shrink()
+              ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
               : TabBarView(
                   controller: _tabController,
                   children: [
@@ -145,38 +194,6 @@ class _PerformanceAnalysisComponentState extends State<PerformanceAnalysisCompon
                   ],
                 ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildExecutiveHeader(bool isMobile) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Performance Analysis Portal",
-                  style: TextStyle(
-                    fontSize: isMobile ? 14 : 16, 
-                    fontWeight: FontWeight.w900, 
-                    color: const Color(0xFF4C3C32), 
-                    letterSpacing: -0.2
-                  ),
-                ),
-              ],
-            ),
-          ),
-          _buildTypeToggle(isMobile),
         ],
       ),
     );

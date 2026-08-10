@@ -86,16 +86,56 @@ class _MeetingRoomPageState extends State<MeetingRoomPage> {
     }
   }
 
+  Widget _buildPortalHeader(bool isVerySmall) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              "Meeting Lobby",
+              style: TextStyle(
+                fontSize: isVerySmall ? 13 : 16, 
+                fontWeight: FontWeight.w900, 
+                color: const Color(0xFF4C3C32), 
+                letterSpacing: -0.2
+              ),
+            ),
+          ),
+          Icon(Icons.video_camera_front_rounded, color: kBrandOlive, size: 24),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator(color: kBrandOlive)));
     }
 
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
+
     if (_meeting == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text("Meeting Not Found")),
-        body: const Center(child: Text("This meeting may have been cancelled or deleted.")),
+        body: Column(
+          children: [
+            _buildPortalHeader(isVerySmall),
+            const Expanded(child: Center(child: Text("Meeting not found."))),
+          ],
+        ),
       );
     }
 
@@ -103,95 +143,92 @@ class _MeetingRoomPageState extends State<MeetingRoomPage> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text("Meeting Lobby", style: TextStyle(fontWeight: FontWeight.w900)),
-        backgroundColor: Colors.white,
-        foregroundColor: kBrandBrown,
-        elevation: 0,
-      ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(isSmall ? 20 : 40),
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 500),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: kBrandOlive.withOpacity(0.1),
-                    shape: BoxShape.circle,
+      body: Column(
+        children: [
+          _buildPortalHeader(isVerySmall),
+          Expanded(
+            child: Center(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(isSmall ? 20 : 40),
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 500),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: kBrandOlive.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.video_camera_front_rounded, size: 64, color: kBrandOlive),
+                      ),
+                      const SizedBox(height: 32),
+                      Text(
+                        _meeting['title'] ?? 'Live Meeting',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        _meeting['description'] ?? 'No description provided.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 14, color: Colors.grey.shade600, height: 1.5),
+                      ),
+                      const SizedBox(height: 40),
+                      const Divider(),
+                      const SizedBox(height: 24),
+                      _infoRow(Icons.calendar_today_rounded, "Scheduled Date",
+                        _meeting['meetingDate'] != null ? DateTime.parse(_meeting['meetingDate']).toLocal().toString().split(' ')[0] : 'N/A'),
+                      const SizedBox(height: 16),
+                      _infoRow(Icons.access_time_rounded, "Scheduled Time", _meeting['meetingTime'] ?? 'N/A'),
+                      const SizedBox(height: 16),
+                      _infoRow(Icons.person_rounded, "Organizer", _meeting['organizer']?['fullName'] ?? 'System'),
+                      const SizedBox(height: 40),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 60,
+                        child: ElevatedButton.icon(
+                          onPressed: _joinMeet,
+                          icon: const Icon(Icons.videocam_rounded),
+                          label: const Text("LAUNCH VIDEO CONFERENCE", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: kBrandOlive,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.pushNamed(context, '/events/conversation', arguments: {
+                              'id': _meeting['id'] ?? _meeting['_id'],
+                              'title': _meeting['title'],
+                              'participants': (_meeting['participants'] as List).map((p) => p['_id'].toString()).toList(),
+                              'meetingLink': _meeting['meetingLink'],
+                            });
+                          },
+                          icon: const Icon(Icons.chat_bubble_outline_rounded),
+                          label: const Text("OPEN MEETING CHAT", style: TextStyle(fontWeight: FontWeight.bold)),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: kBrandBrown,
+                            side: const BorderSide(color: kBrandBrown, width: 1.5),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
                   ),
-                  child: const Icon(Icons.video_camera_front_rounded, size: 64, color: kBrandOlive),
                 ),
-                const SizedBox(height: 32),
-                Text(
-                  _meeting['title'] ?? 'Live Meeting',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: kBrandBrown),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  _meeting['description'] ?? 'No description provided.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600, height: 1.5),
-                ),
-                const SizedBox(height: 40),
-                const Divider(),
-                const SizedBox(height: 24),
-                _infoRow(Icons.calendar_today_rounded, "Scheduled Date",
-                  _meeting['meetingDate'] != null ? DateTime.parse(_meeting['meetingDate']).toLocal().toString().split(' ')[0] : 'N/A'),
-                const SizedBox(height: 16),
-                _infoRow(Icons.access_time_rounded, "Scheduled Time", _meeting['meetingTime'] ?? 'N/A'),
-                const SizedBox(height: 16),
-                _infoRow(Icons.person_rounded, "Organizer", _meeting['organizer']?['fullName'] ?? 'System'),
-                const SizedBox(height: 40),
-                SizedBox(
-                  width: double.infinity,
-                  height: 60,
-                  child: ElevatedButton.icon(
-                    onPressed: _joinMeet,
-                    icon: const Icon(Icons.videocam_rounded),
-                    label: const Text("LAUNCH VIDEO CONFERENCE", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: kBrandOlive,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/events/conversation', arguments: {
-                        'id': _meeting['id'] ?? _meeting['_id'],
-                        'title': _meeting['title'],
-                        'participants': (_meeting['participants'] as List).map((p) => p['_id'].toString()).toList(),
-                        'meetingLink': _meeting['meetingLink'],
-                      });
-                    },
-                    icon: const Icon(Icons.chat_bubble_outline_rounded),
-                    label: const Text("OPEN MEETING CHAT", style: TextStyle(fontWeight: FontWeight.bold)),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: kBrandBrown,
-                      side: const BorderSide(color: kBrandBrown, width: 1.5),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text("Return to Dashboard", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

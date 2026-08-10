@@ -83,6 +83,74 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
     return _notifications;
   }
 
+  Widget _buildExecutiveHeader(bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              if (Navigator.canPop(context)) ...[
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+                const SizedBox(width: 16),
+              ],
+              Expanded(
+                child: Text(
+                  "Communications Hub",
+                  style: TextStyle(
+                    fontSize: isVerySmall ? 13 : 16, 
+                    fontWeight: FontWeight.w900, 
+                    color: const Color(0xFF4C3C32), 
+                    letterSpacing: -0.2
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: _fetchNotifications,
+                icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+                tooltip: "Sync Notifications",
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+              const SizedBox(width: 12),
+              if (_notifications.any((n) => !(n['is_read'] ?? false)))
+                IconButton(
+                  onPressed: _markAllAsRead,
+                  icon: Icon(Icons.done_all_rounded, color: kBrandOlive, size: 24),
+                  tooltip: "Mark All Read",
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _tabButton("ALL LOGS", 'all', isMobile),
+                const SizedBox(width: 8),
+                _tabButton("UNREAD", 'unread', isMobile),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isMobile = MediaQuery.of(context).size.width < 900;
@@ -98,117 +166,17 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (!isMobile) _buildExecutiveHeader(isMobile),
-          if (isMobile) _buildMobileCompactToolbar(),
+          _buildExecutiveHeader(isMobile),
           if (!isMobile) _buildSummaryBar(),
           Expanded(
             child: _isLoading 
-              ? const SizedBox.shrink()
+              ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
               : _errorMessage != null
                 ? _buildErrorState()
                 : _buildNotificationContent(isMobile),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildMobileCompactToolbar() {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-      color: Colors.white,
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _tabButton("ALL", 'all', true),
-                      const SizedBox(width: 8),
-                      _tabButton("UNREAD", 'unread', true),
-                    ],
-                  ),
-                ),
-              ),
-              IconButton(onPressed: _fetchNotifications, icon: const Icon(Icons.sync_rounded, size: 20, color: kBrandOlive)),
-              if (_notifications.any((n) => !(n['is_read'] ?? false)))
-                IconButton(onPressed: _markAllAsRead, icon: const Icon(Icons.done_all_rounded, size: 20, color: kBrandOlive)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildExecutiveHeader(bool isMobile) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 24, vertical: 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
-      ),
-      child: isMobile 
-        ? Column(
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.notifications_active_rounded, color: kBrandBrown, size: 20),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Text("Notifications", 
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                  ),
-                  IconButton(onPressed: _fetchNotifications, icon: const Icon(Icons.sync_rounded, size: 20, color: kBrandOlive)),
-                ],
-              ),
-              const SizedBox(height: 12),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _tabButton("ALL", 'all', isMobile),
-                    const SizedBox(width: 8),
-                    _tabButton("UNREAD", 'unread', isMobile),
-                    const SizedBox(width: 12),
-                    if (_notifications.any((n) => !(n['is_read'] ?? false)))
-                      TextButton.icon(
-                        onPressed: _markAllAsRead,
-                        icon: const Icon(Icons.done_all_rounded, size: 16, color: kBrandOlive),
-                        label: const Text("MARK ALL READ", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: kBrandOlive)),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          )
-        : Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: kBrandBrown.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.notifications_active_rounded, color: kBrandBrown, size: 20),
-              ),
-              const SizedBox(width: 16),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Communications & Alerts", 
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                    Text("Centralized administration audit logs and broadcasts.", 
-                      style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
-                  ],
-                ),
-              ),
-              _buildActionToggles(),
-            ],
-          ),
     );
   }
 

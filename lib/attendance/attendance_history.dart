@@ -45,6 +45,48 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
     }
   }
 
+  Widget _buildProfessionalHeader(bool isMobile) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? theme.cardColor : Colors.white,
+        border: Border(bottom: BorderSide(color: theme.dividerColor)),
+      ),
+      child: Row(
+        children: [
+          if (Navigator.canPop(context)) ...[
+            IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: isDark ? Colors.white : kBrandBrown),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 16),
+          ],
+          Expanded(
+            child: Text("Attendance Archives",
+              style: TextStyle(fontSize: isVerySmall ? 13 : 16, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.2)),
+          ),
+          IconButton(
+            onPressed: () => setState(() {
+              _filterType = null;
+              _filterSchool = null;
+              _fetchHistory();
+            }),
+            icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+            tooltip: "Reload Archives",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -58,7 +100,7 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (!isMobile) _buildProfessionalHeader(isMobile),
+          _buildProfessionalHeader(isMobile),
           Expanded(
             child: SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(isMobile ? 0 : 40, isMobile ? 16 : 24, isMobile ? 0 : 40, 48),
@@ -74,7 +116,7 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
                       ),
                       const SizedBox(height: 32),
                       if (_isLoading)
-                        const SizedBox.shrink()
+                        const Center(child: Padding(padding: EdgeInsets.all(100), child: CircularProgressIndicator(color: kBrandOlive)))
                       else if (_history.isEmpty)
                         _buildEmptyState(isMobile)
                       else
@@ -87,47 +129,6 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
                 ),
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfessionalHeader(bool isMobile) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 40, vertical: 8),
-      decoration: BoxDecoration(
-        color: isDark ? theme.cardColor : Colors.white,
-        border: Border(bottom: BorderSide(color: theme.dividerColor)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Attendance Archives",
-                  style: TextStyle(fontSize: isMobile ? 13 : 15, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.2)),
-                const Text("Historical program engagement.",
-                  style: TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: () => setState(() {
-              _filterType = null;
-              _filterSchool = null;
-              _fetchHistory();
-            }),
-            style: IconButton.styleFrom(
-              backgroundColor: isDark ? Colors.white12 : Colors.grey.shade100,
-              padding: const EdgeInsets.all(8),
-            ),
-            icon: Icon(Icons.refresh_rounded, color: isDark ? Colors.white : kBrandBrown, size: 18),
-            tooltip: "Reload Archives",
           ),
         ],
       ),

@@ -125,43 +125,43 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
   Widget _buildProfessionalHeader(bool isMobile) {
     final bool isVerySmall = MediaQuery.of(context).size.width < 500;
     return Container(
-      padding: EdgeInsets.fromLTRB(isVerySmall ? 12 : 24, 8, isVerySmall ? 12 : 24, 0),
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             children: [
-              if (!isVerySmall) ...[
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: kBrandOlive.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.workspace_premium_rounded, color: kBrandOlive, size: 20),
+              if (Navigator.canPop(context)) ...[
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
                 ),
                 const SizedBox(width: 16),
               ],
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Alumni Registry",
-                      style: TextStyle(fontSize: isVerySmall ? 14 : 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                    if (!isVerySmall)
-                      const Text("Centralized database of alumni.",
-                        style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
-                  ],
+                child: Text(
+                  "Alumni Registry",
+                  style: TextStyle(
+                    fontSize: isVerySmall ? 13 : 16, 
+                    fontWeight: FontWeight.w900, 
+                    color: const Color(0xFF4C3C32), 
+                    letterSpacing: -0.2
+                  ),
                 ),
               ),
               IconButton(
+                onPressed: _fetchData,
+                icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+                tooltip: "Sync Registry",
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
-                onPressed: _fetchData,
-                icon: const Icon(Icons.sync_rounded, color: kBrandBrown, size: 20),
               ),
             ],
           ),

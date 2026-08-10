@@ -189,6 +189,74 @@ class _PromoteScholarsComponentState extends State<PromoteScholarsComponent> {
     }
   }
 
+  Widget _buildPortalHeader(bool isMobile, List<Student> filtered) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              if (Navigator.canPop(context)) ...[
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+                const SizedBox(width: 16),
+              ],
+              Expanded(
+                child: Text(
+                  "Progression Audit",
+                  style: TextStyle(
+                    fontSize: isVerySmall ? 13 : 16, 
+                    fontWeight: FontWeight.w900, 
+                    color: const Color(0xFF4C3C32), 
+                    letterSpacing: -0.2
+                  ),
+                ),
+              ),
+              if (filtered.isNotEmpty)
+                IconButton(
+                  onPressed: _isLoading ? null : () => _promoteAllFiltered(filtered),
+                  icon: Icon(Icons.verified_user_rounded, color: Color(0xFFE05B1C), size: 24),
+                  tooltip: "Bulk Upgrade",
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: _fetchScholars,
+                icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+                tooltip: "Sync Registry",
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _compactDropdown("Institution", _selectedSchool, _schoolOptions, (v) => setState(() => _selectedSchool = v!)),
+                const SizedBox(width: 8),
+                _compactDropdown("Cycle", _selectedYear, _yearOptions.isEmpty ? ['2026'] : _yearOptions, (v) => setState(() => _selectedYear = v!)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isMobile = MediaQuery.of(context).size.width < 900;
@@ -205,10 +273,9 @@ class _PromoteScholarsComponentState extends State<PromoteScholarsComponent> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildPortalHeader(isMobile, filteredStudents),
-          _buildPortalFilterToolbar(isMobile),
           Expanded(
             child: _isLoading 
-                ? const SizedBox.shrink()
+                ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
                 : ListView.separated(
                     padding: EdgeInsets.all(isMobile ? 12 : 32),
                     itemCount: filteredStudents.length,
@@ -216,50 +283,6 @@ class _PromoteScholarsComponentState extends State<PromoteScholarsComponent> {
                     itemBuilder: (context, index) => _buildPromotionCard(filteredStudents[index], isMobile),
                   ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPortalHeader(bool isMobile, List<Student> filtered) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Progression Audit Portal",
-                  style: TextStyle(
-                    fontSize: isMobile ? 14 : 16, 
-                    fontWeight: FontWeight.w900, 
-                    color: const Color(0xFF4C3C32), 
-                    letterSpacing: -0.2
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (!isMobile && filtered.isNotEmpty)
-            ElevatedButton.icon(
-              onPressed: _isLoading ? null : () => _promoteAllFiltered(filtered),
-              icon: const Icon(Icons.verified_user_rounded, size: 14),
-              label: const Text("BULK UPGRADE", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE05B1C),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-            ),
         ],
       ),
     );

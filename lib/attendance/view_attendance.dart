@@ -203,9 +203,10 @@ class _ViewAttendanceComponentState extends State<ViewAttendanceComponent> {
   Widget _buildHeader(bool isMobile) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
       decoration: BoxDecoration(
         color: isDark ? theme.cardColor : Colors.white,
         border: Border(bottom: BorderSide(color: theme.dividerColor)),
@@ -213,14 +214,18 @@ class _ViewAttendanceComponentState extends State<ViewAttendanceComponent> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Participation Registry",
-                  style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.2)),
-              ],
+          if (Navigator.canPop(context)) ...[
+            IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: isDark ? Colors.white : kBrandBrown),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
             ),
+            const SizedBox(width: 16),
+          ],
+          Expanded(
+            child: Text("Participation Registry",
+              style: TextStyle(fontSize: isVerySmall ? 13 : 16, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.2)),
           ),
           Row(
             mainAxisSize: MainAxisSize.min,
@@ -228,17 +233,30 @@ class _ViewAttendanceComponentState extends State<ViewAttendanceComponent> {
               if (widget.onMarkAttendance != null) ...[
                 IconButton(
                   onPressed: widget.onMarkAttendance,
-                  icon: const Icon(Icons.how_to_reg_rounded, size: 20, color: kBrandOlive),
+                  icon: Icon(Icons.how_to_reg_rounded, size: 20, color: kBrandOlive),
                   tooltip: "Mark Register",
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
               ],
-              if (_attendanceReport.isNotEmpty)
+              if (_attendanceReport.isNotEmpty) ...[
                 IconButton(
                   onPressed: _exportToPDF,
-                  icon: const Icon(Icons.file_download_rounded, size: 20, color: kBrandBrown),
+                  icon: Icon(Icons.file_download_rounded, size: 20, color: kBrandBrown),
                   tooltip: "Download Sheet",
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
                 ),
+                const SizedBox(width: 12),
+              ],
+              IconButton(
+                onPressed: _fetchSchools,
+                icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+                tooltip: "Refresh",
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
             ],
           ),
         ],

@@ -77,6 +77,45 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
     }
   }
 
+  Widget _buildProfessionalHeader(bool isMobile) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
+      decoration: BoxDecoration(
+        color: isDark ? theme.cardColor : Colors.white,
+        border: Border(bottom: BorderSide(color: theme.dividerColor)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          if (Navigator.canPop(context)) ...[
+            IconButton(
+              onPressed: () => Navigator.pop(context),
+              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: isDark ? Colors.white : kBrandBrown),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 16),
+          ],
+          Expanded(
+            child: Text("Attendance Intelligence",
+              style: TextStyle(fontSize: isVerySmall ? 13 : 16, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.2)),
+          ),
+          IconButton(
+            onPressed: _fetchSchools,
+            icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+            tooltip: "Refresh",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -87,7 +126,7 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (!isMobile) _buildProfessionalHeader(isMobile),
+          _buildProfessionalHeader(isMobile),
           Expanded(
             child: SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(isMobile ? 12 : 40, isMobile ? 16 : 32, isMobile ? 12 : 40, 48),
@@ -124,34 +163,6 @@ class _AttendanceReportsComponentState extends State<AttendanceReportsComponent>
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProfessionalHeader(bool isMobile) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      decoration: BoxDecoration(
-        color: isDark ? theme.cardColor : Colors.white,
-        border: Border(bottom: BorderSide(color: theme.dividerColor)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Attendance Intelligence',
-                  style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.w900, color: isDark ? Colors.white : kBrandBrown, letterSpacing: -0.2)),
-              ],
-            ),
-          ),
-          _buildActionButtons(isMobile),
         ],
       ),
     );

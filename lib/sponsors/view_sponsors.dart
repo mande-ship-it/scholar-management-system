@@ -272,6 +272,82 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
     );
   }
 
+  Widget _buildPortalHeader(bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              if (Navigator.canPop(context)) ...[
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+                const SizedBox(width: 16),
+              ],
+              Expanded(
+                child: Text(
+                  "Strategic Partners",
+                  style: TextStyle(
+                    fontSize: isVerySmall ? 13 : 16, 
+                    fontWeight: FontWeight.w900, 
+                    color: const Color(0xFF4C3C32), 
+                    letterSpacing: -0.2
+                  ),
+                ),
+              ),
+              if (_userRole == 'Administrator' || PermissionService.hasPermission('sponsors.create'))
+                IconButton(
+                  icon: Icon(Icons.add_circle_outline_rounded, color: kBrandOlive, size: 24),
+                  onPressed: () {
+                    if (widget.onRegisterSponsor != null) {
+                      widget.onRegisterSponsor!();
+                    } else {
+                      Navigator.pushNamed(context, '/sponsors/register').then((_) => _loadSponsors());
+                    }
+                  },
+                  tooltip: "Register Sponsor",
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: _loadSponsors,
+                icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+                tooltip: "Sync Registry",
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _portalCompactSearchField(isMobile),
+                if (!isMobile) ...[
+                  const SizedBox(width: 24),
+                  _miniStat(Icons.handshake_rounded, "${_filteredSponsors.length} Partners"),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isMobile = MediaQuery.of(context).size.width < 900;
@@ -298,82 +374,11 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildPortalHeader(isMobile),
-          _buildPortalToolbar(isMobile),
           Expanded(
-            child: _buildPortalRegistryList(filtered, isMobile),
+            child: _isLoading 
+                ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
+                : _buildPortalRegistryList(filtered, isMobile),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPortalHeader(bool isMobile) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Strategic Partner Registry",
-                  style: TextStyle(
-                    fontSize: isMobile ? 14 : 16, 
-                    fontWeight: FontWeight.w900, 
-                    color: const Color(0xFF4C3C32), 
-                    letterSpacing: -0.2
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (isMobile) ...[
-            if (_userRole == 'Administrator' || PermissionService.hasPermission('sponsors.create'))
-              IconButton(
-                icon: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF9AB334), size: 22),
-                onPressed: () {
-                  if (widget.onRegisterSponsor != null) {
-                    widget.onRegisterSponsor!();
-                  } else {
-                    Navigator.pushNamed(context, '/sponsors/register').then((_) => _loadSponsors());
-                  }
-                },
-                tooltip: "Register Sponsor",
-              ),
-          ],
-          const SizedBox(width: 8),
-          if (!isMobile && (_userRole == 'Administrator' || PermissionService.hasPermission('sponsors.create')))
-            ElevatedButton(
-              onPressed: () {
-                if (widget.onRegisterSponsor != null) {
-                  widget.onRegisterSponsor!();
-                } else {
-                  Navigator.pushNamed(context, '/sponsors/register').then((_) => _loadSponsors());
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4C3C32),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                elevation: 0,
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.volunteer_activism_rounded, size: 18),
-                  SizedBox(width: 8),
-                  Text("REGISTER", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ),
         ],
       ),
     );

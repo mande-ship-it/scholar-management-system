@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../academics/academics_utils.dart';
 
 class UserRole {
   final String id;
@@ -528,9 +529,10 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
   }
 
   Widget _buildHeader(bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(isMobile ? 16 : 24, 12, isMobile ? 16 : 24, 12),
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
@@ -538,29 +540,22 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
       child: Row(
         children: [
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Define system access models",
-                  style: TextStyle(
-                      color: const Color(0xFF4C3C32), fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.w900, letterSpacing: -0.2),
-                ),
-              ],
+            child: Text(
+              "System Access Models",
+              style: TextStyle(
+                fontSize: isVerySmall ? 13 : 16, 
+                fontWeight: FontWeight.w900, 
+                color: const Color(0xFF4C3C32), 
+                letterSpacing: -0.2
+              ),
             ),
           ),
-          ElevatedButton.icon(
+          IconButton(
             onPressed: () => _openRoleDialog(),
-            icon: const Icon(Icons.add_rounded, size: 14),
-            label: Text(isMobile ? "ADD" : "REGISTER"),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4C3C32),
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 10),
-            ),
+            icon: Icon(Icons.add_circle_outline_rounded, color: const Color(0xFF9AB334), size: 24),
+            tooltip: "Add Role",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
         ],
       ),

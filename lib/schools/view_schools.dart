@@ -209,6 +209,85 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
     );
   }
 
+  Widget _buildPortalHeader(bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              if (Navigator.canPop(context)) ...[
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+                const SizedBox(width: 16),
+              ],
+              Expanded(
+                child: Text(
+                  widget.forcedLevel != null ? "${widget.forcedLevel} Registry" : "Institution Registry",
+                  style: TextStyle(
+                    fontSize: isVerySmall ? 13 : 16, 
+                    fontWeight: FontWeight.w900, 
+                    color: const Color(0xFF4C3C32), 
+                    letterSpacing: -0.2
+                  ),
+                ),
+              ),
+              if (!widget.hideRegistration && PermissionService.hasPermission('schools.create'))
+                IconButton(
+                  icon: Icon(Icons.add_circle_outline_rounded, color: kBrandOlive, size: 24),
+                  onPressed: () async {
+                    if (widget.onRegisterSchool != null) {
+                      widget.onRegisterSchool!();
+                    } else {
+                      final result = await Navigator.pushNamed(context, '/schools/register');
+                      if (result == true) _fetchSchools();
+                    }
+                  },
+                  tooltip: "Register School",
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: _fetchSchools,
+                icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+                tooltip: "Sync Registry",
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _portalCompactSearchField(isMobile),
+                const SizedBox(width: 8),
+                if (widget.forcedLevel == null) ...[
+                  _portalCompactDropdown("Type", _selectedLevel, _schoolLevels, (v) => setState(() => _selectedLevel = v!), width: 150),
+                  const SizedBox(width: 8),
+                ],
+                _portalCompactDropdown("Region", _selectedRegion, _regions, (v) => setState(() => _selectedRegion = v!), width: 140),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final filtered = _getFilteredSchools();
@@ -236,86 +315,11 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildPortalHeader(isMobile),
-          _buildPortalToolbar(isMobile),
           Expanded(
-            child: _buildPortalRegistryList(filtered, isMobile),
+            child: _isLoading 
+                ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
+                : _buildPortalRegistryList(filtered, isMobile),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPortalHeader(bool isMobile) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.forcedLevel != null 
-                    ? "${widget.forcedLevel} Registry"
-                    : "Central Institutional Registry",
-                  style: TextStyle(
-                    fontSize: isMobile ? 14 : 16, 
-                    fontWeight: FontWeight.w900, 
-                    color: const Color(0xFF4C3C32), 
-                    letterSpacing: -0.2
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (isMobile) ...[
-            if (!widget.hideRegistration && PermissionService.hasPermission('schools.create'))
-              IconButton(
-                icon: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF9AB334), size: 22),
-                onPressed: () async {
-                  if (widget.onRegisterSchool != null) {
-                    widget.onRegisterSchool!();
-                  } else {
-                    final result = await Navigator.pushNamed(context, '/schools/register');
-                    if (result == true) _fetchSchools();
-                  }
-                },
-                tooltip: "Register School",
-              ),
-          ],
-          const SizedBox(width: 8),
-          if (!isMobile && !widget.hideRegistration && PermissionService.hasPermission('schools.create'))
-            ElevatedButton(
-              onPressed: () async {
-                if (widget.onRegisterSchool != null) {
-                  widget.onRegisterSchool!();
-                } else {
-                  final result = await Navigator.pushNamed(context, '/schools/register');
-                  if (result == true) _fetchSchools();
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4C3C32),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                elevation: 0,
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.add_business_rounded, size: 18),
-                  SizedBox(width: 8),
-                  Text("Register", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ),
         ],
       ),
     );

@@ -116,67 +116,105 @@ class _LiveMeetingPageState extends State<LiveMeetingPage> {
     }
   }
 
+  Widget _buildPortalHeader(bool isVerySmall) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              "Initialize Live Session",
+              style: TextStyle(
+                fontSize: isVerySmall ? 13 : 16, 
+                fontWeight: FontWeight.w900, 
+                color: const Color(0xFF4C3C32), 
+                letterSpacing: -0.2
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: _fetchUsers,
+            icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+            tooltip: "Sync Participants",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
     final bool isSmall = screenWidth < 500;
+    final bool isMobile = screenWidth < 900;
     
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: Text("Initiate Live Session", style: TextStyle(fontWeight: FontWeight.w900, fontSize: isSmall ? 16 : 20, letterSpacing: -0.5)),
-        elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: kBrandBrown,
-        centerTitle: false,
-      ),
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8F9FA),
-          border: Border(top: BorderSide(color: Colors.grey.shade100)),
-        ),
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: EdgeInsets.symmetric(horizontal: isSmall ? 12 : 32, vertical: isSmall ? 12 : 24),
-          child: Center(
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 800),
-              child: Form(
-                key: _formKey,
-                child: isSmall
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _buildFormSection(isSmall),
-                        const SizedBox(height: 12),
-                        SizedBox(
-                          height: 350, // Fixed height for participant list on mobile
-                          child: _buildParticipantSection(isSmall),
-                        ),
-                        const SizedBox(height: 16),
-                        _buildSubmitButton(isSmall),
-                      ],
-                    )
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(flex: 3, child: _buildFormSection(isSmall)),
-                            const SizedBox(width: 24),
-                            Expanded(flex: 4, child: SizedBox(height: 400, child: _buildParticipantSection(isSmall))),
-                          ],
-                        ),
-                        const SizedBox(height: 32),
-                        _buildSubmitButton(isSmall),
-                      ],
+        color: const Color(0xFFF8F9FA),
+        child: Column(
+          children: [
+            _buildPortalHeader(isSmall),
+            Expanded(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.symmetric(horizontal: isSmall ? 12 : 32, vertical: isSmall ? 12 : 24),
+                child: Center(
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    child: Form(
+                      key: _formKey,
+                      child: isMobile
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _buildFormSection(isSmall),
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                height: 350, // Fixed height for participant list on mobile
+                                child: _buildParticipantSection(isSmall),
+                              ),
+                              const SizedBox(height: 16),
+                              _buildSubmitButton(isSmall),
+                            ],
+                          )
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(flex: 3, child: _buildFormSection(isSmall)),
+                                  const SizedBox(width: 24),
+                                  Expanded(flex: 4, child: SizedBox(height: 400, child: _buildParticipantSection(isSmall))),
+                                ],
+                              ),
+                              const SizedBox(height: 32),
+                              _buildSubmitButton(isSmall),
+                            ],
+                          ),
                     ),
+                  ),
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );

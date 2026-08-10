@@ -249,6 +249,114 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
         (e.organizer?.toLowerCase().contains(_query) ?? false)).toList();
   }
 
+  Widget _buildExecutiveHeader(bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              if (Navigator.canPop(context)) ...[
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+                const SizedBox(width: 16),
+              ],
+              Expanded(
+                child: Text(
+                  "Events & Programs",
+                  style: TextStyle(
+                    fontSize: isVerySmall ? 13 : 16, 
+                    fontWeight: FontWeight.w900, 
+                    color: const Color(0xFF4C3C32), 
+                    letterSpacing: -0.2
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: () => Navigator.pushNamed(context, '/events/liveMeeting'),
+                icon: const Icon(Icons.video_call_rounded, color: kBrandBrown, size: 24),
+                tooltip: "Live Meeting",
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+              const SizedBox(width: 12),
+              IconButton(
+                onPressed: _showCreateEventDialog,
+                icon: Icon(Icons.add_circle_outline_rounded, color: kBrandOlive, size: 24),
+                tooltip: "Create Event",
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: _fetchEvents,
+                icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+                tooltip: "Sync Events",
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          _buildSearchField(isMobile),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSearchField(bool isMobile) {
+    return Container(
+      height: 40,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+      ),
+      child: TextField(
+        controller: _searchController,
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        decoration: const InputDecoration(
+          hintText: "Search programs...",
+          prefixIcon: Icon(Icons.search_rounded, size: 18, color: Colors.grey),
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(vertical: 10),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildToolbar(bool isMobile) {
+    return Container(
+      color: Colors.white,
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 32, vertical: 4),
+      child: TabBar(
+        controller: _tabController,
+        isScrollable: true,
+        labelColor: kBrandOlive,
+        unselectedLabelColor: Colors.grey.shade400,
+        indicatorColor: kBrandOlive,
+        indicatorWeight: 3,
+        labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5),
+        tabs: [
+          const Tab(text: 'UPCOMING'),
+          const Tab(text: 'HISTORY'),
+          if (_isAdmin) const Tab(text: 'PENDING'),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isMobile = MediaQuery.of(context).size.width < 900;
@@ -275,171 +383,6 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildExecutiveHeader(bool isMobile) {
-    if (isMobile && _isSearchExpanded) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _searchController,
-                autofocus: true,
-                style: const TextStyle(fontSize: 14),
-                decoration: InputDecoration(
-                  hintText: 'Search programs...',
-                  hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-                  prefixIcon: Icon(Icons.search_rounded, size: 20, color: Colors.grey.shade400),
-                  isDense: true,
-                  filled: true,
-                  fillColor: const Color(0xFFF0F2F5),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
-                ),
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.close_rounded, color: Colors.grey),
-              onPressed: () => setState(() {
-                _isSearchExpanded = false;
-                _searchController.clear();
-                _query = '';
-              }),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Events & Programs", 
-                  style: TextStyle(fontSize: isMobile ? 14 : 16, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.2)),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          ElevatedButton.icon(
-            onPressed: () => Navigator.pushNamed(context, '/events/liveMeeting'),
-            icon: const Icon(Icons.video_call_rounded, size: 18),
-            label: const Text("LIVE MEETING", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kBrandBrown,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-          ),
-          const SizedBox(width: 8),
-          ElevatedButton(
-            onPressed: _showCreateEventDialog,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kBrandOlive,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: EdgeInsets.symmetric(horizontal: isMobile ? 12 : 16, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              minimumSize: isMobile ? Size.zero : null,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.add_rounded, size: 18),
-                if (!isMobile) ...[
-                  const SizedBox(width: 8),
-                  const Text("CREATE EVENT", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildToolbar(bool isMobile) {
-    return Container(
-      color: Colors.white,
-      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 32, vertical: isMobile ? 8 : 20),
-      child: isMobile 
-        ? Row(
-            children: [
-              Expanded(
-                child: TabBar(
-                  controller: _tabController,
-                  isScrollable: true,
-                  labelColor: kBrandOlive,
-                  unselectedLabelColor: Colors.grey.shade400,
-                  indicatorColor: kBrandOlive,
-                  indicatorWeight: 3,
-                  labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5),
-                  tabs: [
-                    const Tab(text: 'UPCOMING'),
-                    const Tab(text: 'HISTORY'),
-                    if (_isAdmin) const Tab(text: 'PENDING'),
-                  ],
-                ),
-              ),
-            ],
-          )
-        : Row(
-            children: [
-              Expanded(
-                child: TabBar(
-                  controller: _tabController,
-                  isScrollable: true,
-                  labelColor: kBrandOlive,
-                  unselectedLabelColor: Colors.grey.shade400,
-                  indicatorColor: kBrandOlive,
-                  indicatorWeight: 3,
-                  labelStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
-                  tabs: [
-                    const Tab(text: 'UPCOMING PROGRAMS'),
-                    const Tab(text: 'ARCHIVE & HISTORY'),
-                    if (_isAdmin) const Tab(text: 'PENDING APPROVAL'),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 24),
-              SizedBox(
-                width: 300,
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Search title or venue...',
-                    hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-                    prefixIcon: Icon(Icons.search_rounded, size: 20, color: Colors.grey.shade400),
-                    isDense: true,
-                    filled: true,
-                    fillColor: const Color(0xFFF0F2F5),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
-                  ),
-                ),
-              ),
-            ],
-          ),
     );
   }
 

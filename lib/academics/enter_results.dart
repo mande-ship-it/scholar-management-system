@@ -62,51 +62,7 @@ class _AcademicsManagementComponentState extends State<AcademicsManagementCompon
   }
 
   Widget _buildHeader(bool isMobile) {
-    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _canEdit ? "Examination Results Entry" : "Performance Records Audit",
-                  style: TextStyle(
-                    fontSize: isVerySmall ? 13 : (isMobile ? 14 : 16), 
-                    fontWeight: FontWeight.w900, 
-                    color: const Color(0xFF4C3C32), 
-                    letterSpacing: -0.2
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (!_canEdit)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Color(0xFFE05B1C).withOpacity(0.1), 
-                borderRadius: BorderRadius.circular(6), 
-                border: Border.all(color: Color(0xFFE05B1C).withOpacity(0.2))
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.lock_outline_rounded, size: 10, color: Color(0xFFE05B1C)),
-                  const SizedBox(width: 6),
-                  Text(isVerySmall ? "LOCKED" : "READ-ONLY", style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Color(0xFFE05B1C), letterSpacing: 0.5)),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
+    return const SizedBox.shrink();
   }
 }
 

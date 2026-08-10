@@ -36,60 +36,103 @@ class _DistrictsMapPageState extends State<DistrictsMapPage> {
     }
   }
 
+  Widget _buildPortalHeader(bool isVerySmall) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              "Operational Map",
+              style: TextStyle(
+                fontSize: isVerySmall ? 13 : 16, 
+                fontWeight: FontWeight.w900, 
+                color: const Color(0xFF4C3C32), 
+                letterSpacing: -0.2
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: _fetchMapData,
+            icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+            tooltip: "Sync Map",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Partner Districts Map", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: 16)),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        toolbarHeight: 48,
-        iconTheme: const IconThemeData(color: kBrandBrown, size: 20),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
-          : FlutterMap(
-              options: MapOptions(
-                initialCenter: LatLng(-13.2543, 34.3015),
-                initialZoom: 7.0,
-              ),
-              children: [
-                TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'com.ageafrica.scholar_management_system',
-                ),
-                MarkerLayer(
-                  markers: _mapData.map((d) {
-                    final double lat = (d['latitude'] as num).toDouble();
-                    final double lng = (d['longitude'] as num).toDouble();
-                    return Marker(
-                      point: LatLng(lat, lng),
-                      width: 80,
-                      height: 80,
-                      child: GestureDetector(
-                        onTap: () => _showDistrictInfo(d),
-                        child: Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: kBrandBrown,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                d['scholarCount'].toString(),
-                                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+      backgroundColor: Colors.white,
+      body: Column(
+        children: [
+          _buildPortalHeader(isVerySmall),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: kBrandOlive))
+                : FlutterMap(
+                    options: MapOptions(
+                      initialCenter: LatLng(-13.2543, 34.3015),
+                      initialZoom: 7.0,
+                    ),
+                    children: [
+                      TileLayer(
+                        urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName: 'com.ageafrica.scholar_management_system',
+                      ),
+                      MarkerLayer(
+                        markers: _mapData.map((d) {
+                          final double lat = (d['latitude'] as num).toDouble();
+                          final double lng = (d['longitude'] as num).toDouble();
+                          return Marker(
+                            point: LatLng(lat, lng),
+                            width: 80,
+                            height: 80,
+                            child: GestureDetector(
+                              onTap: () => _showDistrictInfo(d),
+                              child: Column(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: kBrandBrown,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      d['scholarCount'].toString(),
+                                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                  const Icon(Icons.location_on, color: kBrandOrange, size: 40),
+                                ],
                               ),
                             ),
-                            const Icon(Icons.location_on, color: kBrandOrange, size: 40),
-                          ],
-                        ),
+                          );
+                        }).toList(),
                       ),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ),
+                    ],
+                  ),
+          ),
+        ],
+      ),
     );
   }
 

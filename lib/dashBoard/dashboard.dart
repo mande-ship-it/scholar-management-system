@@ -128,20 +128,12 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
           color: Colors.white,
           border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+        child: Row(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("INTELLIGENCE HUB",
-                  style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Color(0xFF9AB334), letterSpacing: 1.0)),
-                _buildStatusApprovalIndicator(),
-              ],
+            Expanded(
+              child: _buildLevelToggle(true),
             ),
-            const SizedBox(height: 8),
-            _buildLevelToggle(true),
-            const SizedBox(height: 4),
+            _buildStatusApprovalIndicator(),
           ],
         ),
       );

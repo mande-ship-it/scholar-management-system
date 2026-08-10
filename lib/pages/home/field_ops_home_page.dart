@@ -535,58 +535,12 @@ class _FieldOpsHomePageState extends State<FieldOpsHomePage> with TickerProvider
             Expanded(
               child: Column(
                 children: [
-                  if (!isMobile)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
-                    ),
-                    child: Row(
-                      children: [
-                        if (_navigationHistory.isNotEmpty || _currentDetailScholarId != null || (activeCategoryIndex != 0 || activeSubIndex != 0)) ...[
-                          IconButton(
-                            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: kBrandBrown, size: 14), 
-                            onPressed: _popSubItem,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                          ),
-                          const SizedBox(width: 12),
-                        ],
-                        if (!isMobile) ...[
-                          GestureDetector(
-                            onTap: () => setState(() {
-                              activeCategoryIndex = 0;
-                              activeSubIndex = 0;
-                              _navigationHistory.clear();
-                              _currentDetailScholarId = null;
-                            }),
-                            child: Text(activeCategory.title.toUpperCase(), 
-                              style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1))),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 8.0),
-                            child: Icon(Icons.chevron_right_rounded, color: Colors.grey, size: 12),
-                          ),
-                        ],
-                        Expanded(
-                          child: Text(activeSubItem.title, 
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: kBrandBrown)),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (!isMobile) const Divider(height: 1),
                   Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.all(isMobile ? 0 : 24),
-                      child: _currentDetailScholarId != null
+                    child: _currentDetailScholarId != null
                         ? ScholarProfileComponent(scholarId: _currentDetailScholarId, onBack: _popSubItem)
                         : activeSubItem.builder != null
                           ? activeSubItem.builder!(_popSubItem, _pushSubItem, _pushScholarProfile)
                           : const Center(child: Text("Component not configured.")),
-                    ),
                   ),
                 ],
               ),
