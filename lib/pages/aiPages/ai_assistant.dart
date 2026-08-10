@@ -37,8 +37,12 @@ class _AIAssistantPageState extends State<AIAssistantPage> {
     _scrollToBottom();
 
     try {
+      // Send the entire conversation history to the backend for OpenAI-style context awareness
       final response = await ApiService.chatWithAI(
-        text,
+        _messages.map((m) => {
+          'role': m['role'],
+          'content': m['content']
+        }).toList(),
         currentPage: widget.currentPage,
         targetId: widget.targetId,
       );

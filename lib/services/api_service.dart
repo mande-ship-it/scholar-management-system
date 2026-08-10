@@ -526,12 +526,19 @@ class ApiService {
   }
 
   // AI Assistant
-  static Future<Response> chatWithAI(String message, {String? currentPage, String? targetId}) async {
-    return await _dio.post('/ai/chat', data: {
-      'message': message,
+  static Future<Response> chatWithAI(dynamic messageInput, {String? currentPage, String? targetId}) async {
+    Map<String, dynamic> body = {
       'currentPage': currentPage ?? 'Global Navigation',
       if (targetId != null) 'targetId': targetId,
-    });
+    };
+
+    if (messageInput is List) {
+      body['messages'] = messageInput;
+    } else {
+      body['message'] = messageInput.toString();
+    }
+
+    return await _dio.post('/ai/chat', data: body);
   }
 
   // Internships
