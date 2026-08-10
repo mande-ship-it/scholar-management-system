@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 class ApiService {
@@ -22,7 +21,9 @@ class ApiService {
   }
 
   static String get baseUrl {
-    // Force remote for now to resolve 404s and connectivity issues
+    if (_prefs?.getBool(_useLocalKey) == true) {
+      return localUrl;
+    }
     return remoteUrl;
   }
 

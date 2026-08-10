@@ -89,7 +89,7 @@ class _ManageDepartmentsComponentState extends State<ManageDepartmentsComponent>
             TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("CANCEL", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: kBrandBrown, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-              onPressed: () async {
+                  onPressed: () async {
                 final data = {
                   'name': nameCtrl.text.trim(),
                   'code': codeCtrl.text.trim().toUpperCase(),
@@ -97,17 +97,35 @@ class _ManageDepartmentsComponentState extends State<ManageDepartmentsComponent>
                   'defaultDashboard': selectedDashboard,
                 };
 
+                if (data['name']!.isEmpty || data['code']!.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Name and Code are required."), backgroundColor: Colors.redAccent),
+                  );
+                  return;
+                }
+
                 try {
                   final response = isEdit
-                      ? await ApiService.updateDepartment(dept!['id'].toString(), data)
+                      ? await ApiService.updateDepartment(dept['id']?.toString() ?? dept['_id'].toString(), data)
                       : await ApiService.createDepartment(data);
 
                   if (response.statusCode == 200 || response.statusCode == 201) {
                     if (ctx.mounted) Navigator.pop(ctx);
                     _fetchDepartments();
+                  } else {
+                    if (ctx.mounted) {
+                      ScaffoldMessenger.of(ctx).showSnackBar(
+                        SnackBar(content: Text("Failed: ${response.data['message'] ?? 'Unknown error'}")),
+                      );
+                    }
                   }
                 } catch (e) {
                   debugPrint('Error saving department: $e');
+                  if (ctx.mounted) {
+                    ScaffoldMessenger.of(ctx).showSnackBar(
+                      const SnackBar(content: Text("Network error connecting to backend."), backgroundColor: Colors.redAccent),
+                    );
+                  }
                 }
               },
               child: const Text("SAVE CHANGES", style: TextStyle(fontWeight: FontWeight.bold)),
@@ -240,14 +258,15 @@ class _ManageDepartmentsComponentState extends State<ManageDepartmentsComponent>
               padding: EdgeInsets.all(isMobile ? 12 : 24),
               itemCount: _departments.length,
               separatorBuilder: (_, __) => const SizedBox(height: 16),
-              itemBuilder: (context, index) {
+                  itemBuilder: (context, index) {
                 final dept = _departments[index];
+                final deptId = (dept['id'] ?? dept['_id'] ?? '').toString();
                 return _DepartmentTile(
-                  key: ValueKey(dept['id']),
+                  key: ValueKey(deptId),
                   dept: dept,
                   onEdit: () => _showDeptDialog(dept: dept),
                   onDelete: () => _confirmDelete(
-                    dept['id'].toString(),
+                    deptId,
                     dept['name']?.toString() ?? 'this department',
                   ),
                   onUserTap: _showUserDetails,
@@ -294,7 +313,8 @@ class _DepartmentTileState extends State<_DepartmentTile> {
       _hasError = false;
     });
     try {
-      final response = await ApiService.getDepartmentUsers(widget.dept['id'].toString());
+      final deptId = (widget.dept['id'] ?? widget.dept['_id'] ?? '').toString();
+      final response = await ApiService.getDepartmentUsers(deptId);
       if (response.statusCode == 200) {
         final dynamic rawData = response.data is Map ? response.data['data'] : response.data;
         if (mounted) {
@@ -405,6 +425,7 @@ class _DepartmentTileState extends State<_DepartmentTile> {
     final deptCode = widget.dept['code']?.toString();
     final deptDesc = widget.dept['description']?.toString();
     final userCount = widget.dept['userCount'] ?? widget.dept['user_count'] ?? 0;
+    final deptId = (widget.dept['id'] ?? widget.dept['_id'] ?? '').toString();
 
     return Container(
       decoration: BoxDecoration(
@@ -414,11 +435,7 @@ class _DepartmentTileState extends State<_DepartmentTile> {
       ),
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
-        // Explicit, unique, string-based key so this never collides in
-        // PageStorage with another widget (e.g. a nested ListView saving a
-        // scroll-offset double under the same derived key) — that collision
-        // is what causes "type 'bool' is not a subtype of type 'double?'".
-        key: PageStorageKey('dept_expansion_${widget.dept['id']}'),
+        key: PageStorageKey('dept_expansion_$deptId'),
         tilePadding: EdgeInsets.symmetric(horizontal: widget.isMobile ? 12 : 20, vertical: 8),
         onExpansionChanged: (expanded) {
           setState(() => _isExpanded = expanded);
@@ -511,9 +528,7 @@ class _DepartmentTileState extends State<_DepartmentTile> {
               const Padding(padding: EdgeInsets.all(20), child: Center(child: Text("No users assigned.", style: TextStyle(fontSize: 11, color: Colors.grey))))
             else
               ListView.separated(
-                // Own unique key, separate namespace from the ExpansionTile's
-                // key above, so PageStorage never mixes their saved state.
-                key: PageStorageKey('dept_users_list_${widget.dept['id']}'),
+                key: PageStorageKey('dept_users_list_$deptId'),
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: _users.length,

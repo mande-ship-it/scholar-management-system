@@ -55,20 +55,21 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
   late TabController _tabController;
 
   bool get _isFieldOfficer {
-    final String currentRole = PermissionService.userRole ?? _userRole;
-    return ['Field Officer', 'Field Coordinator', 'Field Operations', 'Operational Officer'].contains(currentRole) || widget.hideUniversity;
+    final String currentRole = (PermissionService.userRole ?? _userRole).toLowerCase();
+    return ['field officer', 'field coordinator', 'field operations', 'operational officer'].contains(currentRole) || widget.hideUniversity;
   }
 
   bool get _canRegister {
-    return !widget.hideRegistration &&
-        (['Administrator', 'Data Officer', 'Program Coordinator', 'Field Officer', 'Field Coordinator', 'Field Operations', 'Operational Officer'].contains(_userRole));
+    if (widget.hideRegistration) return false;
+    final String currentRole = (PermissionService.userRole ?? _userRole).toLowerCase();
+    return ['administrator', 'data officer', 'program coordinator', 'field officer', 'field coordinator', 'field operations', 'operational officer'].contains(currentRole);
   }
 
   @override
   void initState() {
     super.initState();
-    final String currentRole = PermissionService.userRole ?? 'User';
-    final bool isField = ['Field Officer', 'Field Coordinator', 'Field Operations', 'Operational Officer'].contains(currentRole);
+    final String currentRole = (PermissionService.userRole ?? 'User').toLowerCase();
+    final bool isField = ['field officer', 'field coordinator', 'field operations', 'operational officer'].contains(currentRole);
     _selectedSchoolType = isField ? 'Secondary' : (widget.forcedSchoolType ?? 'All');
     _tabController = TabController(length: 2, vsync: this, initialIndex: widget.initialTabIndex);
     _tabController.addListener(() => setState(() {}));
@@ -311,12 +312,12 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
-      floatingActionButton: _canRegister
+      floatingActionButton: (isMobile && _canRegister)
           ? FloatingActionButton(
               onPressed: widget.onRegisterScholar ?? () => Navigator.pushNamed(context, '/registerScholar').then((_) => _fetchScholars()),
               backgroundColor: const Color(0xFF4C3C32),
               elevation: 4,
-              child: const Icon(Icons.add_rounded, color: Colors.white, size: 30),
+              child: const Icon(Icons.person_add_rounded, color: Colors.white, size: 28),
             )
           : null,
       body: Column(
@@ -380,23 +381,15 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
             spacing: 6,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              if (_canRegister)
-                InkWell(
-                  onTap: widget.onRegisterScholar ?? () => Navigator.pushNamed(context, '/registerScholar').then((_) => _fetchScholars()),
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF9AB334).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFF9AB334).withOpacity(0.3)),
-                    ),
-                    child: const Icon(Icons.add_rounded, color: Color(0xFF9AB334), size: 20),
-                  ),
+              if (isMobile && _canRegister)
+                IconButton(
+                  icon: const Icon(Icons.add_circle_outline_rounded, color: Color(0xFF9AB334), size: 22),
+                  onPressed: widget.onRegisterScholar ?? () => Navigator.pushNamed(context, '/registerScholar').then((_) => _fetchScholars()),
+                  tooltip: "Register Scholar",
                 ),
               _exportButton(icon: Icons.description_outlined, label: "PDF", onTap: _exportToPDF, isVerySmall: isVerySmall),
               _exportButton(icon: Icons.table_view_outlined, label: "EXCEL", onTap: _exportToExcel, isVerySmall: isVerySmall),
-              if (!isMobile && ['Administrator', 'Data Officer', 'Program Coordinator'].contains(_userRole))
+              if (!isMobile && _canRegister)
                 ElevatedButton(
                   onPressed: widget.onRegisterScholar ?? () => Navigator.pushNamed(context, '/registerScholar').then((_) => _fetchScholars()),
                   style: ElevatedButton.styleFrom(

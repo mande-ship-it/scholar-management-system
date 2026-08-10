@@ -239,21 +239,28 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
     if (isMobile) {
       return Column(
         children: [
-          Row(
-            children: [
-              Expanded(child: _buildPortalCard(kpis[0].$1, kpis[0].$2, kpis[0].$3, kpis[0].$4, () => widget.onNavigate?.call(kpis[0].$5), isVerySmall)),
-              const SizedBox(width: 12),
-              Expanded(child: _buildPortalCard(kpis[1].$1, kpis[1].$2, kpis[1].$3, kpis[1].$4, () => widget.onNavigate?.call(kpis[1].$5), isVerySmall)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(child: _buildPortalCard(kpis[2].$1, kpis[2].$2, kpis[2].$3, kpis[2].$4, () => widget.onNavigate?.call(kpis[2].$5), isVerySmall)),
-              const SizedBox(width: 12),
-              Expanded(child: _buildPortalCard(kpis[3].$1, kpis[3].$2, kpis[3].$3, kpis[3].$4, () => widget.onNavigate?.call(kpis[3].$5), isVerySmall)),
-            ],
-          ),
+          if (isVerySmall)
+            ...kpis.map((kpi) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _buildPortalCard(kpi.$1, kpi.$2, kpi.$3, kpi.$4, () => widget.onNavigate?.call(kpi.$5), isVerySmall),
+            )).toList()
+          else ...[
+            Row(
+              children: [
+                Expanded(child: _buildPortalCard(kpis[0].$1, kpis[0].$2, kpis[0].$3, kpis[0].$4, () => widget.onNavigate?.call(kpis[0].$5), isVerySmall)),
+                const SizedBox(width: 12),
+                Expanded(child: _buildPortalCard(kpis[1].$1, kpis[1].$2, kpis[1].$3, kpis[1].$4, () => widget.onNavigate?.call(kpis[1].$5), isVerySmall)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(child: _buildPortalCard(kpis[2].$1, kpis[2].$2, kpis[2].$3, kpis[2].$4, () => widget.onNavigate?.call(kpis[2].$5), isVerySmall)),
+                const SizedBox(width: 12),
+                Expanded(child: _buildPortalCard(kpis[3].$1, kpis[3].$2, kpis[3].$3, kpis[3].$4, () => widget.onNavigate?.call(kpis[3].$5), isVerySmall)),
+              ],
+            ),
+          ],
         ],
       );
     }
@@ -284,16 +291,16 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
 
     return Material(
       color: Colors.white,
-      borderRadius: BorderRadius.circular(isMobile ? 24 : 24),
+      borderRadius: BorderRadius.circular(isVerySmall ? 16 : 24),
       elevation: 0,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(isMobile ? 24 : 24),
+        borderRadius: BorderRadius.circular(isVerySmall ? 16 : 24),
         child: Container(
-          padding: EdgeInsets.all(isMobile ? 24 : 24),
+          padding: EdgeInsets.all(isVerySmall ? 16 : 24),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(isMobile ? 24 : 24),
+            borderRadius: BorderRadius.circular(isVerySmall ? 16 : 24),
             border: Border.all(color: const Color(0xFFEEEEEE), width: 1),
             boxShadow: [
               BoxShadow(
@@ -306,14 +313,14 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
           child: Row(
             children: [
               Container(
-                padding: EdgeInsets.all(isMobile ? 14 : 14),
+                padding: EdgeInsets.all(isVerySmall ? 10 : 14),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: color, size: isMobile ? 24 : 24),
+                child: Icon(icon, color: color, size: isVerySmall ? 20 : 24),
               ),
-              const SizedBox(width: 20),
+              SizedBox(width: isVerySmall ? 12 : 20),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

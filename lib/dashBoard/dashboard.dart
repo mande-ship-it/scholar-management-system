@@ -123,7 +123,7 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
     if (isSmallScreen) {
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: const BoxDecoration(
           color: Colors.white,
           border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
@@ -134,13 +134,14 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text("PROGRAM ANALYTICS", 
-                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF9AB334), letterSpacing: 1.2)),
+                const Text("INTELLIGENCE HUB",
+                  style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Color(0xFF9AB334), letterSpacing: 1.0)),
                 _buildStatusApprovalIndicator(),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             _buildLevelToggle(true),
+            const SizedBox(height: 4),
           ],
         ),
       );
@@ -148,7 +149,7 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
@@ -161,12 +162,12 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text("PROGRAM ANALYTICS", 
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Color(0xFF9AB334), letterSpacing: 1.5)),
+                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Color(0xFF9AB334), letterSpacing: 1.5)),
                 const SizedBox(height: 2),
-                Text("$_selectedLevel Intelligence Dashboard", 
+                Text("$_selectedLevel Dashboard",
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 22,
+                    fontSize: 18,
                     fontWeight: FontWeight.w900,
                     color: Color(0xFF4C3C32),
                     letterSpacing: -0.5
@@ -227,9 +228,9 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
             isSmall ? "${level.toUpperCase()} DASHBOARD" : level.toUpperCase(),
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontSize: isSmall ? 10 : 10,
+              fontSize: isSmall ? 11 : 10,
               fontWeight: FontWeight.w900,
-              color: isSelected ? Colors.white : Colors.grey,
+              color: isSelected ? Colors.white : Colors.grey.shade700,
               letterSpacing: isSmall ? 0.2 : 0.5,
             ),
           ),
