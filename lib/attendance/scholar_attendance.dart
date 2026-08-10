@@ -165,8 +165,9 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
     
     setState(() => _isLoadingScholars = true);
     try {
+      final schoolId = (_selectedSchool!['id'] ?? _selectedSchool!['_id']).toString();
       final response = await ApiService.getScholarsBySchool(
-        schoolId: _selectedSchool!['id'].toString(),
+        schoolId: schoolId,
       );
       
       if (response.statusCode == 200) {
@@ -176,15 +177,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
             _entries = data
                 .where((item) => (item['status'] ?? 'Active') == 'Active')
                 .map((item) => AttendanceEntry(
-              scholar: Student(
-                id: item['id'].toString(),
-                scholarId: item['scholar_id'] ?? 'N/A',
-                name: item['full_name'] ?? 'N/A',
-                age: item['age'] ?? 18,
-                schoolType: (item['school_type']?.toString().toLowerCase() == 'university') ? SchoolType.university : SchoolType.secondary,
-                schoolName: item['display_school_name'] ?? _selectedSchool!['name'],
-                currentClass: item['academic_year'] ?? 'N/A',
-              ),
+              scholar: Student.fromMap(item),
             )).toList();
             _isLoadingScholars = false;
           });
@@ -209,10 +202,11 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
     setState(() => _isSaving = true);
     
     try {
+      final schoolId = (_selectedSchool!['id'] ?? _selectedSchool!['_id']).toString();
       final attendanceData = {
         'type': _moduleType.label,
         'sessionDate': _selectedDate.toIso8601String().split('T')[0],
-        'schoolId': _selectedSchool!['id'],
+        'schoolId': schoolId,
         'year': _selectedYear,
         'month': _selectedMonth,
         'week_number': _selectedWeek,
