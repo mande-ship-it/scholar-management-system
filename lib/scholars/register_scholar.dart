@@ -220,7 +220,8 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
     if (_selectedStartYear != null && _selectedDuration != null) {
       final start = int.parse(_selectedStartYear!);
       setState(() {
-        _selectedEndYear = (start + _selectedDuration! - 1).toString();
+        // User Spec: If registered 2026 with 4 years duration, expected completion is 2030
+        _selectedEndYear = (start + _selectedDuration!).toString();
       });
     }
   }
@@ -239,6 +240,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
         'dob': _dobController.text.trim(),
         'registeredClass': _yearController.text.trim(), // Spec Section 1
         'programDurationYears': _selectedDuration ?? 4, // Spec Section 1
+        'yearsCompleted': 0, // Year Zero as requested
         'academicYear': _yearController.text.trim(),
         'district': _selectedDistrict,
         'village': _homeVillageController.text.trim(),
@@ -255,7 +257,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
         'guardianEmail': _guardianEmailController.text.trim(),
         'guardianRelation': _selectedGuardianRelation,
         'guardianOccupation': _guardianOccupationController.text.trim(),
-        'status': 'Pending', // Explicitly set for workflow clarity
+        'status': 'Pending', 
       };
 
       try {
@@ -506,97 +508,6 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
     );
   }
 
-  Widget _sectionDivider(bool isMobile) {
-    return isMobile ? const Divider(height: 1) : const SizedBox.shrink();
-  }
-
-  Widget _buildFixedFooter(bool isMobile) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        border: const Border(top: BorderSide(color: Color(0xFFEEEEEE))),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          if (!isMobile) ...[
-            OutlinedButton(
-              onPressed: () => _resetForm(),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                foregroundColor: Colors.grey,
-              ),
-              child: const Text("DISCARD DRAFT", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 0.5)),
-            ),
-            const SizedBox(width: 12),
-          ],
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: _isLoading ? null : _submitForm,
-              icon: _isLoading
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Icon(Icons.verified_user_rounded, size: 18),
-              label: Text(_isLoading ? "PROCESSING..." : "FINALIZE ENROLMENT",
-                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: kBrandOlive,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                elevation: 0,
-              ),
-            ),
-          ),
-          if (isMobile) ...[
-            const SizedBox(width: 12),
-            IconButton(
-              onPressed: () => _resetForm(),
-              icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-              tooltip: "Discard Draft",
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildExecutiveHeader(bool isMobile) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: kBrandBrown.withOpacity(0.05), borderRadius: BorderRadius.circular(8)),
-            child: const Icon(Icons.person_add_alt_1_rounded, color: kBrandBrown, size: 20),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Register New Scholar", 
-                  style: TextStyle(fontSize: isMobile ? 16 : 18, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.5)),
-                Text("Enrol a new student into the scholarship management ecosystem.", 
-                  style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w500)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionLabel(String label) {
-    return Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBrandOlive.withOpacity(0.8), letterSpacing: 1.5));
-  }
-
   Widget _buildPersonalSection(bool isMobile) {
     return _executiveCard(
       isMobile: isMobile,
@@ -711,6 +622,9 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
     final List<String> years = academicYearOptions();
     final schools = _getAvailableSchoolsForScholar();
     final int currentYear = DateTime.now().year;
+
+    // Spec Section 1: Label changes based on school type
+    final String label = _selectedSchoolType == 'University' ? "Year of Study" : "Current Form";
 
     bool showClassField = true;
     if (_selectedEndYear != null) {
@@ -899,7 +813,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
         const SizedBox(height: 24),
         if (isMobile) ...[
           if (showClassField) ...[
-            _buildTextField(_yearController, "Current Form / Class", Icons.calendar_month_rounded),
+            _buildTextField(_yearController, label, Icons.calendar_month_rounded),
             const SizedBox(height: 24),
           ],
           _buildTextField(_previousSchoolController, "Previous Institution", Icons.history_edu_rounded),
@@ -907,7 +821,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
           if (showClassField)
             Row(
               children: [
-                Expanded(child: _buildTextField(_yearController, "Current Form / Class", Icons.calendar_month_rounded)),
+                Expanded(child: _buildTextField(_yearController, label, Icons.calendar_month_rounded)),
                 const SizedBox(width: 24),
                 Expanded(child: _buildTextField(_previousSchoolController, "Previous Institution", Icons.history_edu_rounded)),
               ],
