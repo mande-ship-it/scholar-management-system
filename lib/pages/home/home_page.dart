@@ -30,6 +30,7 @@ import '../academicPages/enter_results.dart';
 import '../academicPages/view_results.dart';
 import '../academicPages/report_cards.dart';
 import '../academicPages/performance_analysis.dart';
+import '../../academics/subject_registry.dart';
 
 // Attendance
 import '../attendancePages/attendance_history.dart';
@@ -627,7 +628,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             page: EnterResultsPage(), 
             icon: Icons.edit_note,
             isVisible: false,
-            builder: (backFunc, onPush, onPushProfile) => EnterResultsPage(onBack: backFunc),
+            builder: (backFunc, onPush, onPushProfile) => EnterResultsPage(onBack: backFunc, onPush: onPush),
           ),
           SidebarSubItem(
             title: "Report Cards", 
@@ -640,6 +641,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             page: PerformanceAnalysisPage(), 
             icon: Icons.analytics,
             builder: (backFunc, onPush, onPushProfile) => PerformanceAnalysisPage(onBack: backFunc),
+          ),
+          SidebarSubItem(
+            title: "Subject Registry", 
+            page: SubjectRegistryPage(), 
+            icon: Icons.library_books,
+            builder: (backFunc, onPush, onPushProfile) => SubjectRegistryPage(onBack: backFunc),
           ),
         ],
       ),

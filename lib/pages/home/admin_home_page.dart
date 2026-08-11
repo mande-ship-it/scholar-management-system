@@ -446,18 +446,12 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
   }
 
   void _popSubItem() {
-    if (_navigationHistory.isNotEmpty) {
-      final prev = _navigationHistory.removeLast();
-      setState(() {
-        activeCategoryIndex = prev.$1;
-        activeSubIndex = prev.$2;
-      });
-    } else if (activeCategoryIndex != 0 || activeSubIndex != 0) {
-      setState(() {
-        activeCategoryIndex = 0;
-        activeSubIndex = 0;
-      });
-    }
+    // ALWAYS go to Admin Dashboard as requested
+    setState(() {
+      _navigationHistory.clear();
+      activeCategoryIndex = 0;
+      activeSubIndex = 0;
+    });
   }
 
   List<AdminSidebarCategory> _getAdminCategories() {

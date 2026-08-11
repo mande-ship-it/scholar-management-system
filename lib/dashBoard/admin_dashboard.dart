@@ -187,7 +187,7 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
       height: double.infinity,
       child: Column(
         children: [
-          _buildAdminPortalHeader(isMobile),
+          // Header removed as per Admin UI consolidation
           Expanded(
             child: SingleChildScrollView(
               padding: EdgeInsets.all(isVerySmall ? 8 : (isMobile ? 12 : 32)),

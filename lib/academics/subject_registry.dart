@@ -130,40 +130,69 @@ class _SubjectRegistryPageState extends State<SubjectRegistryPage> {
   }
 
   Widget _buildHeader() {
+    final bool isMobile = MediaQuery.of(context).size.width < 700;
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isMobile ? 16 : 24),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
       ),
-      child: Row(
-        children: [
-          if (widget.onBack != null)
-            IconButton(onPressed: widget.onBack, icon: const Icon(Icons.arrow_back)),
-          const Icon(Icons.library_books_rounded, color: kBrandOlive, size: 28),
-          const SizedBox(width: 16),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text("Subject Registry", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kBrandBrown)),
-                Text("Manage core curriculum subjects for all institutional levels.", style: TextStyle(fontSize: 13, color: Colors.grey)),
-              ],
-            ),
+      child: isMobile 
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.library_books_rounded, color: kBrandOlive, size: 24),
+                  const SizedBox(width: 12),
+                  const Text("Subject Registry", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown)),
+                  const Spacer(),
+                  if (widget.onBack != null)
+                    IconButton(onPressed: widget.onBack, icon: const Icon(Icons.close, size: 20)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: _showAddDialog,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text("REGISTER NEW SUBJECT"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kBrandOlive,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ],
+          )
+        : Row(
+            children: [
+              if (widget.onBack != null)
+                IconButton(onPressed: widget.onBack, icon: const Icon(Icons.arrow_back)),
+              const Icon(Icons.library_books_rounded, color: kBrandOlive, size: 28),
+              const SizedBox(width: 16),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("Subject Registry", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kBrandBrown)),
+                    Text("Manage core curriculum subjects for all institutional levels.", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                  ],
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: _showAddDialog,
+                icon: const Icon(Icons.add),
+                label: const Text("ADD SUBJECT"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kBrandOlive,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ],
           ),
-          ElevatedButton.icon(
-            onPressed: _showAddDialog,
-            icon: const Icon(Icons.add),
-            label: const Text("ADD SUBJECT"),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: kBrandOlive,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-          ),
-        ],
-      ),
     );
   }
 

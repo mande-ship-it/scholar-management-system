@@ -249,8 +249,12 @@ class ApiService {
     return await _dio.post('/academic/record', data: data);
   }
 
-  static Future<Response> getSubjects({String? level}) async {
+  static Future<Response> getSubjectRegistry({String? level}) async {
     return await _dio.get('/academic/subjects', queryParameters: level != null ? {'level': level} : null);
+  }
+
+  static Future<Response> createSubject(Map<String, dynamic> data) async {
+    return await _dio.post('/academic/subjects', data: data);
   }
 
   static Future<Response> getYearlyStats(String year) async {

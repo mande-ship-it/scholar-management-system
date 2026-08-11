@@ -4,10 +4,11 @@ import '../../academics/academics_utils.dart';
 
 class EnterResultsPage extends StatelessWidget {
   final VoidCallback? onBack;
-  const EnterResultsPage({super.key, this.onBack});
+  final Function(String)? onPush;
+  const EnterResultsPage({super.key, this.onBack, this.onPush});
 
   @override
   Widget build(BuildContext context) {
-    return AcademicsManagementComponent(onBack: onBack);
+    return AcademicsManagementComponent(onBack: onBack, onPush: onPush);
   }
 }

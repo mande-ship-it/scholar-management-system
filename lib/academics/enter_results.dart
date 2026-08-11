@@ -10,7 +10,8 @@ import 'package:scholar_management_system/services/api_service.dart';
 class AcademicsManagementComponent extends StatefulWidget {
   final SchoolType? forcedSchoolType;
   final VoidCallback? onBack;
-  const AcademicsManagementComponent({super.key, this.forcedSchoolType, this.onBack});
+  final Function(String)? onPush;
+  const AcademicsManagementComponent({super.key, this.forcedSchoolType, this.onBack, this.onPush});
 
   @override
   State<AcademicsManagementComponent> createState() => _AcademicsManagementComponentState();
@@ -56,7 +57,7 @@ class _AcademicsManagementComponentState extends State<AcademicsManagementCompon
         children: [
           _buildHeader(isMobile),
           const Divider(height: 1),
-          Expanded(child: EnterResultsComponent(forcedSchoolType: widget.forcedSchoolType)),
+          Expanded(child: EnterResultsComponent(forcedSchoolType: widget.forcedSchoolType, onPush: widget.onPush)),
         ],
       ),
     );
@@ -69,7 +70,8 @@ class _AcademicsManagementComponentState extends State<AcademicsManagementCompon
 
 class EnterResultsComponent extends StatefulWidget {
   final SchoolType? forcedSchoolType;
-  const EnterResultsComponent({super.key, this.forcedSchoolType});
+  final Function(String)? onPush;
+  const EnterResultsComponent({super.key, this.forcedSchoolType, this.onPush});
 
   @override
   State<EnterResultsComponent> createState() => _EnterResultsComponentState();
@@ -109,7 +111,11 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
   void initState() {
     super.initState();
     _schoolType = widget.forcedSchoolType ?? SchoolType.secondary;
-    _selectedYear = _academicYears.first;
+    // User Spec: Automatically be the current year
+    _selectedYear = DateTime.now().year.toString();
+    if (!_academicYears.contains(_selectedYear)) {
+      _academicYears.insert(0, _selectedYear!);
+    }
     _addRow();
     _fetchBaseData();
     _checkRole();
@@ -146,7 +152,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
     try {
       final schoolsRes = await ApiService.getAllSchools();
       final scholarsRes = await ApiService.getAllScholars();
-      final subjectsRes = await ApiService.getSubjects();
+      final subjectsRes = await ApiService.getSubjectRegistry(); // Use Registry
 
       if (mounted) {
         setState(() {
@@ -192,7 +198,6 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
     }
   }
 
-  bool _isPeriodDisabled = false;
   List<String> _recordedPeriods = [];
 
   Future<void> _checkCompleteness(String scholarId, int year) async {
@@ -202,14 +207,6 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
         final data = res.data['data'];
         setState(() {
           _recordedPeriods = List<String>.from(isUniversity ? (data['semestersRecorded'] ?? []) : (data['termsRecorded'] ?? []));
-          if (data['isComplete'] == true) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("All academic results for this year have already been recorded."),
-                backgroundColor: Colors.blue,
-              ),
-            );
-          }
         });
       }
     } catch (e) {
@@ -326,16 +323,8 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
       }
     }
 
-    final int minSubjects = _isStrictFieldOfficer ? 8 : (isUniversity ? 5 : 6);
-    final int maxSubjects = _isStrictFieldOfficer ? 10 : (isUniversity ? 8 : 12);
-
-    if (validResults.length < minSubjects) {
-      _showError("Please enter at least $minSubjects ${isUniversity ? 'courses' : 'subjects'}.");
-      return;
-    }
-
-    if (validResults.length > maxSubjects) {
-      _showError("Maximum allowed is $maxSubjects ${isUniversity ? 'courses' : 'subjects'}.");
+    if (validResults.isEmpty) {
+      _showError("Please enter results for at least one subject/course.");
       return;
     }
 
@@ -353,21 +342,6 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
 
       final response = await ApiService.recordResults(payload);
       if (response.statusCode == 201 || response.statusCode == 200) {
-        // Sync the global kResults list with the new data from server
-        try {
-          final resultsRes = await ApiService.getResultsBySchool(null);
-          if (resultsRes.statusCode == 200) {
-            final List<dynamic> data = resultsRes.data['data'] ?? [];
-            debugPrint('Synced ${data.length} results to global state.');
-            kResults.clear();
-            for (var item in data) {
-              kResults.add(ResultRecord.fromMap(item));
-            }
-          }
-        } catch (e) {
-          debugPrint('Error syncing kResults: $e');
-        }
-
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -406,7 +380,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const SizedBox.shrink();
+      return const Center(child: CircularProgressIndicator(color: kBrandOlive));
     }
 
     final bool isMobile = MediaQuery.of(context).size.width < 900;
@@ -473,7 +447,19 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (isMobile) ...[
-            _portalSelectionLabel("Institution Level"),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _portalSelectionLabel("Institution Level"),
+                if (!isUniversity)
+                  TextButton.icon(
+                    onPressed: () => widget.onPush?.call("Subject Registry"),
+                    icon: const Icon(Icons.settings_suggest_rounded, size: 14),
+                    label: const Text("MANAGE SUBJECTS", style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold)),
+                    style: TextButton.styleFrom(foregroundColor: kBrandOlive),
+                  ),
+              ],
+            ),
             if (_isStrictFieldOfficer)
               _compactStaticField("Secondary School", Icons.school_rounded)
             else
@@ -543,7 +529,19 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _portalSelectionLabel("Institution Level"),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _portalSelectionLabel("Institution Level"),
+                          if (!isUniversity)
+                            TextButton.icon(
+                              onPressed: () => widget.onPush?.call("Subject Registry"),
+                              icon: const Icon(Icons.settings_suggest_rounded, size: 16),
+                              label: const Text("MANAGE SUBJECT REGISTRY", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                              style: TextButton.styleFrom(foregroundColor: kBrandOlive),
+                            ),
+                        ],
+                      ),
                       if (_isStrictFieldOfficer)
                         _compactStaticField("Secondary School", Icons.school_rounded)
                       else
@@ -673,9 +671,9 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Color(0xFF4C3C32).withOpacity(0.05),
+        color: const Color(0xFF4C3C32).withOpacity(0.05),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Color(0xFF4C3C32).withOpacity(0.1)),
+        border: Border.all(color: const Color(0xFF4C3C32).withOpacity(0.1)),
       ),
       child: Row(
         children: [
@@ -740,7 +738,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
               color: const Color(0xFFF9FAFB),
               child: Row(
                 children: [
-                  Expanded(flex: 3, child: _tableHeader("SUBJECT / COURSE")),
+                  Expanded(flex: 3, child: _tableHeader(isUniversity ? "COURSE NAME" : "SUBJECT")),
                   const SizedBox(width: 24),
                   Expanded(flex: 1, child: _tableHeader("SCORE (0-100)")),
                   const SizedBox(width: 24),
@@ -776,13 +774,13 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: const Color(0xFFEEEEEE), style: BorderStyle.solid),
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.add_circle_outline_rounded, size: 20, color: Color(0xFF9AB334)),
-            SizedBox(width: 12),
-            Text("APPEND NEW SUBJECT RECORD", 
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF9AB334), letterSpacing: 0.5)),
+            const Icon(Icons.add_circle_outline_rounded, size: 20, color: Color(0xFF9AB334)),
+            const SizedBox(width: 12),
+            Text(isUniversity ? "ADD ANOTHER COURSE" : "APPEND NEW SUBJECT RECORD", 
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF9AB334), letterSpacing: 0.5)),
           ],
         ),
       ),
@@ -809,14 +807,25 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
             Row(
               children: [
                 Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: _subjectOptions.any((s) => s.name == row.subjectController.text) ? row.subjectController.text : null,
-                    hint: Text("Select subject...", style: TextStyle(fontSize: isVerySmall ? 12 : 13)),
-                    isExpanded: true,
-                    decoration: const InputDecoration(border: InputBorder.none, isDense: true),
-                    items: _subjectOptions.map((s) => DropdownMenuItem(value: s.name, child: Text(s.name, style: TextStyle(fontSize: isVerySmall ? 12 : 13), overflow: TextOverflow.ellipsis))).toList(),
-                    onChanged: (v) => setState(() => row.subjectController.text = v ?? ''),
-                  ),
+                  child: isUniversity 
+                    ? TextField(
+                        controller: row.subjectController,
+                        decoration: InputDecoration(
+                          hintText: "Enter course name...",
+                          hintStyle: TextStyle(fontSize: isVerySmall ? 12 : 13),
+                          border: InputBorder.none,
+                          isDense: true
+                        ),
+                        onChanged: (_) => setState(() {}),
+                      )
+                    : DropdownButtonFormField<String>(
+                        value: _subjectOptions.any((s) => s.name == row.subjectController.text) ? row.subjectController.text : null,
+                        hint: Text("Select subject...", style: TextStyle(fontSize: isVerySmall ? 12 : 13)),
+                        isExpanded: true,
+                        decoration: const InputDecoration(border: InputBorder.none, isDense: true),
+                        items: _subjectOptions.map((s) => DropdownMenuItem(value: s.name, child: Text(s.name, style: TextStyle(fontSize: isVerySmall ? 12 : 13), overflow: TextOverflow.ellipsis))).toList(),
+                        onChanged: (v) => setState(() => row.subjectController.text = v ?? ''),
+                      ),
                 ),
                 IconButton(
                   onPressed: () => _removeRow(index),
@@ -868,14 +877,25 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
         children: [
           Expanded(
             flex: 3,
-            child: DropdownButtonFormField<String>(
-              value: _subjectOptions.any((s) => s.name == row.subjectController.text) ? row.subjectController.text : null,
-              hint: const Text("Select subject...", style: TextStyle(fontSize: 13)),
-              isExpanded: true,
-              decoration: const InputDecoration(border: InputBorder.none, isDense: true),
-              items: _subjectOptions.map((s) => DropdownMenuItem(value: s.name, child: Text(s.name, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis))).toList(),
-              onChanged: (v) => setState(() => row.subjectController.text = v ?? ''),
-            ),
+            child: isUniversity 
+                ? TextField(
+                    controller: row.subjectController,
+                    decoration: const InputDecoration(
+                      hintText: "Enter course name...",
+                      hintStyle: TextStyle(fontSize: 13),
+                      border: InputBorder.none,
+                      isDense: true
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  )
+                : DropdownButtonFormField<String>(
+                    value: _subjectOptions.any((s) => s.name == row.subjectController.text) ? row.subjectController.text : null,
+                    hint: const Text("Select subject...", style: TextStyle(fontSize: 13)),
+                    isExpanded: true,
+                    decoration: const InputDecoration(border: InputBorder.none, isDense: true),
+                    items: _subjectOptions.map((s) => DropdownMenuItem(value: s.name, child: Text(s.name, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis))).toList(),
+                    onChanged: (v) => setState(() => row.subjectController.text = v ?? ''),
+                  ),
           ),
           const SizedBox(width: 16),
           Expanded(
