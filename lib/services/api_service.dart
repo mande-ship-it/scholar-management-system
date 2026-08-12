@@ -8,7 +8,7 @@ class ApiService {
   static const String _useLocalKey = 'use_local_backend';
   static bool _useLocalOverride = false;
 
-  static const String remoteUrl = 'https://age-systems-backend.onrender.com';
+  static const String remoteUrl = 'https://scholar-management-api.onrender.com';
 
   static String get localUrl {
     if (kIsWeb) return 'http://localhost:5000';
@@ -45,7 +45,7 @@ class ApiService {
   }
 
   static final Dio _dio = Dio(BaseOptions(
-    baseUrl: 'https://age-systems-backend.onrender.com/api', // Initial placeholder, updated in init()
+    baseUrl: 'https://scholar-management-api.onrender.com/api', // Corrected placeholder
     connectTimeout: const Duration(seconds: 60),
     receiveTimeout: const Duration(seconds: 60),
     validateStatus: (status) => status != null && status < 500,
