@@ -45,7 +45,7 @@ class ApiService {
   }
 
   static final Dio _dio = Dio(BaseOptions(
-    baseUrl: 'https://scholar-management-api.onrender.com/api', // Corrected placeholder
+    baseUrl: 'https://scholar-management-api.onrender.com/api',
     connectTimeout: const Duration(seconds: 60),
     receiveTimeout: const Duration(seconds: 60),
     validateStatus: (status) => status != null && status < 500,
