@@ -8,9 +8,9 @@ void main() {
     await tester.pumpWidget(const MyApp());
 
     // Verify that our SignInPage elements exist.
-    expect(find.text('Welcome Back'), findsOneWidget);
-    expect(find.text('Sign In to Portal'), findsOneWidget);
+    expect(find.text('AGE AFRICA SYSTEM'), findsOneWidget);
+    expect(find.text('ACCOUNT IDENTITY'), findsOneWidget);
     expect(find.text('Username or Email'), findsOneWidget);
-    expect(find.text('Password'), findsOneWidget);
+    expect(find.text('SECURITY KEY'), findsOneWidget);
   });
 }
