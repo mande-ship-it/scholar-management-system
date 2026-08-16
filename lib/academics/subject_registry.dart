@@ -130,69 +130,59 @@ class _SubjectRegistryPageState extends State<SubjectRegistryPage> {
   }
 
   Widget _buildHeader() {
-    final bool isMobile = MediaQuery.of(context).size.width < 700;
+    final bool isMobile = MediaQuery.of(context).size.width < 900;
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
     return Container(
-      padding: EdgeInsets.all(isMobile ? 16 : 24),
-      decoration: BoxDecoration(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
+      decoration: const BoxDecoration(
         color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
-      child: isMobile 
-        ? Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.library_books_rounded, color: kBrandOlive, size: 24),
-                  const SizedBox(width: 12),
-                  const Text("Subject Registry", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: kBrandBrown)),
-                  const Spacer(),
-                  if (widget.onBack != null)
-                    IconButton(onPressed: widget.onBack, icon: const Icon(Icons.close, size: 20)),
-                ],
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: _showAddDialog,
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text("REGISTER NEW SUBJECT"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: kBrandOlive,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
-            ],
-          )
-        : Row(
-            children: [
-              if (widget.onBack != null)
-                IconButton(onPressed: widget.onBack, icon: const Icon(Icons.arrow_back)),
-              const Icon(Icons.library_books_rounded, color: kBrandOlive, size: 28),
-              const SizedBox(width: 16),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Subject Registry", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: kBrandBrown)),
-                    Text("Manage core curriculum subjects for all institutional levels.", style: TextStyle(fontSize: 13, color: Colors.grey)),
-                  ],
-                ),
-              ),
-              ElevatedButton.icon(
-                onPressed: _showAddDialog,
-                icon: const Icon(Icons.add),
-                label: const Text("ADD SUBJECT"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: kBrandOlive,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-              ),
-            ],
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: widget.onBack ?? () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                Navigator.pushReplacementNamed(context, '/home');
+              }
+            },
+            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              "Subject Registry",
+              style: TextStyle(
+                fontSize: isVerySmall ? 13 : 16, 
+                fontWeight: FontWeight.w900, 
+                color: const Color(0xFF4C3C32), 
+                letterSpacing: -0.2
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          IconButton(
+            onPressed: _showAddDialog,
+            icon: const Icon(Icons.add_circle_outline_rounded, color: kBrandOlive, size: 22),
+            tooltip: "Add Subject",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 12),
+          IconButton(
+            onPressed: _fetchSubjects,
+            icon: const Icon(Icons.refresh_rounded, color: Colors.grey, size: 22),
+            tooltip: "Refresh",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
     );
   }
 

@@ -6,7 +6,8 @@ import 'package:intl/intl.dart';
 class ApprovalsPage extends StatefulWidget {
   final String? userRole;
   final VoidCallback? onBack;
-  const ApprovalsPage({super.key, this.userRole, this.onBack});
+  final bool showBackButton;
+  const ApprovalsPage({super.key, this.userRole, this.onBack, this.showBackButton = true});
 
   @override
   State<ApprovalsPage> createState() => _ApprovalsPageState();
@@ -138,19 +139,21 @@ class _ApprovalsPageState extends State<ApprovalsPage> with SingleTickerProvider
       ),
       child: Row(
         children: [
-          IconButton(
-            onPressed: widget.onBack ?? () {
-              if (Navigator.canPop(context)) {
-                Navigator.pop(context);
-              } else {
-                Navigator.pushReplacementNamed(context, '/home');
-              }
-            },
-            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-          const SizedBox(width: 16),
+          if (widget.showBackButton) ...[
+            IconButton(
+              onPressed: widget.onBack ?? () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
+              },
+              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 16),
+          ],
           Expanded(
             child: Text(
               "Operational Approvals",

@@ -25,6 +25,8 @@ import 'package:scholar_management_system/pages/dashboardPages/notifications.dar
 import 'package:scholar_management_system/pages/scholarPages/view_scholars.dart';
 import 'package:scholar_management_system/pages/scholarPages/register_scholar.dart';
 import 'package:scholar_management_system/pages/scholarPages/graduates_page.dart';
+import 'package:scholar_management_system/pages/attendancePages/scholar_attendance.dart';
+import 'package:scholar_management_system/pages/attendancePages/attendance_history.dart';
 
 class AdminSidebarCategory {
   final String title;
@@ -77,10 +79,14 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
   final FocusNode _searchFocusNode = FocusNode();
   List<AdminSidebarSubItem> _searchResults = [];
   final LayerLink _searchLayerLink = LayerLink();
+  final LayerLink _notificationLayerLink = LayerLink();
   OverlayEntry? _searchOverlayEntry;
+  OverlayEntry? _notificationOverlayEntry;
 
   late AnimationController _notificationIconController;
   late Animation<double> _notificationIconAnimation;
+  late AnimationController _badgePulseController;
+  late Animation<double> _badgeScaleAnimation;
 
   String _fullName = "Admin";
   String _userRole = "Administrator";
@@ -99,10 +105,162 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
       CurvedAnimation(parent: _notificationIconController, curve: Curves.elasticOut),
     );
 
+    _badgePulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _badgeScaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.4), weight: 50),
+      TweenSequenceItem(tween: Tween(begin: 1.4, end: 1.0), weight: 50),
+    ]).animate(CurvedAnimation(parent: _badgePulseController, curve: Curves.easeInOut));
+
     _categories = _getAdminCategories();
     _checkAccess();
     SocketService.addCallListener(_handleIncomingCall);
+    SocketService.addNotificationListener(_handleNewNotification);
     _fetchNotificationCount();
+  }
+
+  @override
+  void dispose() {
+    SocketService.removeCallListener(_handleIncomingCall);
+    SocketService.removeNotificationListener(_handleNewNotification);
+    _notificationIconController.dispose();
+    _badgePulseController.dispose();
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    _removeSearchOverlay();
+    super.dispose();
+  }
+
+  void _handleNewNotification(Map<String, dynamic> data) {
+    if (!mounted) return;
+
+    final String title = data['actorName'] ?? 'System Update';
+    final String message = data['message'] ?? '';
+    final String type = data['type'] ?? 'info';
+
+    setState(() {
+      _notificationCount++;
+    });
+
+    _notificationIconController.forward(from: 0.0);
+    _badgePulseController.forward(from: 0.0);
+    HapticFeedback.lightImpact();
+
+    _showPopNotification(title, message, type);
+  }
+
+  void _showPopNotification(String title, String message, String type) {
+    _removeNotificationOverlay();
+    
+    final overlay = Overlay.of(context);
+    final isMobile = MediaQuery.of(context).size.width < 900;
+
+    _notificationOverlayEntry = OverlayEntry(
+      builder: (context) => Stack(
+        children: [
+          Positioned(
+            width: isMobile ? MediaQuery.of(context).size.width * 0.9 : 320,
+            child: CompositedTransformFollower(
+              link: _notificationLayerLink,
+              showWhenUnlinked: false,
+              offset: const Offset(-280, 48), // Anchored below the icon
+              child: Material(
+                color: Colors.transparent,
+                child: TweenAnimationBuilder<double>(
+                  duration: const Duration(milliseconds: 600),
+                  tween: Tween(begin: 0.0, end: 1.0),
+                  curve: Curves.easeOutBack,
+                  builder: (context, value, child) {
+                    return Opacity(
+                      opacity: value,
+                      child: Transform.translate(
+                        offset: Offset(0, (1 - value) * -20),
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.shade100, width: 2),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 25, offset: const Offset(0, 12))
+                      ],
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: _getNotificationColor(type).withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(_getNotificationIcon(type), color: _getNotificationColor(type), size: 18),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(title.toUpperCase(), 
+                                style: TextStyle(fontWeight: FontWeight.w900, color: _getNotificationColor(type), fontSize: 10, letterSpacing: 1)),
+                              const SizedBox(height: 4),
+                              Text(message, 
+                                style: const TextStyle(color: kBrandBrown, fontSize: 13, fontWeight: FontWeight.w600, height: 1.3), 
+                                maxLines: 3, overflow: TextOverflow.ellipsis),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: _removeNotificationOverlay,
+                          icon: const Icon(Icons.close, size: 16, color: Colors.grey),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    overlay.insert(_notificationOverlayEntry!);
+    Future.delayed(const Duration(seconds: 6), () {
+      _removeNotificationOverlay();
+    });
+  }
+
+  void _removeNotificationOverlay() {
+    _notificationOverlayEntry?.remove();
+    _notificationOverlayEntry = null;
+  }
+
+  Color _getNotificationColor(String type) {
+    switch (type.toLowerCase()) {
+      case 'success': return kBrandOlive;
+      case 'warning': return kBrandOrange;
+      case 'error': return Colors.redAccent;
+      default: return kBrandBrown;
+    }
+  }
+
+  IconData _getNotificationIcon(String type) {
+    switch (type.toLowerCase()) {
+      case 'success': return Icons.check_circle_outline_rounded;
+      case 'warning': return Icons.warning_amber_rounded;
+      case 'error': return Icons.error_outline_rounded;
+      default: return Icons.notifications_active_outlined;
+    }
   }
 
   void _handleIncomingCall(Map<String, dynamic> data) {
@@ -196,10 +354,12 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
       if (response.statusCode == 200) {
         final data = response.data['data'];
         if (data != null && mounted) {
-          final String role = (data['role_name'] ?? "").toString().trim();
+          final String role = (data['role_name'] ?? data['role'] ?? data['roleName'] ?? "").toString().trim();
           final String normalizedRole = role.toLowerCase();
           
-          // STRICT CHECK: Only Admin/Administrator allowed
+          debugPrint('ADMIN PORTAL: Verifying access for role [$normalizedRole]');
+
+          // Bucket 1: Admin
           final bool isAdmin = ['administrator', 'admin'].contains(normalizedRole);
 
           if (!isAdmin) {
@@ -220,10 +380,7 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
     } catch (e) {
       debugPrint('Access check error: $e');
     }
-    // Only redirect if we explicitly failed the checks above
-    if (mounted && _isLoading) {
-      _redirectToHome();
-    }
+    if (mounted) _redirectToHome();
   }
 
   void _redirectToHome() {
@@ -248,16 +405,6 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
     } catch (e) {
       debugPrint('Error fetching notifications: $e');
     }
-  }
-
-  @override
-  void dispose() {
-    SocketService.removeCallListener(_handleIncomingCall);
-    _notificationIconController.dispose();
-    _searchController.dispose();
-    _searchFocusNode.dispose();
-    _removeSearchOverlay();
-    super.dispose();
   }
 
   void _showSearchOverlay() {
@@ -446,12 +593,18 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
   }
 
   void _popSubItem() {
-    // ALWAYS go to Admin Dashboard as requested
-    setState(() {
-      _navigationHistory.clear();
-      activeCategoryIndex = 0;
-      activeSubIndex = 0;
-    });
+    if (_navigationHistory.isNotEmpty) {
+      final prev = _navigationHistory.removeLast();
+      setState(() {
+        activeCategoryIndex = prev.$1;
+        activeSubIndex = prev.$2;
+      });
+    } else if (activeCategoryIndex != 0 || activeSubIndex != 0) {
+      setState(() {
+        activeCategoryIndex = 0;
+        activeSubIndex = 0;
+      });
+    }
   }
 
   List<AdminSidebarCategory> _getAdminCategories() {
@@ -462,14 +615,14 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
         subItems: [
           AdminSidebarSubItem(
             title: Translator.translate("Admin Overview"),
-            page: AdminDashboardComponent(onNavigate: _pushSubItem),
+            page: AdminDashboardComponent(onNavigate: _pushSubItem, showBackButton: false),
             icon: Icons.admin_panel_settings_rounded,
           ),
           AdminSidebarSubItem(
             title: Translator.translate("Notifications"), 
-            page: NotificationsPage(), 
+            page: NotificationsPage(showBackButton: false), 
             icon: Icons.notifications_active,
-            builder: (backFunc, onPush) => NotificationsPage(onBack: backFunc),
+            builder: (backFunc, onPush) => NotificationsPage(onBack: backFunc, showBackButton: false),
           ),
         ],
       ),
@@ -479,16 +632,16 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
         subItems: [
           AdminSidebarSubItem(
             title: Translator.translate("Manage Institutions"),
-            page: ViewSchoolsPage(),
+            page: ViewSchoolsPage(showBackButton: false),
             icon: Icons.domain_verification_rounded,
-            builder: (backFunc, onPush) => ViewSchoolsPage(onBack: backFunc, onRegisterSchool: () => onPush("Register School")),
+            builder: (backFunc, onPush) => ViewSchoolsPage(onBack: backFunc, onRegisterSchool: () => onPush("Register School"), showBackButton: false),
           ),
           AdminSidebarSubItem(
             title: Translator.translate("Register School"),
-            page: RegisterSchoolPage(),
+            page: RegisterSchoolPage(showBackButton: false),
             icon: Icons.add_business_rounded,
             isVisible: false,
-            builder: (backFunc, onPush) => RegisterSchoolPage(onBack: backFunc, onSuccess: backFunc),
+            builder: (backFunc, onPush) => RegisterSchoolPage(onBack: backFunc, onSuccess: backFunc, showBackButton: false),
           ),
         ],
       ),
@@ -498,26 +651,26 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
         subItems: [
           AdminSidebarSubItem(
             title: "Scholars Registry",
-            page: ViewScholarsPage(),
+            page: ViewScholarsPage(showBackButton: false),
             icon: Icons.people_rounded,
             builder: (backFunc, onPush) => ViewScholarsPage(
               onBack: backFunc,
               onRegisterScholar: () => onPush("Register Scholar"),
-              onViewGraduates: () => onPush("University Graduates"),
+              showBackButton: false,
             ),
           ),
           AdminSidebarSubItem(
-            title: "Register Scholar",
-            page: RegisterScholarPage(),
-            icon: Icons.person_add_rounded,
-            isVisible: false,
-            builder: (backFunc, onPush) => RegisterScholarPage(onBack: backFunc, onSuccess: () => onPush("Scholars Registry")),
+            title: "Alumnae Archive", 
+            page: ViewScholarsPage(showBackButton: false, initialTabIndex: 2), 
+            icon: Icons.history_edu_rounded,
+            builder: (backFunc, onPush) => ViewScholarsPage(onBack: backFunc, initialTabIndex: 2, showBackButton: false),
           ),
           AdminSidebarSubItem(
-            title: "University Graduates", 
-            page: UniversityGraduatesPage(), 
-            icon: Icons.workspace_premium_rounded,
-            builder: (backFunc, onPush) => UniversityGraduatesPage(onBack: backFunc),
+            title: "Register Scholar",
+            page: RegisterScholarPage(showBackButton: false),
+            icon: Icons.person_add_rounded,
+            isVisible: false,
+            builder: (backFunc, onPush) => RegisterScholarPage(onBack: backFunc, onSuccess: backFunc, showBackButton: false),
           ),
         ],
       ),
@@ -527,16 +680,16 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
         subItems: [
           AdminSidebarSubItem(
             title: "Sponsors Directory",
-            page: ViewSponsorsPage(),
+            page: ViewSponsorsPage(showBackButton: false),
             icon: Icons.supervised_user_circle_rounded,
-            builder: (backFunc, onPush) => ViewSponsorsPage(onBack: backFunc, onRegisterSponsor: () => onPush("Register Sponsor")),
+            builder: (backFunc, onPush) => ViewSponsorsPage(onBack: backFunc, onRegisterSponsor: () => onPush("Register Sponsor"), showBackButton: false),
           ),
           AdminSidebarSubItem(
             title: "Register Sponsor",
-            page: RegisterSponsorPage(),
+            page: RegisterSponsorPage(showBackButton: false),
             icon: Icons.person_add_alt_1_rounded,
             isVisible: false,
-            builder: (backFunc, onPush) => RegisterSponsorPage(onBack: backFunc, onSuccess: () => onPush("Sponsors Directory")),
+            builder: (backFunc, onPush) => RegisterSponsorPage(onBack: backFunc, onSuccess: backFunc, showBackButton: false),
           ),
         ],
       ),
@@ -546,9 +699,27 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
         subItems: [
           AdminSidebarSubItem(
             title: "Events & Programs",
-            page: EventsPage(),
+            page: EventsPage(showBackButton: false),
             icon: Icons.calendar_month_rounded,
-            builder: (backFunc, onPush) => EventsPage(onBack: backFunc),
+            builder: (backFunc, onPush) => EventsPage(onBack: backFunc, showBackButton: false),
+          ),
+        ],
+      ),
+      AdminSidebarCategory(
+        title: "Field Performance",
+        icon: Icons.analytics_rounded,
+        subItems: [
+          AdminSidebarSubItem(
+            title: "Take Attendance", 
+            page: ScholarAttendancePage(showBackButton: false), 
+            icon: Icons.how_to_reg_rounded,
+            builder: (backFunc, onPush) => ScholarAttendancePage(onBack: backFunc, showBackButton: false),
+          ),
+          AdminSidebarSubItem(
+            title: "Attendance Archives", 
+            page: AttendanceHistoryPage(showBackButton: false), 
+            icon: Icons.history_rounded,
+            builder: (backFunc, onPush) => AttendanceHistoryPage(onBack: backFunc, showBackButton: false),
           ),
         ],
       ),
@@ -564,6 +735,7 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
               onViewDepartments: () => _pushSubItem("Manage Departments"),
               onViewPermissions: () => _pushSubItem("Permissions"),
               onViewProfile: () => _pushSubItem("User Profile"),
+              showBackButton: false,
             ),
             icon: Icons.manage_accounts,
             builder: (backFunc, onPush) => ManageUsersPage(
@@ -573,42 +745,43 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
               onViewDepartments: () => onPush("Manage Departments"),
               onViewPermissions: () => onPush("Permissions"),
               onViewProfile: () => onPush("User Profile"),
+              showBackButton: false,
             ),
           ),
           AdminSidebarSubItem(
             title: "Create User",
-            page: CreateUserPage(),
+            page: CreateUserPage(showBackButton: false),
             icon: Icons.person_add_alt_1,
             isVisible: false,
-            builder: (backFunc, onPush) => CreateUserPage(onBack: backFunc),
+            builder: (backFunc, onPush) => CreateUserPage(onBack: backFunc, onSuccess: backFunc, showBackButton: false),
           ),
           AdminSidebarSubItem(
             title: "User Roles", 
-            page: UserRolesPage(), 
+            page: UserRolesPage(showBackButton: false), 
             icon: Icons.security, 
             isVisible: false,
-            builder: (backFunc, onPush) => UserRolesPage(onBack: backFunc),
+            builder: (backFunc, onPush) => UserRolesPage(onBack: backFunc, showBackButton: false),
           ),
           AdminSidebarSubItem(
             title: "Manage Departments", 
-            page: ManageDepartmentsPage(), 
+            page: ManageDepartmentsPage(showBackButton: false), 
             icon: Icons.apartment_rounded, 
             isVisible: false,
-            builder: (backFunc, onPush) => ManageDepartmentsPage(onBack: backFunc),
+            builder: (backFunc, onPush) => ManageDepartmentsPage(onBack: backFunc, showBackButton: false),
           ),
           AdminSidebarSubItem(
             title: "Permissions", 
-            page: PermissionsPage(), 
+            page: PermissionsPage(showBackButton: false), 
             icon: Icons.rule, 
             isVisible: false,
-            builder: (backFunc, onPush) => PermissionsPage(onBack: backFunc),
+            builder: (backFunc, onPush) => PermissionsPage(onBack: backFunc, showBackButton: false),
           ),
           AdminSidebarSubItem(
             title: "User Profile", 
-            page: UserProfilePage(), 
+            page: UserProfilePage(showBackButton: false), 
             icon: Icons.assignment_ind, 
             isVisible: false,
-            builder: (backFunc, onPush) => UserProfilePage(onBack: backFunc),
+            builder: (backFunc, onPush) => UserProfilePage(onBack: backFunc, showBackButton: false),
           ),
         ],
       ),
@@ -618,9 +791,9 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
         subItems: [
           AdminSidebarSubItem(
             title: "Pending Approvals",
-            page: ApprovalsPage(userRole: _userRole),
+            page: ApprovalsPage(userRole: _userRole, showBackButton: false),
             icon: Icons.rule_folder_rounded,
-            builder: (backFunc, onPush) => ApprovalsPage(onBack: backFunc, userRole: _userRole),
+            builder: (backFunc, onPush) => ApprovalsPage(onBack: backFunc, userRole: _userRole, showBackButton: false),
           ),
         ],
       ),
@@ -630,33 +803,33 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
         subItems: [
           AdminSidebarSubItem(
             title: "User Profile", 
-            page: UserProfilePage(), 
+            page: UserProfilePage(showBackButton: false), 
             icon: Icons.assignment_ind,
-            builder: (backFunc, onPush) => UserProfilePage(onBack: backFunc),
+            builder: (backFunc, onPush) => UserProfilePage(onBack: backFunc, showBackButton: false),
           ),
           AdminSidebarSubItem(
             title: "Organisation Profile", 
-            page: OrganisationProfilePage(), 
+            page: OrganisationProfilePage(showBackButton: false), 
             icon: Icons.corporate_fare,
-            builder: (backFunc, onPush) => OrganisationProfilePage(onBack: backFunc),
+            builder: (backFunc, onPush) => OrganisationProfilePage(onBack: backFunc, showBackButton: false),
           ),
           AdminSidebarSubItem(
             title: "Backup & Restore", 
-            page: BackupRestorePage(), 
+            page: BackupRestorePage(showBackButton: false), 
             icon: Icons.backup,
-            builder: (backFunc, onPush) => BackupRestorePage(onBack: backFunc),
+            builder: (backFunc, onPush) => BackupRestorePage(onBack: backFunc, showBackButton: false),
           ),
           AdminSidebarSubItem(
             title: "System Settings", 
-            page: SystemSettingsPage(), 
+            page: SystemSettingsPage(showBackButton: false), 
             icon: Icons.settings_applications,
-            builder: (backFunc, onPush) => SystemSettingsPage(onBack: backFunc),
+            builder: (backFunc, onPush) => SystemSettingsPage(onBack: backFunc, showBackButton: false),
           ),
           AdminSidebarSubItem(
             title: "Account Settings", 
-            page: AccountSettingsPage(),
+            page: AccountSettingsPage(showBackButton: false),
             icon: Icons.manage_accounts,
-            builder: (backFunc, onPush) => AccountSettingsPage(onBack: backFunc),
+            builder: (backFunc, onPush) => AccountSettingsPage(onBack: backFunc, showBackButton: false),
           ),
         ],
       ),
@@ -759,40 +932,46 @@ class _AdminHomePageState extends State<AdminHomePage> with TickerProviderStateM
                 tooltip: "Search Portal",
                 onPressed: _startSearching,
               ),
-            Stack(
-              children: [
-                ScaleTransition(
-                  scale: _notificationIconAnimation,
-                  child: IconButton(
-                    icon: const Icon(Icons.notifications_none_rounded, color: Colors.white),
-                    tooltip: "Notifications",
-                    onPressed: () {
-                      setState(() => _notificationCount = 0);
-                      ApiService.markAllNotificationsRead();
-                      _navigateToSubItem("Notifications");
-                    },
-                  ),
-                ),
-                if (_notificationCount > 0)
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: kBrandOrange,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.white, width: 1.5),
-                      ),
-                      constraints: const BoxConstraints(minWidth: 16, minHeight: 18),
-                      child: Text(
-                        '$_notificationCount',
-                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
-                        textAlign: TextAlign.center,
-                      ),
+            CompositedTransformTarget(
+              link: _notificationLayerLink,
+              child: Stack(
+                children: [
+                  ScaleTransition(
+                    scale: _notificationIconAnimation,
+                    child: IconButton(
+                      icon: const Icon(Icons.notifications_none_rounded, color: Colors.white),
+                      tooltip: "Notifications",
+                      onPressed: () {
+                        setState(() => _notificationCount = 0);
+                        ApiService.markAllNotificationsRead();
+                        _navigateToSubItem("Notifications");
+                      },
                     ),
                   ),
-              ],
+                  if (_notificationCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: ScaleTransition(
+                        scale: _badgeScaleAnimation,
+                        child: Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: kBrandOrange,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.white, width: 1.5),
+                          ),
+                          constraints: const BoxConstraints(minWidth: 16, minHeight: 18),
+                          child: Text(
+                            '$_notificationCount',
+                            style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
             if (!isMobile) ...[
               const SizedBox(width: 8),

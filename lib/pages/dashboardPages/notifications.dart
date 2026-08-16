@@ -4,10 +4,11 @@ import '../../academics/academics_utils.dart';
 
 class NotificationsPage extends StatelessWidget {
   final VoidCallback? onBack;
-  const NotificationsPage({super.key, this.onBack});
+  final bool showBackButton;
+  const NotificationsPage({super.key, this.onBack, this.showBackButton = true});
 
   @override
   Widget build(BuildContext context) {
-    return NotificationsComponent(onBack: onBack);
+    return NotificationsComponent(onBack: onBack, showBackButton: showBackButton);
   }
 }

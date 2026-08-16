@@ -5,7 +5,8 @@ import '../academics/academics_utils.dart';
 
 class AccountSettingsComponent extends StatefulWidget {
   final VoidCallback? onBack;
-  const AccountSettingsComponent({super.key, this.onBack});
+  final bool showBackButton;
+  const AccountSettingsComponent({super.key, this.onBack, this.showBackButton = true});
 
   @override
   State<AccountSettingsComponent> createState() => _AccountSettingsComponentState();
@@ -136,9 +137,15 @@ class _AccountSettingsComponentState extends State<AccountSettingsComponent> {
       ),
       child: Row(
         children: [
-          if (Navigator.canPop(context)) ...[
+          if (widget.showBackButton) ...[
             IconButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: widget.onBack ?? () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
+              },
               icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),

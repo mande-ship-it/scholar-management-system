@@ -43,7 +43,8 @@ class _AllocationListPageState extends State<AllocationListPage> {
   void _applyFilter() {
     setState(() {
       _filteredInternships = _internships.where((i) {
-        final name = (i['scholar_name'] ?? (i['scholarId'] != null ? i['scholarId']['fullName'] ?? i['scholarId']['full_name'] : 'N/A')).toString().toLowerCase();
+        final scholar = i['scholarId'];
+        final name = (i['scholar_name'] ?? (scholar != null ? (scholar['fullName'] ?? scholar['full_name']) : 'N/A')).toString().toLowerCase();
         final workplace = (i['workplace_name'] ?? i['workplaceName'] ?? 'N/A').toString().toLowerCase();
         final query = _searchQuery.toLowerCase();
         return name.contains(query) || workplace.contains(query);
@@ -133,7 +134,8 @@ class _AllocationListPageState extends State<AllocationListPage> {
 
   Widget _allocationCard(dynamic i) {
     final bool isCompleted = i['status'] == 'Completed';
-    final scholarName = i['scholar_name'] ?? (i['scholarId'] != null ? i['scholarId']['fullName'] ?? i['scholarId']['full_name'] : 'N/A');
+    final scholar = i['scholarId'];
+    final scholarName = i['scholar_name'] ?? (scholar != null ? (scholar['fullName'] ?? scholar['full_name']) : 'N/A');
     final workplace = i['workplace_name'] ?? i['workplaceName'] ?? 'N/A';
     final status = i['status'] ?? 'Active';
 

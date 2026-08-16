@@ -49,7 +49,9 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
   }
 
   Future<void> _submitAllocation() async {
-    if (_selectedGraduate == null || _workplaceController.text.isEmpty) {
+    final scholarId = _selectedGraduate?['_id'] ?? _selectedGraduate?['id'];
+    
+    if (scholarId == null || _workplaceController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Please select a scholar and enter workplace."), backgroundColor: Colors.orange),
       );
@@ -59,7 +61,7 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
     setState(() => _isLoading = true);
     try {
       final data = {
-        'scholarId': _selectedGraduate['id'],
+        'scholarId': scholarId,
         'workplaceName': _workplaceController.text,
         'location': _locationController.text,
         'supervisor': _supervisorController.text,
@@ -135,28 +137,38 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
   Widget _buildHeader(bool isMobile) {
     final bool isVerySmall = MediaQuery.of(context).size.width < 500;
     return Container(
+      width: double.infinity,
       padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
-      decoration: const BoxDecoration(color: Colors.white, border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE)))),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
       child: Row(
         children: [
-          if (Navigator.canPop(context)) ...[
-            IconButton(
-              onPressed: widget.onBack ?? () {
-                if (Navigator.canPop(context)) {
-                  Navigator.pop(context);
-                } else {
-                  Navigator.pushReplacementNamed(context, '/home');
-                }
-              },
-              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
-            const SizedBox(width: 16),
-          ],
+          IconButton(
+            onPressed: widget.onBack ?? () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                Navigator.pushReplacementNamed(context, '/home');
+              }
+            },
+            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 16),
           Expanded(
-            child: Text("Internship Allotment", 
-              style: TextStyle(fontSize: isVerySmall ? 13 : 16, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.2)),
+            child: Text(
+              "Internship Placement",
+              style: TextStyle(
+                fontSize: isVerySmall ? 13 : 16, 
+                fontWeight: FontWeight.w900, 
+                color: const Color(0xFF4C3C32), 
+                letterSpacing: -0.2
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
           IconButton(
             onPressed: () {
@@ -276,14 +288,16 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
     final unallocated = _graduates.where((g) => g['internship_status'] == null).toList();
 
     return Autocomplete<Map<String, dynamic>>(
-      displayStringForOption: (g) => "${g['full_name']} (${g['scholar_id']})",
+      displayStringForOption: (g) => "${g['full_name'] ?? g['fullName'] ?? 'N/A'} (${g['scholar_id'] ?? g['scholarId'] ?? ''})",
       optionsBuilder: (TextEditingValue textEditingValue) {
         if (textEditingValue.text.isEmpty) {
           return const Iterable<Map<String, dynamic>>.empty();
         }
         return unallocated.where((g) {
-          return g['full_name'].toString().toLowerCase().contains(textEditingValue.text.toLowerCase()) ||
-                 g['scholar_id'].toString().toLowerCase().contains(textEditingValue.text.toLowerCase());
+          final name = (g['full_name'] ?? g['fullName'] ?? '').toString().toLowerCase();
+          final sid = (g['scholar_id'] ?? g['scholarId'] ?? '').toString().toLowerCase();
+          return name.contains(textEditingValue.text.toLowerCase()) ||
+                 sid.contains(textEditingValue.text.toLowerCase());
         }).map((e) => e as Map<String, dynamic>);
       },
       onSelected: (v) {
@@ -326,10 +340,14 @@ class _InternshipAllocationComponentState extends State<InternshipAllocationComp
                 itemCount: options.length,
                 itemBuilder: (BuildContext context, int index) {
                   final Map<String, dynamic> option = options.elementAt(index);
+                  final name = option['full_name'] ?? option['fullName'] ?? 'N/A';
+                  final sid = option['scholar_id'] ?? option['scholarId'] ?? 'N/A';
+                  final school = option['display_school_name'] ?? option['schoolName'] ?? 'N/A';
+                  
                   return ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                    title: Text(option['full_name'] ?? 'N/A', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: kBrandBrown)),
-                    subtitle: Text("${option['scholar_id'] ?? 'N/A'} • ${option['display_school_name'] ?? 'N/A'}", style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                    title: Text(name.toString(), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: kBrandBrown)),
+                    subtitle: Text("${sid.toString()} • ${school.toString()}", style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
                     hoverColor: kBrandOlive.withOpacity(0.05),
                     onTap: () => onSelected(option),
                   );

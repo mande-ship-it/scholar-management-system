@@ -8,7 +8,7 @@ class ApiService {
   static const String _useLocalKey = 'use_local_backend';
   static bool _useLocalOverride = false;
 
-  static const String remoteUrl = 'https://scholar-management-api.onrender.com';
+  static const String remoteUrl = 'https://age-systems-backend.onrender.com';
 
   static String get localUrl {
     if (kIsWeb) return 'http://localhost:5000';
@@ -190,6 +190,8 @@ class ApiService {
     int? weekNumber,
     String? term,
     String? semester,
+    String? year,
+    String? level,
   }) async {
     return await _dio.get('/attendance/history', queryParameters: {
       'type': type,
@@ -199,23 +201,27 @@ class ApiService {
       'week_number': weekNumber,
       'term': term,
       'semester': semester,
+      'year': year,
+      'level': level,
     });
   }
 
   static Future<Response> getSchoolAttendanceReport(
-    String schoolId, {
+    String? schoolId, {
     int? month,
     int? weekNumber,
     String? term,
     String? semester,
     String? year,
+    String? schoolType,
   }) async {
-    return await _dio.get('/attendance/school-report/$schoolId', queryParameters: {
+    return await _dio.get('/attendance/school-report/${schoolId ?? 'all'}', queryParameters: {
       'month': month,
       'week_number': weekNumber,
       'term': term,
       'semester': semester,
       'year': year,
+      'schoolType': schoolType,
     });
   }
 
@@ -225,6 +231,14 @@ class ApiService {
 
   static Future<Response> saveAttendance(Map<String, dynamic> data) async {
     return await _dio.post('/attendance/record', data: data);
+  }
+
+  static Future<Response> getScholarAttendanceHistory(String scholarId, {String? year, String? term, String? semester}) async {
+    return await _dio.get('/attendance/scholar/$scholarId', queryParameters: {
+      if (year != null) 'year': year,
+      if (term != null) 'term': term,
+      if (semester != null) 'semester': semester,
+    });
   }
 
   // Academics
@@ -550,16 +564,36 @@ class ApiService {
     return await _dio.get('/performance/scholar/$id');
   }
 
-  static Future<Response> getCohortAnalytics(String type) async {
-    return await _dio.get('/performance/cohort', queryParameters: {'schoolType': type});
+  static Future<Response> getCohortAnalytics(String type, {String? district, String? schoolId}) async {
+    return await _dio.get('/performance/cohort', queryParameters: {
+      'schoolType': type,
+      if (district != null) 'district': district,
+      if (schoolId != null) 'schoolId': schoolId,
+    });
   }
 
-  static Future<Response> getSubjectInsights(String type) async {
-    return await _dio.get('/performance/subjects', queryParameters: {'schoolType': type});
+  static Future<Response> getSubjectInsights(String type, {String? district, String? schoolId}) async {
+    return await _dio.get('/performance/subjects', queryParameters: {
+      'schoolType': type,
+      if (district != null) 'district': district,
+      if (schoolId != null) 'schoolId': schoolId,
+    });
   }
 
-  static Future<Response> getEarlyWarningRisk() async {
-    return await _dio.get('/performance/risk-indicators');
+  static Future<Response> getEarlyWarningRisk({String? schoolType, String? district, String? schoolId}) async {
+    return await _dio.get('/performance/risk-indicators', queryParameters: {
+      if (schoolType != null) 'schoolType': schoolType,
+      if (district != null) 'district': district,
+      if (schoolId != null) 'schoolId': schoolId,
+    });
+  }
+
+  static Future<Response> getEngagementImpact(String type, {String? district, String? schoolId}) async {
+    return await _dio.get('/performance/engagement-impact', queryParameters: {
+      'schoolType': type,
+      if (district != null) 'district': district,
+      if (schoolId != null) 'schoolId': schoolId,
+    });
   }
 
   // Meetings

@@ -62,7 +62,7 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
           PermissionService.init(userData);
           SocketService.init(userData['id'] ?? userData['_id']);
 
-          final String role = userData['role_name'] ?? userData['role'] ?? 'User';
+          final String role = (userData['role_name'] ?? userData['role'] ?? userData['roleName'] ?? 'User').toString();
           final String normalizedRole = role.trim().toLowerCase();
 
           // Strict Role-Based Routing
@@ -143,9 +143,11 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
               redirectArgs = args ?? {};
             }
 
-            // Role-based Navigation Logic (Strict Enforcement)
-            final String role = userData['role'] ?? userData['role_name'] ?? 'User';
+            // Role-based Navigation Logic (Strict Buckets)
+            final String role = (userData['role'] ?? userData['role_name'] ?? userData['roleName'] ?? 'User').toString();
             final String normalizedRole = role.trim().toLowerCase();
+            
+            debugPrint('LOGIN: Authenticated as [$normalizedRole]');
 
             if (userData['mustResetPassword'] == true || userData['isFirstLogin'] == true) {
               Navigator.pushReplacementNamed(context, '/password-reset');
@@ -153,33 +155,35 @@ class _SignInPageState extends State<SignInPage> with TickerProviderStateMixin {
             }
 
             if (redirect != null && redirect.isNotEmpty) {
-              debugPrint('LOGIN: Redirecting to $redirect with args $redirectArgs');
+              debugPrint('LOGIN: Redirecting to override path $redirect');
               Navigator.pushReplacementNamed(context, redirect, arguments: redirectArgs);
               return;
             }
 
-            // 1. Strict Administrator/Admin -> Admin Portal
-            final bool isAdmin = ['administrator', 'admin'].contains(normalizedRole);
-
-            // 2. Field Operations Group -> Field Operations Portal
-            final bool isFieldOfficer = [
-              'field officer', 'field coordinator', 'field operations', 'operational officer'
-            ].contains(normalizedRole);
-
-            String targetRoute = '/home'; // Default: General Dashboard
-
-            if (isAdmin) {
-              debugPrint('LOGIN: Routing to Admin Portal...');
-              targetRoute = '/admin/home';
-            } else if (isFieldOfficer) {
-              debugPrint('LOGIN: Routing to Field Operations Portal...');
-              targetRoute = '/field-operations/home';
-            } else {
-              debugPrint('LOGIN: Routing to General Dashboard (Director/Finance/PC/etc)...');
-              targetRoute = '/home';
+            // Bucket 1: Admin
+            if (['administrator', 'admin'].contains(normalizedRole)) {
+              Navigator.pushReplacementNamed(context, '/admin/home', arguments: {
+                'username': userData['fullName'] ?? userData['full_name'] ?? _usernameController.text.trim(),
+                'role': role,
+                'profilePicture': userData['profilePicture'] ?? userData['profile_picture'],
+              });
+              return;
             }
 
-            Navigator.pushReplacementNamed(context, targetRoute, arguments: {
+            // Bucket 2: Field Operations
+            if ([
+              'field officer', 'field coordinator', 'field operations', 'operational officer'
+            ].contains(normalizedRole)) {
+              Navigator.pushReplacementNamed(context, '/field-operations/home', arguments: {
+                'username': userData['fullName'] ?? userData['full_name'] ?? _usernameController.text.trim(),
+                'role': role,
+                'profilePicture': userData['profilePicture'] ?? userData['profile_picture'],
+              });
+              return;
+            }
+
+            // Bucket 3: General Dashboard (Country Director, Program Coordinator, etc)
+            Navigator.pushReplacementNamed(context, '/home', arguments: {
               'username': userData['fullName'] ?? userData['full_name'] ?? _usernameController.text.trim(),
               'role': role,
               'profilePicture': userData['profilePicture'] ?? userData['profile_picture'],

@@ -29,7 +29,8 @@ class _ActivityEntry {
 /// ---------------------------------------------------------------------
 class UserProfileComponent extends StatefulWidget {
   final VoidCallback? onBack;
-  const UserProfileComponent({super.key, this.onBack});
+  final bool showBackButton;
+  const UserProfileComponent({super.key, this.onBack, this.showBackButton = true});
 
   @override
   State<UserProfileComponent> createState() => _UserProfileComponentState();
@@ -308,6 +309,7 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
     );
 
     if (confirm == true) {
+      await ApiService.logout();
       if (!mounted) return;
       Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
     }
@@ -364,19 +366,21 @@ class _UserProfileComponentState extends State<UserProfileComponent> {
       ),
       child: Row(
         children: [
-          IconButton(
-            onPressed: widget.onBack ?? () {
-            if (Navigator.canPop(context)) {
-              Navigator.pop(context);
-            } else {
-              Navigator.pushReplacementNamed(context, '/home');
-            }
-          },
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-          const SizedBox(width: 16),
+          if (widget.showBackButton) ...[
+            IconButton(
+              onPressed: widget.onBack ?? () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
+              },
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 16),
+          ],
           Expanded(
             child: Text(
               "Account Governance",

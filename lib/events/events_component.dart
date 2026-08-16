@@ -171,7 +171,8 @@ Future<void> downloadEventReport(OrganisationEvent event) async {
 
 class EventsComponent extends StatefulWidget {
   final VoidCallback? onBack;
-  const EventsComponent({super.key, this.onBack});
+  final bool showBackButton;
+  const EventsComponent({super.key, this.onBack, this.showBackButton = true});
 
   @override
   State<EventsComponent> createState() => _EventsComponentState();
@@ -261,7 +262,7 @@ class _EventsComponentState extends State<EventsComponent> with SingleTickerProv
       ),
       child: Row(
         children: [
-          if (Navigator.canPop(context)) ...[
+          if (widget.showBackButton) ...[
             IconButton(
               onPressed: widget.onBack ?? () {
                 if (Navigator.canPop(context)) {

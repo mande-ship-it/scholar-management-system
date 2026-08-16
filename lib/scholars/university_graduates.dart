@@ -5,7 +5,8 @@ import 'package:intl/intl.dart';
 
 class UniversityGraduatesComponent extends StatefulWidget {
   final VoidCallback? onBack;
-  const UniversityGraduatesComponent({super.key, this.onBack});
+  final bool showBackButton;
+  const UniversityGraduatesComponent({super.key, this.onBack, this.showBackButton = true});
 
   @override
   State<UniversityGraduatesComponent> createState() => _UniversityGraduatesComponentState();
@@ -17,6 +18,7 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
   List<dynamic> _alumni = [];
   List<dynamic> _filteredData = [];
   late TabController _tabController;
+  String _userRole = 'User';
 
   // Filters
   String _selectedInstitution = 'All';
@@ -30,10 +32,71 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
+        setState(() {
+          _selectedInstitution = 'All';
+          _selectedYear = 'All';
+        });
         _applyFilters();
       }
     });
     _fetchData();
+    _fetchUserRole();
+  }
+
+  Future<void> _fetchUserRole() async {
+    try {
+      final response = await ApiService.getAccountProfile();
+      if (response.statusCode == 200) {
+        final data = response.data['data'];
+        if (data != null && mounted) {
+          setState(() {
+            _userRole = data['role_name'] ?? 'User';
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  bool get _canDelete {
+    final String role = _userRole.toLowerCase();
+    return ['administrator', 'program coordinator', 'country director'].contains(role);
+  }
+
+  Future<void> _deleteScholar(dynamic g) async {
+    final scholarId = g['_id'] ?? g['id'];
+    final name = g['full_name'] ?? g['fullName'] ?? 'Scholar';
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Delete Archive Record", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown)),
+        content: Text("Are you sure you want to permanently delete the records for $name? This will remove all academic history and personal data. This action cannot be undone."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text("Delete Permanently"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && scholarId != null) {
+      setState(() => _isLoading = true);
+      try {
+        final res = await ApiService.deleteScholar(scholarId.toString());
+        if (res.statusCode == 200) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Scholar record removed from archive."), backgroundColor: Colors.red),
+          );
+          _fetchData();
+        }
+      } catch (e) {
+        debugPrint('Delete error: $e');
+        if (mounted) setState(() => _isLoading = false);
+      }
+    }
   }
 
   Future<void> _fetchData() async {
@@ -48,8 +111,8 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
       if (responses[0].statusCode == 200 && responses[1].statusCode == 200) {
         if (mounted) {
           setState(() {
-            _graduates = responses[0].data['data'];
-            _alumni = responses[1].data['data'];
+            _graduates = responses[0].data['data'] ?? [];
+            _alumni = responses[1].data['data'] ?? [];
             _applyFilters();
           });
         }
@@ -67,14 +130,19 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
 
     setState(() {
       _filteredData = sourceList.where((g) {
+        final scholarName = (g['full_name'] ?? g['fullName'] ?? 'N/A').toString();
+        final schoolName = (g['display_school_name'] ?? g['schoolName'] ?? 'N/A').toString();
+        final scholarId = (g['scholar_id'] ?? g['scholarId'] ?? '').toString();
+        final endYearValue = (g['endYear'] ?? g['end_year'] ?? 'N/A').toString();
+        
         final matchesInstitution = _selectedInstitution == 'All' ||
-            g['display_school_name'] == _selectedInstitution;
+            schoolName == _selectedInstitution;
+            
         final matchesYear = _selectedYear == 'All' ||
-            g['end_year'].toString() == _selectedYear;
-        final name = g['full_name'].toString().toLowerCase();
-        final sid = g['scholar_id'].toString().toLowerCase();
-        final matchesSearch = name.contains(_searchQuery.toLowerCase()) ||
-                             sid.contains(_searchQuery.toLowerCase());
+            endYearValue == _selectedYear;
+            
+        final matchesSearch = scholarName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+                             scholarId.toLowerCase().contains(_searchQuery.toLowerCase());
 
         return matchesInstitution && matchesYear && matchesSearch;
       }).toList();
@@ -84,15 +152,18 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
   List<String> get _institutions {
     final bool showingGraduates = _tabController.index == 0;
     final sourceList = showingGraduates ? _graduates : _alumni;
-    final set = sourceList.map((g) => g['display_school_name']?.toString() ?? 'N/A').toSet();
-    return ['All', ...set.toList()..sort()];
+    final set = sourceList.map((g) => (g['display_school_name'] ?? g['schoolName'] ?? 'N/A').toString()).toSet();
+    final list = set.where((s) => s != 'N/A').toList();
+    list.sort();
+    return ['All', ...list];
   }
 
   List<String> get _graduatingYears {
     final bool showingGraduates = _tabController.index == 0;
     final sourceList = showingGraduates ? _graduates : _alumni;
-    final set = sourceList.map((g) => g['end_year']?.toString() ?? 'N/A').toSet();
-    final list = set.toList()..sort((a, b) => b.compareTo(a));
+    final set = sourceList.map((g) => (g['endYear'] ?? g['end_year'] ?? 'N/A').toString()).toSet();
+    final list = set.where((y) => y != 'N/A').toList();
+    list.sort((a, b) => b.compareTo(a));
     return ['All', ...list];
   }
 
@@ -136,7 +207,7 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
       ),
       child: Row(
         children: [
-          if (Navigator.canPop(context)) ...[
+          if (widget.showBackButton) ...[
             IconButton(
               onPressed: widget.onBack ?? () {
                 if (Navigator.canPop(context)) {
@@ -183,9 +254,11 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
   Widget _buildTabNavigation(bool isMobile) {
     final bool isVerySmall = MediaQuery.of(context).size.width < 500;
     return Container(
-      color: Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 24),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE)))),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
       child: Align(
         alignment: Alignment.centerLeft,
         child: TabBar(
@@ -407,7 +480,12 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
 
   Widget _buildAlumniRow(dynamic g, bool isMobile) {
     final bool showingGraduates = _tabController.index == 0;
-    
+    final scholarName = g['full_name'] ?? g['fullName'] ?? 'N/A';
+    final scholarId = g['scholar_id'] ?? g['scholarId'] ?? 'N/A';
+    final schoolName = g['display_school_name'] ?? g['schoolName'] ?? 'N/A';
+    final programName = g['program_name'] ?? g['programName'] ?? 'N/A';
+    final endYear = g['endYear'] ?? g['end_year'] ?? 'N/A';
+
     if (isMobile) {
       return Material(
         color: Colors.transparent,
@@ -428,7 +506,7 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
                         borderRadius: BorderRadius.circular(8),
                       ),
                       alignment: Alignment.center,
-                      child: Text((g['full_name']?.toString() ?? '?').isNotEmpty ? g['full_name'].toString()[0] : '?', 
+                      child: Text((scholarName.toString()).isNotEmpty ? scholarName.toString()[0] : '?', 
                         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                     ),
                     const SizedBox(width: 12),
@@ -436,12 +514,31 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(g['full_name']?.toString() ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: 14)),
-                          Text(g['scholar_id']?.toString() ?? 'N/A', style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w700)),
+                          Text(scholarName.toString(), style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: 14)),
+                          Text(scholarId.toString(), style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w700)),
                         ],
                       ),
                     ),
                     _statusLabel(showingGraduates),
+                    if (_canDelete)
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert_rounded, size: 18, color: Colors.grey),
+                        onSelected: (val) {
+                          if (val == 'delete') _deleteScholar(g);
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'delete', 
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                                SizedBox(width: 8),
+                                Text("Delete Record", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                              ],
+                            )
+                          ),
+                        ],
+                      ),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -454,8 +551,8 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(g['display_school_name'] ?? 'N/A', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.black87)),
-                          Text(g['program_name'] ?? 'N/A', style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+                          Text(schoolName.toString(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.black87)),
+                          Text(programName.toString(), style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
                         ],
                       ),
                     ),
@@ -465,7 +562,7 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(color: kBrandBrown.withOpacity(0.05), borderRadius: BorderRadius.circular(6)),
-                  child: Text("Class of ${g['end_year']}", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: 0.5)),
+                  child: Text("Class of $endYear", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: 0.5)),
                 ),
               ],
             ),
@@ -496,14 +593,14 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
                         borderRadius: BorderRadius.circular(10),
                       ),
                       alignment: Alignment.center,
-                      child: Text((g['full_name']?.toString() ?? '?').isNotEmpty ? g['full_name'].toString()[0] : '?', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                      child: Text((scholarName.toString()).isNotEmpty ? scholarName.toString()[0] : '?', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
                     ),
                     const SizedBox(width: 16),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(g['full_name']?.toString() ?? 'N/A', style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: 15)),
-                        Text(g['scholar_id']?.toString() ?? 'N/A', style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w700)),
+                        Text(scholarName.toString(), style: const TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: 15)),
+                        Text(scholarId.toString(), style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w700)),
                       ],
                     ),
                   ],
@@ -514,8 +611,8 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(g['display_school_name'] ?? 'N/A', style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.black87)),
-                    Text(g['program_name'] ?? 'N/A', style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
+                    Text(schoolName.toString(), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.black87)),
+                    Text(programName.toString(), style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w500)),
                   ],
                 ),
               ),
@@ -523,12 +620,18 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(color: kBrandBrown.withOpacity(0.05), borderRadius: BorderRadius.circular(8)),
-                  child: Text("Class of ${g['end_year']}", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kBrandBrown)),
+                  child: Text("Class of $endYear", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: kBrandBrown)),
                 ),
               ),
               Expanded(
                 child: _statusLabel(showingGraduates),
               ),
+              if (_canDelete)
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
+                  onPressed: () => _deleteScholar(g),
+                  tooltip: "Delete Record",
+                ),
             ],
           ),
         ),
@@ -574,8 +677,11 @@ class _UniversityGraduatesComponentState extends State<UniversityGraduatesCompon
         children: [
           Icon(Icons.school_outlined, size: 80, color: Colors.grey.shade200),
           const SizedBox(height: 20),
-          Text(showingGraduates ? "No pending graduates found." : "No alumni records found.",
+          Text(showingGraduates ? "No university graduates found." : "No alumni records found.",
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.grey)),
+          const SizedBox(height: 8),
+          Text("Registry synchronization status: ${_isLoading ? 'Loading...' : 'Online'}",
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade400)),
         ],
       ),
     );

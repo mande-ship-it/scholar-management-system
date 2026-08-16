@@ -6,7 +6,8 @@ class RegisterScholarPage extends StatelessWidget {
   final VoidCallback? onSuccess;
   final VoidCallback? onBack;
   final String? forcedSchoolType;
-  const RegisterScholarPage({super.key, this.onSuccess, this.onBack, this.forcedSchoolType});
+  final bool showBackButton;
+  const RegisterScholarPage({super.key, this.onSuccess, this.onBack, this.forcedSchoolType, this.showBackButton = true});
 
   @override
   Widget build(BuildContext context) {
@@ -14,6 +15,7 @@ class RegisterScholarPage extends StatelessWidget {
       onRegister: onSuccess != null ? (_) async => onSuccess!() : null,
       onBack: onBack,
       forcedSchoolType: forcedSchoolType,
+      showBackButton: showBackButton,
     );
   }
 }

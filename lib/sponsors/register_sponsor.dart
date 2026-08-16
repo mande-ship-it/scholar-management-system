@@ -10,8 +10,15 @@ class RegisterSponsorComponent extends StatefulWidget {
   final OnSponsorRegistered? onRegister;
   final Sponsor? existingSponsor;
   final VoidCallback? onBack;
+  final bool showBackButton;
 
-  const RegisterSponsorComponent({super.key, this.onRegister, this.existingSponsor, this.onBack});
+  const RegisterSponsorComponent({
+    super.key, 
+    this.onRegister, 
+    this.existingSponsor, 
+    this.onBack,
+    this.showBackButton = true,
+  });
 
   @override
   State<RegisterSponsorComponent> createState() => _RegisterSponsorComponentState();
@@ -63,7 +70,7 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
   }
 
   void _submitForm() async {
-    if (_formKey.currentState!.validate()) {
+    if (_formKey.currentState?.validate() ?? false) {
       setState(() => _isLoading = true);
 
       final sponsorData = {
@@ -260,19 +267,21 @@ class _RegisterSponsorComponentState extends State<RegisterSponsorComponent> {
       ),
       child: Row(
         children: [
-          IconButton(
-            onPressed: widget.onBack ?? () {
-              if (Navigator.canPop(context)) {
-                Navigator.pop(context);
-              } else {
-                Navigator.pushReplacementNamed(context, '/home');
-              }
-            },
-            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-          const SizedBox(width: 16),
+          if (widget.showBackButton) ...[
+            IconButton(
+              onPressed: widget.onBack ?? () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
+              },
+              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 16),
+          ],
           Expanded(
             child: Text(
               _isEditing ? "Partner Update" : "Partner Onboarding",

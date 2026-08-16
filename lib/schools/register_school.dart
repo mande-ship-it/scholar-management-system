@@ -6,7 +6,8 @@ class RegisterSchoolComponent extends StatefulWidget {
   final Function(Map<String, dynamic>)? onRegister;
   final Function()? onSuccess;
   final VoidCallback? onBack;
-  const RegisterSchoolComponent({super.key, this.onRegister, this.onSuccess, this.onBack});
+  final bool showBackButton;
+  const RegisterSchoolComponent({super.key, this.onRegister, this.onSuccess, this.onBack, this.showBackButton = true});
 
   @override
   State<RegisterSchoolComponent> createState() => _RegisterSchoolComponentState();
@@ -133,7 +134,7 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
   }
 
   void _submitForm() async {
-    if (_formKey.currentState!.validate()) {
+    if (_formKey.currentState?.validate() ?? false) {
       setState(() => _isSaving = true);
 
       final schoolData = <String, dynamic>{
@@ -243,7 +244,7 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
   }
 
   void _resetForm() {
-    _formKey.currentState!.reset();
+    _formKey.currentState?.reset();
     setState(() {
       _selectedLevel = null;
       _selectedType = null;
@@ -333,19 +334,21 @@ class _RegisterSchoolComponentState extends State<RegisterSchoolComponent> {
       ),
       child: Row(
         children: [
-          IconButton(
-            onPressed: widget.onBack ?? () {
-              if (Navigator.canPop(context)) {
-                Navigator.pop(context);
-              } else {
-                Navigator.pushReplacementNamed(context, '/home');
-              }
-            },
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-          const SizedBox(width: 16),
+          if (widget.showBackButton) ...[
+            IconButton(
+              onPressed: widget.onBack ?? () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
+              },
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 16),
+          ],
           Expanded(
             child: Text(
               "Institution Registration",

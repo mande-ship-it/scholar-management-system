@@ -40,9 +40,10 @@ class _RoleFormResult {
 
 class UserRolesComponent extends StatefulWidget {
   final VoidCallback? onBack;
+  final bool showBackButton;
   final void Function(UserRole role)? onManagePermissions;
 
-  const UserRolesComponent({super.key, this.onBack, this.onManagePermissions});
+  const UserRolesComponent({super.key, this.onBack, this.showBackButton = true, this.onManagePermissions});
 
   @override
   State<UserRolesComponent> createState() => _UserRolesComponentState();
@@ -209,13 +210,7 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
                                 ),
                               ),
                               IconButton(
-                                onPressed: widget.onBack ?? () {
-          if (Navigator.canPop(context)) {
-            Navigator.pop(context);
-          } else {
-            Navigator.pushReplacementNamed(context, '/home');
-          }
-        },
+                                onPressed: () => Navigator.pop(context),
                                 icon: const Icon(Icons.close, size: 20),
                               ),
                             ],
@@ -408,20 +403,37 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
       try {
         if (role == null) {
           final response = await ApiService.createRole(roleData);
-          if (response.statusCode == 201) _fetchRoles();
+          if (response.statusCode == 201 || response.statusCode == 200) {
+            _fetchRoles();
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Role created."), backgroundColor: Colors.green, behavior: SnackBarBehavior.floating),
+              );
+            }
+          } else {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("Failed: ${response.data['message'] ?? 'Unknown error'}"), backgroundColor: Colors.redAccent, behavior: SnackBarBehavior.floating),
+              );
+            }
+          }
         } else {
           final response = await ApiService.updateRole(role.id, roleData);
-          if (response.statusCode == 200) _fetchRoles();
+          if (response.statusCode == 200) {
+            _fetchRoles();
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Role updated."), backgroundColor: Colors.green, behavior: SnackBarBehavior.floating),
+              );
+            }
+          } else {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("Failed: ${response.data['message'] ?? 'Unknown error'}"), backgroundColor: Colors.redAccent, behavior: SnackBarBehavior.floating),
+              );
+            }
+          }
         }
-
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(role == null ? "Role created." : "Role updated."),
-            backgroundColor: Colors.green.shade700,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
       } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -552,6 +564,21 @@ class _UserRolesComponentState extends State<UserRolesComponent> {
       ),
       child: Row(
         children: [
+          if (widget.showBackButton) ...[
+            IconButton(
+              onPressed: widget.onBack ?? () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
+              },
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 16),
+          ],
           Expanded(
             child: Text(
               "System Access Models",

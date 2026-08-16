@@ -284,23 +284,36 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
       width: isMobile ? 140 : 170, 
       height: isMobile ? 140 : 170,
       child: cohorts.isEmpty 
-        ? const Center(child: Text("No cohort data", style: TextStyle(fontSize: 10, color: Colors.grey)))
+        ? Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.pie_chart_outline_rounded, size: 32, color: Colors.grey.shade100),
+                const SizedBox(height: 8),
+                const Text("Pending", style: TextStyle(fontSize: 9, color: Colors.grey, fontStyle: FontStyle.italic)),
+              ],
+            ),
+          )
         : PieChart(PieChartData(
             sectionsSpace: 4,
             centerSpaceRadius: isMobile ? 30 : 40,
-            sections: cohorts.asMap().entries.map((e) => PieChartSectionData(
-              color: chartColors[e.key % chartColors.length],
-              value: (e.value['count'] as int).toDouble(),
-              title: "", radius: isMobile ? 20 : 30,
-            )).toList(),
+            sections: cohorts.asMap().entries.map((e) {
+              final double val = double.tryParse(e.value['count']?.toString() ?? '0') ?? 0;
+              return PieChartSectionData(
+                color: chartColors[e.key % chartColors.length],
+                value: val > 0 ? val : 0.1,
+                title: "", radius: isMobile ? 20 : 30,
+              );
+            }).toList(),
           )),
     );
 
     Widget legend = Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: cohorts.asMap().entries.map((e) {
-        final count = e.value['count'] as int;
+        final count = int.tryParse(e.value['count']?.toString() ?? '0') ?? 0;
         final perc = total > 0 ? (count / total * 100).round() : 0;
+        final String cohortLabel = e.value['cohort']?.toString() ?? e.value['_id']?.toString() ?? 'Unknown';
         final Color color = chartColors[e.key % chartColors.length];
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
@@ -312,7 +325,7 @@ class _StatisticsComponentState extends State<StatisticsComponent> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Enrolment ${e.value['cohort']}", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textPrimary)),
+                    Text("$cohortLabel Intake", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textPrimary)),
                     Text("$count scholars ($perc%)", style: const TextStyle(fontSize: 10, color: textSecondary, fontWeight: FontWeight.w500)),
                   ],
                 ),

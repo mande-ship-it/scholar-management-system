@@ -4,7 +4,8 @@ import '../academics/academics_utils.dart';
 
 class ManageDepartmentsComponent extends StatefulWidget {
   final VoidCallback? onBack;
-  const ManageDepartmentsComponent({super.key, this.onBack});
+  final bool showBackButton;
+  const ManageDepartmentsComponent({super.key, this.onBack, this.showBackButton = true});
 
   @override
   State<ManageDepartmentsComponent> createState() => _ManageDepartmentsComponentState();
@@ -113,6 +114,11 @@ class _ManageDepartmentsComponentState extends State<ManageDepartmentsComponent>
                   if (response.statusCode == 200 || response.statusCode == 201) {
                     if (ctx.mounted) Navigator.pop(ctx);
                     _fetchDepartments();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(isEdit ? "Department updated." : "Department created."), backgroundColor: kBrandOlive),
+                      );
+                    }
                   } else {
                     if (ctx.mounted) {
                       ScaffoldMessenger.of(ctx).showSnackBar(
@@ -198,8 +204,22 @@ class _ManageDepartmentsComponentState extends State<ManageDepartmentsComponent>
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          if (widget.showBackButton) ...[
+            IconButton(
+              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+              onPressed: widget.onBack ?? () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
+              },
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 16),
+          ],
           Expanded(
             child: Text("Departments", 
               style: TextStyle(fontSize: isVerySmall ? 13 : 16, fontWeight: FontWeight.w900, color: kBrandBrown, letterSpacing: -0.2)),

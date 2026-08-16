@@ -11,6 +11,7 @@ class ViewSponsorsComponent extends StatefulWidget {
   final VoidCallback? onRegisterSponsor;
   final Function(Sponsor)? onSaveSponsor;
   final Function(Sponsor)? onDeleteSponsor;
+  final bool showBackButton;
 
   const ViewSponsorsComponent({
     super.key,
@@ -18,6 +19,7 @@ class ViewSponsorsComponent extends StatefulWidget {
     this.onRegisterSponsor,
     this.onSaveSponsor,
     this.onDeleteSponsor,
+    this.showBackButton = true,
   });
 
   @override
@@ -284,19 +286,21 @@ class _ViewSponsorsComponentState extends State<ViewSponsorsComponent> {
       ),
       child: Row(
         children: [
-          IconButton(
-            onPressed: widget.onBack ?? () {
-              if (Navigator.canPop(context)) {
-                Navigator.pop(context);
-              } else {
-                Navigator.pushReplacementNamed(context, '/home');
-              }
-            },
-            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-          const SizedBox(width: 16),
+          if (widget.showBackButton) ...[
+            IconButton(
+              onPressed: widget.onBack ?? () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
+              },
+              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 16),
+          ],
           if (!_isSearchExpanded)
             Expanded(
               child: Text(

@@ -141,7 +141,6 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
             Expanded(
               child: _buildLevelToggle(true),
             ),
-            _buildStatusApprovalIndicator(),
           ],
         ),
       );
@@ -184,8 +183,6 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
           ),
           const SizedBox(width: 8),
           _buildLevelToggle(false),
-          const SizedBox(width: 12),
-          _buildStatusApprovalIndicator(),
         ],
       ),
     );
@@ -331,9 +328,13 @@ class _DashboardComponentState extends State<DashboardComponent> with TickerProv
         onTap: () {
           if (target == "Scholar Attendance") {
             Navigator.pushNamed(context, '/scholarAttendance', arguments: {
-              'forcedSchoolType': SchoolType.university,
+              'forcedSchoolType': _selectedLevel == 'University' ? SchoolType.university : SchoolType.secondary,
               'forcedModuleType': 'chats'
             });
+          } else if (target == "View Scholars") {
+            // Map to the correct sidebar item based on level
+            final actualTarget = _selectedLevel == 'University' ? "University Registry" : "Secondary Scholars";
+            widget.onNavigate?.call(actualTarget);
           } else {
             widget.onNavigate?.call(target);
           }

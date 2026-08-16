@@ -4,7 +4,9 @@ import '../academics/academics_utils.dart';
 
 class CreateUserComponent extends StatefulWidget {
   final VoidCallback? onBack;
-  const CreateUserComponent({super.key, this.onBack});
+  final VoidCallback? onSuccess;
+  final bool showBackButton;
+  const CreateUserComponent({super.key, this.onBack, this.onSuccess, this.showBackButton = true});
 
   @override
   State<CreateUserComponent> createState() => _CreateUserComponentState();
@@ -31,8 +33,10 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
   bool _obscureConfirmPassword = true;
   bool _isSubmitting = false;
 
-  final List<String> _roles = [];
+  final List<dynamic> _roles = [];
   final List<dynamic> _departments = [];
+
+  dynamic _selectedRoleId;
 
   @override
   void initState() {
@@ -51,13 +55,14 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
         if (mounted) {
           setState(() {
             _roles.clear();
-            _roles.addAll(data.map((r) => r['name'].toString()).toList());
+            _roles.addAll(data);
             
-            if (_roles.isNotEmpty && _selectedRole == null) {
-              if (_roles.contains('Administrator')) {
-                _selectedRole = 'Administrator';
-              } else {
-                _selectedRole = _roles.first;
+            if (_roles.isNotEmpty && _selectedRoleId == null) {
+              try {
+                final adminRole = _roles.firstWhere((r) => r['name'] == 'Administrator');
+                _selectedRoleId = adminRole['id'] ?? adminRole['_id'];
+              } catch (_) {
+                _selectedRoleId = _roles.first['id'] ?? _roles.first['_id'];
               }
             }
           });
@@ -149,14 +154,19 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
       _passwordController.clear();
       _confirmPasswordController.clear();
       _notesController.clear();
-      _selectedRole = null;
+      _selectedRoleId = null;
       _selectedDepartmentId = null;
       _isActive = true;
     });
   }
 
   Future<void> _submitForm() async {
-    if (_formKey.currentState!.validate()) {
+    if (_formKey.currentState?.validate() ?? false) {
+      if (_passwordController.text != _confirmPasswordController.text) {
+        _showError("Passwords do not match.");
+        return;
+      }
+
       setState(() => _isSubmitting = true);
 
       final userData = {
@@ -165,7 +175,7 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
         'email': _emailController.text.trim(),
         'phone': _phoneController.text.trim(),
         'password': _passwordController.text.trim(),
-        'roleName': _selectedRole,
+        'roleId': _selectedRoleId,
         'assignedDistrict': _assignedDistrict,
         'departmentId': _selectedDepartmentId,
         'isActive': _isActive,
@@ -175,27 +185,39 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
       try {
         final response = await ApiService.createUser(userData);
 
-        if (response.statusCode == 201) {
+        if (response.statusCode == 201 || response.statusCode == 200) {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text("User account created successfully. Activation email sent."),
+              content: const Text("User account synchronized with central directory."),
               backgroundColor: kBrandOlive,
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
           );
-          _resetForm();
+          
+          if (widget.onSuccess != null) {
+            widget.onSuccess!();
+          } else if (widget.onBack != null) {
+            widget.onBack!();
+          } else {
+            _resetForm();
+          }
+        } else {
+          _showError(response.data['message'] ?? "Creation failed.");
         }
       } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Account creation failed. Please check connection."), backgroundColor: Colors.redAccent),
-        );
+        _showError("Critical system error: Failed to reach identity server.");
       } finally {
         if (mounted) setState(() => _isSubmitting = false);
       }
     }
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.redAccent, behavior: SnackBarBehavior.floating),
+    );
   }
 
   @override
@@ -265,15 +287,15 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
       ),
       child: Row(
         children: [
-          if (Navigator.canPop(context)) ...[
+          if (widget.showBackButton) ...[
             IconButton(
               onPressed: widget.onBack ?? () {
-            if (Navigator.canPop(context)) {
-              Navigator.pop(context);
-            } else {
-              Navigator.pushReplacementNamed(context, '/home');
-            }
-          },
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
+              },
               icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
@@ -337,39 +359,25 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
   }
 
   Widget _buildAccessCard(bool isMobile) {
-    final bool isFieldRole = _selectedRole?.toLowerCase().contains('field') ?? false;
+    final String? selectedRoleName = _roles.firstWhere(
+      (r) => (r['id'] ?? r['_id']) == _selectedRoleId, 
+      orElse: () => {'name': ''}
+    )['name'];
+    final bool isFieldRole = selectedRoleName?.toLowerCase().contains('field') ?? false;
 
     return _cardShell(
       isMobile: isMobile,
       children: [
         if (isMobile) ...[
-          _buildDropdown("Assigned Role", _selectedRole, _roles, Icons.shield_outlined, (v) => setState(() => _selectedRole = v)),
+          _buildRoleDropdown(),
           const SizedBox(height: 16),
-          DropdownButtonFormField<dynamic>(
-            value: _selectedDepartmentId,
-            isExpanded: true,
-            decoration: _inputDeco("Department", Icons.apartment_rounded),
-            items: _departments.map((d) => DropdownMenuItem(value: d['id'], child: Text(d['name'], overflow: TextOverflow.ellipsis))).toList(),
-            onChanged: (v) => setState(() => _selectedDepartmentId = v),
-            validator: (v) => v == null ? "Required" : null,
-          ),
+          _buildDepartmentDropdown(),
         ] else
           Row(
             children: [
-              Expanded(
-                child: _buildDropdown("Assigned Role", _selectedRole, _roles, Icons.shield_outlined, (v) => setState(() => _selectedRole = v)),
-              ),
+              Expanded(child: _buildRoleDropdown()),
               const SizedBox(width: 20),
-              Expanded(
-                child: DropdownButtonFormField<dynamic>(
-                  value: _selectedDepartmentId,
-                  isExpanded: true,
-                  decoration: _inputDeco("Department", Icons.apartment_rounded),
-                  items: _departments.map((d) => DropdownMenuItem(value: d['id'], child: Text(d['name'], overflow: TextOverflow.ellipsis))).toList(),
-                  onChanged: (v) => setState(() => _selectedDepartmentId = v),
-                  validator: (v) => v == null ? "Required" : null,
-                ),
-              ),
+              Expanded(child: _buildDepartmentDropdown()),
             ],
           ),
         if (isFieldRole) ...[
@@ -486,6 +494,28 @@ class _CreateUserComponentState extends State<CreateUserComponent> {
       onChanged: onChanged,
       decoration: _inputDeco(label, icon).copyWith(helperText: helper),
       validator: (v) => (v == null || v.isEmpty) ? "Field is required" : null,
+    );
+  }
+
+  Widget _buildRoleDropdown() {
+    return DropdownButtonFormField<dynamic>(
+      value: _selectedRoleId,
+      isExpanded: true,
+      decoration: _inputDeco("Assigned Role", Icons.shield_outlined),
+      items: _roles.map((r) => DropdownMenuItem(value: r['id'] ?? r['_id'], child: Text(r['name'].toString(), overflow: TextOverflow.ellipsis))).toList(),
+      onChanged: (v) => setState(() => _selectedRoleId = v),
+      validator: (v) => v == null ? "Required" : null,
+    );
+  }
+
+  Widget _buildDepartmentDropdown() {
+    return DropdownButtonFormField<dynamic>(
+      value: _selectedDepartmentId,
+      isExpanded: true,
+      decoration: _inputDeco("Department", Icons.apartment_rounded),
+      items: _departments.map((d) => DropdownMenuItem(value: d['id'] ?? d['_id'], child: Text(d['name'].toString(), overflow: TextOverflow.ellipsis))).toList(),
+      onChanged: (v) => setState(() => _selectedDepartmentId = v),
+      validator: (v) => v == null ? "Required" : null,
     );
   }
 

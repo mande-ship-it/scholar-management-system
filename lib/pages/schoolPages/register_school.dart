@@ -6,7 +6,8 @@ import '../../academics/academics_utils.dart';
 class RegisterSchoolPage extends StatefulWidget {
   final VoidCallback? onSuccess;
   final VoidCallback? onBack;
-  const RegisterSchoolPage({super.key, this.onSuccess, this.onBack});
+  final bool showBackButton;
+  const RegisterSchoolPage({super.key, this.onSuccess, this.onBack, this.showBackButton = true});
 
   @override
   State<RegisterSchoolPage> createState() => _RegisterSchoolPageState();
@@ -142,6 +143,7 @@ class _RegisterSchoolPageState extends State<RegisterSchoolPage> {
 
     return RegisterSchoolComponent(
       onBack: widget.onBack,
+      showBackButton: widget.showBackButton,
       onRegister: widget.onSuccess != null ? (_) => widget.onSuccess!() : null
     );
   }

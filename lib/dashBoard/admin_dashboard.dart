@@ -6,7 +6,9 @@ import '../academics/academics_utils.dart';
 
 class AdminDashboardComponent extends StatefulWidget {
   final Function(String)? onNavigate;
-  const AdminDashboardComponent({super.key, this.onNavigate});
+  final VoidCallback? onBack;
+  final bool showBackButton;
+  const AdminDashboardComponent({super.key, this.onNavigate, this.onBack, this.showBackButton = true});
 
   @override
   State<AdminDashboardComponent> createState() => _AdminDashboardComponentState();
@@ -21,6 +23,7 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
   int _totalSchools = 0;
   int _totalSponsors = 0;
   int _backupCount = 0;
+  int _graduatedCount = 0;
 
   Map<String, int> _roleDistribution = {};
   int _pendingEvents = 0;
@@ -45,10 +48,11 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
     setState(() => _isLoading = true);
     
     try {
-      final statsRes = await ApiService.getDashboardStats(level: 'University');
+      final statsRes = await ApiService.getDashboardStats(level: _selectedContext);
       if (statsRes.statusCode == 200) {
         final data = statsRes.data['data'] ?? {};
         _pendingApprovals = data['pendingCount'] ?? 0;
+        _graduatedCount = data['graduatedInLevel'] ?? 0;
 
         final system = data['system'] ?? {};
         _totalUsers = system['totalUsers'] ?? 0;
@@ -198,6 +202,12 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      // Context Toggle
+                      Center(
+                        child: _buildContextToggle(isMobile),
+                      ),
+                      const SizedBox(height: 24),
+
                       // KPI Cards - Small and responsive
                       _buildKPISection(isMobile, isVerySmall),
 
@@ -262,7 +272,7 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
   Widget _buildKPISection(bool isMobile, bool isVerySmall) {
     final kpis = [
       ("System Users", "$_totalUsers", Icons.people_alt_rounded, kBrandOlive, "Manage Users"),
-      ("Pending Approvals", "$_pendingApprovals", Icons.gavel_rounded, kBrandOrange, "Pending Approvals"),
+      ("Pending Queue", "$_pendingApprovals", Icons.gavel_rounded, kBrandOrange, "Pending Approvals"),
       ("Institutions", "$_totalSchools", Icons.business_rounded, kBrandBrown, "Manage Institutions"),
       ("Global Sponsors", "$_totalSponsors", Icons.volunteer_activism_rounded, const Color(0xFF1976D2), "Sponsors Directory"),
     ];
@@ -384,19 +394,33 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
   Widget _buildUserDistributionCard(bool isMobile, bool isVerySmall) {
     final List<PieChartSectionData> sections = [];
     int index = 0;
-    _roleDistribution.forEach((role, count) {
-      final double value = count.toDouble();
-      final Color color = chartColors[index % chartColors.length];
+
+    if (_roleDistribution.isEmpty) {
+      // Add a dummy section to keep the UI consistent and show it's empty
       sections.add(
         PieChartSectionData(
-          color: color,
-          value: value,
+          color: Colors.grey.shade100,
+          value: 100,
           title: '',
-          radius: isVerySmall ? 15 : (isMobile ? 25 : 40),
+          radius: isVerySmall ? 15 : (isMobile ? 20 : 30),
         ),
       );
-      index++;
-    });
+    } else {
+      _roleDistribution.forEach((role, count) {
+        final double value = count.toDouble();
+        final Color color = chartColors[index % chartColors.length];
+        sections.add(
+          PieChartSectionData(
+            color: color,
+            value: value > 0 ? value : 0.1, // Safety for 0
+            title: value > 0 ? value.toInt().toString() : '',
+            radius: isVerySmall ? 15 : (isMobile ? 20 : 30),
+            titleStyle: TextStyle(fontSize: isVerySmall ? 8 : 10, fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+        );
+        index++;
+      });
+    }
 
     final content = [
       SizedBox(
@@ -413,36 +437,39 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
       SizedBox(width: isVerySmall ? 0 : 20, height: isVerySmall ? 16 : 0),
       Expanded(
         flex: isVerySmall ? 0 : 1,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: _roleDistribution.keys.take(4).map((role) {
-            final idx = _roleDistribution.keys.toList().indexOf(role);
-            final color = chartColors[idx % chartColors.length];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      role,
-                      style: TextStyle(
-                        fontSize: isVerySmall ? 9 : 11,
-                        fontWeight: FontWeight.bold,
-                        color: kBrandBrown,
+        child: _roleDistribution.isEmpty 
+          ? Center(child: Text("Synchronizing Registry...", style: TextStyle(fontSize: 9, color: Colors.grey.shade400, fontStyle: FontStyle.italic)))
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: _roleDistribution.keys.take(4).map((role) {
+                final idx = _roleDistribution.keys.toList().indexOf(role);
+                final color = chartColors[idx % chartColors.length];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          role,
+                          style: TextStyle(
+                            fontSize: isVerySmall ? 9 : 11,
+                            fontWeight: FontWeight.bold,
+                            color: kBrandBrown,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            );
-          }).toList(),
-        ),
+                );
+              }).toList(),
+            ),
       )
     ];
 
@@ -580,7 +607,7 @@ class _AdminDashboardComponentState extends State<AdminDashboardComponent> {
           const SizedBox(height: 12),
           _opButton("Security Audit", Icons.security_rounded, kBrandBrown, isMobile, 
             isVerySmall: isVerySmall,
-            onPressed: () {}
+            onPressed: () => widget.onNavigate?.call("Permissions")
           ),
         ],
       ),

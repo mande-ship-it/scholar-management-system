@@ -9,6 +9,7 @@ class ManageUsersPage extends StatelessWidget {
   final VoidCallback? onViewPermissions;
   final VoidCallback? onViewDepartments;
   final VoidCallback? onViewProfile;
+  final bool showBackButton;
 
   const ManageUsersPage({
     super.key,
@@ -18,6 +19,7 @@ class ManageUsersPage extends StatelessWidget {
     this.onViewPermissions,
     this.onViewDepartments,
     this.onViewProfile,
+    this.showBackButton = true,
   });
 
   @override
@@ -29,6 +31,7 @@ class ManageUsersPage extends StatelessWidget {
       onViewPermissions: onViewPermissions,
       onViewDepartments: onViewDepartments,
       onViewProfile: onViewProfile,
+      showBackButton: showBackButton,
     );
   }
 }

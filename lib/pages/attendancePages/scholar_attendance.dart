@@ -6,12 +6,14 @@ class ScholarAttendancePage extends StatelessWidget {
   final VoidCallback? onBack;
   final SchoolType? forcedSchoolType;
   final AttendanceModuleType? forcedModuleType;
+  final bool showBackButton;
 
   const ScholarAttendancePage({
     super.key,
     this.onBack,
     this.forcedSchoolType,
     this.forcedModuleType,
+    this.showBackButton = true,
   });
 
   @override
@@ -38,6 +40,7 @@ class ScholarAttendancePage extends StatelessWidget {
       onBack: onBack,
       forcedSchoolType: effectiveSchoolType,
       forcedModuleType: effectiveModuleType,
+      showBackButton: showBackButton,
     );
   }
 }

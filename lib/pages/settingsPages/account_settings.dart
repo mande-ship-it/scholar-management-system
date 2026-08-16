@@ -4,10 +4,11 @@ import '../../academics/academics_utils.dart';
 
 class AccountSettingsPage extends StatelessWidget {
   final VoidCallback? onBack;
-  const AccountSettingsPage({super.key, this.onBack});
+  final bool showBackButton;
+  const AccountSettingsPage({super.key, this.onBack, this.showBackButton = true});
 
   @override
   Widget build(BuildContext context) {
-    return AccountSettingsComponent(onBack: onBack);
+    return AccountSettingsComponent(onBack: onBack, showBackButton: showBackButton);
   }
 }

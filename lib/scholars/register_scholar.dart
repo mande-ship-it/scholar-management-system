@@ -10,7 +10,14 @@ class RegisterScholarComponent extends StatefulWidget {
   final OnScholarRegistered? onRegister;
   final VoidCallback? onBack;
   final String? forcedSchoolType;
-  const RegisterScholarComponent({super.key, this.onRegister, this.onBack, this.forcedSchoolType});
+  final bool showBackButton;
+  const RegisterScholarComponent({
+    super.key, 
+    this.onRegister, 
+    this.onBack, 
+    this.forcedSchoolType,
+    this.showBackButton = true,
+  });
 
   @override
   State<RegisterScholarComponent> createState() => _RegisterScholarComponentState();
@@ -227,7 +234,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
   }
 
   void _submitForm() async {
-    if (_formKey.currentState!.validate()) {
+    if (_formKey.currentState?.validate() ?? false) {
       setState(() => _isLoading = true);
 
       final scholarData = {
@@ -415,19 +422,21 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
       ),
       child: Row(
         children: [
-          IconButton(
-            onPressed: widget.onBack ?? () {
-              if (Navigator.canPop(context)) {
-                Navigator.pop(context);
-              } else {
-                Navigator.pushReplacementNamed(context, '/home');
-              }
-            },
-            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-          const SizedBox(width: 16),
+          if (widget.showBackButton) ...[
+            IconButton(
+              onPressed: widget.onBack ?? () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
+              },
+              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 16),
+          ],
           Expanded(
             child: Text(
               "Scholar Enrolment",
@@ -623,7 +632,7 @@ class _RegisterScholarComponentState extends State<RegisterScholarComponent> {
     final schools = _getAvailableSchoolsForScholar();
     final int currentYear = DateTime.now().year;
 
-    // Spec Section 1: Label changes based on school type
+    // Spec: Label changes based on school type
     final String label = _selectedSchoolType == 'University' ? "Year of Study" : "Current Form";
 
     bool showClassField = true;

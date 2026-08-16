@@ -41,6 +41,7 @@ class ManageUsersComponent extends StatefulWidget {
   final VoidCallback? onViewDepartments;
   final VoidCallback? onViewProfile;
   final void Function(AppUser user)? onEditUser;
+  final bool showBackButton;
 
   const ManageUsersComponent({
     super.key,
@@ -51,6 +52,7 @@ class ManageUsersComponent extends StatefulWidget {
     this.onViewDepartments,
     this.onViewProfile,
     this.onEditUser,
+    this.showBackButton = true,
   });
 
   @override
@@ -119,8 +121,28 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
           setState(() {
             _users = data.map((u) {
               final String name = u['fullName'] ?? u['full_name'] ?? u['name'] ?? 'Unnamed User';
-              final String role = u['role_name'] ?? u['roleName'] ?? (u['roleId'] is Map ? u['roleId']['name'] : 'Staff');
-              final String dept = u['department_name'] ?? u['departmentName'] ?? (u['departmentId'] is Map ? u['departmentId']['name'] : 'Unallocated');
+
+              String role = 'Staff';
+              if (u['role_name'] != null) {
+                role = u['role_name'].toString();
+              } else if (u['roleName'] != null) {
+                role = u['roleName'].toString();
+              } else if (u['roleId'] != null) {
+                if (u['roleId'] is Map) {
+                  role = u['roleId']['name'] ?? 'Staff';
+                }
+              }
+
+              String dept = 'Unallocated';
+              if (u['department_name'] != null) {
+                dept = u['department_name'].toString();
+              } else if (u['departmentName'] != null) {
+                dept = u['departmentName'].toString();
+              } else if (u['departmentId'] != null) {
+                if (u['departmentId'] is Map) {
+                  dept = u['departmentId']['name'] ?? 'Unallocated';
+                }
+              }
               
               return AppUser(
                 id: (u['id'] ?? u['_id'] ?? '').toString(),
@@ -341,19 +363,21 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
       ),
       child: Row(
         children: [
-          IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
-            onPressed: widget.onBack ?? () {
-              if (Navigator.canPop(context)) {
-                Navigator.pop(context);
-              } else {
-                Navigator.pushReplacementNamed(context, '/home');
-              }
-            },
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-          const SizedBox(width: 16),
+          if (widget.showBackButton) ...[
+            IconButton(
+              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+              onPressed: widget.onBack ?? () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
+              },
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 16),
+          ],
           if (!_isSearchExpanded)
             Expanded(
               child: Text(
@@ -656,65 +680,74 @@ class _ManageUsersComponentState extends State<ManageUsersComponent> {
         border: Border.all(color: Colors.grey.shade200),
       ),
       clipBehavior: Clip.antiAlias,
-      child: DataTable(
-        headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
-        dataRowMaxHeight: 80,
-        horizontalMargin: 32,
-        columnSpacing: 40,
-        columns: const [
-          DataColumn(label: Text("USER IDENTITY", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.grey, letterSpacing: 1))),
-          DataColumn(label: Text("ROLE & SCOPE", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.grey, letterSpacing: 1))),
-          DataColumn(label: Text("ACCESS STATUS", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.grey, letterSpacing: 1))),
-          DataColumn(label: Text("ONBOARDED", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.grey, letterSpacing: 1))),
-          DataColumn(label: Text("GOVERNANCE", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.grey, letterSpacing: 1))),
-        ],
-        rows: filtered.map((u) {
-          final color = _roleColor(u.role);
-          return DataRow(cells: [
-            DataCell(Row(
-              children: [
-                CircleAvatar(
-                  radius: 22, 
-                  backgroundColor: color.withOpacity(0.1), 
-                  child: Text(_initialsOf(u.fullName), style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 14))),
-                const SizedBox(width: 16),
-                Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-                  Text(u.fullName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kBrandBrown)),
-                  Text(u.email, style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
-                ]),
-              ],
-            )),
-            DataCell(Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
-                child: Text(u.role.toUpperCase(), style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
-              ),
-              const SizedBox(height: 4),
-              Text(u.department, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
-            ])),
-            DataCell(Row(
-              children: [
-                Text(u.isActive ? "Authorized" : "Revoked", 
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: u.isActive ? kBrandOlive : Colors.redAccent)),
-                const SizedBox(width: 12),
-                Transform.scale(
-                  scale: 0.8,
-                  child: Switch(value: u.isActive, activeColor: kBrandOlive, onChanged: (_) => _toggleStatus(u)),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
+          dataRowMaxHeight: 80,
+          horizontalMargin: 32,
+          columnSpacing: 40,
+          columns: const [
+            DataColumn(label: Text("USER IDENTITY", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.grey, letterSpacing: 1))),
+            DataColumn(label: Text("ROLE & SCOPE", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.grey, letterSpacing: 1))),
+            DataColumn(label: Text("ACCESS STATUS", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.grey, letterSpacing: 1))),
+            DataColumn(label: Text("ONBOARDED", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.grey, letterSpacing: 1))),
+            DataColumn(label: Text("GOVERNANCE", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.grey, letterSpacing: 1))),
+          ],
+          rows: filtered.map((u) {
+            final color = _roleColor(u.role);
+            return DataRow(cells: [
+              DataCell(Row(
+                children: [
+                  CircleAvatar(
+                    radius: 22, 
+                    backgroundColor: color.withOpacity(0.1), 
+                    child: Text(_initialsOf(u.fullName), style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 14))),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start, 
+                      mainAxisAlignment: MainAxisAlignment.center, 
+                      children: [
+                        Text(u.fullName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: kBrandBrown), maxLines: 1, overflow: TextOverflow.ellipsis),
+                        Text(u.email, style: TextStyle(color: Colors.grey.shade500, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      ],
+                    ),
+                  ),
+                ],
+              )),
+              DataCell(Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                  child: Text(u.role.toUpperCase(), style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 0.5)),
                 ),
-              ],
-            )),
-            DataCell(Text(_formatDate(u.createdDate), style: TextStyle(fontSize: 13, color: Colors.grey.shade700, fontWeight: FontWeight.w600))),
-            DataCell(Row(children: [
-              if (PermissionService.hasPermission('users.edit'))
-                _actionBtn(Icons.edit_note_rounded, Colors.blue, () => _editUser(u)),
-              if (PermissionService.hasPermission('users.edit') && PermissionService.hasPermission('users.delete'))
-                const SizedBox(width: 8),
-              if (PermissionService.hasPermission('users.delete'))
-                _actionBtn(Icons.delete_outline_rounded, Colors.redAccent, () => _confirmDelete(u)),
-            ])),
-          ]);
-        }).toList(),
+                const SizedBox(height: 4),
+                Text(u.department, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
+              ])),
+              DataCell(Row(
+                children: [
+                  Text(u.isActive ? "Authorized" : "Revoked", 
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: u.isActive ? kBrandOlive : Colors.redAccent)),
+                  const SizedBox(width: 12),
+                  Transform.scale(
+                    scale: 0.8,
+                    child: Switch(value: u.isActive, activeColor: kBrandOlive, onChanged: (_) => _toggleStatus(u)),
+                  ),
+                ],
+              )),
+              DataCell(Text(_formatDate(u.createdDate), style: TextStyle(fontSize: 13, color: Colors.grey.shade700, fontWeight: FontWeight.w600))),
+              DataCell(Row(children: [
+                if (PermissionService.hasPermission('users.edit'))
+                  _actionBtn(Icons.edit_note_rounded, Colors.blue, () => _editUser(u)),
+                if (PermissionService.hasPermission('users.edit') && PermissionService.hasPermission('users.delete'))
+                  const SizedBox(width: 8),
+                if (PermissionService.hasPermission('users.delete'))
+                  _actionBtn(Icons.delete_outline_rounded, Colors.redAccent, () => _confirmDelete(u)),
+              ])),
+            ]);
+          }).toList(),
+        ),
       ),
     );
   }

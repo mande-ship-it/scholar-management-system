@@ -5,7 +5,8 @@ import '../academics/academics_utils.dart';
 
 class SystemSettingsComponent extends StatefulWidget {
   final VoidCallback? onBack;
-  const SystemSettingsComponent({super.key, this.onBack});
+  final bool showBackButton;
+  const SystemSettingsComponent({super.key, this.onBack, this.showBackButton = true});
 
   @override
   State<SystemSettingsComponent> createState() => _SystemSettingsComponentState();
@@ -78,9 +79,15 @@ class _SystemSettingsComponentState extends State<SystemSettingsComponent> {
       ),
       child: Row(
         children: [
-          if (Navigator.canPop(context)) ...[
+          if (widget.showBackButton) ...[
             IconButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: widget.onBack ?? () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
+              },
               icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: isDark ? Colors.white : kBrandBrown),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),

@@ -24,12 +24,20 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
   Student? _selectedStudent;
   bool _isLoading = true;
   bool _isSearchExpanded = false;
-  String _directorName = "Executive Director";
 
   // Selection Options
   String _selectedYear = DateTime.now().year.toString();
   String _selectedPeriod = "ANNUAL"; 
   SchoolType _reportType = SchoolType.secondary;
+
+  String _generationMode = "Individual"; // "Individual", "Batch"
+  String _batchScope = "School"; // "All", "District", "School"
+  String? _selectedBatchDistrict;
+  String? _selectedBatchSchool;
+  String? _selectedBatchClass;
+
+  List<String> _availableSchools = [];
+  List<String> _availableClasses = [];
 
   final List<String> _academicYears = academicYearOptions();
 
@@ -37,7 +45,6 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
   void initState() {
     super.initState();
     _fetchData();
-    _fetchDirector();
   }
 
   Future<void> _fetchData() async {
@@ -47,7 +54,8 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
       if (response.statusCode == 200) {
         final List<dynamic> data = response.data['data'] ?? [];
         _allScholars = data.map((item) => Student.fromMap(item)).toList();
-        _filteredScholars = _allScholars.where((s) => s.status == 'Active').toList();
+        _updateAvailableFilters();
+        _filterScholars(_searchController.text);
       }
     } catch (e) {
       debugPrint('Error loading scholars: $e');
@@ -56,27 +64,29 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
     }
   }
 
-  Future<void> _fetchDirector() async {
-    try {
-      final response = await ApiService.getDirector();
-      if (response.statusCode == 200 && mounted) {
-        setState(() {
-          _directorName = response.data['data']['name'];
-        });
-      }
-    } catch (e) {
-      debugPrint('Error fetching director: $e');
-    }
-  }
-
   void _filterScholars(String query) {
     setState(() {
       _filteredScholars = _allScholars
           .where((s) => s.status == 'Active' && 
+                        s.schoolType == _reportType &&
                         (s.name.toLowerCase().contains(query.toLowerCase()) || 
                          s.scholarId.toLowerCase().contains(query.toLowerCase())))
           .toList();
     });
+  }
+
+  void _updateAvailableFilters() {
+    final typeFiltered = _allScholars.where((s) => s.schoolType == _reportType);
+    
+    _availableSchools = typeFiltered.map((s) => s.schoolName).toSet().toList()..sort();
+    
+    Iterable<Student> schoolFiltered = typeFiltered;
+    if (_selectedBatchSchool != null) {
+      schoolFiltered = schoolFiltered.where((s) => s.schoolName == _selectedBatchSchool);
+    }
+    _availableClasses = schoolFiltered.map((s) => s.currentClass).toSet().toList()..sort();
+    
+    setState(() {});
   }
 
   void _selectStudent(Student student) {
@@ -84,11 +94,12 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
       _selectedStudent = student;
       _reportType = student.schoolType;
       _selectedPeriod = "ANNUAL"; 
+      _generationMode = "Individual";
     });
   }
 
   Future<void> _generateReport() async {
-    if (_selectedStudent == null) return;
+    if (_generationMode == "Individual" && _selectedStudent == null) return;
     
     showDialog(
       context: context,
@@ -97,55 +108,123 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
     );
 
     try {
-      final response = await ApiService.getResultsByScholar(_selectedStudent!.id, year: _selectedYear);
-      Navigator.pop(context); // Close loading
+      if (_generationMode == "Individual") {
+        final response = await ApiService.getResultsByScholar(_selectedStudent!.id, year: _selectedYear);
+        if (mounted) Navigator.pop(context);
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = response.data['data'] ?? [];
-        final allResults = data.map((item) => ResultRecord(
-          studentId: item['scholar_id'].toString(),
-          code: item['subject_code'] ?? 'N/A',
-          subject: item['subject_name'] ?? 'N/A',
-          marks: double.tryParse(item['marks'].toString()) ?? 0.0,
-          gpa: item['gpa'] != null ? double.tryParse(item['gpa'].toString()) : null,
-          points: item['points'] != null ? double.tryParse(item['points'].toString()) : null,
-          year: item['academic_year'].toString(),
-          term: item['term'],
-          semester: item['semester'],
-        )).toList();
+        if (response.statusCode == 200) {
+          final List<dynamic> data = response.data['data'] ?? [];
+          final results = _processResults(data);
 
-        List<ResultRecord> results;
-        if (_selectedPeriod == "ANNUAL") {
-          results = allResults;
-        } else {
-          results = allResults.where((r) => _reportType == SchoolType.university 
-              ? r.semester == _selectedPeriod 
-              : r.term == _selectedPeriod).toList();
+          if (results.isEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('No results found for $_selectedPeriod $_selectedYear.'), backgroundColor: Colors.orange),
+            );
+            return;
+          }
+          await _printPdf(results, _selectedStudent!);
+        }
+      } else {
+        // Batch Mode
+        List<Student> targetGroup = _allScholars.where((s) => s.schoolType == _reportType && s.status == 'Active').toList();
+        
+        if (_batchScope == "District" && _selectedBatchDistrict != null) {
+          targetGroup = targetGroup.where((s) => s.district == _selectedBatchDistrict).toList();
+        } else if (_batchScope == "School" && _selectedBatchSchool != null) {
+          targetGroup = targetGroup.where((s) => s.schoolName == _selectedBatchSchool).toList();
+          if (_selectedBatchClass != null) {
+            targetGroup = targetGroup.where((s) => s.currentClass == _selectedBatchClass).toList();
+          }
         }
 
-        if (results.isEmpty) {
+        if (targetGroup.isEmpty) {
+          if (mounted) Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('No results found for $_selectedPeriod $_selectedYear.'), backgroundColor: Colors.orange),
+            const SnackBar(content: Text('No scholars found in the selected group.'), backgroundColor: Colors.orange),
           );
           return;
         }
 
-        await _printPdf(results);
+        // Fetch all results for the school/district in one go
+        final response = await ApiService.getResultsBySchool(
+          _batchScope == "School" ? _selectedBatchSchool : null,
+          year: int.tryParse(_selectedYear),
+        );
+        
+        if (mounted) Navigator.pop(context);
+
+        if (response.statusCode == 200) {
+          final List<dynamic> data = response.data['data'] ?? [];
+          final allBatchResults = _processResults(data);
+          
+          await _printBatchPdf(targetGroup, allBatchResults);
+        }
       }
     } catch (e) {
-      if (Navigator.canPop(context)) Navigator.pop(context);
+      if (mounted && Navigator.canPop(context)) Navigator.pop(context);
       debugPrint('Error generating report: $e');
     }
   }
 
-  Future<void> _printPdf(List<ResultRecord> results) async {
+  List<ResultRecord> _processResults(List<dynamic> data) {
+    final allResults = data.map((item) => ResultRecord(
+      studentId: (item['scholar_id'] ?? item['scholarId'] ?? '').toString(),
+      code: item['subject_code'] ?? 'N/A',
+      subject: item['subject_name'] ?? item['subject'] ?? 'N/A',
+      marks: double.tryParse(item['marks'].toString()) ?? 0.0,
+      gpa: item['gpa'] != null ? double.tryParse(item['gpa'].toString()) : null,
+      points: item['points'] != null ? double.tryParse(item['points'].toString()) : null,
+      year: item['academic_year']?.toString() ?? item['year']?.toString() ?? '',
+      term: item['term'],
+      semester: item['semester'],
+    )).toList();
+
+    if (_selectedPeriod == "ANNUAL") return allResults;
+    
+    return allResults.where((r) => _reportType == SchoolType.university 
+        ? r.semester == _selectedPeriod 
+        : r.term == _selectedPeriod).toList();
+  }
+
+  Future<void> _printPdf(List<ResultRecord> results, Student student) async {
     final doc = pw.Document();
     final logo = await rootBundle.load('assets/images/age-logo.png');
     final logoImage = pw.MemoryImage(logo.buffer.asUint8List());
 
-    final isUni = _reportType == SchoolType.university;
+    _addReportPage(doc, logoImage, results, student);
+
+    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => doc.save(), name: 'ReportCard_${student.name.replaceAll(' ', '_')}.pdf');
+  }
+
+  Future<void> _printBatchPdf(List<Student> students, List<ResultRecord> allResults) async {
+    final doc = pw.Document();
+    final logo = await rootBundle.load('assets/images/age-logo.png');
+    final logoImage = pw.MemoryImage(logo.buffer.asUint8List());
+
+    int pagesAdded = 0;
+    for (var student in students) {
+      final studentResults = allResults.where((r) => r.studentId == student.id).toList();
+      if (studentResults.isNotEmpty) {
+        _addReportPage(doc, logoImage, studentResults, student);
+        pagesAdded++;
+      }
+    }
+
+    if (pagesAdded == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No matching results found for any scholar in this group.'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+
+    final title = _batchScope == "School" ? _selectedBatchSchool : (_batchScope == "District" ? _selectedBatchDistrict : "All_Scholars");
+    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => doc.save(), name: 'BatchReports_${title?.replaceAll(' ', '_')}.pdf');
+  }
+
+  void _addReportPage(pw.Document doc, pw.MemoryImage logoImage, List<ResultRecord> results, Student student) {
+    final isUni = student.schoolType == SchoolType.university;
     final totalMarks = results.fold(0.0, (sum, r) => sum + r.marks);
-    final avgMarks = totalMarks / results.length;
+    final avgMarks = results.isEmpty ? 0 : totalMarks / results.length;
     
     // Group results by period for separate tables
     final periods = results.map((r) => (isUni ? r.semester : r.term) ?? 'Unknown').toSet().toList()..sort();
@@ -180,7 +259,7 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
                   children: [
                     pw.Text("AGE AFRICA", style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(kBrandBrown.value))),
                     pw.Text("Advancing Girls' Education", style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold, color: PdfColor.fromInt(kBrandOlive.value))),
-                    pw.Text("P.O. Box 2147, Lilongwe, Malawi", style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
+                    pw.Text("P.O. Box 31211, Chichiri, Blantyre 3, Malawi", style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
                     pw.Text("www.ageafrica.org", style: const pw.TextStyle(fontSize: 8, color: PdfColors.grey700)),
                   ],
                 ),
@@ -227,10 +306,10 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
                   3: const pw.FlexColumnWidth(),
                 },
                 children: [
-                  _pwTableRow("SCHOLAR NAME:", _selectedStudent!.name.toUpperCase(), "SCHOLAR ID:", _selectedStudent!.scholarId),
-                  _pwTableRow("INSTITUTION:", _selectedStudent!.schoolName, "LEVEL:", isUni ? "UNIVERSITY" : "SECONDARY SCHOOL"),
+                  _pwTableRow("SCHOLAR NAME:", student.name.toUpperCase(), "SCHOLAR ID:", student.scholarId),
+                  _pwTableRow("INSTITUTION:", student.schoolName, "LEVEL:", isUni ? "UNIVERSITY" : "SECONDARY SCHOOL"),
                   _pwTableRow("ACADEMIC YEAR:", _selectedYear, "PERIOD:", _selectedPeriod),
-                  _pwTableRow("PROGRAM/CLASS:", _selectedStudent!.currentClass, "STATUS:", _selectedStudent!.status),
+                  _pwTableRow("PROGRAM/CLASS:", student.currentClass, "STATUS:", student.status),
                 ],
               ),
             ),
@@ -266,6 +345,16 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
                 border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
                 cellPadding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               ),
+              if (isUni) ...[
+                pw.Container(
+                  alignment: pw.Alignment.centerRight,
+                  padding: const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 10),
+                  child: pw.Text(
+                    "Semester Average: ${(results.where((r) => r.semester == period).fold(0.0, (sum, r) => sum + r.marks) / (results.where((r) => r.semester == period).length.clamp(1, 999))).toStringAsFixed(1)}%",
+                    style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold, color: primaryColor),
+                  ),
+                ),
+              ],
               pw.SizedBox(height: 20),
             ],
             
@@ -338,7 +427,8 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
                     pw.Text("Date Issued: ${DateFormat('dd MMMM yyyy').format(DateTime.now())}", style: const pw.TextStyle(fontSize: 8)),
-                    pw.SizedBox(height: 25),
+                    pw.SizedBox(height: 15),
+                    pw.SizedBox(height: 2),
                     pw.Container(
                       width: 160,
                       decoration: const pw.BoxDecoration(border: pw.Border(bottom: pw.BorderSide(color: PdfColors.black, width: 1))),
@@ -350,7 +440,7 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
                 pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.center,
                   children: [
-                    pw.Text(_directorName, style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, fontStyle: pw.FontStyle.italic, color: primaryColor)),
+                    pw.SizedBox(height: 15),
                     pw.SizedBox(height: 2),
                     pw.Container(
                       width: 200,
@@ -371,8 +461,6 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
         ),
       ),
     );
-
-    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => doc.save(), name: 'ReportCard_${_selectedStudent!.name.replaceAll(' ', '_')}.pdf');
   }
 
   pw.TableRow _pwTableRow(String label1, String value1, String label2, String value2) {
@@ -448,82 +536,96 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
   }
 
   Widget _buildPortalHeader(bool isMobile) {
-    if (isMobile && _isSearchExpanded) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Container(
-                height: 40,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF8F9FA),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFEEEEEE)),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: _filterScholars,
-                  autofocus: true,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                  decoration: const InputDecoration(
-                    hintText: "Search scholar...",
-                    prefixIcon: Icon(Icons.search, size: 18, color: Colors.grey),
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(vertical: 10),
-                  ),
-                ),
-              ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.close_rounded, color: Colors.grey),
-              onPressed: () => setState(() {
-                _isSearchExpanded = false;
-                _searchController.clear();
-                _filterScholars('');
-              }),
-            ),
-          ],
-        ),
-      );
-    }
-
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: Row(
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Academic Report Generator",
-                  style: TextStyle(
-                    fontSize: isMobile ? 14 : 16, 
-                    fontWeight: FontWeight.w900, 
-                    color: const Color(0xFF4C3C32), 
-                    letterSpacing: -0.2
-                  ),
-                ),
-              ],
-            ),
+          IconButton(
+            onPressed: widget.onBack ?? () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                Navigator.pushReplacementNamed(context, '/home');
+              }
+            },
+            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
           ),
-          if (isMobile)
-            IconButton(
-              icon: const Icon(Icons.search_rounded, color: Color(0xFF4C3C32), size: 20),
-              onPressed: () => setState(() => _isSearchExpanded = true),
+          const SizedBox(width: 16),
+          if (!_isSearchExpanded)
+            Expanded(
+              child: Text(
+                "Report Generator",
+                style: TextStyle(
+                  fontSize: isVerySmall ? 13 : 16, 
+                  fontWeight: FontWeight.w900, 
+                  color: const Color(0xFF4C3C32), 
+                  letterSpacing: -0.2
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
+          if (isMobile) _buildMobileSearchToggle(),
+          if (!_isSearchExpanded) ...[
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: _fetchData,
+              icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+              tooltip: "Refresh Scholars",
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildMobileSearchToggle() {
+    if (!_isSearchExpanded) {
+      return IconButton(
+        icon: const Icon(Icons.search_rounded, color: Color(0xFF4C3C32), size: 20),
+        onPressed: () => setState(() => _isSearchExpanded = true),
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(),
+      );
+    }
+
+    return Expanded(
+      child: Container(
+        height: 40,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8F9FA),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFFEEEEEE)),
+        ),
+        child: TextField(
+          controller: _searchController,
+          onChanged: _filterScholars,
+          autofocus: true,
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          decoration: InputDecoration(
+            hintText: "Search scholar...",
+            prefixIcon: const Icon(Icons.search, size: 18, color: Colors.grey),
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.close, size: 18), 
+              onPressed: () => setState(() {
+                _isSearchExpanded = false;
+                _searchController.clear();
+                _filterScholars('');
+              }),
+            ),
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(vertical: 10),
+          ),
+        ),
       ),
     );
   }
@@ -543,6 +645,8 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
                   "SCHOLAR DIRECTORY",
                   style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFF9AB334), letterSpacing: 1.0),
                 ),
+                const SizedBox(height: 16),
+                _buildDirectoryTypeToggle(),
                 if (!isMobile) ...[
                   const SizedBox(height: 16),
                   Container(
@@ -625,38 +729,6 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
   }
 
   Widget _buildReportConfigPanel({bool isMobile = false}) {
-    if (_selectedStudent == null) {
-      return Container(
-        color: const Color(0xFFF8F9FA),
-        constraints: BoxConstraints(minHeight: isMobile ? 300 : 400),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(32),
-                decoration: BoxDecoration(
-                  color: Colors.white, 
-                  shape: BoxShape.circle, 
-                  border: Border.all(color: const Color(0xFFEEEEEE)),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)]
-                ),
-                child: Icon(Icons.description_outlined, size: 48, color: Colors.grey.shade200),
-              ),
-              const SizedBox(height: 24),
-              const Text("SELECT A SCHOLAR FROM THE DIRECTORY", 
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.0)),
-              const SizedBox(height: 8),
-              const Text("Configure the academic cycle and report type to generate documentation.", 
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     final isUni = _reportType == SchoolType.university;
     final periodOptions = isUni 
         ? ["ANNUAL", "Semester 1", "Semester 2"] 
@@ -670,7 +742,50 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _sectionHeader("REPORT CONFIGURATION", Icons.settings_rounded),
+              _sectionHeader("GENERATION MODE", Icons.batch_prediction_rounded),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  _modeChip("INDIVIDUAL", "Individual", Icons.person_outline),
+                  const SizedBox(width: 12),
+                  _modeChip("BATCH / GROUP", "Batch", Icons.groups_outlined),
+                ],
+              ),
+              const SizedBox(height: 32),
+
+              if (_generationMode == "Batch") ...[
+                _sectionHeader("BATCH SCOPE", Icons.analytics_outlined),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    _scopeChip("BY SCHOOL", "School"),
+                    const SizedBox(width: 8),
+                    _scopeChip("BY DISTRICT", "District"),
+                    const SizedBox(width: 8),
+                    _scopeChip("ALL SYSTEM", "All"),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                if (_batchScope == "District") 
+                  _portalDropdown(_selectedBatchDistrict, kMalawiDistricts, (v) => setState(() => _selectedBatchDistrict = v)),
+                if (_batchScope == "School") ...[
+                  _portalDropdown(_selectedBatchSchool, _availableSchools, (v) {
+                    setState(() {
+                      _selectedBatchSchool = v;
+                      _availableClasses = _allScholars
+                          .where((s) => s.schoolName == v && s.schoolType == _reportType)
+                          .map((s) => s.currentClass)
+                          .toSet().toList()..sort();
+                      _selectedBatchClass = null;
+                    });
+                  }),
+                  const SizedBox(height: 12),
+                  _portalDropdown(_selectedBatchClass, _availableClasses, (v) => setState(() => _selectedBatchClass = v), hint: "Filter by Class (Optional)"),
+                ],
+                const SizedBox(height: 32),
+              ],
+
+              _sectionHeader("ACADEMIC CYCLE", Icons.settings_rounded),
               const SizedBox(height: 24),
               
               Container(
@@ -700,9 +815,9 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _portalLabel("Academic Cycle"),
+                              _portalLabel("Academic Year"),
                               const SizedBox(height: 8),
-                              _portalDropdown<String>(_selectedYear, _academicYears, (v) => setState(() => _selectedYear = v!)),
+                              _portalDropdown(_selectedYear, _academicYears, (v) { if (v != null) setState(() => _selectedYear = v); }),
                             ],
                           ),
                         ),
@@ -713,7 +828,7 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
                             children: [
                               _portalLabel(isUni ? "Semester Period" : "School Term"),
                               const SizedBox(height: 8),
-                              _portalDropdown<String>(_selectedPeriod, periodOptions, (v) => setState(() => _selectedPeriod = v!)),
+                              _portalDropdown(_selectedPeriod, periodOptions, (v) { if (v != null) setState(() => _selectedPeriod = v); }),
                             ],
                           ),
                         ),
@@ -744,12 +859,12 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
                           child: const Icon(Icons.person_outline_rounded, color: Color(0xFF9AB334), size: 20),
                         ),
                         const SizedBox(width: 16),
-                        Expanded(
+                        const Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text("DIRECTOR AUTHORIZATION", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.grey, letterSpacing: 0.5)),
-                              Text(_directorName.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), fontSize: 15, letterSpacing: -0.2)),
+                              Text("SYSTEM AUTHORIZATION", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.grey, letterSpacing: 0.5)),
+                              Text("COUNTRY DIRECTOR", style: TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), fontSize: 15, letterSpacing: -0.2)),
                             ],
                           ),
                         ),
@@ -762,8 +877,10 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
                       child: ElevatedButton.icon(
                         onPressed: _generateReport,
                         icon: const Icon(Icons.picture_as_pdf_rounded, size: 18),
-                        label: const Text("GENERATE OFFICIAL PDF TRANSCRIPT", 
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                        label: Text(_generationMode == "Individual" 
+                          ? "GENERATE OFFICIAL PDF TRANSCRIPT" 
+                          : "GENERATE BATCH REPORTS", 
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF4C3C32),
                           foregroundColor: Colors.white,
@@ -783,7 +900,9 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
                     const Icon(Icons.info_outline_rounded, size: 12, color: Colors.grey),
                     const SizedBox(width: 8),
                     Text(
-                      "REPORT FOR: ${_selectedStudent!.name.toUpperCase()}",
+                      _generationMode == "Individual" 
+                        ? "REPORT FOR: ${_selectedStudent?.name.toUpperCase() ?? 'NONE'}"
+                        : "BATCH REPORT FOR: ${_batchScope.toUpperCase()} SCOPE",
                       style: TextStyle(color: Colors.grey.shade400, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                     ),
                   ],
@@ -792,6 +911,67 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _modeChip(String label, String value, IconData icon) {
+    final bool isSelected = _generationMode == value;
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => _generationMode = value),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            color: isSelected ? kBrandBrown : Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: isSelected ? kBrandBrown : Colors.grey.shade200),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 16, color: isSelected ? Colors.white : Colors.grey),
+              const SizedBox(width: 8),
+              Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: isSelected ? Colors.white : Colors.grey)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _scopeChip(String label, String value) {
+    final bool isSelected = _batchScope == value;
+    return Expanded(
+      child: ChoiceChip(
+        label: Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : kBrandBrown)),
+        selected: isSelected,
+        onSelected: (v) => setState(() => _batchScope = value),
+        selectedColor: kBrandOlive,
+        backgroundColor: Colors.white,
+        showCheckmark: false,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
+  }
+
+  Widget _portalDropdown<T>(T? value, List<T> items, ValueChanged<T?> onChanged, {String? hint}) {
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+      ),
+      child: DropdownButton<T>(
+        value: value,
+        hint: hint != null ? Text(hint, style: const TextStyle(fontSize: 12)) : null,
+        isExpanded: true,
+        underline: const SizedBox(),
+        icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 20, color: Colors.grey),
+        items: items.map((i) => DropdownMenuItem(value: i, child: Text(i.toString(), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF4C3C32))))).toList(),
+        onChanged: onChanged,
       ),
     );
   }
@@ -811,26 +991,6 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
     child: Text(text.toUpperCase(), style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.grey.shade400, letterSpacing: 0.5)),
   );
 
-  Widget _portalDropdown<T>(T value, List<T> items, ValueChanged<T?> onChanged) {
-    return Container(
-      height: 48,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FA),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
-      ),
-      child: DropdownButton<T>(
-        value: value,
-        isExpanded: true,
-        underline: const SizedBox(),
-        icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 20, color: Colors.grey),
-        items: items.map((i) => DropdownMenuItem(value: i, child: Text(i.toString(), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF4C3C32))))).toList(),
-        onChanged: onChanged,
-      ),
-    );
-  }
-
   Widget _reportTypeChip(String label, SchoolType type, IconData icon) {
     final bool isSelected = _reportType == type;
     return Expanded(
@@ -838,6 +998,8 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
         onTap: () => setState(() {
           _reportType = type;
           _selectedPeriod = type == SchoolType.university ? "Semester 1" : "Term 1";
+          if (_selectedStudent?.schoolType != type) _selectedStudent = null;
+          _filterScholars(_searchController.text);
         }),
         borderRadius: BorderRadius.circular(12),
         child: AnimatedContainer(
@@ -854,6 +1016,55 @@ class _ReportCardsComponentState extends State<ReportCardsComponent> {
               const SizedBox(height: 8),
               Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isSelected ? kBrandOlive : Colors.grey)),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDirectoryTypeToggle() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(child: _directoryToggleBtn("Secondary", SchoolType.secondary)),
+          const SizedBox(width: 4),
+          Expanded(child: _directoryToggleBtn("University", SchoolType.university)),
+        ],
+      ),
+    );
+  }
+
+  Widget _directoryToggleBtn(String label, SchoolType type) {
+    final isSelected = _reportType == type;
+    return InkWell(
+      onTap: () => setState(() {
+        _reportType = type;
+        _selectedPeriod = type == SchoolType.university ? "Semester 1" : "Term 1";
+        if (_selectedStudent?.schoolType != type) _selectedStudent = null;
+        _filterScholars(_searchController.text);
+      }),
+      borderRadius: BorderRadius.circular(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: isSelected ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))] : null,
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          label.toUpperCase(),
+          style: TextStyle(
+            fontSize: 10,
+            fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+            color: isSelected ? kBrandBrown : Colors.grey,
+            letterSpacing: 0.5,
           ),
         ),
       ),

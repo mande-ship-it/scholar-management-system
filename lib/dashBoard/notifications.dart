@@ -5,7 +5,8 @@ import '../academics/academics_utils.dart';
 
 class NotificationsComponent extends StatefulWidget {
   final VoidCallback? onBack;
-  const NotificationsComponent({super.key, this.onBack});
+  final bool showBackButton;
+  const NotificationsComponent({super.key, this.onBack, this.showBackButton = true});
 
   @override
   State<NotificationsComponent> createState() => _NotificationsComponentState();
@@ -98,7 +99,7 @@ class _NotificationsComponentState extends State<NotificationsComponent> {
         children: [
           Row(
             children: [
-              if (Navigator.canPop(context)) ...[
+              if (widget.showBackButton) ...[
                 IconButton(
                   onPressed: widget.onBack ?? () {
                     if (Navigator.canPop(context)) {

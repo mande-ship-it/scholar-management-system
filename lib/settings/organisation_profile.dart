@@ -4,7 +4,8 @@ import '../academics/academics_utils.dart';
 
 class OrganisationProfileComponent extends StatefulWidget {
   final VoidCallback? onBack;
-  const OrganisationProfileComponent({super.key, this.onBack});
+  final bool showBackButton;
+  const OrganisationProfileComponent({super.key, this.onBack, this.showBackButton = true});
 
   @override
   State<OrganisationProfileComponent> createState() =>
@@ -143,7 +144,7 @@ class _OrganisationProfileComponentState
         : Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (!isMobile) _buildExecutiveHeader(isMobile),
+              _buildExecutiveHeader(isMobile),
               Expanded(
                 child: SingleChildScrollView(
                   padding: EdgeInsets.all(isMobile ? 16 : 40),
@@ -192,7 +193,52 @@ class _OrganisationProfileComponentState
   }
 
   Widget _buildExecutiveHeader(bool isMobile) {
-    return const SizedBox.shrink();
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Row(
+        children: [
+          if (widget.showBackButton) ...[
+            IconButton(
+              onPressed: widget.onBack ?? () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
+              },
+              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 16),
+          ],
+          Expanded(
+            child: Text(
+              "System Entity Profile",
+              style: TextStyle(
+                fontSize: isVerySmall ? 13 : 16, 
+                fontWeight: FontWeight.w900, 
+                color: const Color(0xFF4C3C32), 
+                letterSpacing: -0.2
+              ),
+            ),
+          ),
+          IconButton(
+            onPressed: _fetchProfile,
+            icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+            tooltip: "Sync Profile",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildProfileOverviewSection(bool isMobile) {

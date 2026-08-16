@@ -1,14 +1,23 @@
 import 'package:flutter/material.dart';
-import '../../attendance/attendance_history.dart';
+import '../../attendance/view_attendance.dart';
 import '../../academics/academics_utils.dart';
 
 class AttendanceHistoryPage extends StatelessWidget {
   final VoidCallback? onBack;
   final VoidCallback? onMarkAttendance;
-  const AttendanceHistoryPage({super.key, this.onBack, this.onMarkAttendance});
+  final bool showBackButton;
+  const AttendanceHistoryPage({
+    super.key,
+    this.onBack,
+    this.onMarkAttendance,
+    this.showBackButton = true,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return AttendanceHistoryComponent(onBack: onBack);
+    return ViewAttendanceComponent(
+      onBack: onBack,
+      onMarkAttendance: onMarkAttendance,
+    );
   }
 }

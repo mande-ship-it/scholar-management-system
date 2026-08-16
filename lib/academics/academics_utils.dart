@@ -79,7 +79,15 @@ class Student {
   final List<dynamic> documents;
 
   int get calculatedRemainingYears {
+    // If the scholar has already graduated or is an alumni, remaining tenure is zero.
+    final String normStatus = status.toLowerCase();
+    if (normStatus.contains('graduate') || normStatus.contains('alumni') || normStatus.contains('completed')) {
+      return 0;
+    }
+
     // Spec Section 2: yearsRemaining = programDurationYears - yearsCompleted
+    // For Secondary: Form 1 (0 completed), Form 2 (1), Form 3 (2), Form 4 (3).
+    // When Form 4 is completed, they move to Alumni status (handled above).
     final remaining = programDurationYears - yearsCompleted;
     return remaining > 0 ? remaining : 0;
   }
@@ -301,8 +309,10 @@ class ResultRecord {
   final double? gpa; // university only — grade point for this course
   final double? points; // secondary only — grade point for this course
   final String year; // e.g. "2026"
+  final String? currentClass; // e.g. Form 1, Year 1
   final String? term; // secondary: "Term 1" / "Term 2" / "Term 3"
   final String? semester; // university: "Semester 1" / "Semester 2"
+  final String? status; // First Attempt, Repeat
 
   const ResultRecord({
     required this.studentId,
@@ -313,8 +323,10 @@ class ResultRecord {
     this.gpa,
     this.points,
     required this.year,
+    this.currentClass,
     this.term,
     this.semester,
+    this.status,
   });
 
   factory ResultRecord.fromMap(Map<String, dynamic> map) {
@@ -326,8 +338,10 @@ class ResultRecord {
       gpa: map['gpa'] != null ? double.tryParse(map['gpa'].toString()) : null,
       points: map['points'] != null ? double.tryParse(map['points'].toString()) : null,
       year: (map['academic_year'] ?? map['year'] ?? '').toString(),
+      currentClass: map['currentClass'] ?? map['current_class'],
       term: map['term'],
       semester: map['semester'],
+      status: map['status'],
     );
   }
 
@@ -342,6 +356,7 @@ class ResultRecord {
 final List<Student> kStudents = [];
 
 class Subject {
+  final String? id; // Allow ID for registry operations
   final String name;
   final String code;
   final String details;
@@ -349,6 +364,7 @@ class Subject {
   final SubjectLevel level;
 
   const Subject({
+    this.id,
     required this.name,
     required this.code,
     required this.details,
@@ -357,6 +373,7 @@ class Subject {
   });
 
   Map<String, dynamic> toMap() => {
+    if (id != null) 'id': id,
     'name': name,
     'code': code,
     'details': details,
@@ -365,11 +382,16 @@ class Subject {
   };
 
   factory Subject.fromMap(Map<String, dynamic> map) => Subject(
+    id: (map['id'] ?? map['_id'] ?? '').toString(),
     name: map['name'],
     code: map['code'],
-    details: map['details'],
-    notes: map['notes'],
-    level: map['level'],
+    details: map['details'] ?? '',
+    notes: map['notes'] ?? '',
+    level: map['level'] is SubjectLevel 
+        ? map['level'] 
+        : (map['level'].toString().toLowerCase() == 'university' 
+            ? SubjectLevel.university 
+            : SubjectLevel.secondary),
   );
 }
 
@@ -401,18 +423,16 @@ const List<String> kMalawiDistricts = [
 /// ---------------------------------------------------------------------
 /// GRADING SCALE
 /// ------------------------------------------------------------
-/// Secondary (Points 1-9, 1 = best, 9 = worst) and
-/// University (GPA 4.0-0.0, Grades A-F, A = best, F = worst).
+/// Refined Scale:
+/// University (User Spec): Distinction (75+), Credit (65-74), Pass (50-64), Fail (<50)
+/// Secondary: MSCE standard (1-9 scale)
 /// ---------------------------------------------------------------------
 ({String letter, double point}) gradeFromMarks(double marks, {required bool isUniversity}) {
   if (isUniversity) {
-    if (marks >= 75) return (letter: 'A', point: 4.00);
-    if (marks >= 70) return (letter: 'B+', point: 3.50);
-    if (marks >= 65) return (letter: 'B', point: 3.00);
-    if (marks >= 60) return (letter: 'C+', point: 2.50);
-    if (marks >= 55) return (letter: 'C', point: 2.00);
-    if (marks >= 50) return (letter: 'D', point: 1.00);
-    return (letter: 'F', point: 0.00);
+    if (marks >= 75) return (letter: 'Distinction', point: 4.00);
+    if (marks >= 65) return (letter: 'Credit', point: 3.00);
+    if (marks >= 50) return (letter: 'Pass', point: 2.00);
+    return (letter: 'Fail', point: 0.00);
   } else {
     // Secondary School (MSCE style)
     if (marks >= 80) return (letter: 'Distinction', point: 1.0);
@@ -434,32 +454,55 @@ const List<String> kMalawiDistricts = [
 ({double totalMarks, double totalPoints, bool passed}) calculateSecondaryOutcome(List<ResultRecord> results) {
   if (results.isEmpty) return (totalMarks: 0, totalPoints: 0, passed: false);
 
-  // Sort by points ascending (1 is best)
-  final sorted = List<ResultRecord>.from(results)..sort((a, b) => (a.points ?? 9).compareTo(b.points ?? 9));
+  // User Spec: Annual average should be average of terms, each term using best 6
+  final terms = ['Term 1', 'Term 2', 'Term 3'];
+  double totalTermAvgs = 0;
+  int termsCount = 0;
+  double lastPoints = 99;
 
-  final bestSix = sorted.take(6).toList();
-  double totalMarks = bestSix.fold(0, (sum, r) => sum + r.marks);
-  double totalPoints = bestSix.fold(0, (sum, r) => sum + (r.points ?? 9));
+  for (var term in terms) {
+    final termResults = results.where((r) => r.term == term).toList();
+    if (termResults.isEmpty) continue;
 
-  // MSCE Pass: 6 subjects passed, including English (this is a simplification)
-  // Let's just say total points <= 36 is a pass for best 6
-  bool passed = bestSix.length >= 6 && totalPoints <= 40;
+    final sorted = List<ResultRecord>.from(termResults)..sort((a, b) => b.marks.compareTo(a.marks));
+    final best6 = sorted.take(6).toList();
+    final termAvg = best6.fold(0.0, (sum, r) => sum + r.marks) / best6.length;
+    final termPoints = best6.fold(0.0, (sum, r) => sum + (r.points ?? 9));
+    
+    totalTermAvgs += termAvg;
+    termsCount++;
+    lastPoints = termPoints; // Typically uses latest or annual best 6
+  }
 
-  return (totalMarks: totalMarks, totalPoints: totalPoints, passed: passed);
+  double finalAvg = termsCount > 0 ? totalTermAvgs / termsCount : 0;
+  bool passed = finalAvg >= 50;
+
+  return (totalMarks: finalAvg, totalPoints: lastPoints, passed: passed);
 }
 
 ({double totalMarks, double avgGpa, String status}) calculateUniversityOutcome(List<ResultRecord> results) {
   if (results.isEmpty) return (totalMarks: 0, avgGpa: 0, status: 'N/A');
 
-  double totalMarks = results.fold(0, (sum, r) => sum + r.marks);
-  double avgGpa = results.fold(0.0, (sum, r) => sum + (r.gpa ?? 0)) / results.length;
+  // User Spec: Best 5 per semester, then average of the two semesters
+  final sem1 = results.where((r) => r.semester == 'Semester 1').toList();
+  final sem2 = results.where((r) => r.semester == 'Semester 2').toList();
 
-  String status = 'Fail';
-  if (avgGpa >= 3.5) status = 'Distinction';
-  else if (avgGpa >= 3.0) status = 'Credit';
-  else if (avgGpa >= 2.0) status = 'Pass';
+  double calcSemAvg(List<ResultRecord> semResults) {
+    if (semResults.isEmpty) return 0;
+    final sorted = List<ResultRecord>.from(semResults)..sort((a, b) => b.marks.compareTo(a.marks));
+    final best5 = sorted.take(5).toList();
+    return best5.fold(0.0, (sum, r) => sum + r.marks) / best5.length;
+  }
 
-  return (totalMarks: totalMarks, avgGpa: avgGpa, status: status);
+  final avg1 = calcSemAvg(sem1);
+  final avg2 = calcSemAvg(sem2);
+
+  double finalAvg = 0;
+  if (avg1 > 0 && avg2 > 0) finalAvg = (avg1 + avg2) / 2;
+  else finalAvg = avg1 > 0 ? avg1 : avg2;
+
+  final grade = gradeFromMarks(finalAvg, isUniversity: true);
+  return (totalMarks: finalAvg, avgGpa: grade.point, status: grade.letter);
 }
 
 /// ---------------------------------------------------------------------

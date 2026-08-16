@@ -23,6 +23,7 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
   String _assignedDistrict = "Loading...";
   List<Map<String, dynamic>> _recentActivity = [];
   Map<String, dynamic>? _engagementData;
+  List<dynamic>? _cohortDistribution;
 
   @override
   void initState() {
@@ -58,10 +59,6 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
           debugPrint("DASHBOARD: Stats fetch error: $e");
           return Response(requestOptions: RequestOptions(path: ''), statusCode: 500);
         }),
-        ApiService.getRecentActivities().catchError((e) {
-          debugPrint("DASHBOARD: Activities fetch error: $e");
-          return Response(requestOptions: RequestOptions(path: ''), statusCode: 500);
-        }),
       ]).timeout(const Duration(seconds: 10), onTimeout: () {
         debugPrint("DASHBOARD: Data fetch timed out (10s)");
         return [];
@@ -95,6 +92,8 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
               }
               _pendingScholars = data['pendingScholarsCount'] ?? 0;
               _engagementData = data['engagementSeries'];
+              _cohortDistribution = data['cohorts'];
+              debugPrint("DASHBOARD: Cohort Distribution received: $_cohortDistribution");
               
               // New: Process operational log from dashboard stats if available
               if (data['operationalLog'] != null && (data['operationalLog'] as List).isNotEmpty) {
@@ -108,28 +107,6 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
               }
             });
             debugPrint("DASHBOARD: Stats processed. Total: $_totalScholars, Active: $_activeScholars");
-          }
-        }
-
-        // Fallback or secondary update from dedicated activities endpoint if needed
-        // but we prioritize the one from stats now
-        if (responses.length > 1 && _recentActivity.isEmpty) {
-          final activitiesRes = responses[1];
-          if (activitiesRes.statusCode == 200) {
-            final List? data = activitiesRes.data['data'];
-            if (data != null) {
-              setState(() {
-                _recentActivity = data.map((a) {
-                  final String actor = a['actorName'] ?? 'SYSTEM';
-                  return {
-                    'title': actor.toUpperCase(),
-                    'desc': a['message'] ?? '',
-                    'time': _formatTime(a['createdAt'] ?? a['created_at']),
-                  };
-                }).toList();
-              });
-              debugPrint("DASHBOARD: Activities processed from legacy endpoint.");
-            }
           }
         }
       }
@@ -200,7 +177,7 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
             if (isMobile)
               Column(
                 children: [
-                  _buildRecentActivitySection(isMobile),
+                  _buildCohortDistributionCard(isMobile),
                   const SizedBox(height: 24),
                   _buildQuickActionsCard(isMobile),
                 ],
@@ -209,7 +186,7 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(flex: 4, child: _buildRecentActivitySection(isMobile)),
+                  Expanded(flex: 4, child: _buildCohortDistributionCard(isMobile)),
                   const SizedBox(width: 24),
                   Expanded(flex: 3, child: _buildQuickActionsCard(isMobile)),
                 ],
@@ -227,7 +204,7 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
     final double pendingPerc = total > 0 ? (_pendingScholars / total * 100) : 0;
 
     return Container(
-      height: isMobile ? null : 400,
+      height: isMobile ? null : 480,
       padding: EdgeInsets.all(isMobile ? 24 : 32),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -337,9 +314,9 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
         children: [
           Row(
             children: [
-              _kpiCard("Scholars", _totalScholars.toString(), Icons.groups_rounded, kBrandOlive, isMobile),
+              _kpiCard("Active Scholars", _activeScholars.toString(), Icons.check_circle_outline_rounded, kBrandOlive, isMobile),
               SizedBox(width: isVerySmall ? 8 : 12),
-              _kpiCard("Schools", "$_schoolCount", Icons.location_city_rounded, kBrandBrown, isMobile),
+              _kpiCard("Target Reach", "$_schoolCount Schools", Icons.location_city_rounded, kBrandBrown, isMobile),
             ],
           ),
           SizedBox(height: isVerySmall ? 8 : 12),
@@ -347,7 +324,7 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
             children: [
               _kpiCard("Retention", "${_retentionRate.toStringAsFixed(1)}%", Icons.how_to_reg_rounded, kBrandOrange, isMobile),
               SizedBox(width: isVerySmall ? 8 : 12),
-              _kpiCard("District", _assignedDistrict, Icons.my_location_rounded, Colors.blue, isMobile),
+              _kpiCard("District Hub", _assignedDistrict, Icons.my_location_rounded, Colors.blue, isMobile),
             ],
           ),
         ],
@@ -355,13 +332,13 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
     }
     return Row(
       children: [
-        _kpiCard("Total Scholars", _totalScholars.toString(), Icons.groups_rounded, kBrandOlive, isMobile),
+        _kpiCard("Active Scholars", _activeScholars.toString(), Icons.check_circle_outline_rounded, kBrandOlive, isMobile),
         const SizedBox(width: 20),
         _kpiCard("Program Reach", "$_schoolCount Schools", Icons.location_city_rounded, kBrandBrown, isMobile),
         const SizedBox(width: 20),
         _kpiCard("Retention Rate", "${_retentionRate.toStringAsFixed(1)}%", Icons.how_to_reg_rounded, kBrandOrange, isMobile),
         const SizedBox(width: 20),
-        _kpiCard("Operational Focus", _assignedDistrict, Icons.my_location_rounded, Colors.blue, isMobile),
+        _kpiCard("District Hub", _assignedDistrict, Icons.my_location_rounded, Colors.blue, isMobile),
       ],
     );
   }
@@ -435,7 +412,7 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
     final levelColors = {"Frequent": kBrandOlive, "Moderate": kBrandOrange, "Rare": Colors.red};
 
     return Container(
-      height: isMobile ? null : 400,
+      height: isMobile ? null : 480,
       padding: EdgeInsets.all(isMobile ? 24 : 32),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -531,7 +508,7 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
 
   Widget _buildQuickActionsCard(bool isMobile) {
     return Container(
-      height: isMobile ? null : 400,
+      height: isMobile ? null : 480,
       padding: EdgeInsets.all(isMobile ? 24 : 32),
       decoration: BoxDecoration(
         color: kBrandBrown,
@@ -589,71 +566,97 @@ class _FieldOperationsDashboardState extends State<FieldOperationsDashboard> {
     );
   }
 
-  Widget _buildRecentActivitySection(bool isMobile) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text("OPERATIONAL LOG",
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.0)),
-        const SizedBox(height: 16),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.grey.shade200),
-          ),
-          child: ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _recentActivity.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
-            itemBuilder: (context, index) {
-              final activity = _recentActivity[index];
-              return ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), shape: BoxShape.circle),
-                  child: const Icon(Icons.flash_on_rounded, color: kBrandOlive, size: 14),
-                ),
-                title: Text(
-                  activity['title'], 
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                subtitle: Text(
-                  activity['desc'], 
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                trailing: Row(
+  Widget _buildCohortDistributionCard(bool isMobile) {
+    final List<dynamic> cohorts = _cohortDistribution ?? [];
+    final List<Color> colors = [kBrandOlive, kBrandBrown, kBrandOrange, Colors.blue, Colors.purple];
+
+    return Container(
+      height: isMobile ? null : 480,
+      padding: EdgeInsets.all(isMobile ? 24 : 32),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 15, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("COHORT DISTRIBUTION",
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: kBrandBrown)),
+          const SizedBox(height: 4),
+          const Text("Active secondary scholars by registration intake",
+            style: TextStyle(fontSize: 12, color: Colors.grey)),
+          const SizedBox(height: 32),
+          if (cohorts.isEmpty)
+            Center(
+              child: Column(
+                children: [
+                  const SizedBox(height: 40),
+                  Icon(Icons.pie_chart_outline_rounded, size: 64, color: Colors.grey.shade100),
+                  const SizedBox(height: 16),
+                  const Text("Cohort data pending synchronization.", 
+                    style: TextStyle(color: Colors.grey, fontSize: 12, fontStyle: FontStyle.italic)),
+                ],
+              ),
+            )
+          else ...[
+            SizedBox(
+              height: 220,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  PieChart(
+                    PieChartData(
+                      sectionsSpace: 0,
+                      centerSpaceRadius: isMobile ? 40 : 60,
+                      startDegreeOffset: -90,
+                      sections: List.generate(cohorts.length, (i) {
+                        final c = cohorts[i];
+                        final double val = double.tryParse(c['count']?.toString() ?? '0') ?? 0;
+                        return PieChartSectionData(
+                          color: colors[i % colors.length],
+                          value: val,
+                          title: "${val.toInt()}",
+                          radius: isMobile ? 30 : 40,
+                          showTitle: true,
+                          titleStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                        );
+                      }),
+                    ),
+                  ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text("${_activeScholars + _pendingScholars}", 
+                        style: TextStyle(fontSize: isMobile ? 20 : 28, fontWeight: FontWeight.w900, color: kBrandBrown)),
+                      Text("SCHOLARS", 
+                        style: TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
+            Wrap(
+              spacing: 16,
+              runSpacing: 8,
+              children: List.generate(cohorts.length, (i) {
+                final c = cohorts[i];
+                final String label = c['cohort']?.toString() ?? c['_id']?.toString() ?? 'Unknown';
+                return Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(activity['time'], style: const TextStyle(color: Colors.grey, fontSize: 10)),
+                    Container(width: 10, height: 10, decoration: BoxDecoration(color: colors[i % colors.length], shape: BoxShape.circle)),
                     const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded, size: 16, color: Colors.grey),
-                      onPressed: () {
-                        setState(() {
-                          _recentActivity.removeAt(index);
-                        });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Log entry removed from view"), duration: Duration(seconds: 1)),
-                        );
-                      },
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      visualDensity: VisualDensity.compact,
-                    ),
+                    Text("$label Intake", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: kBrandBrown)),
                   ],
-                ),
-              );
-            },
-          ),
-        ),
-      ],
+                );
+              }),
+            ),
+          ],
+        ],
+      ),
     );
   }
-
 }

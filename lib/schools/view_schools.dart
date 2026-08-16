@@ -16,7 +16,15 @@ class ViewSchoolsComponent extends StatefulWidget {
   final VoidCallback? onRegisterSchool;
   final String? forcedLevel;
   final bool hideRegistration;
-  const ViewSchoolsComponent({super.key, this.onBack, this.onRegisterSchool, this.forcedLevel, this.hideRegistration = false});
+  final bool showBackButton;
+  const ViewSchoolsComponent({
+    super.key, 
+    this.onBack, 
+    this.onRegisterSchool, 
+    this.forcedLevel, 
+    this.hideRegistration = false,
+    this.showBackButton = true,
+  });
 
   @override
   State<ViewSchoolsComponent> createState() => _ViewSchoolsComponentState();
@@ -221,19 +229,21 @@ class _ViewSchoolsComponentState extends State<ViewSchoolsComponent> {
       ),
       child: Row(
         children: [
-          IconButton(
-            onPressed: widget.onBack ?? () {
-              if (Navigator.canPop(context)) {
-                Navigator.pop(context);
-              } else {
-                Navigator.pushReplacementNamed(context, '/home');
-              }
-            },
-            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-          const SizedBox(width: 16),
+          if (widget.showBackButton) ...[
+            IconButton(
+              onPressed: widget.onBack ?? () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
+              },
+              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 16),
+          ],
           if (!_isSearchExpanded)
             Expanded(
               child: Text(

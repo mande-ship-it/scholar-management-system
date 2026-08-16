@@ -46,7 +46,6 @@ import 'pages/academicPages/academic_stats.dart';
 
 // Attendance Pages
 import 'pages/attendancePages/attendance_history.dart';
-import 'pages/attendancePages/attendance_reports.dart';
 
 // User Pages
 import 'pages/userPages/create_user.dart';
@@ -223,7 +222,6 @@ class MyApp extends StatelessWidget {
 
             // Attendance
             '/attendance/attendanceHistory': (context) => AttendanceHistoryPage(),
-            '/attendance/attendanceReports': (context) => AttendanceModuleReportsPage(),
 
             // Users
             '/users/create': (context) => CreateUserPage(),

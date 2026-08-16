@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import '../academics/academics_utils.dart';
+import '../academics/performance_analysis.dart';
 import 'package:scholar_management_system/services/api_service.dart';
 import 'view_scholars.dart'; // To access showEditScholarDialog
 
 class ScholarProfileComponent extends StatefulWidget {
   final String? scholarId;
   final VoidCallback? onBack;
-  const ScholarProfileComponent({super.key, this.scholarId, this.onBack});
+  final bool showBackButton;
+  const ScholarProfileComponent({super.key, this.scholarId, this.onBack, this.showBackButton = true});
 
   @override
   State<ScholarProfileComponent> createState() => _ScholarProfileComponentState();
@@ -268,72 +270,168 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
 
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            children: [
-              IconButton(
-                onPressed: widget.onBack ?? () {
-                  if (Navigator.canPop(context)) {
-                    Navigator.pop(context);
-                  } else {
-                    Navigator.pushReplacementNamed(context, '/home');
-                  }
-                },
-                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-              const SizedBox(width: 16),
-              _heroAvatar(student, isVerySmall ? 32 : 40),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          // Upper Action Bar
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
+            child: Row(
+              children: [
+                if (widget.showBackButton) ...[
+                  IconButton(
+                    onPressed: widget.onBack ?? () => Navigator.pop(context),
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  const SizedBox(width: 16),
+                ],
+                const Text("SCHOLAR DOSSIER", 
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.2)),
+                const Spacer(),
+                _buildActionMenu(student),
+              ],
+            ),
+          ),
+          
+          // Main Identity Section
+          Container(
+            padding: EdgeInsets.fromLTRB(isVerySmall ? 16 : 40, 8, isVerySmall ? 16 : 40, 32),
+            child: isVerySmall 
+              ? Column(
                   children: [
+                    _heroAvatar(student, 80),
+                    const SizedBox(height: 20),
                     Text(student.name.toUpperCase(), 
-                      style: TextStyle(fontSize: isVerySmall ? 13 : 15, fontWeight: FontWeight.w900, color: const Color(0xFF4C3C32), letterSpacing: -0.2),
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
-                    Text("ID: ${student.scholarId}", style: TextStyle(fontSize: 9, color: Colors.grey.shade500, fontWeight: FontWeight.bold)),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), letterSpacing: -0.5)),
+                    const SizedBox(height: 8),
+                    _statusBadge(isActive, status, false),
+                  ],
+                )
+              : Row(
+                  children: [
+                    _heroAvatar(student, 100),
+                    const SizedBox(width: 32),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(student.name.toUpperCase(), 
+                                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), letterSpacing: -0.8)),
+                              ),
+                              _statusBadge(isActive, status, false),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              _miniInfoChip(Icons.badge_outlined, student.scholarId),
+                              const SizedBox(width: 12),
+                              _miniInfoChip(Icons.school_outlined, student.schoolName),
+                              const SizedBox(width: 12),
+                              _miniInfoChip(Icons.location_on_outlined, student.district),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
-              ),
-              const SizedBox(width: 8),
-              if (!isVerySmall) _statusIndicator(status, isActive),
-              const SizedBox(width: 8),
-              PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert_rounded, color: Colors.grey, size: 20),
-                onSelected: (val) {
-                   if (val == 'ai') Scaffold.of(context).openEndDrawer();
-                   if (val == 'edit') {
-                     final scholarMap = _getScholarMap(student);
-                     showEditScholarDialog(context, scholarMap).then((_) => _fetchScholarData(student.id, null));
-                   }
-                   if (val == 'approve') _approveScholar();
-                   if (val == 'reject') _rejectScholar();
-                   if (val == 'delete') _deleteScholar();
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(value: 'ai', child: Row(children: [Icon(Icons.auto_awesome, size: 18, color: kBrandOlive), SizedBox(width: 8), Text("AI Assistant")])),
-                  const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit_outlined, size: 18), SizedBox(width: 8), Text("Modify Profile")])),
-                  if (student.status == 'Pending' && ['Administrator', 'Program Coordinator', 'Country Director'].contains(_userRole)) ...[
-                    const PopupMenuItem(value: 'approve', child: Row(children: [Icon(Icons.check_circle_outline, size: 18, color: kBrandOlive), SizedBox(width: 8), Text("Approve")])),
-                    const PopupMenuItem(value: 'reject', child: Row(children: [Icon(Icons.close_rounded, size: 18, color: kBrandOrange), SizedBox(width: 8), Text("Reject")])),
-                  ],
-                  if (['Administrator', 'Program Coordinator', 'Country Director'].contains(_userRole))
-                    const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete_outline, size: 18, color: Colors.red), SizedBox(width: 8), Text("Archive / Delete")])),
-                ],
-              ),
-            ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _miniInfoChip(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: kBrandOlive),
+          const SizedBox(width: 6),
+          Text(text, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.grey)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionMenu(Student student) {
+    return PopupMenuButton<String>(
+      icon: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: kBrandBrown.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: const Icon(Icons.tune_rounded, color: kBrandBrown, size: 20),
+      ),
+      onSelected: (val) {
+         if (val == 'ai') Scaffold.of(context).openEndDrawer();
+         if (val == 'analysis') {
+           showGeneralDialog(
+             context: context,
+             barrierDismissible: true,
+             barrierLabel: "Scholar Analysis",
+             barrierColor: Colors.black.withOpacity(0.5),
+             transitionDuration: const Duration(milliseconds: 220),
+             pageBuilder: (ctx, anim1, anim2) => const SizedBox.shrink(),
+             transitionBuilder: (ctx, anim, secondaryAnim, child) {
+               return FadeTransition(
+                 opacity: anim,
+                 child: Dialog(
+                   backgroundColor: Colors.transparent,
+                   insetPadding: const EdgeInsets.all(24),
+                   child: ClipRRect(
+                     borderRadius: BorderRadius.circular(16),
+                     child: Scaffold(
+                       body: PerformanceAnalysisComponent(
+                         scholarId: student.id,
+                         onBack: () => Navigator.pop(ctx),
+                       ),
+                     ),
+                   ),
+                 ),
+               );
+             },
+           );
+         }
+         if (val == 'edit') {
+           final scholarMap = _getScholarMap(student);
+           showEditScholarDialog(context, scholarMap).then((_) => _fetchScholarData(student.id, null));
+         }
+         if (val == 'approve') _approveScholar();
+         if (val == 'reject') _rejectScholar();
+         if (val == 'delete') _deleteScholar();
+      },
+      itemBuilder: (context) => [
+        const PopupMenuItem(value: 'ai', child: Row(children: [Icon(Icons.auto_awesome, size: 18, color: kBrandOlive), SizedBox(width: 8), Text("Consult Smart Analyst")])),
+        const PopupMenuItem(value: 'analysis', child: Row(children: [Icon(Icons.insights_rounded, size: 18, color: Colors.blue), SizedBox(width: 8), Text("Performance Audit")])),
+        const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit_outlined, size: 18), SizedBox(width: 8), Text("Edit Record")])),
+        if (student.status == 'Pending' && ['Administrator', 'Program Coordinator', 'Country Director'].contains(_userRole)) ...[
+          const PopupMenuDivider(),
+          const PopupMenuItem(value: 'approve', child: Row(children: [Icon(Icons.check_circle_outline, size: 18, color: kBrandOlive), SizedBox(width: 8), Text("Approve Registration")])),
+          const PopupMenuItem(value: 'reject', child: Row(children: [Icon(Icons.close_rounded, size: 18, color: kBrandOrange), SizedBox(width: 8), Text("Reject Application")])),
+        ],
+        if (['Administrator', 'Program Coordinator', 'Country Director'].contains(_userRole)) ...[
+          const PopupMenuDivider(),
+          const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete_outline, size: 18, color: Colors.red), SizedBox(width: 8), Text("Delete Permanently", style: TextStyle(color: Colors.red))])),
+        ]
+      ],
     );
   }
 
@@ -569,7 +667,11 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
 
   Widget _buildProgressionTab(Student student, bool isSmall, bool isMobile) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const Text("PROGRSSION AUDIT", 
+          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+        const SizedBox(height: 16),
         _infoSection(
           title: "Current Progression Status",
           icon: Icons.track_changes_rounded,
@@ -578,93 +680,32 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
           child: Column(
             children: [
               if (isSmall || isMobile) ...[
-                _infoTile("Progression State", student.progressionStatus, isBold: true),
+                _infoTile("Current State", student.progressionStatus, isBold: true),
                 const SizedBox(height: 16),
-                _infoTile("Years Remaining", "${student.calculatedRemainingYears} Years"),
+                _infoTile("Remaining Tenure", "${student.calculatedRemainingYears} Years"),
               ] else ...[
                 Row(
                   children: [
-                    Expanded(child: _infoTile("Progression State", student.progressionStatus, isBold: true)),
-                    Expanded(child: _infoTile("Years Remaining", "${student.calculatedRemainingYears} Years")),
+                    Expanded(child: _infoTile("Current State", student.progressionStatus, isBold: true)),
+                    Expanded(child: _infoTile("Remaining Tenure", "${student.calculatedRemainingYears} Years")),
                   ],
                 ),
               ],
-              const Divider(height: 32),
-              Text(
-                "Note: Scholars are automatically promoted based on their term/semester averages. A minimum of 50% is required to move to the next class.",
-                style: TextStyle(fontSize: isSmall ? 10 : 12, color: Colors.grey, fontStyle: FontStyle.italic),
-              ),
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 32),
         _infoSection(
-          title: "Academic Milestone History",
+          title: "Historical Progression Ledger",
           icon: Icons.history_rounded,
           isMobile: isMobile,
           isSmall: isSmall,
           child: Column(
             children: [
               if (student.progressionHistory.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 40),
-                  child: Text("No progression history recorded yet.", style: TextStyle(color: Colors.grey, fontStyle: FontStyle.italic, fontSize: isSmall ? 11 : 13)),
-                )
+                _emptyAcademicPlaceholder()
               else
-                ...student.progressionHistory.map((h) => Container(
-                  margin: const EdgeInsets.only(bottom: 16),
-                  padding: EdgeInsets.all(isSmall ? 12 : 16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text("Year: ${h['year']}", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown, fontSize: isSmall ? 12 : 14)),
-                          _badge(
-                            h['result'],
-                            h['result'] == 'Moved' ? Colors.green.shade50 : Colors.red.shade50,
-                            h['result'] == 'Moved' ? Colors.green.shade700 : Colors.red.shade700,
-                            isSmall: isSmall
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      if (isSmall || isMobile) ...[
-                        _infoTile("From", h['from_class'], isSmall: isSmall),
-                        const SizedBox(height: 8),
-                        _infoTile("To", h['to_class'], isSmall: isSmall),
-                        const SizedBox(height: 8),
-                        _infoTile("Avg", "${h['average']}%", isSmall: isSmall),
-                      ] else ...[
-                        Row(
-                          children: [
-                            Expanded(child: _infoTile("From", h['from_class'])),
-                            Expanded(child: _infoTile("To", h['to_class'])),
-                            Expanded(child: _infoTile("Avg", "${h['average']}%")),
-                          ],
-                        ),
-                      ],
-                      if (h['ai_insight'] != null) ...[
-                        const Divider(height: 24),
-                        Row(
-                          children: [
-                            const Icon(Icons.auto_awesome_rounded, size: 16, color: kBrandOlive),
-                            const SizedBox(width: 8),
-                            Text("AI Insight", style: TextStyle(fontSize: isSmall ? 10 : 12, fontWeight: FontWeight.bold, color: kBrandOlive)),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(h['ai_insight'], style: TextStyle(fontSize: isSmall ? 11 : 13, color: Colors.black87, height: 1.4)),
-                      ],
-                    ],
-                  ),
-                )),
+                ...student.progressionHistory.map((h) => _ledgerEntry(h, isSmall, isMobile)),
             ],
           ),
         ),
@@ -672,167 +713,173 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
     );
   }
 
+  Widget _ledgerEntry(dynamic h, bool isSmall, bool isMobile) {
+    final bool isPositive = h['result'].toString().toLowerCase().contains('promoted') || 
+                          h['result'].toString().toLowerCase().contains('graduated');
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text("${h['year']} CYCLE", style: const TextStyle(fontWeight: FontWeight.w900, color: kBrandBrown, fontSize: 13, letterSpacing: 0.5)),
+              _miniBadge(h['result'].toUpperCase(), isPositive ? Colors.green : Colors.orange),
+            ],
+          ),
+          const Divider(height: 32),
+          Row(
+            children: [
+              Expanded(child: _infoTile("FROM", h['from_class'], isSmall: true)),
+              Icon(Icons.arrow_forward_rounded, size: 14, color: Colors.grey.shade300),
+              const SizedBox(width: 16),
+              Expanded(child: _infoTile("TO", h['to_class'], isSmall: true)),
+              Expanded(child: _infoTile("CLASS AVG", "${h['average']}%", isSmall: true)),
+            ],
+          ),
+          if (h['ai_insight'] != null) ...[
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), border: Border.all(color: kBrandOlive.withOpacity(0.1))),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.auto_awesome_rounded, size: 14, color: kBrandOlive),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(h['ai_insight'], style: const TextStyle(fontSize: 12, color: Colors.black54, height: 1.4))),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildOverviewTab(Student student, Map<String, dynamic>? args, bool isSmall, bool isMobile) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const Text("BIOMETRIC & ORIGIN DATA", 
+          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
+        const SizedBox(height: 16),
         _infoSection(
-          title: "Institutional Affiliation",
+          title: "Program Placement",
           icon: Icons.school_outlined,
           isMobile: isMobile,
           isSmall: isSmall,
           child: Column(
             children: [
-              _infoTile("Current Institution", student.schoolName, isBold: true, isSmall: isSmall),
+              _infoTile("Partner Institution", student.schoolName, isBold: true, isSmall: isSmall),
               const Divider(height: 32),
-              if (isSmall || isMobile) ...[
-                _infoTile("Relative Year", student.calculatedRelativeYear, isSmall: isSmall),
-                const SizedBox(height: 16),
-                _infoTile("Current Label", student.calculatedAcademicYear, isSmall: isSmall),
-              ] else ...[
-                Row(
-                  children: [
-                    Expanded(child: _infoTile("Relative Year", student.calculatedRelativeYear)),
-                    Expanded(child: _infoTile("Current Label", student.calculatedAcademicYear)),
-                  ],
-                ),
-              ],
+              Row(
+                children: [
+                  Expanded(child: _infoTile("Program Tier", student.schoolType == SchoolType.secondary ? 'Secondary' : 'University', isSmall: isSmall)),
+                  Expanded(child: _infoTile("Qualification", student.programType.isNotEmpty ? student.programType : 'N/A', isSmall: isSmall)),
+                ],
+              ),
               const Divider(height: 32),
-              if (isSmall || isMobile) ...[
-                _infoTile("Program Duration", "${student.programDurationYears} Years", isSmall: isSmall),
-                const SizedBox(height: 16),
-                _infoTile("Years Remaining", "${student.calculatedRemainingYears} Years", isSmall: isSmall),
-              ] else ...[
-                Row(
-                  children: [
-                    Expanded(child: _infoTile("Program Duration", "${student.programDurationYears} Years")),
-                    Expanded(child: _infoTile("Years Remaining", "${student.calculatedRemainingYears} Years")),
-                  ],
-                ),
-              ],
-              const Divider(height: 32),
-              if (isSmall || isMobile) ...[
-                _infoTile("Previous School", student.previousSchool, isSmall: isSmall),
-                const SizedBox(height: 16),
-                _infoTile("Qualification", student.programType.isNotEmpty ? student.programType : 'N/A', isSmall: isSmall),
-              ] else ...[
-                Row(
-                  children: [
-                    Expanded(child: _infoTile("Previous School", student.previousSchool)),
-                    Expanded(child: _infoTile("Qualification", student.programType.isNotEmpty ? student.programType : 'N/A')),
-                  ],
-                ),
-              ],
+              Row(
+                children: [
+                  Expanded(child: _infoTile("Relative Year", student.calculatedRelativeYear, isSmall: isSmall)),
+                  Expanded(child: _infoTile("Remaining Tenure", "${student.calculatedRemainingYears} Years", isSmall: isSmall)),
+                ],
+              ),
               if (student.schoolType == SchoolType.university) ...[
                 const Divider(height: 32),
-                _infoTile("Program of Study", student.programName, isBold: true, isSmall: isSmall),
+                _infoTile("Course of Study", student.programName, isBold: true, isSmall: isSmall),
               ],
             ],
           ),
         ),
-        const SizedBox(height: 16),
-        if (isSmall || isMobile) ...[
-          _infoSection(
-            title: "Personal Details",
-            icon: Icons.badge_outlined,
-            isMobile: isMobile,
-            isSmall: isSmall,
-            child: Column(
-              children: [
-                _infoRow(Icons.wc, "Sex", args?['sex'] ?? 'Female', isSmall: isSmall),
-                _infoRow(Icons.cake_outlined, "DOB", args?['dob'] ?? '2009-05-12', isSmall: isSmall),
-                _infoRow(Icons.phone_outlined, "Phone", args?['phone'] ?? '+265 888 123 456', isSmall: isSmall),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-          _infoSection(
-            title: "Home & Origin",
-            icon: Icons.map_outlined,
-            isMobile: isMobile,
-            isSmall: isSmall,
-            child: Column(
-              children: [
-                _infoRow(Icons.location_on_outlined, "District", args?['district'] ?? 'Mzimba', isSmall: isSmall),
-                _infoRow(Icons.home_outlined, "Village", args?['village'] ?? 'Chilinde', isSmall: isSmall),
-                _infoRow(Icons.volunteer_activism_outlined, "Donor", args?['donor'] ?? 'PMI', isSmall: isSmall),
-              ],
-            ),
-          ),
-        ] else ...[
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _infoSection(
-                  title: "Personal Details",
-                  icon: Icons.badge_outlined,
-                  child: Column(
-                    children: [
-                      _infoRow(Icons.wc, "Sex", args?['sex'] ?? 'Female'),
-                      _infoRow(Icons.cake_outlined, "DOB", args?['dob'] ?? '2009-05-12'),
-                      _infoRow(Icons.phone_outlined, "Phone", args?['phone'] ?? '+265 888 123 456'),
-                    ],
-                  ),
+        const SizedBox(height: 24),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _infoSection(
+                title: "Personal Identity",
+                icon: Icons.badge_outlined,
+                isSmall: true,
+                child: Column(
+                  children: [
+                    _compactDetailRow(Icons.wc, "Gender", args?['sex'] ?? 'Female'),
+                    _compactDetailRow(Icons.cake_outlined, "Birth Date", args?['dob'] ?? '2009-05-12'),
+                    _compactDetailRow(Icons.phone_outlined, "Direct Contact", args?['phone'] ?? 'N/A'),
+                  ],
                 ),
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _infoSection(
-                  title: "Home & Origin",
-                  icon: Icons.map_outlined,
-                  child: Column(
-                    children: [
-                      _infoRow(Icons.location_on_outlined, "District", args?['district'] ?? 'Mzimba'),
-                      _infoRow(Icons.home_outlined, "Village", args?['village'] ?? 'Chilinde'),
-                      _infoRow(Icons.volunteer_activism_outlined, "Donor", args?['donor'] ?? 'PMI'),
-                    ],
-                  ),
+            ),
+            const SizedBox(width: 24),
+            Expanded(
+              child: _infoSection(
+                title: "Origin & Funding",
+                icon: Icons.map_outlined,
+                isSmall: true,
+                child: Column(
+                  children: [
+                    _compactDetailRow(Icons.location_on_outlined, "Home District", args?['district'] ?? 'N/A'),
+                    _compactDetailRow(Icons.home_outlined, "Community", args?['village'] ?? 'N/A'),
+                    _compactDetailRow(Icons.volunteer_activism_outlined, "Sponsor", args?['donor'] ?? 'General Fund'),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ],
-        const SizedBox(height: 16),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
         _infoSection(
-          title: "Parent / Guardian Information",
+          title: "Guardianship & Family",
           icon: Icons.family_restroom_outlined,
           isMobile: isMobile,
           isSmall: isSmall,
           child: Column(
             children: [
-              _infoTile("Primary Guardian", student.guardianName ?? 'Not Provided', isBold: true, isSmall: isSmall),
+              _infoTile("Primary Guardian", student.guardianName ?? 'Not Registered', isBold: true, isSmall: isSmall),
               const Divider(height: 32),
-              if (isSmall || isMobile) ...[
-                _infoTile("Relationship", student.guardianRelation ?? 'N/A', isSmall: isSmall),
-                const SizedBox(height: 16),
-                _infoTile("Phone", student.guardianPhone ?? 'N/A', isSmall: isSmall),
-              ] else ...[
-                Row(
-                  children: [
-                    Expanded(child: _infoTile("Relationship", student.guardianRelation ?? 'N/A')),
-                    Expanded(child: _infoTile("Phone", student.guardianPhone ?? 'N/A')),
-                  ],
-                ),
-              ],
-              if (student.guardianEmail != null || student.guardianOccupation != null) ...[
-                const Divider(height: 32),
-                if (isSmall || isMobile) ...[
-                  _infoTile("Email", student.guardianEmail ?? 'N/A', isSmall: isSmall),
-                  const SizedBox(height: 16),
-                  _infoTile("Occupation", student.guardianOccupation ?? 'N/A', isSmall: isSmall),
-                ] else ...[
-                  Row(
-                    children: [
-                      Expanded(child: _infoTile("Email", student.guardianEmail ?? 'N/A')),
-                      Expanded(child: _infoTile("Occupation", student.guardianOccupation ?? 'N/A')),
-                    ],
-                  ),
+              Row(
+                children: [
+                  Expanded(child: _infoTile("Relationship", student.guardianRelation ?? 'N/A', isSmall: isSmall)),
+                  Expanded(child: _infoTile("Primary Contact", student.guardianPhone ?? 'N/A', isSmall: isSmall)),
                 ],
+              ),
+              if (student.guardianEmail != null && student.guardianEmail!.isNotEmpty) ...[
+                const Divider(height: 32),
+                _infoTile("Email Correspondence", student.guardianEmail!, isSmall: isSmall),
               ],
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _compactDetailRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: Colors.grey.shade400),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label.toUpperCase(), style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 0.5)),
+                Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF4C3C32))),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -851,50 +898,143 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
       }
     }
 
-    if (isSmall || isMobile) {
-      return Column(
-        children: [
-          _statCard("Average Mark", "${avg.toStringAsFixed(1)}%", band.color, Icons.analytics_rounded, true, isSmall: isSmall),
-          const SizedBox(height: 12),
-          if (student.schoolType == SchoolType.university) ...[
-            _statCard("Cumulative GPA", totalGpa.toStringAsFixed(2), kBrandOlive, Icons.school_rounded, true, isSmall: isSmall),
-            const SizedBox(height: 12),
-          ],
-          _statCard("Standing", band.label, band.color, Icons.stars_rounded, true, isSmall: isSmall),
-          const SizedBox(height: 12),
-          _statCard("Best Subject", bestResult?.subject ?? 'N/A', kBrandOlive, Icons.emoji_events_outlined, true, isSmall: isSmall),
-          const SizedBox(height: 12),
-          _statCard("Total Records", "${records.length}", kBrandBrown, Icons.inventory_2_outlined, true, isSmall: isSmall),
-          const SizedBox(height: 24),
-          _buildPerformanceBreakdown(records, isSmall, isMobile),
-        ],
-      );
-    }
-
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(child: _statCard("Average Mark", "${avg.toStringAsFixed(1)}%", band.color, Icons.analytics_rounded, false)),
-            const SizedBox(width: 16),
-            if (student.schoolType == SchoolType.university) ...[
-              Expanded(child: _statCard("Cumulative GPA", totalGpa.toStringAsFixed(2), kBrandOlive, Icons.school_rounded, false)),
-              const SizedBox(width: 16),
-            ],
-            Expanded(child: _statCard("Standing", band.label, band.color, Icons.stars_rounded, false)),
-          ],
-        ),
+        const Text("ACADEMIC STANDING", 
+          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 1.5)),
         const SizedBox(height: 16),
-        Row(
+        if (isSmall || isMobile) ...[
+          _executiveStatCard("Cumulative Average", "${avg.toStringAsFixed(1)}%", band.color, Icons.analytics_rounded),
+          const SizedBox(height: 16),
+          if (student.schoolType == SchoolType.university) ...[
+            _executiveStatCard("University GPA", totalGpa.toStringAsFixed(2), kBrandOlive, Icons.school_rounded),
+            const SizedBox(height: 16),
+          ],
+          _executiveStatCard("Merit Standing", band.label.toUpperCase(), band.color, Icons.stars_rounded),
+        ] else ...[
+          Row(
+            children: [
+              Expanded(child: _executiveStatCard("Cumulative Average", "${avg.toStringAsFixed(1)}%", band.color, Icons.analytics_rounded)),
+              const SizedBox(width: 20),
+              if (student.schoolType == SchoolType.university) ...[
+                Expanded(child: _executiveStatCard("University GPA", totalGpa.toStringAsFixed(2), kBrandOlive, Icons.school_rounded)),
+                const SizedBox(width: 20),
+              ],
+              Expanded(child: _executiveStatCard("Merit Standing", band.label.toUpperCase(), band.color, Icons.stars_rounded)),
+            ],
+          ),
+        ],
+        const SizedBox(height: 32),
+        _infoSection(
+          title: "Detailed Course Transcript",
+          icon: Icons.assignment_outlined,
+          isMobile: isMobile,
+          isSmall: isSmall,
+          child: Column(
+            children: [
+              if (records.isEmpty)
+                _emptyAcademicPlaceholder()
+              else
+                ...records.map((r) => _transcriptRow(r, isSmall)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _executiveStatCard(String label, String value, Color color, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), letterSpacing: -0.5)),
+                Text(label.toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.grey, letterSpacing: 0.5)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _transcriptRow(ResultRecord r, bool isSmall) {
+    final bool isPassing = r.marks >= 50;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 3,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(r.subject.toUpperCase(), 
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: Color(0xFF4C3C32))),
+                Text("${r.year} • ${r.term ?? r.semester ?? 'Session'}", 
+                  style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey)),
+              ],
+            ),
+          ),
+          Expanded(
+            flex: 1,
+            child: Container(
+              alignment: Alignment.centerRight,
+              child: Text("${r.marks.toInt()}%", 
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: isPassing ? kBrandOlive : kBrandOrange)),
+            ),
+          ),
+          const SizedBox(width: 16),
+          _miniBadge(isPassing ? "PASS" : "FAIL", isPassing ? Colors.green : Colors.red),
+        ],
+      ),
+    );
+  }
+
+  Widget _miniBadge(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+      child: Text(label, style: TextStyle(color: color, fontSize: 8, fontWeight: FontWeight.w900)),
+    );
+  }
+
+  Widget _emptyAcademicPlaceholder() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 60),
+      child: Center(
+        child: Column(
           children: [
-            Expanded(child: _statCard("Best Subject", bestResult?.subject ?? 'N/A', kBrandOlive, Icons.emoji_events_outlined, false)),
-            const SizedBox(width: 16),
-            Expanded(child: _statCard("Total Records", "${records.length}", kBrandBrown, Icons.inventory_2_outlined, false)),
+            Icon(Icons.history_edu_rounded, size: 48, color: Colors.grey.shade200),
+            const SizedBox(height: 16),
+            const Text("No Academic Records", style: TextStyle(fontWeight: FontWeight.w800, color: Colors.grey, fontSize: 13)),
+            const Text("Historical examination data pending synchronization.", style: TextStyle(color: Colors.grey, fontSize: 11)),
           ],
         ),
-        const SizedBox(height: 24),
-        _buildPerformanceBreakdown(records, isSmall, isMobile),
-      ],
+      ),
     );
   }
 
@@ -1076,5 +1216,22 @@ class _ScholarProfileComponentState extends State<ScholarProfileComponent> {
     );
   }
 
-
+  Widget _statusBadge(bool isActive, String status, bool isSmall) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: isSmall ? 8 : 12, vertical: isSmall ? 4 : 6),
+      decoration: BoxDecoration(
+        color: isActive ? const Color(0xFF9AB334).withOpacity(0.1) : const Color(0xFFE05B1C).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        status.toUpperCase(),
+        style: TextStyle(
+          color: isActive ? const Color(0xFF9AB334) : const Color(0xFFE05B1C), 
+          fontWeight: FontWeight.w900, 
+          fontSize: isSmall ? 9 : 10,
+          letterSpacing: 0.5
+        ),
+      ),
+    );
+  }
 }

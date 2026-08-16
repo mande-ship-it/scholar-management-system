@@ -7,7 +7,15 @@ class ViewSchoolsPage extends StatelessWidget {
   final VoidCallback? onRegisterSchool;
   final String? forcedLevel;
   final bool hideRegistration;
-  const ViewSchoolsPage({super.key, this.onBack, this.onRegisterSchool, this.forcedLevel, this.hideRegistration = false});
+  final bool showBackButton;
+  const ViewSchoolsPage({
+    super.key, 
+    this.onBack, 
+    this.onRegisterSchool, 
+    this.forcedLevel, 
+    this.hideRegistration = false,
+    this.showBackButton = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -16,6 +24,7 @@ class ViewSchoolsPage extends StatelessWidget {
       onRegisterSchool: onRegisterSchool,
       forcedLevel: forcedLevel,
       hideRegistration: hideRegistration,
+      showBackButton: showBackButton,
     );
   }
 }

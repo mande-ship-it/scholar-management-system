@@ -6,6 +6,7 @@ class SocketService {
   static IO.Socket? _socket;
   static final List<Function(Map<String, dynamic>)> _messageListeners = [];
   static final List<Function(Map<String, dynamic>)> _callListeners = [];
+  static final List<Function(Map<String, dynamic>)> _notificationListeners = [];
 
   static void init(String userId) {
     if (_socket != null) return;
@@ -32,6 +33,12 @@ class SocketService {
 
     _socket!.on('incoming_call', (data) {
       for (var listener in _callListeners) {
+        listener(Map<String, dynamic>.from(data));
+      }
+    });
+
+    _socket!.on('notification', (data) {
+      for (var listener in _notificationListeners) {
         listener(Map<String, dynamic>.from(data));
       }
     });
@@ -75,6 +82,14 @@ class SocketService {
 
   static void removeCallListener(Function(Map<String, dynamic>) listener) {
     _callListeners.remove(listener);
+  }
+
+  static void addNotificationListener(Function(Map<String, dynamic>) listener) {
+    _notificationListeners.add(listener);
+  }
+
+  static void removeNotificationListener(Function(Map<String, dynamic>) listener) {
+    _notificationListeners.remove(listener);
   }
 
   static void disconnect() {

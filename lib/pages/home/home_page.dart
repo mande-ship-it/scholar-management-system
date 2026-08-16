@@ -4,7 +4,6 @@ import 'package:flutter/services.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../../services/api_service.dart';
 import '../../academics/academics_utils.dart';
-import 'package:intl/intl.dart';
 
 // Dashboard
 import '../dashboardPages/dashboard.dart';
@@ -16,14 +15,7 @@ import '../scholarPages/view_scholars.dart';
 import '../../scholars/scholar_profile.dart'; 
 import '../scholarPages/graduates_page.dart';
 import '../attendancePages/scholar_attendance.dart';
-
-// Schools
-import '../schoolPages/register_school.dart';
-import '../schoolPages/view_schools.dart';
-
-// Sponsors
-import '../sponsorPages/register_sponsor.dart';
-import '../sponsorPages/view_sponsors.dart';
+import '../../attendance/scholar_attendance.dart' show AttendanceModuleType;
 
 // Academics
 import '../academicPages/enter_results.dart';
@@ -34,26 +26,19 @@ import '../../academics/subject_registry.dart';
 
 // Attendance
 import '../attendancePages/attendance_history.dart';
-import '../attendancePages/attendance_reports.dart';
 
 // Events
 import '../eventPages/events.dart';
 
 // Users
-import '../userPages/create_user.dart';
-import '../userPages/manage_users.dart';
-import '../userPages/user_roles.dart';
-import '../userPages/permissions.dart';
 import '../userPages/user_profile.dart';
 
 // Admin
-import '../admin/approvals_page.dart';
 import '../aiPages/ai_assistant.dart';
 import '../../scholars/internship_allocation.dart';
 
 // Settings
 import '../settingsPages/organisation_profile.dart';
-import '../settingsPages/backup_restore.dart';
 import '../settingsPages/system_settings.dart';
 import '../settingsPages/account_settings.dart';
 
@@ -85,6 +70,8 @@ class SidebarSubItem {
   });
 }
 
+enum EndDrawerContent { ai, profile }
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -105,6 +92,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _isSearching = false;
+  EndDrawerContent _endDrawerContent = EndDrawerContent.ai;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   List<SidebarSubItem> _searchResults = [];
@@ -157,25 +145,20 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       if (response.statusCode == 200) {
         final data = response.data['data'];
         if (data != null && mounted) {
-          final String role = data['role_name'] ?? "";
-          final String normalizedRole = role.trim().toLowerCase();
+          final String role = (data['role_name'] ?? data['role'] ?? data['roleName'] ?? "").toString().trim();
+          final String normalizedRole = role.toLowerCase();
           
-          // 1. Strict Administrator/Admin -> Redirect to Admin Dashboard
-          final bool isAdmin = ['administrator', 'admin'].contains(normalizedRole);
-          if (isAdmin) {
+          if (['administrator', 'admin'].contains(normalizedRole)) {
             Navigator.pushReplacementNamed(context, '/admin/home');
             return;
           }
           
-          // 2. Field Officer Group -> Redirect to Field Operations Portal
-          final bool isFieldOfficer = [
+          if ([
             'field officer', 
             'field coordinator', 
             'field operations', 
             'operational officer'
-          ].contains(normalizedRole);
-
-          if (isFieldOfficer) {
+          ].contains(normalizedRole)) {
             Navigator.pushReplacementNamed(
               context,
               '/field-operations/home',
@@ -188,7 +171,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             return;
           }
 
-          // 3. For everyone else (Country Director, Finance, PC), stay here
           setState(() {
             _fullName = data['full_name'] ?? "User";
             _userRole = role;
@@ -255,43 +237,118 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
     _socket!.on('notification', (data) {
       if (mounted) {
+        final String title = data['title'] ?? 'Real-time Update';
+        final String message = data['message'] ?? '';
+        final String type = data['type'] ?? 'info';
+
         setState(() {
           _notificationCount++;
         });
-        _notificationIconController.forward(from: 0.0).then((_) => _notificationIconController.reverse());
+        _notificationIconController.forward(from: 0.0);
+        HapticFeedback.lightImpact();
         
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            duration: const Duration(seconds: 5),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: const Color(0xFF4C3C32),
-            margin: const EdgeInsets.all(20),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            content: Row(
-              children: [
-                const Icon(Icons.bolt_rounded, color: Color(0xFF9AB334), size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(data['message'] ?? 'Real-time update received', 
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white)),
-                      Text("Synced at: ${DateTime.now().toString().split(' ')[1].split('.')[0]}",
-                        style: const TextStyle(fontSize: 10, color: Colors.white70)),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
+        _showPopNotification(title, message, type);
       }
     });
 
     _socket!.onDisconnect((_) => debugPrint('Disconnected from Notification Server'));
     _socket!.onConnectError((err) => debugPrint('Socket Connection Error: $err'));
+  }
+
+  void _showPopNotification(String title, String message, String type) {
+    final overlay = Overlay.of(context);
+    late OverlayEntry entry;
+
+    entry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: 24,
+        right: 24,
+        child: Material(
+          color: Colors.transparent,
+          child: TweenAnimationBuilder<double>(
+            duration: const Duration(milliseconds: 500),
+            tween: Tween(begin: 0.0, end: 1.0),
+            curve: Curves.easeOutBack,
+            builder: (context, value, child) {
+              return Opacity(
+                opacity: value,
+                child: Transform.translate(
+                  offset: Offset(0, (1 - value) * -20),
+                  child: child,
+                ),
+              );
+            },
+            child: Container(
+              width: 320,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade100),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10))
+                ],
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: _getNotificationColor(type).withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(_getNotificationIcon(type), color: _getNotificationColor(type), size: 18),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(title, style: const TextStyle(fontWeight: FontWeight.w900, color: kBrandBrown, fontSize: 13)),
+                        const SizedBox(height: 4),
+                        Text(message, style: const TextStyle(color: Colors.grey, fontSize: 11, height: 1.4), maxLines: 2, overflow: TextOverflow.ellipsis),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: () => entry.remove(),
+                    icon: const Icon(Icons.close, size: 16, color: Colors.grey),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(entry);
+    Future.delayed(const Duration(seconds: 5), () {
+      if (entry.mounted) entry.remove();
+    });
+  }
+
+  Color _getNotificationColor(String type) {
+    switch (type.toLowerCase()) {
+      case 'success': return kBrandOlive;
+      case 'warning': return kBrandOrange;
+      case 'error': return Colors.redAccent;
+      default: return kBrandBrown;
+    }
+  }
+
+  IconData _getNotificationIcon(String type) {
+    switch (type.toLowerCase()) {
+      case 'success': return Icons.check_circle_outline_rounded;
+      case 'warning': return Icons.warning_amber_rounded;
+      case 'error': return Icons.error_outline_rounded;
+      default: return Icons.notifications_active_outlined;
+    }
   }
 
   void _joinUserRoom() {
@@ -496,7 +553,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   void _pushSubItem(String title) {
     if (title == "AI Assistant" || title == "AI Analyst") {
-      _scaffoldKey.currentState?.openEndDrawer();
+      _openEndDrawer(EndDrawerContent.ai);
       return;
     }
     final allCategories = _getRawCategories();
@@ -564,13 +621,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         icon: Icons.school,
         subItems: [
           SidebarSubItem(
-            title: "Secondary Registry",
+            title: "Secondary Scholars",
             page: const ViewScholarsPage(forcedSchoolType: 'Secondary'),
             icon: Icons.school_outlined,
             builder: (backFunc, onPush, onPushProfile) => ViewScholarsPage(
               onBack: backFunc,
               forcedSchoolType: 'Secondary',
-              onRegisterScholar: () => onPush("Register Scholar"),
+              hideRegistration: true, // Restricted on Standard Dashboard
               onViewProfile: onPushProfile,
               onViewGraduates: () => onPush("University Graduates"),
             ),
@@ -594,10 +651,16 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             isVisible: false,
             builder: (backFunc, onPush, onPushProfile) => RegisterScholarPage(onBack: backFunc),
           ),
+        ],
+      ),
+      SidebarCategory(
+        title: "Graduates",
+        icon: Icons.workspace_premium_rounded,
+        subItems: [
           SidebarSubItem(
             title: "University Graduates", 
             page: UniversityGraduatesPage(), 
-            icon: Icons.workspace_premium_rounded,
+            icon: Icons.school_rounded,
             builder: (backFunc, onPush, onPushProfile) => UniversityGraduatesPage(onBack: backFunc),
           ),
           SidebarSubItem(
@@ -625,10 +688,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ),
           SidebarSubItem(
             title: "Enter Results", 
-            page: EnterResultsPage(), 
+            page: EnterResultsPage(forcedSchoolType: SchoolType.university), 
             icon: Icons.edit_note,
             isVisible: false,
-            builder: (backFunc, onPush, onPushProfile) => EnterResultsPage(onBack: backFunc, onPush: onPush),
+            builder: (backFunc, onPush, onPushProfile) => EnterResultsPage(onBack: backFunc, onPush: onPush, forcedSchoolType: SchoolType.university),
           ),
           SidebarSubItem(
             title: "Report Cards", 
@@ -656,21 +719,22 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         subItems: [
           SidebarSubItem(
             title: "Scholar Attendance", 
-            page: ScholarAttendancePage(), 
+            page: ScholarAttendancePage(
+              forcedSchoolType: SchoolType.university,
+              forcedModuleType: AttendanceModuleType.chats,
+            ), 
             icon: Icons.how_to_reg,
-            builder: (backFunc, onPush, onPushProfile) => ScholarAttendancePage(onBack: backFunc),
+            builder: (backFunc, onPush, onPushProfile) => ScholarAttendancePage(
+              onBack: backFunc,
+              forcedSchoolType: SchoolType.university,
+              forcedModuleType: AttendanceModuleType.chats,
+            ),
           ),
           SidebarSubItem(
             title: "Attendance Archives",
             page: AttendanceHistoryPage(),
             icon: Icons.history_rounded,
             builder: (backFunc, onPush, onPushProfile) => AttendanceHistoryPage(onBack: backFunc),
-          ),
-          SidebarSubItem(
-            title: "Participation Sheet", 
-            page: AttendanceModuleReportsPage(),
-            icon: Icons.assessment_rounded,
-            builder: (backFunc, onPush, onPushProfile) => AttendanceModuleReportsPage(onBack: backFunc),
           ),
         ],
       ),
@@ -716,18 +780,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           ),
         ],
       ),
-      SidebarCategory(
-        title: "Operations",
-        icon: Icons.settings_suggest_rounded,
-        subItems: [
-          SidebarSubItem(
-            title: "Pending Approvals", 
-            page: ApprovalsPage(),
-            icon: Icons.rule_folder,
-            builder: (backFunc, onPush, onPushProfile) => ApprovalsPage(onBack: backFunc),
-          ),
-        ],
-      ),
     ];
   }
 
@@ -739,7 +791,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       if (_userPermissions.isNotEmpty) {
         var modulePerms = _userPermissions[category.title];
         if (modulePerms != null && modulePerms['view'] == false) {
-           if (category.title != "Dashboard" && category.title != "Settings" && category.title != "Operations") {
+           if (category.title != "Dashboard" && category.title != "Settings") {
               continue;
            }
         }
@@ -766,6 +818,13 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       ));
     }
     return filtered;
+  }
+
+  void _openEndDrawer(EndDrawerContent content) {
+    setState(() {
+      _endDrawerContent = content;
+    });
+    _scaffoldKey.currentState?.openEndDrawer();
   }
 
   @override
@@ -796,15 +855,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         key: _scaffoldKey,
         backgroundColor: Colors.grey.shade50,
         drawer: isMobile ? Drawer(width: 280, child: _buildSidebar(visibleCategories, isMobile)) : null,
-        endDrawer: Drawer(
-          width: isMobile ? screenWidth * 0.85 : 450,
-          child: AIAssistantPage(
-            isDrawer: true, 
-            currentPage: activeSubItem.title,
-            targetId: _currentDetailScholarId != null ? kStudents.firstWhere((s) => s.id == _currentDetailScholarId).scholarId : null,
-            onBack: () => Navigator.pop(context),
-          ),
-        ),
+        endDrawer: _buildEndDrawer(context, isMobile, screenWidth, activeSubItem),
         appBar: AppBar(
           elevation: 2,
           toolbarHeight: 48,
@@ -854,7 +905,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               )
             : Text(isMobile ? "AGE System" : "AGE Africa System", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 16)),
           actions: [
-            IconButton(icon: const Icon(Icons.auto_awesome, color: Colors.white), onPressed: () => _scaffoldKey.currentState?.openEndDrawer()),
+            IconButton(
+              icon: const Icon(Icons.auto_awesome, color: Colors.white), 
+              onPressed: () => _openEndDrawer(EndDrawerContent.ai),
+            ),
             if (!isMobile) IconButton(icon: const Icon(Icons.search, color: Colors.white), onPressed: _startSearching),
             Stack(
               children: [
@@ -884,40 +938,8 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             const SizedBox(width: 12),
             Padding(
               padding: const EdgeInsets.only(right: 20),
-              child: PopupMenuButton<String>(
-                offset: const Offset(0, 48),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                onSelected: (value) {
-                  if (value == 'profile') {
-                    _navigateToSubItem("User Profile");
-                  } else if (value == 'logout') {
-                    ApiService.logout();
-                    Navigator.pushReplacementNamed(context, '/login');
-                  }
-                },
-                itemBuilder: (context) => [
-                  PopupMenuItem(
-                    value: 'profile',
-                    child: Row(
-                      children: [
-                        const Icon(Icons.person_outline, size: 20, color: Color(0xFF4C3C32)),
-                        const SizedBox(width: 12),
-                        const Text("View Profile", style: TextStyle(fontWeight: FontWeight.w600)),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuDivider(),
-                  PopupMenuItem(
-                    value: 'logout',
-                    child: Row(
-                      children: [
-                        const Icon(Icons.logout_rounded, size: 20, color: Colors.redAccent),
-                        const SizedBox(width: 12),
-                        const Text("Logout", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-                ],
+              child: GestureDetector(
+                onTap: () => _openEndDrawer(EndDrawerContent.profile),
                 child: CircleAvatar(
                   backgroundColor: brandCream,
                   radius: 18,
@@ -962,6 +984,204 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEndDrawer(BuildContext context, bool isMobile, double screenWidth, SidebarSubItem activeSubItem) {
+    if (_endDrawerContent == EndDrawerContent.ai) {
+      return Drawer(
+        width: isMobile ? screenWidth * 0.85 : 450,
+        child: AIAssistantPage(
+          isDrawer: true, 
+          currentPage: activeSubItem.title,
+          targetId: _currentDetailScholarId != null ? kStudents.firstWhere((s) => s.id == _currentDetailScholarId).scholarId : null,
+          onBack: () => Navigator.pop(context),
+        ),
+      );
+    } else {
+      return Drawer(
+        width: isMobile ? (screenWidth < 350 ? screenWidth * 0.9 : 320) : 320,
+        backgroundColor: Colors.white,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(24),
+            bottomLeft: Radius.circular(24),
+          ),
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+              decoration: const BoxDecoration(
+                color: Color(0xFF4C3C32), // brandBrown
+                borderRadius: BorderRadius.only(topLeft: Radius.circular(24)),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white.withOpacity(0.2), width: 2),
+                    ),
+                    child: CircleAvatar(
+                      radius: 44,
+                      backgroundColor: Colors.white.withOpacity(0.1),
+                      child: ClipOval(
+                        child: _profileImageUrl != null
+                            ? Image.network(
+                                ApiService.getFullUrl(_profileImageUrl),
+                                fit: BoxFit.cover,
+                                width: 88,
+                                height: 88,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    const Icon(Icons.person_rounded, size: 48, color: Colors.white70),
+                              )
+                            : const Icon(Icons.person_rounded, size: 48, color: Colors.white70),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    _fullName,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF9AB334).withOpacity(0.2), // brandOlive
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      _userRole.toUpperCase(),
+                      style: const TextStyle(
+                        color: Color(0xFF9AB334),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                children: [
+                  _buildDrawerAction(
+                    icon: Icons.assignment_ind_rounded,
+                    label: "Personal Profile",
+                    onTap: () {
+                      Navigator.pop(context);
+                      _navigateToSubItem("User Profile");
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  _buildDrawerAction(
+                    icon: Icons.notifications_active_rounded,
+                    label: "System Notifications",
+                    onTap: () {
+                      Navigator.pop(context);
+                      _navigateToSubItem("Notifications");
+                    },
+                  ),
+                  const Divider(height: 48, indent: 8, endIndent: 8),
+                  _buildDrawerAction(
+                    icon: Icons.power_settings_new_rounded,
+                    label: "Sign Out",
+                    isDestructive: true,
+                    onTap: () {
+                      ApiService.logout();
+                      Navigator.pushReplacementNamed(context, '/login');
+                    },
+                  ),
+                ],
+              ),
+            ),
+            
+            const Spacer(),
+            
+            Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                children: [
+                  Image.asset('assets/images/age-logo.png', height: 40, opacity: const AlwaysStoppedAnimation(0.5)),
+                  const SizedBox(height: 8),
+                  const Text(
+                    "AGE AFRICA SYSTEM v2.0",
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.grey,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  Widget _buildDrawerAction({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+  }) {
+    const Color brandBrown = Color(0xFF4C3C32);
+    final Color color = isDestructive ? Colors.redAccent : brandBrown;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withOpacity(0.05)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: color.withOpacity(0.8),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, size: 16, color: color.withOpacity(0.3)),
+            ],
+          ),
         ),
       ),
     );

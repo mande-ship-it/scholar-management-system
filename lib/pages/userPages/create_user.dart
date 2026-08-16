@@ -4,10 +4,12 @@ import '../../academics/academics_utils.dart';
 
 class CreateUserPage extends StatelessWidget {
   final VoidCallback? onBack;
-  const CreateUserPage({super.key, this.onBack});
+  final VoidCallback? onSuccess;
+  final bool showBackButton;
+  const CreateUserPage({super.key, this.onBack, this.onSuccess, this.showBackButton = true});
 
   @override
   Widget build(BuildContext context) {
-    return CreateUserComponent(onBack: onBack);
+    return CreateUserComponent(onBack: onBack, onSuccess: onSuccess, showBackButton: showBackButton);
   }
 }

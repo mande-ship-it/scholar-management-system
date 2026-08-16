@@ -4,10 +4,11 @@ import '../../academics/academics_utils.dart';
 
 class OrganisationProfilePage extends StatelessWidget {
   final VoidCallback? onBack;
-  const OrganisationProfilePage({super.key, this.onBack});
+  final bool showBackButton;
+  const OrganisationProfilePage({super.key, this.onBack, this.showBackButton = true});
 
   @override
   Widget build(BuildContext context) {
-    return OrganisationProfileComponent(onBack: onBack);
+    return OrganisationProfileComponent(onBack: onBack, showBackButton: showBackButton);
   }
 }

@@ -13,11 +13,15 @@ class AttendanceHistoryComponent extends StatefulWidget {
 }
 
 class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent> {
+  SchoolType? _schoolTypeFilter;
   String? _filterSchool;
   AttendanceModuleType? _filterType;
+  String _selectedYear = DateTime.now().year.toString();
+
   bool _isLoading = true;
   bool _isSearchExpanded = false;
   List<dynamic> _history = [];
+  List<Map<String, dynamic>> _allSchools = [];
 
   @override
   void initState() {
@@ -32,6 +36,8 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
       final response = await ApiService.getAttendanceHistory(
         type: _filterType?.label,
         schoolName: _filterSchool,
+        year: _selectedYear,
+        level: _schoolTypeFilter == SchoolType.secondary ? 'Secondary' : (_schoolTypeFilter == SchoolType.university ? 'University' : null),
       );
       if (response.statusCode == 200) {
         if (mounted) {
@@ -152,20 +158,128 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
   }
 
   Widget _buildFilterBar(bool isMobile) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      color: Colors.white,
-      child: _dropdownFilter("MODULE", _filterType, [
-        const DropdownMenuItem(value: null, child: Text("All Modules")),
-        ...AttendanceModuleType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.label))),
-      ], (v) {
-        setState(() => _filterType = v);
-        _fetchHistory();
-      }),
+      padding: EdgeInsets.all(isMobile ? 16 : 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.dividerColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _sectionLabel("Refine Archive View", Icons.filter_list_rounded),
+          const SizedBox(height: 16),
+          if (isMobile) ...[
+            _dropdownFilter("MODULE", _filterType, [
+              const DropdownMenuItem(value: null, child: Text("All Modules")),
+              ...AttendanceModuleType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.label))),
+            ], (v) {
+              setState(() => _filterType = v);
+              _fetchHistory();
+            }),
+            const SizedBox(height: 12),
+            _dropdownFilter("ACADEMIC YEAR", _selectedYear, academicYearOptions().map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(), (v) {
+              setState(() => _selectedYear = v!);
+              _fetchHistory();
+            }),
+            const SizedBox(height: 16),
+            _portalSelectionLabel("Institutional Level"),
+            const SizedBox(height: 8),
+            SegmentedButton<SchoolType?>(
+              segments: const [
+                ButtonSegment(value: null, label: Text("All"), icon: Icon(Icons.apps_rounded, size: 16)),
+                ButtonSegment(value: SchoolType.secondary, label: Text("Secondary"), icon: Icon(Icons.school_outlined, size: 16)),
+                ButtonSegment(value: SchoolType.university, label: Text("University"), icon: Icon(Icons.account_balance_outlined, size: 16)),
+              ],
+              selected: {_schoolTypeFilter},
+              onSelectionChanged: (s) => setState(() {
+                _schoolTypeFilter = s.first;
+                _fetchHistory();
+              }),
+              style: SegmentedButton.styleFrom(
+                selectedBackgroundColor: kBrandOlive,
+                selectedForegroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+              ),
+            ),
+          ] else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: _dropdownFilter("MODULE", _filterType, [
+                    const DropdownMenuItem(value: null, child: Text("All Modules")),
+                    ...AttendanceModuleType.values.map((t) => DropdownMenuItem(value: t, child: Text(t.label))),
+                  ], (v) {
+                    setState(() => _filterType = v);
+                    _fetchHistory();
+                  }),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _dropdownFilter("ACADEMIC YEAR", _selectedYear, academicYearOptions().map((y) => DropdownMenuItem(value: y, child: Text(y))).toList(), (v) {
+                    setState(() => _selectedYear = v!);
+                    _fetchHistory();
+                  }),
+                ),
+                const SizedBox(width: 24),
+                Expanded(
+                  flex: 2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _portalSelectionLabel("Institutional Level"),
+                      const SizedBox(height: 8),
+                      SegmentedButton<SchoolType?>(
+                        segments: const [
+                          ButtonSegment(value: null, label: Text("All"), icon: Icon(Icons.apps_rounded, size: 16)),
+                          ButtonSegment(value: SchoolType.secondary, label: Text("Secondary"), icon: Icon(Icons.school_outlined, size: 16)),
+                          ButtonSegment(value: SchoolType.university, label: Text("University"), icon: Icon(Icons.account_balance_outlined, size: 16)),
+                        ],
+                        selected: {_schoolTypeFilter},
+                        onSelectionChanged: (s) => setState(() {
+                          _schoolTypeFilter = s.first;
+                          _fetchHistory();
+                        }),
+                        style: SegmentedButton.styleFrom(
+                          selectedBackgroundColor: kBrandOlive,
+                          selectedForegroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
     );
   }
 
-  Widget _dropdownFilter(String label, dynamic value, List<DropdownMenuItem<AttendanceModuleType>> items, ValueChanged<AttendanceModuleType?> onChanged) {
+  Widget _sectionLabel(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Colors.grey.shade400),
+        const SizedBox(width: 12),
+        Text(
+          title.toUpperCase(), 
+          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey.shade500, letterSpacing: 1.2)
+        ),
+      ],
+    );
+  }
+
+  Widget _portalSelectionLabel(String text) {
+    return Text(text.toUpperCase(), 
+      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1.0));
+  }
+
+  Widget _dropdownFilter<T>(String label, T value, List<DropdownMenuItem<T>> items, ValueChanged<T?> onChanged) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -183,8 +297,8 @@ class _AttendanceHistoryComponentState extends State<AttendanceHistoryComponent>
             border: Border.all(color: theme.dividerColor),
           ),
           child: DropdownButtonHideUnderline(
-            child: DropdownButton<AttendanceModuleType>(
-              value: value,
+            child: DropdownButton<T>(
+              value: items.any((i) => i.value == value) ? value : null,
               isExpanded: true,
               dropdownColor: theme.cardColor,
               items: items,

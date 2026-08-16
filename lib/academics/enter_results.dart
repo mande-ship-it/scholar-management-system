@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'academics_utils.dart';
 import 'package:scholar_management_system/services/api_service.dart';
@@ -64,7 +65,54 @@ class _AcademicsManagementComponentState extends State<AcademicsManagementCompon
   }
 
   Widget _buildHeader(bool isMobile) {
-    return const SizedBox.shrink();
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 12 : 24, vertical: 8),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Color(0xFFEEEEEE))),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: widget.onBack ?? () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                Navigator.pushReplacementNamed(context, '/home');
+              }
+            },
+            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              "Academic Recording",
+              style: TextStyle(
+                fontSize: isVerySmall ? 13 : 16, 
+                fontWeight: FontWeight.w900, 
+                color: const Color(0xFF4C3C32), 
+                letterSpacing: -0.2
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          IconButton(
+            onPressed: () {
+              // Trigger reload in child if possible, or just re-init
+              setState(() {});
+            },
+            icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+            tooltip: "Reset Form",
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -83,6 +131,10 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
   bool _canEdit = false;
   bool _isStrictFieldOfficer = false;
 
+  // Quick Add Subject State
+  final TextEditingController _newSubjectNameController = TextEditingController();
+  final TextEditingController _newSubjectCodeController = TextEditingController();
+
   // Selection State
   late SchoolType _schoolType;
   Map<String, dynamic>? _selectedSchool;
@@ -91,10 +143,11 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
   // Session State
   String? _selectedYear;
   String? _selectedPeriod; // Term or Semester
-  String? _selectedClass; // For Secondary (Form 1, 2, etc.)
+  String? _selectedClass; // e.g. Form 1, Year 1
   DateTime _resultsDate = DateTime.now();
 
   final List<String> _secondaryClasses = ['Form 1', 'Form 2', 'Form 3', 'Form 4'];
+  final List<String> _universityClasses = ['Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5'];
   final List<String> _academicYears = academicYearOptions();
 
   // Results Table State
@@ -162,15 +215,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
           _allScholars = scholarData.map((s) => Student.fromMap(s)).toList();
 
           final List<dynamic> subjectData = subjectsRes.data['data'] ?? [];
-          _availableSubjects = subjectData.map((sub) => Subject(
-            name: sub['name'],
-            code: sub['code'],
-            details: sub['details'] ?? '',
-            notes: sub['notes'] ?? '',
-            level: sub['level'].toString().toLowerCase() == 'university'
-                ? SubjectLevel.university
-                : SubjectLevel.secondary,
-          )).toList();
+          _availableSubjects = subjectData.map((sub) => Subject.fromMap(sub)).toList();
         });
       }
     } catch (e) {
@@ -178,6 +223,119 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _quickAddSubject() async {
+    if (_newSubjectNameController.text.isEmpty || _newSubjectCodeController.text.isEmpty) {
+      _showError("Name and Code are required");
+      return;
+    }
+
+    try {
+      final res = await ApiService.createSubject({
+        'name': _newSubjectNameController.text.trim(),
+        'code': _newSubjectCodeController.text.trim().toUpperCase(),
+        'level': _schoolType == SchoolType.secondary ? 'Secondary' : 'University',
+      });
+
+      if (res.statusCode == 201 || res.statusCode == 200) {
+        _newSubjectNameController.clear();
+        _newSubjectCodeController.clear();
+        await _fetchBaseData();
+        if (mounted) Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("New subject added to registry."), backgroundColor: kBrandOlive),
+        );
+      } else {
+        _showError(res.data['message'] ?? "Failed to add subject");
+      }
+    } catch (e) {
+      _showError("Error adding subject: $e");
+    }
+  }
+
+  Future<void> _deleteSubject(Subject subject) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Delete Subject", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown)),
+        content: Text("Are you sure you want to delete '${subject.name}'? This may affect existing academic records."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true), 
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && subject.id != null) {
+      try {
+        final res = await ApiService.dio.delete('/academic/subjects/${subject.id}');
+        if (res.statusCode == 200) {
+          await _fetchBaseData();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Subject removed from registry."), backgroundColor: Colors.red),
+          );
+        }
+      } catch (e) {
+        _showError("Delete failed: $e");
+      }
+    }
+  }
+
+  void _showQuickAddSubjectDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Register New Subject", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _newSubjectNameController,
+              decoration: const InputDecoration(labelText: "Subject Name (e.g. Mathematics)"),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _newSubjectCodeController,
+              decoration: const InputDecoration(labelText: "Subject Code (e.g. MAT001)"),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: kBrandOlive.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, size: 16, color: kBrandOlive),
+                  const SizedBox(width: 8),
+                  Text("Level: ${_schoolType == SchoolType.secondary ? 'Secondary' : 'University'}", 
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: kBrandOlive)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: _quickAddSubject,
+            style: ElevatedButton.styleFrom(backgroundColor: kBrandOlive, foregroundColor: Colors.white),
+            child: const Text("Register"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _newSubjectNameController.dispose();
+    _newSubjectCodeController.dispose();
+    for (var row in _rows) row.dispose();
+    super.dispose();
   }
 
   void _onScholarChanged(String? id) async {
@@ -188,6 +346,12 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
         _selectedStudent = student;
         _selectedPeriod = null;
         _recordedPeriods = [];
+        _resultsByClass = {};
+        
+        // Auto-select the scholar's current class from database
+        if (student.currentClass.isNotEmpty && student.currentClass != 'N/A') {
+          _selectedClass = student.currentClass;
+        }
       });
 
       if (_selectedYear != null) {
@@ -199,6 +363,8 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
   }
 
   List<String> _recordedPeriods = [];
+  Map<String, List<String>> _resultsByClass = {}; // For secondary: class -> recorded terms
+  Map<String, List<String>> _failuresByClass = {}; // class -> terms/semesters with failures
 
   Future<void> _checkCompleteness(String scholarId, int year) async {
     try {
@@ -207,6 +373,18 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
         final data = res.data['data'];
         setState(() {
           _recordedPeriods = List<String>.from(isUniversity ? (data['semestersRecorded'] ?? []) : (data['termsRecorded'] ?? []));
+          
+          if (data['resultsByClass'] != null) {
+            _resultsByClass = (data['resultsByClass'] as Map).map(
+              (key, value) => MapEntry(key.toString(), List<String>.from(value))
+            );
+          }
+
+          if (data['failuresByClass'] != null) {
+            _failuresByClass = (data['failuresByClass'] as Map).map(
+              (key, value) => MapEntry(key.toString(), List<String>.from(value))
+            );
+          }
         });
       }
     } catch (e) {
@@ -277,27 +455,15 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
   }
 
   Color _getScoreColor(double score) {
-    if (_schoolType == SchoolType.secondary) {
-      if (score <= 39) return Colors.red.shade700;
-      if (score <= 59) return Colors.amber.shade900; 
-      return Colors.green.shade700;
-    } else {
-      if (score <= 49) return Colors.red.shade700;
-      if (score <= 69) return Colors.amber.shade900;
-      return Colors.green.shade700;
-    }
+    final grade = gradeFromMarks(score, isUniversity: isUniversity);
+    if (grade.letter == 'Fail') return Colors.red.shade700;
+    if (grade.letter == 'Pass') return Colors.blue.shade700;
+    if (grade.letter == 'Credit') return Colors.orange.shade800;
+    return Colors.green.shade700; // Distinction
   }
 
   String _getScoreLabel(double score) {
-    if (_schoolType == SchoolType.secondary) {
-      if (score <= 39) return "Fail";
-      if (score <= 59) return "Pass";
-      return "Distinction";
-    } else {
-      if (score <= 49) return "Fail";
-      if (score <= 69) return "Pass";
-      return "Distinction";
-    }
+    return gradeFromMarks(score, isUniversity: isUniversity).letter;
   }
 
   Future<void> _save() async {
@@ -336,7 +502,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
         'year': int.parse(_selectedYear!),
         'schoolType': _schoolType == SchoolType.secondary ? 'Secondary' : 'University',
         if (_schoolType == SchoolType.secondary) 'term': _selectedPeriod else 'semester': _selectedPeriod,
-        if (_schoolType == SchoolType.secondary) 'currentClass': _selectedClass,
+        'currentClass': _selectedClass, // Send for both types now
         if (_schoolType == SchoolType.university) 'date': _resultsDate.toIso8601String(),
       };
 
@@ -351,7 +517,59 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
           );
-          _resetForm();
+          
+          final String currentId = _selectedStudent!.id;
+          final String? prevClass = _selectedClass;
+          final String? prevYear = _selectedYear;
+
+          // Re-fetch everything to see new progression state (backend calculates flags/history)
+          await _fetchBaseData();
+          
+          if (mounted) {
+            final updatedStudent = _allScholars.firstWhere((s) => s.id == currentId);
+            setState(() {
+              _selectedStudent = updatedStudent;
+              _rows.clear();
+              _addRow();
+              _selectedPeriod = null;
+              
+              // --- Automatic Cycle Progression Logic (User Spec) ---
+              if (prevClass != null && prevYear != null) {
+                final allPossible = isUniversity ? _universityClasses : _secondaryClasses;
+                final currentIdx = allPossible.indexOf(prevClass);
+                
+                // Get recorded periods for this SPECIFIC class after the save
+                final List<String> recordedForPrev = (_resultsByClass[prevClass] ?? []);
+                final bool isLastPeriod = isUniversity 
+                    ? recordedForPrev.length >= 2 
+                    : recordedForPrev.length >= 3;
+
+                // Backend promotion check: check if history now contains 'Promoted' or 'Graduated' for this class
+                final hasPassedThisClass = updatedStudent.progressionHistory.any((h) => 
+                  h['from_class'].toString().trim().toLowerCase() == prevClass.trim().toLowerCase() && 
+                  (h['result'].toString().toLowerCase().contains('promoted') || 
+                   h['result'].toString().toLowerCase().contains('graduated'))
+                );
+
+                if (isLastPeriod && hasPassedThisClass && currentIdx < allPossible.length - 1) {
+                  // Move UI forward: increment Year and Class
+                  _selectedClass = allPossible[currentIdx + 1];
+                  final int nextYearInt = int.parse(prevYear) + 1;
+                  _selectedYear = nextYearInt.toString();
+                  if (!_academicYears.contains(_selectedYear)) {
+                    _academicYears.insert(0, _selectedYear!);
+                  }
+                } else {
+                  _selectedClass = prevClass;
+                  _selectedYear = prevYear;
+                }
+              }
+            });
+            
+            if (_selectedYear != null) {
+              await _checkCompleteness(currentId, int.parse(_selectedYear!));
+            }
+          }
         }
       }
     } catch (e) {
@@ -433,6 +651,48 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
     );
   }
 
+  bool _isClassUnlocked(String className) {
+    if (_selectedStudent == null) return false;
+    
+    final allPossible = isUniversity ? _universityClasses : _secondaryClasses;
+    
+    // Normalize function for robust comparison
+    String norm(String s) => s.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+
+    final String target = norm(className);
+    final String current = norm(_selectedStudent!.currentClass);
+    final String registered = norm(_selectedStudent!.registeredClass ?? (isUniversity ? 'Year 1' : 'Form 1'));
+
+    final int targetIdx = allPossible.indexWhere((c) => norm(c) == target);
+    final int currentIdx = allPossible.indexWhere((c) => norm(c) == current);
+    final int regIdx = allPossible.indexWhere((c) => norm(c) == registered);
+
+    // 1. Any class at or before their current active class is always unlocked (Correction/Audit mode)
+    if (currentIdx != -1 && targetIdx <= currentIdx) return true;
+
+    // 2. Any class at or before their initial registration class is always unlocked
+    if (regIdx != -1 && targetIdx <= regIdx) return true;
+
+    // 3. The very first class in the sequence is always unlocked
+    if (targetIdx == 0) return true;
+
+    // 4. Future classes are unlocked if the immediate predecessor is in history as 'Promoted'
+    if (targetIdx > 0) {
+      final prevClass = norm(allPossible[targetIdx - 1]);
+      final history = _selectedStudent!.progressionHistory;
+      
+      final passedPrev = history.any((h) {
+        final fromClass = norm(h['from_class']?.toString() ?? '');
+        final result = h['result']?.toString().toLowerCase() ?? '';
+        return fromClass == prevClass && (result.contains('promoted') || result.contains('graduated'));
+      });
+
+      if (passedPrev) return true;
+    }
+
+    return false;
+  }
+
   Widget _buildSelectionPanel(bool isMobile) {
     final bool isVerySmall = MediaQuery.of(context).size.width < 500;
     return Container(
@@ -451,17 +711,30 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _portalSelectionLabel("Institution Level"),
-                if (!isUniversity)
-                  TextButton.icon(
-                    onPressed: () => widget.onPush?.call("Subject Registry"),
-                    icon: const Icon(Icons.settings_suggest_rounded, size: 14),
-                    label: const Text("MANAGE SUBJECTS", style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold)),
-                    style: TextButton.styleFrom(foregroundColor: kBrandOlive),
-                  ),
+                Row(
+                  children: [
+                    TextButton.icon(
+                      onPressed: _showQuickAddSubjectDialog,
+                      icon: const Icon(Icons.add_circle_outline, size: 14),
+                      label: const Text("QUICK ADD", style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold)),
+                      style: TextButton.styleFrom(foregroundColor: kBrandOlive),
+                    ),
+                    const SizedBox(width: 4),
+                    TextButton.icon(
+                      onPressed: () => widget.onPush?.call("Subject Registry"),
+                      icon: const Icon(Icons.settings_suggest_rounded, size: 14),
+                      label: const Text("MANAGE", style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold)),
+                      style: TextButton.styleFrom(foregroundColor: kBrandBrown),
+                    ),
+                  ],
+                ),
               ],
             ),
-            if (_isStrictFieldOfficer)
-              _compactStaticField("Secondary School", Icons.school_rounded)
+            if (_isStrictFieldOfficer || widget.forcedSchoolType != null)
+              _compactStaticField(
+                widget.forcedSchoolType == SchoolType.university ? "University Level" : "Secondary School", 
+                widget.forcedSchoolType == SchoolType.university ? Icons.account_balance_outlined : Icons.school_rounded
+              )
             else
               _buildTypeSelector(),
             SizedBox(height: isVerySmall ? 16 : 24),
@@ -505,23 +778,29 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
             ),
             SizedBox(height: isVerySmall ? 16 : 24),
             _dropdownField<String>(
-              label: _schoolType == SchoolType.secondary ? "Academic Term" : "Academic Semester",
+              label: "Current Class", 
+              value: _selectedClass, 
+              items: isUniversity ? _universityClasses : _secondaryClasses, 
+              icon: Icons.class_outlined, 
+              onChanged: (v) {
+                setState(() {
+                  _selectedClass = v;
+                  _selectedPeriod = null; // Reset term when class changes
+                });
+              }
+            ),
+            SizedBox(height: isVerySmall ? 16 : 24),
+            _dropdownField<String>(
+              label: isUniversity ? "Academic Semester" : "Academic Term",
               value: _selectedPeriod,
-              items: _schoolType == SchoolType.secondary ? kTerms : kSemesters,
+              items: isUniversity ? kSemesters : kTerms,
               icon: Icons.event_note_rounded,
               onChanged: (v) => setState(() => _selectedPeriod = v),
             ),
-            SizedBox(height: isVerySmall ? 16 : 24),
-            if (_schoolType == SchoolType.secondary)
-              _dropdownField<String>(
-                label: "Current Class", 
-                value: _selectedClass, 
-                items: _secondaryClasses, 
-                icon: Icons.class_outlined, 
-                onChanged: (v) => setState(() => _selectedClass = v)
-              )
-            else
+            if (isUniversity) ...[
+              SizedBox(height: isVerySmall ? 16 : 24),
               _datePickerField("Results Date"),
+            ],
           ] else ...[
             Row(
               children: [
@@ -529,21 +808,36 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           _portalSelectionLabel("Institution Level"),
-                          if (!isUniversity)
-                            TextButton.icon(
-                              onPressed: () => widget.onPush?.call("Subject Registry"),
-                              icon: const Icon(Icons.settings_suggest_rounded, size: 16),
-                              label: const Text("MANAGE SUBJECT REGISTRY", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-                              style: TextButton.styleFrom(foregroundColor: kBrandOlive),
-                            ),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 4,
+                            children: [
+                              TextButton.icon(
+                                onPressed: _showQuickAddSubjectDialog,
+                                icon: const Icon(Icons.add_circle_outline, size: 16),
+                                label: const Text("QUICK ADD SUBJECT", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                                style: TextButton.styleFrom(foregroundColor: kBrandOlive),
+                              ),
+                              TextButton.icon(
+                                onPressed: () => widget.onPush?.call("Subject Registry"),
+                                icon: const Icon(Icons.settings_suggest_rounded, size: 16),
+                                label: const Text("MANAGE REGISTRY", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                                style: TextButton.styleFrom(foregroundColor: kBrandBrown),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
-                      if (_isStrictFieldOfficer)
-                        _compactStaticField("Secondary School", Icons.school_rounded)
+                      if (_isStrictFieldOfficer || widget.forcedSchoolType != null)
+                        _compactStaticField(
+                          widget.forcedSchoolType == SchoolType.university ? "University Level" : "Secondary School", 
+                          widget.forcedSchoolType == SchoolType.university ? Icons.account_balance_outlined : Icons.school_rounded
+                        )
                       else
                         _buildTypeSelector(),
                     ],
@@ -605,28 +899,34 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
               children: [
                 Expanded(
                   child: _dropdownField<String>(
-                    label: _schoolType == SchoolType.secondary ? "Academic Term" : "Academic Semester",
+                    label: "Current Class", 
+                    value: _selectedClass, 
+                    items: isUniversity ? _universityClasses : _secondaryClasses, 
+                    icon: Icons.class_outlined, 
+                    onChanged: (v) {
+                      setState(() {
+                        _selectedClass = v;
+                        _selectedPeriod = null; // Reset term when class changes
+                      });
+                    }
+                  ),
+                ),
+                const SizedBox(width: 24),
+                Expanded(
+                  child: _dropdownField<String>(
+                    label: isUniversity ? "Academic Semester" : "Academic Term",
                     value: _selectedPeriod,
-                    items: _schoolType == SchoolType.secondary ? kTerms : kSemesters,
+                    items: isUniversity ? kSemesters : kTerms,
                     icon: Icons.event_note_rounded,
                     onChanged: (v) => setState(() => _selectedPeriod = v),
                   ),
                 ),
-                const SizedBox(width: 24),
-                if (_schoolType == SchoolType.secondary)
-                  Expanded(
-                    child: _dropdownField<String>(
-                      label: "Current Class", 
-                      value: _selectedClass, 
-                      items: _secondaryClasses, 
-                      icon: Icons.class_outlined, 
-                      onChanged: (v) => setState(() => _selectedClass = v)
-                    ),
-                  )
-                else
+                if (isUniversity) ...[
+                  const SizedBox(width: 24),
                   Expanded(
                     child: _datePickerField("Results Date"),
                   ),
+                ],
               ],
             ),
           ],
@@ -818,13 +1118,42 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                         ),
                         onChanged: (_) => setState(() {}),
                       )
-                    : DropdownButtonFormField<String>(
-                        value: _subjectOptions.any((s) => s.name == row.subjectController.text) ? row.subjectController.text : null,
-                        hint: Text("Select subject...", style: TextStyle(fontSize: isVerySmall ? 12 : 13)),
-                        isExpanded: true,
-                        decoration: const InputDecoration(border: InputBorder.none, isDense: true),
-                        items: _subjectOptions.map((s) => DropdownMenuItem(value: s.name, child: Text(s.name, style: TextStyle(fontSize: isVerySmall ? 12 : 13), overflow: TextOverflow.ellipsis))).toList(),
-                        onChanged: (v) => setState(() => row.subjectController.text = v ?? ''),
+                    : Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: _subjectOptions.any((s) => s.name == row.subjectController.text) ? row.subjectController.text : null,
+                              hint: Text("Select subject...", style: TextStyle(fontSize: isVerySmall ? 12 : 13)),
+                              isExpanded: true,
+                              decoration: const InputDecoration(border: InputBorder.none, isDense: true),
+                              items: _subjectOptions.map((s) => DropdownMenuItem<String>(
+                          value: s.name, 
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(child: Text(s.name, style: TextStyle(fontSize: isVerySmall ? 12 : 13), overflow: TextOverflow.ellipsis)),
+                              if (_canEdit)
+                                GestureDetector(
+                                  onTap: () {
+                                    Navigator.pop(context); // Close dropdown
+                                    _deleteSubject(s);
+                                  },
+                                  child: const Icon(Icons.delete_outline, size: 16, color: Colors.redAccent),
+                                ),
+                            ],
+                          )
+                        )).toList(),
+                              onChanged: (v) => setState(() => row.subjectController.text = v ?? ''),
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: _showQuickAddSubjectDialog,
+                            icon: const Icon(Icons.add_circle_outline, color: kBrandOlive, size: 18),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            tooltip: "Quick add subject",
+                          ),
+                        ],
                       ),
                 ),
                 IconButton(
@@ -842,7 +1171,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                   child: TextField(
                     controller: row.scoreController,
                     enabled: _canEdit,
-                    keyboardType: TextInputType.number,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: isVerySmall ? 12 : 13, color: hasScore ? color : kBrandBrown),
                     decoration: InputDecoration(
                       labelText: "SCORE (0-100)",
@@ -854,7 +1183,16 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: Colors.grey.shade200)),
                       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: Colors.grey.shade200)),
                     ),
-                    onChanged: (_) => setState(() {}),
+                    onChanged: (v) {
+                      if (v.isNotEmpty) {
+                        final val = double.tryParse(v);
+                        if (val != null && val > 100) {
+                          row.scoreController.text = "100";
+                          row.scoreController.selection = TextSelection.fromPosition(const TextPosition(offset: 3));
+                        }
+                      }
+                      setState(() {});
+                    },
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -888,13 +1226,42 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                     ),
                     onChanged: (_) => setState(() {}),
                   )
-                : DropdownButtonFormField<String>(
-                    value: _subjectOptions.any((s) => s.name == row.subjectController.text) ? row.subjectController.text : null,
-                    hint: const Text("Select subject...", style: TextStyle(fontSize: 13)),
-                    isExpanded: true,
-                    decoration: const InputDecoration(border: InputBorder.none, isDense: true),
-                    items: _subjectOptions.map((s) => DropdownMenuItem(value: s.name, child: Text(s.name, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis))).toList(),
-                    onChanged: (v) => setState(() => row.subjectController.text = v ?? ''),
+                : Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          value: _subjectOptions.any((s) => s.name == row.subjectController.text) ? row.subjectController.text : null,
+                          hint: const Text("Select subject...", style: TextStyle(fontSize: 13)),
+                          isExpanded: true,
+                          decoration: const InputDecoration(border: InputBorder.none, isDense: true),
+                          items: _subjectOptions.map((s) => DropdownMenuItem<String>(
+                      value: s.name, 
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(child: Text(s.name, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
+                          if (_canEdit)
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.pop(context); // Close dropdown
+                                _deleteSubject(s);
+                              },
+                              child: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
+                            ),
+                        ],
+                      )
+                    )).toList(),
+                          onChanged: (v) => setState(() => row.subjectController.text = v ?? ''),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: _showQuickAddSubjectDialog,
+                        icon: const Icon(Icons.add_circle_outline, color: kBrandOlive, size: 20),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        tooltip: "Quick add subject",
+                      ),
+                    ],
                   ),
           ),
           const SizedBox(width: 16),
@@ -905,7 +1272,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
               child: TextField(
                 controller: row.scoreController,
                 enabled: _canEdit,
-                keyboardType: TextInputType.number,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 textAlign: TextAlign.center,
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: hasScore ? color : kBrandBrown),
                 decoration: InputDecoration(
@@ -919,7 +1286,16 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: Colors.grey.shade200)),
                   focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: color, width: 1.5)),
                 ),
-                onChanged: (_) => setState(() {}),
+                onChanged: (v) {
+                  if (v.isNotEmpty) {
+                    final val = double.tryParse(v);
+                    if (val != null && val > 100) {
+                      row.scoreController.text = "100";
+                      row.scoreController.selection = TextSelection.fromPosition(const TextPosition(offset: 3));
+                    }
+                  }
+                  setState(() {});
+                },
               ),
             ),
           ),
@@ -1064,28 +1440,87 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
     String Function(T)? itemLabel,
   }) {
     final bool isVerySmall = MediaQuery.of(context).size.width < 500;
-    // If it's Term or Semester selection, filter out recorded ones
+    
+    // Logic for Term/Semester filtering and sequence enforcement
     List<T> filteredItems = items;
+    bool isLocked = false;
+    String lockReason = "";
+
+    if (label.contains("Class")) {
+      if (_selectedStudent == null) {
+        isLocked = true;
+        lockReason = "Select Scholar first";
+        filteredItems = [];
+      } else {
+        filteredItems = items.where((item) => _isClassUnlocked(item as String)).toList();
+      }
+    }
+
     if (label.contains("Term") || label.contains("Semester")) {
-      filteredItems = items.where((item) => !_recordedPeriods.contains(item as String)).toList();
+      if (!isUniversity && _selectedClass == null) {
+        isLocked = true;
+        lockReason = "Select Class first";
+        filteredItems = [];
+      } else {
+        // Find which periods are already recorded
+        final targetClass = !isUniversity ? _selectedClass : _selectedClass;
+        final List<String> recorded = (_resultsByClass[targetClass] ?? []);
+        final List<String> failures = (_failuresByClass[targetClass] ?? []);
+
+        // --- ENFORCEMENT LOGIC ---
+        final List<String> available = [];
+        
+        if (!isUniversity) {
+          // Secondary: Term 1 -> Term 2 -> Term 3
+          if (!recorded.contains("Term 1") || failures.contains("Term 1")) {
+            available.add("Term 1");
+          } else if (!recorded.contains("Term 2") || failures.contains("Term 2")) {
+            available.add("Term 2");
+          } else if (!recorded.contains("Term 3") || failures.contains("Term 3")) {
+            available.add("Term 3");
+          } else {
+            isLocked = true;
+            lockReason = "All terms recorded";
+          }
+        } else {
+          // University: Semester 1 -> Semester 2
+          if (!recorded.contains("Semester 1") || failures.contains("Semester 1")) {
+            available.add("Semester 1");
+          } else if (!recorded.contains("Semester 2") || failures.contains("Semester 2")) {
+            available.add("Semester 2");
+          } else {
+            isLocked = true;
+            lockReason = "All semesters recorded";
+          }
+        }
+        filteredItems = available.cast<T>();
+      }
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(fontSize: isVerySmall ? 11 : 12, fontWeight: FontWeight.bold, color: kBrandBrown)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: TextStyle(fontSize: isVerySmall ? 11 : 12, fontWeight: FontWeight.bold, color: kBrandBrown)),
+            if (isLocked)
+              Text(lockReason.toUpperCase(), style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: Colors.orange)),
+          ],
+        ),
         const SizedBox(height: 6),
         Container(
           height: 40,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: Colors.grey.shade50,
+            color: isLocked ? Colors.grey.shade100 : Colors.grey.shade50,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: Colors.grey.shade200),
           ),
           child: DropdownButton<T>(
             value: filteredItems.contains(value) ? value : null,
             isExpanded: true,
+            disabledHint: Text(isLocked ? lockReason : "Select...", style: TextStyle(fontSize: isVerySmall ? 12 : 13, color: Colors.grey)),
             hint: Text("Select...", style: TextStyle(fontSize: isVerySmall ? 12 : 13)),
             underline: const SizedBox(),
             icon: const Icon(Icons.arrow_drop_down, size: 20),
@@ -1093,7 +1528,7 @@ class _EnterResultsComponentState extends State<EnterResultsComponent> {
               value: e, 
               child: Text(itemLabel != null ? itemLabel(e) : e.toString(), style: TextStyle(fontSize: isVerySmall ? 12 : 13), overflow: TextOverflow.ellipsis)
             )).toList(),
-            onChanged: onChanged,
+            onChanged: isLocked ? null : onChanged,
           ),
         ),
       ],

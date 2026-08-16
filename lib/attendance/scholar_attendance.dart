@@ -71,7 +71,14 @@ class ScholarAttendanceComponent extends StatefulWidget {
   final SchoolType? forcedSchoolType;
   final AttendanceModuleType? forcedModuleType;
   final VoidCallback? onBack;
-  const ScholarAttendanceComponent({super.key, this.forcedSchoolType, this.forcedModuleType, this.onBack});
+  final bool showBackButton;
+  const ScholarAttendanceComponent({
+    super.key,
+    this.forcedSchoolType,
+    this.forcedModuleType,
+    this.onBack,
+    this.showBackButton = true,
+  });
 
   @override
   State<ScholarAttendanceComponent> createState() => _ScholarAttendanceComponentState();
@@ -84,6 +91,8 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   Map<String, dynamic>? _selectedSchool;
   DateTime _selectedDate = DateTime.now();
   bool _isFieldOfficer = false;
+  bool _canRecord = false;
+  String? _officerDistrict;
 
   String _selectedYear = DateTime.now().year.toString();
   int _selectedMonth = DateTime.now().month;
@@ -98,6 +107,17 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   bool _isLoadingScholars = false;
   List<Map<String, dynamic>> _registeredSchools = [];
 
+  List<AttendanceModuleType> get _moduleOptions {
+    if (widget.forcedModuleType != null) {
+      return [widget.forcedModuleType!];
+    }
+    if (_schoolType == SchoolType.university) {
+      return [AttendanceModuleType.chats];
+    } else {
+      return [AttendanceModuleType.chats, AttendanceModuleType.classAttendance];
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -105,6 +125,14 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
     _moduleType = widget.forcedModuleType ?? AttendanceModuleType.chats;
     
     _selectedPeriod = _schoolType == SchoolType.university ? kSemesters.first : kTerms.first;
+
+    // Auto-calculate week, month and year
+    final now = DateTime.now();
+    _selectedDate = now;
+    _selectedMonth = now.month;
+    _selectedYear = now.year.toString();
+    _selectedWeek = ((now.day - 1) / 7).floor() + 1;
+
     _fetchSchools();
     _checkRole();
   }
@@ -113,10 +141,16 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
     try {
       final res = await ApiService.getAccountProfile();
       if (res.statusCode == 200) {
-        final role = (res.data['data']['role_name'] ?? '').toString().toLowerCase();
+        final data = res.data['data'];
+        final role = (data['role_name'] ?? '').toString().toLowerCase();
         if (mounted) {
           setState(() {
-            _isFieldOfficer = role.contains('field') || role.contains('admin') || role.contains('manager');
+            _isFieldOfficer = role.contains('field');
+            _canRecord = _isFieldOfficer || role.contains('admin') || role.contains('manager') || role.contains('director') || role.contains('coordinator');
+            _officerDistrict = data['assignedDistrict'] ?? data['district'];
+            if (_isFieldOfficer) {
+              _schoolType = SchoolType.secondary; // Force secondary for Field Officers
+            }
           });
         }
       }
@@ -151,11 +185,21 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   List<Map<String, dynamic>> get _schoolOptions {
     final filtered = _registeredSchools.where((s) {
       final level = (s['level'] ?? '').toString().toLowerCase();
+      final district = (s['district'] ?? '').toString();
+
+      bool matchesLevel = false;
       if (_schoolType == SchoolType.secondary) {
-        return level.contains('secondary') || level.contains('high');
+        matchesLevel = level.contains('secondary') || level.contains('high');
       } else {
-        return level.contains('university') || level.contains('tertiary');
+        matchesLevel = level.contains('university') || level.contains('tertiary');
       }
+
+      bool matchesDistrict = true;
+      if (_isFieldOfficer && _officerDistrict != null) {
+        matchesDistrict = district == _officerDistrict;
+      }
+
+      return matchesLevel && matchesDistrict;
     }).toList();
     filtered.sort((a, b) => (a['name'] ?? '').compareTo(b['name'] ?? ''));
     return filtered;
@@ -267,6 +311,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildPortalHeader(isMobile),
+          _buildConfigBar(isMobile),
           Expanded(
             child: SingleChildScrollView(
               padding: EdgeInsets.all(isMobile ? 12 : 32),
@@ -276,11 +321,6 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _sectionPortalLabel("Session configuration", Icons.settings_input_composite_rounded),
-                      const SizedBox(height: 16),
-                      _buildPortalConfigPanel(isMobile),
-                      const SizedBox(height: 40),
-                      
                       if (_isLoadingScholars)
                         const Center(child: Padding(padding: EdgeInsets.all(100), child: CircularProgressIndicator(color: kBrandOlive)))
                       else if (_entries.isNotEmpty) ...[
@@ -321,19 +361,21 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
       ),
       child: Row(
         children: [
-          IconButton(
-            onPressed: widget.onBack ?? () {
-              if (Navigator.canPop(context)) {
-                Navigator.pop(context);
-              } else {
-                Navigator.pushReplacementNamed(context, '/home');
-              }
-            },
-            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-          const SizedBox(width: 16),
+          if (widget.showBackButton) ...[
+            IconButton(
+              onPressed: widget.onBack ?? () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
+              },
+              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 16),
+          ],
           Expanded(
             child: Text(
               _isFieldOfficer ? "Session Telemetry" : "Attendance Audit",
@@ -343,14 +385,15 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
                 color: const Color(0xFF4C3C32), 
                 letterSpacing: -0.2
               ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-          if (_entries.isNotEmpty && _isFieldOfficer)
+          if (_entries.isNotEmpty && _canRecord)
             IconButton(
               onPressed: () => setState(() {
                 for (var e in _entries) e.status = AttendanceStatus.present;
               }),
-              icon: Icon(Icons.done_all_rounded, color: Color(0xFF9AB334), size: 24),
+              icon: Icon(Icons.done_all_rounded, color: const Color(0xFF9AB334), size: isVerySmall ? 20 : 24),
               tooltip: "Mark All Present",
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
@@ -365,13 +408,28 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
                 _locationController.clear();
               });
             },
-            icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: 22),
+            icon: Icon(Icons.refresh_rounded, color: kBrandOlive, size: isVerySmall ? 18 : 22),
             tooltip: "Reset",
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildConfigBar(bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade100)),
+      ),
+      padding: EdgeInsets.symmetric(
+        horizontal: isVerySmall ? 12 : (isMobile ? 16 : 32),
+        vertical: isVerySmall ? 8 : 12
+      ),
+      child: _buildPortalConfigPanel(isMobile),
     );
   }
 
@@ -393,13 +451,23 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
     );
   }
 
+  Widget _portalSelectionLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(text.toUpperCase(), 
+        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey.shade400, letterSpacing: 1.0)),
+    );
+  }
+
   Widget _buildPortalConfigPanel(bool isMobile) {
     return isMobile ? _buildMobileConfig() : _buildDesktopConfig();
   }
 
   Widget _buildMobileConfig() {
-    final bool isVerySmall = MediaQuery.of(context).size.width < 400;
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
+    final bool isExtremeSmall = MediaQuery.of(context).size.width < 400;
     final periods = _schoolType == SchoolType.university ? kSemesters : kTerms;
+
     return Column(
       children: [
         _portalDropdown("Institution", _selectedSchool, _schoolOptions, (v) {
@@ -408,8 +476,18 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
             _loadRegister();
           });
         }),
-        const SizedBox(height: 12),
-        if (isVerySmall) ...[
+        SizedBox(height: isVerySmall ? 12 : 16),
+        if (widget.forcedModuleType == null) ...[
+          _portalDropdown<AttendanceModuleType>(
+            "Attendance Type",
+            _moduleType,
+            _moduleOptions,
+            (v) => setState(() => _moduleType = v!),
+            itemLabel: (v) => v.label,
+          ),
+          SizedBox(height: isVerySmall ? 12 : 16),
+        ],
+        if (isExtremeSmall) ...[
           _portalDropdown("Cycle", _selectedYear, academicYearOptions(), (v) => setState(() => _selectedYear = v!)),
           const SizedBox(height: 12),
           _portalDropdown("Period", _selectedPeriod, periods, (v) => setState(() => _selectedPeriod = v!)),
@@ -421,7 +499,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
               Expanded(child: _portalDropdown("Period", _selectedPeriod, periods, (v) => setState(() => _selectedPeriod = v!))),
             ],
           ),
-        const SizedBox(height: 12),
+        SizedBox(height: isVerySmall ? 12 : 16),
         _portalDatePickerField(),
       ],
     );
@@ -442,11 +520,23 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
                 });
               }),
             ),
-            const SizedBox(width: 24),
+            if (widget.forcedModuleType == null) ...[
+              const SizedBox(width: 20),
+              Expanded(
+                child: _portalDropdown<AttendanceModuleType>(
+                  "Attendance Type",
+                  _moduleType,
+                  _moduleOptions,
+                  (v) => setState(() => _moduleType = v!),
+                  itemLabel: (v) => v.label,
+                ),
+              ),
+            ],
+            const SizedBox(width: 20),
             Expanded(
               child: _portalDropdown("Academic Cycle", _selectedYear, academicYearOptions(), (v) => setState(() => _selectedYear = v!)),
             ),
-            const SizedBox(width: 24),
+            const SizedBox(width: 20),
             Expanded(
               child: _portalDropdown("Period / Term", _selectedPeriod, periods, (v) => setState(() => _selectedPeriod = v!)),
             ),
@@ -470,7 +560,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
                   children: [
                     const Icon(Icons.info_outline_rounded, size: 16, color: Colors.grey),
                     const SizedBox(width: 12),
-                    Text("Telemetry Log: ${DateFormat('MMMM').format(DateTime(2026, _selectedMonth))} | Week $_selectedWeek",
+                    Text("Telemetry Log: ${DateFormat('MMMM').format(DateTime(int.parse(_selectedYear), _selectedMonth))} | Week $_selectedWeek",
                       style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Color(0xFF4C3C32))),
                   ],
                 ),
@@ -484,11 +574,13 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   }
 
   Widget _buildPortalLogisticsPanel(bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
+
     return Column(
       children: [
         if (isMobile) ...[
           _portalTextField(_facilitatorController, "Session Facilitator", Icons.person_pin_rounded),
-          const SizedBox(height: 24),
+          SizedBox(height: isVerySmall ? 16 : 24),
           _portalTextField(_locationController, "Venue / Location", Icons.place_rounded),
         ] else
           Row(
@@ -503,77 +595,98 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   }
 
   Widget _buildPortalAttendanceTable() {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
+
     return Container(
       width: double.infinity,
+      margin: EdgeInsets.symmetric(vertical: isVerySmall ? 0 : 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
+        borderRadius: isVerySmall ? BorderRadius.zero : BorderRadius.circular(20),
+        border: isVerySmall ? null : Border.all(color: const Color(0xFFEEEEEE)),
+        boxShadow: isVerySmall ? null : [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+            padding: EdgeInsets.symmetric(horizontal: isVerySmall ? 16 : 32, vertical: isVerySmall ? 16 : 24),
             color: const Color(0xFFF9FAFB),
             child: Row(
               children: [
-                const Text("Nominal roll", 
-                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, color: Colors.grey, letterSpacing: 1.0)),
+                Text(isVerySmall ? "REGISTER" : "Attendance Registry",
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: isVerySmall ? 10 : 12, color: kBrandBrown, letterSpacing: 1.0)),
                 const Spacer(),
-                _countBadge("${_entries.where((e) => e.status == AttendanceStatus.present).length} present", Colors.green),
-                const SizedBox(width: 16),
-                _countBadge("${_entries.where((e) => e.status == AttendanceStatus.absent).length} absent", Colors.red),
+                _countBadge("${_entries.where((e) => e.status == AttendanceStatus.present).length} P", Colors.green),
+                const SizedBox(width: 8),
+                _countBadge("${_entries.where((e) => e.status == AttendanceStatus.absent).length} A", Colors.red),
               ],
             ),
           ),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: DataTable(
-              headingRowHeight: 60,
-              dataRowMaxHeight: 80,
-              horizontalMargin: 32,
-              columnSpacing: 24,
-              columns: [
-                const DataColumn(label: Text("IDENTIFIER", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.grey))),
-                const DataColumn(label: Text("SCHOLAR IDENTITY", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.grey))),
-                const DataColumn(label: Text("TELEMETRY STATUS", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.grey))),
-                const DataColumn(label: Text("FIELD NOTES", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 10, color: Colors.grey))),
-              ],
-              rows: _entries.map((entry) => _buildPortalDataRow(entry)).toList(),
-            ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                  child: DataTable(
+                    headingRowHeight: isVerySmall ? 48 : 64,
+                    dataRowMaxHeight: isVerySmall ? 72 : 88,
+                    horizontalMargin: isVerySmall ? 16 : 32,
+                    columnSpacing: isVerySmall ? 16 : 32,
+                    headingTextStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 9, color: Colors.grey, letterSpacing: 1.2),
+                    columns: const [
+                      DataColumn(label: Text("ID")),
+                      DataColumn(label: Text("SCHOLAR PROFILE")),
+                      DataColumn(label: Text("STATUS")),
+                      DataColumn(label: Text("FIELD NOTES")),
+                    ],
+                    rows: _entries.map((entry) => _buildPortalDataRow(entry, isVerySmall)).toList(),
+                  ),
+                ),
+              );
+            }
           ),
         ],
       ),
     );
   }
 
-  DataRow _buildPortalDataRow(AttendanceEntry entry) {
+  DataRow _buildPortalDataRow(AttendanceEntry entry, bool isVerySmall) {
     return DataRow(
       cells: [
-        DataCell(Text(entry.scholar.scholarId, style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, fontSize: 12))),
+        DataCell(Text(entry.scholar.scholarId,
+          style: TextStyle(fontWeight: FontWeight.w900, color: Colors.grey, fontSize: isVerySmall ? 10 : 12))),
         DataCell(
           Row(
             children: [
               Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFAF2DB),
+                width: isVerySmall ? 32 : 40,
+                height: isVerySmall ? 32 : 40,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFAF2DB),
                   shape: BoxShape.circle,
                 ),
                 alignment: Alignment.center,
-                child: Text(getInitials(entry.scholar.name), style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), fontSize: 12)),
+                child: Text(getInitials(entry.scholar.name),
+                  style: TextStyle(fontWeight: FontWeight.w900, color: const Color(0xFF4C3C32), fontSize: isVerySmall ? 10 : 12)),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: isVerySmall ? 8 : 16),
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(entry.scholar.name.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: Color(0xFF4C3C32), letterSpacing: -0.2)),
-                  Text(entry.scholar.currentClass, style: TextStyle(fontSize: 10, color: Colors.grey.shade400, fontWeight: FontWeight.bold)),
+                  Text(entry.scholar.name.toUpperCase(),
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: isVerySmall ? 11 : 13, color: const Color(0xFF4C3C32), letterSpacing: -0.2)),
+                  Text(entry.scholar.currentClass,
+                    style: TextStyle(fontSize: isVerySmall ? 8 : 10, color: Colors.grey.shade400, fontWeight: FontWeight.bold)),
                 ],
               ),
             ],
@@ -583,7 +696,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
         DataCell(
           TextField(
             onChanged: (v) => entry.note = v,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF4C3C32)),
+            style: TextStyle(fontSize: isVerySmall ? 11 : 13, fontWeight: FontWeight.w600, color: const Color(0xFF4C3C32)),
             decoration: const InputDecoration(
               hintText: "Add remarks...",
               border: InputBorder.none,
@@ -630,7 +743,8 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(fontWeight: FontWeight.w900, fontSize: isVerySmall ? 12 : 13, color: const Color(0xFF4C3C32))),
-                    Text(entry.scholar.scholarId, style: TextStyle(fontSize: isVerySmall ? 9 : 10, color: Colors.grey.shade400, fontWeight: FontWeight.bold)),
+                    Text("${entry.scholar.scholarId} • ${entry.scholar.currentClass}", 
+                      style: TextStyle(fontSize: isVerySmall ? 9 : 10, color: Colors.grey.shade400, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
@@ -664,37 +778,37 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   Widget _buildStatusPicker(AttendanceEntry entry, {bool isMobile = false}) {
     final bool isVerySmall = MediaQuery.of(context).size.width < 400;
     return IgnorePointer(
-      ignoring: !_isFieldOfficer,
+      ignoring: !_canRecord,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: AttendanceStatus.values.map((status) {
           final isSelected = entry.status == status;
           return Expanded(
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: isMobile ? 4 : 4),
+              padding: const EdgeInsets.symmetric(horizontal: 2),
               child: InkWell(
                 onTap: () => setState(() => entry.status = status),
                 borderRadius: BorderRadius.circular(8),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  padding: EdgeInsets.symmetric(vertical: isVerySmall ? 8 : 10),
                   decoration: BoxDecoration(
                     color: isSelected ? status.color : const Color(0xFFF8F9FA),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: isSelected ? status.color : const Color(0xFFEEEEEE),
-                      width: 1.5
+                      width: 1
                     ),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(status.icon, size: 12, color: isSelected ? Colors.white : Colors.grey.shade300),
+                      Icon(status.icon, size: isVerySmall ? 10 : 12, color: isSelected ? Colors.white : Colors.grey.shade300),
                       if (isSelected) ...[
                         const SizedBox(width: 4),
                         Flexible(
                           child: Text(
-                            isVerySmall ? status.label.substring(0, 3).toUpperCase() : status.label.toUpperCase(),
+                            isVerySmall ? status.label.substring(0, 1).toUpperCase() : (isMobile ? status.label.substring(0, 3).toUpperCase() : status.label.toUpperCase()),
                             style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -712,10 +826,46 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   }
 
   Widget _buildPortalPlaceholder(bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
     return Center(
       child: Column(
         children: [
-          const SizedBox(height: 80),
+          const SizedBox(height: 48),
+          if (!_isFieldOfficer && widget.forcedSchoolType == null) ...[
+            _portalSelectionLabel("Select Institutional Level"),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: isMobile ? double.infinity : 400,
+              child: SegmentedButton<SchoolType>(
+                segments: const [
+                  ButtonSegment(value: SchoolType.secondary, label: Text("Secondary"), icon: Icon(Icons.school_outlined, size: 16)),
+                  ButtonSegment(value: SchoolType.university, label: Text("University"), icon: Icon(Icons.account_balance_outlined, size: 16)),
+                ],
+                selected: {_schoolType},
+                onSelectionChanged: (s) => setState(() {
+                  _schoolType = s.first;
+                  _selectedSchool = null;
+                  _entries = [];
+                  if (_schoolType == SchoolType.university) {
+                    _moduleType = AttendanceModuleType.chats;
+                  }
+                }),
+                style: SegmentedButton.styleFrom(
+                  selectedBackgroundColor: kBrandOlive,
+                  selectedForegroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+            ),
+          ] else if (widget.forcedSchoolType != null || _isFieldOfficer) ...[
+             _portalSelectionLabel("Logging for: ${_schoolType == SchoolType.university ? 'University' : 'Secondary'} Scholars"),
+             const SizedBox(height: 8),
+             _compactStaticField(
+               _schoolType == SchoolType.university ? "University Level" : "Secondary School",
+               _schoolType == SchoolType.university ? Icons.account_balance_outlined : Icons.school_rounded
+             ),
+          ],
+          const SizedBox(height: 60),
           Container(
             padding: const EdgeInsets.all(40),
             decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
@@ -730,11 +880,13 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
   }
 
   Widget _buildPortalFixedFooter(bool isMobile) {
+    final bool isVerySmall = MediaQuery.of(context).size.width < 500;
+
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 16 : 40, 
-        vertical: isMobile ? 12 : 20
+        horizontal: isVerySmall ? 16 : (isMobile ? 24 : 40),
+        vertical: isVerySmall ? 12 : 20
       ),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -745,13 +897,14 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
         ? Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                "Audit declaration: Securely synchronize recorded telemetry.",
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 12),
-              if (_isFieldOfficer)
+              if (!isVerySmall)
+                const Text(
+                  "Audit declaration: Securely synchronize recorded telemetry.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w600),
+                ),
+              if (!isVerySmall) const SizedBox(height: 12),
+              if (_canRecord)
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -760,9 +913,9 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
                         ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) 
                         : const Icon(Icons.cloud_upload_rounded, size: 18),
                     label: Text(_isSaving ? "Syncing..." : "Finalize & sync", 
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
+                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: isVerySmall ? 11 : 12, letterSpacing: 0.5)),
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      padding: EdgeInsets.symmetric(vertical: isVerySmall ? 12 : 16),
                       backgroundColor: const Color(0xFF4C3C32),
                       foregroundColor: Colors.white,
                       elevation: 0,
@@ -783,7 +936,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
                 ),
               ),
               const SizedBox(width: 32),
-              if (_isFieldOfficer)
+              if (_canRecord)
                 SizedBox(
                   width: 280,
                   child: ElevatedButton.icon(
@@ -807,7 +960,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
     );
   }
 
-  Widget _portalDropdown<T>(String label, T value, List<T> items, ValueChanged<T?> onChanged) {
+  Widget _portalDropdown<T>(String label, T value, List<T> items, ValueChanged<T?> onChanged, {String Function(T)? itemLabel}) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -826,13 +979,14 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<T>(
-              value: value,
+              value: items.contains(value) ? value : null,
               isExpanded: true,
               dropdownColor: theme.cardColor,
               icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Colors.grey),
               items: items.map((i) {
                 String text = "";
-                if (i is Map) text = i['name'] ?? '';
+                if (itemLabel != null) text = itemLabel(i);
+                else if (i is Map) text = i['name'] ?? '';
                 else text = i.toString();
                 return DropdownMenuItem(value: i, child: Text(text, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white : kBrandBrown)));
               }).toList(),
@@ -896,6 +1050,7 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
               setState(() {
                 _selectedDate = picked;
                 _selectedMonth = picked.month;
+                _selectedYear = picked.year.toString();
                 _selectedWeek = ((picked.day - 1) / 7).floor() + 1;
               });
             }
@@ -919,6 +1074,26 @@ class _ScholarAttendanceComponentState extends State<ScholarAttendanceComponent>
           ),
         ),
       ],
+    );
+  }
+
+  Widget _compactStaticField(String text, IconData icon) {
+    return Container(
+      height: 44,
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF4C3C32).withOpacity(0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF4C3C32).withOpacity(0.1)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: const Color(0xFF4C3C32)),
+          const SizedBox(width: 12),
+          Text(text, style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFF4C3C32), fontSize: 13, letterSpacing: -0.2)),
+        ],
+      ),
     );
   }
 

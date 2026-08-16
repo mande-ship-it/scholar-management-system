@@ -9,6 +9,7 @@ import 'package:syncfusion_flutter_pdf/pdf.dart';
 import 'package:excel/excel.dart' hide Border;
 import 'dart:typed_data';
 import 'scholar_profile.dart';
+import '../academics/performance_analysis.dart';
 
 // Shared validation patterns (kept consistent with Register Scholar).
 final RegExp _kEmailRegex = RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[\w\-]{2,4}$');
@@ -21,21 +22,25 @@ class ViewScholarsComponent extends StatefulWidget {
   final VoidCallback? onBack;
   final VoidCallback? onRegisterScholar;
   final Function(String)? onViewProfile;
+  final Function(String)? onViewAnalysis;
   final VoidCallback? onViewGraduates;
   final String? forcedSchoolType;
   final bool hideUniversity;
   final bool hideRegistration;
   final int initialTabIndex;
+  final bool showBackButton;
   const ViewScholarsComponent({
     super.key,
     this.onBack,
     this.onRegisterScholar,
     this.onViewProfile,
+    this.onViewAnalysis,
     this.onViewGraduates,
     this.forcedSchoolType,
     this.hideUniversity = false,
     this.hideRegistration = false,
     this.initialTabIndex = 0,
+    this.showBackButton = true,
   });
 
   @override
@@ -67,13 +72,18 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
     return ['administrator', 'data officer', 'program coordinator', 'field officer', 'field coordinator', 'field operations', 'operational officer'].contains(currentRole);
   }
 
+  bool get _canDelete {
+    final String currentRole = (PermissionService.userRole ?? _userRole).toLowerCase();
+    return ['administrator', 'program coordinator', 'country director'].contains(currentRole);
+  }
+
   @override
   void initState() {
     super.initState();
     final String currentRole = (PermissionService.userRole ?? 'User').toLowerCase();
     final bool isField = ['field officer', 'field coordinator', 'field operations', 'operational officer'].contains(currentRole);
     _selectedSchoolType = isField ? 'Secondary' : (widget.forcedSchoolType ?? 'All');
-    _tabController = TabController(length: 2, vsync: this, initialIndex: widget.initialTabIndex);
+    _tabController = TabController(length: 3, vsync: this, initialIndex: widget.initialTabIndex);
     _tabController.addListener(() => setState(() {}));
     _fetchUserRole();
     _fetchScholars();
@@ -230,21 +240,19 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
 
   // Filter scholars list based on current user inputs
   List<Map<String, String>> _getFilteredScholars() {
-    final statusFilter = _tabController.index == 0 ? 'Active' : 'Pending';
     final bool lockDistrict = _isFieldOfficer && _assignedDistrict != null && _assignedDistrict != "All Regions";
 
     return _allScholars.where((scholar) {
       // 0. Filter by status based on tab
-      // For University Registry, we might want to see Active or Graduated
-      if (_selectedSchoolType == 'University') {
-        if (_tabController.index == 0) {
-           // Show both Active and Graduated/Awaiting Allocation in the active tab for University
-           if (scholar['status'] != 'Active' && scholar['status'] != 'Graduated' && scholar['status'] != 'Awaiting Allocation') return false;
-        } else {
-           if (scholar['status'] != 'Pending') return false;
-        }
+      if (_tabController.index == 0) {
+        // Active Registry Tab: Only show scholars who are currently 'Active'
+        if (scholar['status'] != 'Active') return false;
+      } else if (_tabController.index == 1) {
+        // Pending Tab
+        if (scholar['status'] != 'Pending') return false;
       } else {
-        if (scholar['status'] != statusFilter) return false;
+        // Alumnae Archive Tab: Show those who finished Secondary (Alumni) or University (Graduated)
+        if (scholar['status'] != 'Alumni' && scholar['status'] != 'Graduated') return false;
       }
 
       // 1. Search by name (case-insensitive text search)
@@ -300,7 +308,6 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
     // Executive Metrics Calculation
     final totalInSelection = filteredScholars.length;
     final activeInSelection = filteredScholars.where((s) => s['status'] == 'Active').length;
-    final movingWell = filteredScholars.where((s) => s['progressionStatus'] == 'Moved').length;
     final atRisk = filteredScholars.where((s) => s['progressionStatus'] == 'Failed' || (int.tryParse(s['yearsRemaining'] ?? '5') ?? 5) <= 1).length;
 
     final availableClasses = _allScholars
@@ -327,6 +334,23 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
         children: [
           _buildPortalIntegratedHeader(isMobile),
           _buildFilterArchitecture(availableSchools, availableClasses, isMobile),
+
+          // Operational Summary Bar
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 32, vertical: 8),
+            color: Colors.white,
+            child: Row(
+              children: [
+                _compactMetric("Total Registered", "$totalInSelection", kBrandBrown),
+                const SizedBox(width: 24),
+                _compactMetric("Active Status", "$activeInSelection", kBrandOlive),
+                const SizedBox(width: 24),
+                _compactMetric("At Risk", "$atRisk", kBrandOrange),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+
           Expanded(
             child: Column(
               children: [
@@ -335,6 +359,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
                   child: TabBarView(
                     controller: _tabController,
                     children: [
+                      _buildRegistrySurface(filteredScholars, isMobile),
                       _buildRegistrySurface(filteredScholars, isMobile),
                       _buildRegistrySurface(filteredScholars, isMobile),
                     ],
@@ -360,19 +385,21 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
       ),
       child: Row(
         children: [
-          IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
-            onPressed: widget.onBack ?? () {
-              if (Navigator.canPop(context)) {
-                Navigator.pop(context);
-              } else {
-                Navigator.pushReplacementNamed(context, '/home');
-              }
-            },
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-          const SizedBox(width: 16),
+          if (widget.showBackButton) ...[
+            IconButton(
+              icon: Icon(Icons.arrow_back_ios_new_rounded, size: 16, color: kBrandBrown),
+              onPressed: widget.onBack ?? () {
+                if (Navigator.canPop(context)) {
+                  Navigator.pop(context);
+                } else {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
+              },
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+            const SizedBox(width: 16),
+          ],
           if (!_isSearchExpanded)
             Expanded(
               child: Text(
@@ -662,6 +689,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
         tabs: [
           Tab(text: "Active Registry", height: isVerySmall ? 40 : 48),
           Tab(text: "Pending Approval", height: isVerySmall ? 40 : 48),
+          Tab(text: "Alumnae Archive", height: isVerySmall ? 40 : 48),
         ],
       ),
     );
@@ -691,7 +719,9 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
 
   Widget _buildScholarCard(Map<String, String> s, bool isMobile) {
     final bool isVerySmall = MediaQuery.of(context).size.width < 500;
-    final isActive = s['status'] == 'Active';
+    final String rawStatus = s['status'] ?? 'Active';
+    final isActive = rawStatus == 'Active';
+    final isAlumni = rawStatus == 'Alumni' || rawStatus == 'Graduated';
     final remaining = int.tryParse(s['yearsRemaining'] ?? '0') ?? 0;
 
     return Container(
@@ -701,7 +731,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
         border: Border.all(color: const Color(0xFFEEEEEE)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withOpacity(0.015),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -712,6 +742,9 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () => _showScholarProfileDialog(context, s),
+          onLongPress: () {
+            _showScholarContextMenu(context, s);
+          },
           child: Padding(
             padding: EdgeInsets.all(isVerySmall ? 12 : 20),
             child: isVerySmall 
@@ -746,7 +779,7 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
                             ],
                           ),
                         ),
-                        _statusBadge(isActive, s['status']!, true),
+                        _statusBadge(isActive, rawStatus, true),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -761,8 +794,8 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          "$remaining yrs",
-                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: Colors.grey.shade400),
+                          isAlumni ? "COMPLETED" : "$remaining yrs",
+                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: isAlumni ? kBrandOlive : Colors.grey.shade400, letterSpacing: 0.5),
                         ),
                       ],
                     ),
@@ -834,11 +867,11 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        _statusBadge(isActive, s['status']!, false),
+                        _statusBadge(isActive, rawStatus, false),
                         const SizedBox(height: 8),
                         Text(
-                          "$remaining yrs remaining",
-                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: Colors.grey.shade400),
+                          isAlumni ? "PROGRAM COMPLETED" : "$remaining YRS REMAINING",
+                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: isAlumni ? kBrandOlive : Colors.grey.shade400, letterSpacing: 0.5),
                         ),
                       ],
                     ),
@@ -926,7 +959,20 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
           Row(
             children: [
               IconButton(icon: const Icon(Icons.person_search_outlined, size: 18), onPressed: () => _showScholarProfileDialog(context, s), tooltip: "Quick View"),
+              IconButton(
+                icon: const Icon(Icons.insights_rounded, size: 18, color: Colors.blue),
+                onPressed: () {
+                  if (widget.onViewAnalysis != null) {
+                    widget.onViewAnalysis!(s['id']!);
+                  } else {
+                    _showScholarContextMenu(context, s); // Fallback to menu if direct push not configured
+                  }
+                },
+                tooltip: "Deep Analytics"
+              ),
               IconButton(icon: const Icon(Icons.edit_outlined, size: 18), onPressed: () => showEditScholarDialog(context, s).then((_) => _fetchScholars())),
+              if (_canDelete)
+                IconButton(icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red), onPressed: () => _deleteScholar(s)),
             ],
           ),
         ),
@@ -948,6 +994,124 @@ class _ViewScholarsComponentState extends State<ViewScholarsComponent> with Sing
           color: color,
           fontSize: 9,
           fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _deleteScholar(Map<String, String> s) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Delete Scholar", style: TextStyle(fontWeight: FontWeight.bold, color: kBrandBrown)),
+        content: Text("Are you sure you want to permanently delete ${s['name']}? This will also remove all their academic records, attendance, and documents. This action cannot be undone."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text("Delete Permanently"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      setState(() => _isLoading = true);
+      try {
+        final res = await ApiService.deleteScholar(s['id']!);
+        if (res.statusCode == 200) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Scholar and associated data deleted."), backgroundColor: Colors.red),
+          );
+          _fetchScholars();
+        } else {
+           ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(res.data['message'] ?? "Deletion failed.")),
+          );
+        }
+      } catch (e) {
+        debugPrint('Delete error: $e');
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _showScholarContextMenu(BuildContext context, Map<String, String> s) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) => Container(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(s['name']!.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: kBrandBrown)),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.person_outline_rounded, color: kBrandOlive),
+              title: const Text("View Profile", style: TextStyle(fontWeight: FontWeight.bold)),
+              onTap: () {
+                Navigator.pop(context);
+                _showScholarProfileDialog(context, s);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.insights_rounded, color: Colors.blue),
+              title: const Text("Performance Analysis", style: TextStyle(fontWeight: FontWeight.bold)),
+              onTap: () {
+                Navigator.pop(context);
+                if (widget.onViewAnalysis != null) {
+                  widget.onViewAnalysis!(s['id']!);
+                } else {
+                  showGeneralDialog(
+                    context: context,
+                    barrierDismissible: true,
+                    barrierLabel: "Analysis",
+                    barrierColor: Colors.black.withOpacity(0.5),
+                    transitionDuration: const Duration(milliseconds: 220),
+                    pageBuilder: (ctx, anim1, anim2) => const SizedBox.shrink(),
+                    transitionBuilder: (ctx, anim, secondaryAnim, child) {
+                      return FadeTransition(
+                        opacity: anim,
+                        child: Dialog(
+                          backgroundColor: Colors.transparent,
+                          insetPadding: const EdgeInsets.all(24),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Scaffold(
+                              body: PerformanceAnalysisComponent(
+                                scholarId: s['id'],
+                                onBack: () => Navigator.pop(ctx),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit_outlined, color: Colors.grey),
+              title: const Text("Modify Record", style: TextStyle(fontWeight: FontWeight.bold)),
+              onTap: () {
+                Navigator.pop(context);
+                showEditScholarDialog(context, s).then((_) => _fetchScholars());
+              },
+            ),
+            if (_canDelete)
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: Colors.red),
+                title: const Text("Delete Scholar", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+                onTap: () {
+                  Navigator.pop(context);
+                  _deleteScholar(s);
+                },
+              ),
+          ],
         ),
       ),
     );
