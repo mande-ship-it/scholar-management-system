@@ -1,1 +1,0 @@
- C:\\Users\\Edward\\Music\\project\\scholar_management_system\\.dart_tool\\flutter_build\\d564c5913d85ede6c92960653685bc7d\\native_assets.json: 
